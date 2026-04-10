@@ -1,0 +1,14 @@
+# Desktop-first stack
+PySide6>=6.7
+ollama>=0.3.0
+llama-index-core>=0.11.0
+langgraph>=0.2.0
+sqlite-utils>=3.36
+typing-extensions>=4.12
+
+# Transitional services (kept for compatibility during refactor)
+fastapi>=0.110
+uvicorn>=0.27
+
+# Testing
+pytest>=8.0.0

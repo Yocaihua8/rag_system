@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual env
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/build/
+
+# Runtime outputs
+runtime/**
+!runtime/.gitkeep
+
+# Data outputs / caches
+data/**
+!data/.gitkeep
+logs/
+cache/
+temp/
+tmp/
+uploads/
+vector_store/
+vectorstore/
+
+# Python test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Misc
+*.log
+*.tmp
+*.bak
+*~

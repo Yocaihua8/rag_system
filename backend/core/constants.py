@@ -1,0 +1,1 @@
+DEFAULT_OLLAMA_MODEL = "qwen2.5:7b"
