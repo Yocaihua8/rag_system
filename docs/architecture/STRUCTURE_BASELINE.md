@@ -1,45 +1,75 @@
-# 结构性收口基线（2026-04）
+# 结构基线（2026-04，v2）
 
-本文档用于明确当前代码库重构后的主路径边界，避免继续混线开发。
+> **状态**：Active
+> **取代**：旧版 STRUCTURE_BASELINE（2026-04 初版，记录三分法迁移状态）
+> **主文档**：见 `SYSTEM_ARCHITECTURE.md`
+
+---
 
 ## 1. 主路径（Active）
 
-当前主路径采用目录级分层：
+新架构采用 **`src/` 统一源码根**，按职责分五层：
 
-- `desktop/`：桌面壳（入口 + 启动 + UI）
-- `backend/app/`：业务模块与应用服务
-- `backend/core/`：系统核心能力（配置/日志/异常/生命周期）
-- `backend/infra/`：基础设施适配（storage/model）
-- `desktop/main.py`：桌面统一入口
+```
+src/
+├── config/       配置层（最先加载，仅 stdlib）
+├── domain/       纯业务逻辑层（零 I/O，零 Qt）
+├── ports/        抽象接口层（只依赖 domain）
+├── adapters/     具体实现层（SQLite / Ollama / ChromaDB）
+├── application/  用例编排层（组合 ports，无 Qt）
+└── desktop/      Qt 表现层（仅依赖 application）
+```
 
-### 主调用方向
+**主调用方向（严格单向）：**
 
-`desktop -> backend.app -> backend.infra`
+```
+config ← domain ← ports ← adapters
+                        ← application ← desktop
+```
 
-## 2. 遗留路径（Legacy, 冻结）
+**唯一入口：**
 
-以下目录仅用于历史参考与迁移对照：
+```powershell
+py -3 app.py
+```
 
-- `archive/legacy-20260407/desktop-api/`
-- `frontend/`（本轮未做内部重构）
+---
+
+## 2. 非业务目录
+
+| 路径 | 状态 | 说明 |
+|------|------|------|
+| `frontend/` | 遗留 Web 前端，未维护 | 保留归档，不参与新架构 |
+| `archive/` | 冻结历史代码 | 只读参考 |
+| `scripts/` | 运维辅助脚本 | 全部已更新，使用 `src/` 路径 |
+| `data/` | 示例数据 | 仅供开发测试 |
+
+> `backend/` 和 `desktop/` 旧目录已于 2026-04-16 清理删除。
+
+---
 
 ## 3. 新增代码约束
 
-1. 新增桌面功能进入 `desktop/app` 与 `desktop/ui`。
-2. 新增业务模块进入 `backend/app/modules`。
-3. 新增基础设施适配进入 `backend/infra`。
-4. 禁止新增 `backend/platform`、`desktop/qt` 路径。
+1. 新增业务模型进入 `src/domain/models/`
+2. 新增纯函数逻辑进入 `src/domain/services/`
+3. 新增接口契约进入 `src/ports/`
+4. 新增存储/模型适配进入 `src/adapters/`
+5. 新增业务用例进入 `src/application/`
+6. 新增 UI 组件进入 `src/desktop/views/` 或 `src/desktop/controllers/`
+7. **禁止** 在 `src/domain/` 中 import 任何第三方 I/O 库
+8. **禁止** 在 `src/application/` 中直接 import adapter 类（仅 `container.py` 例外）
+9. **禁止** 在 Qt 主线程中执行 LLM 调用、Embedding、文件 I/O
 
-## 4. 运行入口
+---
 
-推荐统一入口：
+## 4. 关键新增组件（v2 相比旧架构）
 
-```powershell
-py -3 desktop\main.py
-```
-
-后端模块导入检查：
-
-```powershell
-py -3 -c "import backend.app.main"
-```
+| 组件 | 路径 | 说明 |
+|------|------|------|
+| IEmbedder | `src/ports/embedder.py` | Embedding 接口 |
+| IVectorStore | `src/ports/vector_store.py` | 向量存储接口 |
+| OllamaEmbedder | `src/adapters/embedding/ollama_embedder.py` | nomic-embed-text |
+| ChromaVectorStore | `src/adapters/vector_store/chroma_store.py` | 本地向量库 |
+| VectorRetriever | `src/adapters/retrieval/vector_retriever.py` | 语义检索 |
+| AppContainer | `src/application/container.py` | 依赖组装根 |
+| BaseWorker | `src/desktop/workers/base_worker.py` | QThread 基础 |
