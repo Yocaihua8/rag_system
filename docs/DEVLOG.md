@@ -1,0 +1,914 @@
+# 开发日志
+
+记录每次代码变更的内容、原因和影响，与 Git commit 对应。
+
+---
+
+## 2026-05-11 | B-36~B-37 — 项目知识点模型与提炼用例（完成）
+
+### 目标
+
+完成项目知识库助手的后端第一段能力：持久化项目知识点，并从已入库项目文档中用确定性规则提炼可追溯的知识点。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `src/domain/models/project_knowledge.py` | 新增 `ProjectKnowledgePoint` 模型，记录来源文件、证据片段和置信度 |
+| 新增 | `src/ports/project_knowledge_store.py` | 新增 `IProjectKnowledgeStore` 持久化接口 |
+| 更新 | `src/adapters/storage/db.py` | 新增 `project_knowledge_points` 表和按工作区、类型查询的索引 |
+| 新增 | `src/adapters/storage/sqlite_project_knowledge_store.py` | 新增 SQLite 项目知识点存储实现 |
+| 更新 | `src/application/container.py` | 将项目知识点存储接入 `AppContainer` |
+| 新增 | `src/application/project_analysis_usecases.py` | 新增 `ProjectAnalysisUseCase`，从已存储文档中规则式提炼知识点 |
+| 更新 | `tests/test_domain/test_models.py` | 覆盖项目知识点模型创建和序列化 |
+| 更新 | `tests/test_adapters/test_storage.py` | 覆盖 SQLite 存储、计数、清空和工作区级联删除 |
+| 新增 | `tests/test_application/test_project_analysis_usecases.py` | 覆盖容器接线、提炼规则、重复分析替换旧结果和工作区不存在错误 |
+
+### 关键行为
+
+- `ProjectKnowledgePoint` 保留知识点名称、类型、摘要、来源文件、证据片段和置信度。
+- `IProjectKnowledgeStore` 与 SQLite 实现支持按工作区批量保存、查询、删除和计数。
+- `project_knowledge_points` 表通过 `workspace_id` 关联工作区，并补充工作区索引和工作区加类型索引。
+- `AppContainer` 已暴露 `project_knowledge_store`，供应用用例复用。
+- `ProjectAnalysisUseCase` 从已存储的 `Document` 记录中提炼知识点，不直接扫描文件系统。
+- 提炼范围覆盖技术栈关键词、配置文件名、测试目录或测试文件线索、Markdown 流程类标题。
+- 当前是规则式粗提炼，不是精确依赖分析。
+- 去重按当前文档遍历顺序保留第一条证据。
+
+### 测试结果
+
+```text
+.venv\Scripts\python.exe -m pytest tests\test_domain tests\test_adapters\test_storage.py tests\test_application\test_project_analysis_usecases.py tests\test_application\test_ingestion_usecases.py -v
+```
+
+结果：57 passed。
+
+### 未涉及
+
+- 未调用 LLM。
+- 未实现自动出题。
+- 未实现回答评分。
+- 未实现能力差距报告。
+- 未新增 UI 展示。
+
+---
+
+## 2026-05-11 | B-32~B-35 — 项目知识库界面骨架（完成）
+
+### 目标
+
+完成项目知识库助手第一阶段骨架：产品定位文档、主导航、首次使用指引和掌握评估页面占位。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `README.md` | 产品定位从 Career Assistant 调整为项目知识库助手 |
+| 更新 | `docs/architecture/SYSTEM_ARCHITECTURE.md` | 更新产品定位和第一版主线 |
+| 更新 | `docs/architecture/RAG_PIPELINE.md` | 补充项目知识库与掌握评估扩展链路 |
+| 更新 | `src/desktop/views/main_window.py` | 主导航调整为项目问答 / 我的项目 / 知识库 / 掌握评估 / 设置 |
+| 更新 | `src/desktop/views/query_view.py` | 页面文案调整为项目问答，并增加开始评估入口 |
+| 更新 | `src/desktop/views/guide_view.py` | 首次使用指引改为导入项目 / 建立索引 / 开始使用三步 |
+| 新增 | `src/desktop/views/assessment_view.py` | 新增掌握评估页面占位 |
+| 新增 | `tests/test_desktop/test_project_knowledge_ui.py` | 增加 UI 文案和页面导入测试 |
+
+### 测试结果
+
+```text
+.venv\Scripts\python.exe -m pytest tests\test_desktop\test_project_knowledge_ui.py -v
+.venv\Scripts\python.exe -m pytest tests\test_application tests\test_domain tests\test_adapters -v
+git diff --check -- 本次改动文件
+```
+
+全量 `git diff --check` 仍受任务外既有文档尾随空格影响，失败文件为
+`docs/architecture/ARCHITECTURE_ENTERPRISE_BASELINE.md` 与
+`docs/architecture/STRUCTURE_BASELINE.md`，本次未扩大清理范围。
+
+### 未涉及
+
+- 未新增数据库表。
+- 未实现自动出题。
+- 未实现回答评估和能力差距报告。
+- 简历、JD 匹配、面试脚本仍保留为后续输出能力。
+
+---
+
+## 2026-05-11 | 项目知识库助手方向设计（文档）
+
+### 目标
+
+将项目主线从 Career Assistant / 简历助手调整为“项目知识库助手”。第一版不拆 Web 前端，继续基于现有 PySide6 桌面端，优先完成代码项目导入、项目问答、掌握评估和能力差距报告闭环。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `docs/superpowers/specs/2026-05-11-project-knowledge-base-design.md` | 定义产品定位、界面文案、主界面布局、项目导入、知识点提炼、自动出题、掌握评估、知识库辅助管理和分阶段落地 |
+| 更新 | `docs/BACKLOG.md` | 新增 B-32~B-42，作为项目知识库助手方向的后续实现队列 |
+| 更新 | `docs/DEVLOG.md` | 记录本次设计决策和文档范围 |
+
+### 关键决策
+
+- UI 不直接使用“第二大脑”词语，对外统一为“项目知识库 / 项目问答 / 掌握评估 / 能力差距”。
+- 主体验采用 Codex 聊天式项目问答，辅助区参考 SAS 后台式知识库，用于追踪项目状态、文件、知识点和题库。
+- 简历、JD 匹配、面试脚本降级为后续输出工具，不作为第一版主导航核心。
+- 第一版掌握评估采用自动出题：系统围绕项目知识点生成题目，用户回答后输出掌握情况和建议阅读文件。
+- AI 评估必须保留来源、参考要点和判断原因，避免黑盒结论。
+
+### 未涉及
+
+- 未修改业务代码。
+- 未新增数据库表。
+- 未调整 PySide6 页面。
+- 未执行测试；本次为设计和计划文档更新。
+
+---
+
+## 2026-04-18 | P1–P7 — 代码质量优化（完成）
+
+### 目标
+
+修复分析阶段识别的 7 处 Bug / UX 缺陷 / 功能缺失，并补充测试覆盖。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 重写 | `src/desktop/views/generation_view.py` | P1：`on_failed` 将错误写入输出框；P2：`_active_output` 追踪避免遍历逻辑；P4：按钮点击时校验必填项，空值弹出 `QMessageBox.warning` |
+| 修复 | `src/application/generation_usecases.py` | P3：三个用例均在空检索时提前返回 `⚠️` 警告，不再将空 context 发给 LLM |
+| 修复 | `src/desktop/views/settings_view.py` | P5：新增 `QDoubleSpinBox`（温度 0.0–2.0）和 `QSpinBox`（最大 Token 256–8192）并加载/保存 |
+| 修复 | `src/application/settings_usecases.py` | P5：新增 `save_llm_temperature` / `save_llm_max_tokens` 两个方法 |
+| 修复 | `src/desktop/views/main_window.py` | P5：`_on_settings_save` 中增加数值型字段的保存逻辑（独立判断，0.0 也合法） |
+| 新增 | `tests/test_application/test_generation_usecases.py` | P6：覆盖三个生成用例正常路径 + P3 空检索保护，共 9 个测试 |
+| 新增 | `tests/test_application/test_settings_usecases.py` | P7：settings 读写往返测试（含 P5 新字段），共 17 个测试；用 `monkeypatch` 隔离 `_app_data_dir` |
+
+### Bug 详情
+
+**P1（🔴）** `generation_view.on_failed` 原实现仅恢复按钮，用户看不到任何错误信息。
+→ 现在将 `❌ 生成失败：{error}` 写入活跃输出框。
+
+**P2（🔴）** `on_finished/on_progress` 通过扫描三个输出框的第一个空框来判断目标，
+多标签快速点击时会写错框。→ 用 `self._active_output: Optional[QTextEdit]` 在点击时记录，
+`on_*` 直接写入，完成后置 `None`。
+
+**P3（🟠）** 检索结果为空时将空字符串 context 发给 LLM 导致幻觉输出。
+→ 三个用例在 `if not result.chunks` 时立即返回 `sources_used=0` 的警告结果。
+
+**P4（🟠）** 用户点击生成按钮时若未填写关键词或项目名称，信号会被 emit 但 LLM 收到空提示。
+→ 每个点击槽先校验，不通过则弹出 `QMessageBox.warning` 并 return。
+
+**P5（🟡）** 设置页缺少 LLM 温度和最大 Token 控制，用户无法通过 UI 调节。
+→ UI + UseCase + MainWindow 三层全部打通，温度和 Token 数可在设置页持久化。
+
+### 测试结果
+
+```
+98 passed in 1.31s（含新增 26 个测试：9 generation + 17 settings）
+```
+
+---
+
+## 2026-04-18 | B-13 — Crimson × Gold 主题（完成）
+
+### 目标
+
+将 Codex 蓝色主题替换为「红黑渐变 + 金色点缀」主题，同时修复设计系统审计发现的全部 hardcoded 颜色值。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 重写 | `src/desktop/style.py` | 全新 Crimson × Gold 色板；新增 `BTN_PRIMARY_*` / `SPACE_*` / `QRadioButton` 样式；侧边栏 `qlineargradient` 渐变 |
+| 修复 | `src/desktop/views/query_view.py` | 9 处 hardcoded hex → token；CTA 按钮改用 `primary="true"` 属性；标签改用 `secondary="true"` 属性 |
+| 修复 | `src/desktop/views/workspace_view.py` | `#4493f8` → `ACCENT`；导入 style tokens |
+| 修复 | `src/desktop/views/ingestion_view.py` | `color: gray` → `secondary="true"` 属性；`font-weight: bold` → `title="true"` 属性 |
+| 修复 | `src/desktop/views/generation_view.py` | 页面标题改用 `title="true"` 属性 |
+
+### 色板变化
+
+| Token | 旧值（Codex 蓝） | 新值（Crimson × Gold） |
+|-------|----------------|----------------------|
+| `BG_PRIMARY` | `#0f1117` | `#0e0b0b` |
+| `BG_SECONDARY` | `#161b22` | `#160d0d` |
+| `BG_SELECTED` | `#1e2a3a` | `#2e1a0e` |
+| `ACCENT` | `#4493f8`（蓝） | `#c9a84c`（金）|
+| `TEXT_PRIMARY` | `#e6edf3`（冷白） | `#f0e6dc`（暖白）|
+| `BORDER` | `#30363d` | `#3a2020` |
+
+### 新增 token
+
+```python
+BTN_PRIMARY_BG      = "#5c1a1a"   # CTA 按钮背景
+BTN_PRIMARY_HOVER   = "#7a2020"
+BTN_PRIMARY_PRESSED = "#3e1010"
+SPACE_XS / SM / MD / LG / XL     # 8px 网格间距常量
+```
+
+---
+
+## 2026-04-18 | B-12 — 使用流程简化（完成）
+
+### 目标
+
+将原来需要 6 步的新用户启动流程压缩到 3 步，消除页面跳转摩擦感。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 重写 | `src/desktop/views/workspace_view.py` | 状态指示符；▶索引快捷按钮；创建对话框「目录→名称自动填写」；emit Workspace 对象 |
+| 重写 | `src/desktop/views/query_view.py` | 三态设计（空/未索引/就绪）；未索引态内联「立即建立索引」按钮 |
+| 重写 | `src/desktop/views/main_window.py` | 导航 5→4 项（指引改为 ？ 帮助弹窗）；默认落地页改为问答；创建工作区后自动触发索引；索引完成后刷新列表状态 |
+
+### 流程对比
+
+| | 旧流程 | 新流程 |
+|---|--------|--------|
+| 步骤数 | 6 步 | 3 步 |
+| 落地页 | 知识库索引（空页） | 问答（友好空状态） |
+| 建立索引 | 需要手动跳转页面 + 点按钮 | 创建工作区后自动触发 |
+| 工作区名称 | 手动填写 | 从所选目录名自动填写 |
+| 指引入口 | 主导航第 5 项 | 侧边栏底部 ？按钮弹窗 |
+
+### 关键设计决策
+
+- `workspace_selected` 信号改为 emit `Workspace` 对象（不只是 ID），使问答页能直接判断索引状态
+- `QueryView` 用 `QStackedWidget` 管理三种状态，每种状态对应独立 UI 片段
+- `_on_workspace_created` 在创建后自动调 `ingest_ctrl.start()`，无需用户切换页面
+
+---
+
+## 2026-04-17 | B-02 — README 重写（完成）
+
+### 目标
+
+将完全过时的 README（仍引用已删除的 `backend/`、`desktop/`、`frontend/`、`archive/` 目录）替换为反映当前六边形架构的完整文档。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 重写 | `README.md` |
+
+### 内容覆盖
+
+- 功能概览表
+- 安装步骤（venv + pip）
+- Ollama 配置（serve + 模型拉取命令）
+- 云端 API 配置（DeepSeek / OpenAI / 通义 / Kimi 参数表）
+- API Key 三级安全策略说明
+- 完整项目目录树（含每层说明）
+- 架构原则（六边形 / 唯一组装点 / frozen 模型 / Qt 线程隔离）
+- 测试运行命令
+- 开发文档索引
+
+---
+
+## 2026-04-17 | B-01 — 自动化测试套件（完成）
+
+### 目标
+
+建立零网络依赖的 pytest 测试基础，覆盖 domain / adapter / application 三层，为后续重构提供安全网。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `tests/__init__.py` |
+| 新建 | `tests/conftest.py` |
+| 新建 | `tests/test_domain/__init__.py` |
+| 新建 | `tests/test_domain/test_models.py` |
+| 新建 | `tests/test_adapters/__init__.py` |
+| 新建 | `tests/test_adapters/test_storage.py` |
+| 新建 | `tests/test_application/__init__.py` |
+| 新建 | `tests/test_application/test_workspace_usecases.py` |
+| 新建 | `tests/test_application/test_ingestion_usecases.py` |
+| 新建 | `tests/test_application/test_query_usecases.py` |
+| 修改 | `src/adapters/storage/sqlite_workspace_store.py` — `INSERT OR REPLACE` 修复 upsert 语义 |
+
+### 测试结构
+
+```
+tests/
+├── conftest.py                    # session 级 fixtures：AppContainer.build_for_testing()
+├── test_domain/
+│   └── test_models.py             # Document / Chunk / Workspace / Task / ConversationRecord / Errors
+├── test_adapters/
+│   └── test_storage.py            # 全部 5 个 SQLite Store + 级联删除
+└── test_application/
+    ├── test_workspace_usecases.py # WorkspaceUseCases CRUD
+    ├── test_ingestion_usecases.py # 摄入流程：正常 / 空目录 / 重建索引 / 进度事件
+    └── test_query_usecases.py     # execute / execute_streaming / get_history / _build_prompt
+```
+
+### 设计决策
+
+- `AppContainer.build_for_testing()` 使用 `:memory:` SQLite + `DummyEmbedder` + `KeywordRetriever` + `_FakeLLM`，全程无网络 / 无文件残留
+- `conftest.py` 中 `container` fixture 每个测试独立实例化，数据完全隔离
+- `_FakeLLM.generate()` 固定返回 `[test answer]`，`stream()` yield 同一字符串，使 LLM 行为确定性可断言
+- `ConversationStore` 受 FK 约束（`workspace_id` → `workspaces`），测试须先建 workspace
+
+### 结果
+
+```
+72 passed in 0.85s
+```
+
+---
+
+## 2026-04-15 | Step 1 — 配置层（src/config/）
+
+### 目标
+
+消灭 `backend/app/config.py` 中硬编码的 `F:\PersonalRAG` 路径，建立唯一、可测试的配置入口。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/__init__.py` |
+| 新建 | `src/config/__init__.py` |
+| 新建 | `src/config/defaults.py` |
+| 新建 | `src/config/settings.py` |
+| 新建 | `src/config/paths.py` |
+| 新建 | `.env.example` |
+
+### 设计决策
+
+- `AppSettings` 使用 `@dataclass(frozen=True)`，构造后不可变，可安全跨线程传递
+- `load_settings()` 按优先级合并：OS 环境变量 > appdata/.env > 项目根 .env > defaults.py
+- 不引入 `python-dotenv` 外部依赖，使用标准库手动解析 .env（保持 config 层零第三方依赖）
+- `kb_root` 默认指向用户主目录下的 `CareerAssistantKB`，不依赖特定盘符
+
+### 解决的 Bug
+
+- **P0**：`backend/app/config.py:4` `DATA_ROOT = Path(r"F:\PersonalRAG")` 在无 F: 盘机器上崩溃
+
+### 验证结果
+
+```
+kb_root       : C:\Users\...\CareerAssistantKB   ✅ 无硬编码盘符
+ollama_model  : qwen2.5:7b                        ✅ 默认值生效
+chunk_size    : 512                               ✅ int 转换正确
+override_env  : 传入覆盖字典后立即生效             ✅ 测试友好
+frozen        : FrozenInstanceError               ✅ 不可变，线程安全
+save_setting  : 持久化写入 appdata/.env           ✅ 格式正确
+```
+
+### 未涉及
+
+- 旧 `backend/app/config.py` 尚未删除（等 Step 4 存储层迁移完成后一并清理）
+
+---
+
+## 2026-04-15 | Step 2 — 领域模型层（src/domain/）
+
+### 目标
+
+建立项目的核心数据模型，全部使用 `frozen=True` dataclass，零 I/O，零第三方依赖。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/domain/__init__.py` |
+| 新建 | `src/domain/errors.py` |
+| 新建 | `src/domain/models/__init__.py` |
+| 新建 | `src/domain/models/document.py` |
+| 新建 | `src/domain/models/chunk.py` |
+| 新建 | `src/domain/models/workspace.py` |
+| 新建 | `src/domain/models/task.py` |
+| 新建 | `src/domain/models/conversation.py` |
+
+### 设计决策
+
+- 所有模型 `frozen=True`：不可变，可安全跨 QThread 传递，无需加锁
+- `Document` 不再内置 `from_path()` classmethod（移至 Step 10 的 `tagger` 领域服务）
+- `Task` 使用枚举类型 `TaskStatus` / `TaskKind`，避免散落的魔法字符串
+- `id` 字段统一用 `uuid4()` 生成，不依赖数据库自增
+
+### 验证结果
+
+```
+Document / Chunk / Workspace / Task / ConversationRecord  ✅ 全部可构建
+frozen=True                                               ✅ FrozenInstanceError
+Task.update() / Workspace.with_index_stats()              ✅ 返回新实例
+TaskStatus / TaskKind 枚举                                ✅ .value 序列化正常
+NotFoundError / IndexNotReadyError                        ✅ 异常层级正确
+```
+
+### 未涉及
+
+- 领域服务（chunker / tagger / jd_analyzer）在 Step 10 用例层实现时一并加入
+
+---
+
+## 2026-04-15 | Step 3 — Port 接口层（src/ports/）
+
+### 目标
+
+定义所有抽象接口契约，确保 adapters 与 application 层通过接口而非具体实现耦合。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/ports/__init__.py` |
+| 新建 | `src/ports/embedder.py`（IEmbedder）|
+| 新建 | `src/ports/vector_store.py`（IVectorStore）|
+| 新建 | `src/ports/retriever.py`（IRetriever + RetrievalQuery/Result）|
+| 新建 | `src/ports/llm_client.py`（ILLMClient + LLMRequest/Response）|
+| 新建 | `src/ports/document_store.py`（IDocumentStore）|
+| 新建 | `src/ports/chunk_store.py`（IChunkStore）|
+| 新建 | `src/ports/task_store.py`（ITaskStore）|
+| 新建 | `src/ports/workspace_store.py`（IWorkspaceStore）|
+| 新建 | `src/ports/conversation_store.py`（IConversationStore）|
+
+### 设计决策
+
+- 全部使用 `ABC` + `@abstractmethod`，无法直接实例化
+- `IEmbedder.dimension` 为 `@property @abstractmethod`，强制实现声明维度
+- `IVectorStore.search()` 支持 `domain` 过滤参数，为生成类用例（只检索 resume 域）提供性能优化空间
+- `ILLMClient.stream()` 返回 `Iterator[str]`，配合 Qt Worker 的 `token_received` 信号实现流式输出
+
+### 验证结果
+
+```
+9 个接口全部为 ABC（无法直接实例化）  ✅
+RetrievalQuery / LLMRequest 冻结数据类  ✅
+```
+
+---
+
+## 2026-04-15 | Step 4 — 存储适配层（src/adapters/storage/）
+
+### 目标
+
+实现所有 SQLite Port 接口，消灭旧 `backend/infra/storage/db/sqlite.py` 中 `PROJECT_ROOT` 硬编码。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/adapters/__init__.py` |
+| 新建 | `src/adapters/storage/__init__.py` |
+| 新建 | `src/adapters/storage/db.py`（连接工厂 + Schema DDL）|
+| 新建 | `src/adapters/storage/sqlite_workspace_store.py` |
+| 新建 | `src/adapters/storage/sqlite_document_store.py` |
+| 新建 | `src/adapters/storage/sqlite_chunk_store.py` |
+| 新建 | `src/adapters/storage/sqlite_task_store.py` |
+| 新建 | `src/adapters/storage/sqlite_conversation_store.py` |
+
+### 设计决策
+
+- `create_connection(db_path: Path)` 接收路径参数，不持有任何全局状态
+- `init_schema()` 幂等：`CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`
+- `row_factory = sqlite3.Row`：允许按列名访问，无需位置索引
+- `FOREIGN KEY ... ON DELETE CASCADE`：删除工作区自动清理关联文档、分块、对话
+- tags 字段用 JSON 字符串存储（`json.dumps`），避免引入额外依赖
+- `INSERT OR REPLACE` 实现 upsert 语义，重建索引时无需先删再插
+
+### 验证结果
+
+```
+Workspace CRUD（含 update 索引状态）  ✅
+Document batch save / exists          ✅
+Chunk batch save / count              ✅
+Task create / update status           ✅
+Conversation save / list_recent       ✅
+级联删除（DELETE workspace → 清空子表）✅
+```
+
+---
+
+## 2026-04-16 | Steps 5-10 — Adapters + Application 层
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/adapters/llm/ollama_adapter.py`（OllamaAdapter）|
+| 新建 | `src/adapters/embedding/ollama_embedder.py`（OllamaEmbedder + DummyEmbedder）|
+| 新建 | `src/adapters/vector_store/chroma_store.py`（ChromaVectorStore）|
+| 新建 | `src/adapters/vector_store/numpy_store.py`（NumpyVectorStore，零依赖备选）|
+| 新建 | `src/adapters/retrieval/vector_retriever.py`（VectorRetriever）|
+| 新建 | `src/adapters/retrieval/keyword_retriever.py`（KeywordRetriever，降级）|
+| 新建 | `src/application/container.py`（AppContainer，唯一组装点）|
+| 新建 | `src/application/workspace_usecases.py` |
+| 新建 | `src/application/ingestion_usecases.py`（含分块 + 标签推断）|
+| 新建 | `src/application/query_usecases.py`（阻塞 + 流式）|
+| 新建 | `src/application/generation_usecases.py`（简历 / JD / 面试）|
+| 新建 | `src/application/task_usecases.py` |
+| 新建 | `src/application/settings_usecases.py` |
+| 安装 | `ollama`, `chromadb`, `numpy` |
+
+### 设计决策
+
+- `AppContainer.build_for_testing()` 提供零网络依赖的测试工厂（内存 SQLite + DummyEmbedder + KeywordRetriever + FakeLLM）
+- `IngestWorkspaceUseCase.execute()` 为生成器，yield `IngestProgress`，调用方（Worker）驱动迭代并转发进度信号
+- `QueryKnowledgeBaseUseCase` 同时支持 `execute()`（阻塞）和 `execute_streaming()`（流式，传入 `on_token` 回调）
+- `ChromaVectorStore` cosine distance [0,2] 转换为相似度 [0,1]：`score = 1 - dist/2`
+- `KeywordRetriever` 作为 Ollama 不可用时的降级，`retriever_kind=keyword` 时启动自动热载 DB 中的 chunks
+
+### 验证结果
+
+```
+AppContainer.build_for_testing()        ✅
+WorkspaceUseCases CRUD                  ✅
+IngestWorkspaceUseCase（真实文件 I/O）  ✅  1 文件 / 1 片段
+QueryKnowledgeBaseUseCase               ✅  sources=1, history 持久化
+GenerateResumeUseCase                   ✅
+MatchJDUseCase                          ✅
+GenerateInterviewScriptUseCase          ✅
+TaskUseCases                            ✅
+```
+
+---
+
+## 2026-04-16 | Step 11 — Qt Worker 基础设施（src/desktop/workers/）
+
+### 目标
+
+建立 Qt 线程安全基础：所有长时操作在 QThread 中执行，通过 Signal 与主线程通信。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/desktop/__init__.py` |
+| 新建 | `src/desktop/workers/__init__.py` |
+| 新建 | `src/desktop/workers/base_worker.py` |
+| 新建 | `src/desktop/workers/ingest_worker.py` |
+| 新建 | `src/desktop/workers/query_worker.py` |
+| 新建 | `src/desktop/workers/generate_worker.py` |
+
+### 设计决策
+
+- `BaseWorker(QThread)` 统一 try/except，子类只需实现 `_execute()`
+- `QueryWorker` 额外定义 `token_received = Signal(str)` 支持流式输出
+- 所有 Worker 持有 use-case 引用（接口类型），不直接 import adapter
+
+---
+
+## 2026-04-16 | Steps 11-12 — Qt 桌面层（workers / controllers / views）
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/desktop/workers/base_worker.py`（BaseWorker, WorkerResult）|
+| 新建 | `src/desktop/workers/ingest_worker.py` |
+| 新建 | `src/desktop/workers/query_worker.py`（含 token_received Signal）|
+| 新建 | `src/desktop/workers/generate_worker.py` |
+| 新建 | `src/desktop/controllers/workspace_controller.py` |
+| 新建 | `src/desktop/controllers/ingestion_controller.py` |
+| 新建 | `src/desktop/controllers/query_controller.py` |
+| 新建 | `src/desktop/controllers/generation_controller.py` |
+| 新建 | `src/desktop/views/task_status_bar.py` |
+| 新建 | `src/desktop/views/workspace_view.py` |
+| 新建 | `src/desktop/views/ingestion_view.py` |
+| 新建 | `src/desktop/views/query_view.py`（流式打字机显示）|
+| 新建 | `src/desktop/views/generation_view.py`（三标签页）|
+| 新建 | `src/desktop/views/settings_view.py` |
+| 新建 | `src/desktop/views/main_window.py`（完整布局 + 全部 Controller 组装）|
+| 新建 | `src/desktop/bootstrap.py`（启动序列 + 首次运行检测）|
+| 新建 | `app.py`（唯一可执行入口）|
+
+### 设计决策
+
+- `BaseWorker.run()` 统一 try/except，子类只需实现 `_execute()`，异常自动转为 `error_occurred` 信号
+- `QueryWorker` 额外定义 `token_received = Signal(str)`，配合 `execute_streaming(on_token=...)` 实现打字机效果
+- `GenerateWorker` 统一处理三种生成用例，通过鸭子类型不区分具体类
+- `MainWindow.__init__` 接收 `AppContainer`，在 `_wire_controllers()` 中完成所有信号-槽连接
+- `bootstrap.py` 负责首次运行检测（kb_root 不存在时询问创建），Ollama 不可用时给 warning 但不阻断启动
+
+### 验证结果
+
+```
+config / domain / ports / adapters / application 层  ✅ 全部导入成功
+desktop 层（Worker / Controller / View）             ✅ 导入成功（依赖 PySide6）
+app.py 入口                                          ✅ 创建完成
+```
+
+---
+
+## 2026-04-16 | Step 13 — 清理旧代码（backend/ & desktop/）
+
+### 目标
+
+删除迁移前遗留的 `backend/` 和 `desktop/` 旧目录，重写 `scripts/` 脚本以使用新 `src/` 路径，完成架构切割。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 重写 | `scripts/init_storage.py` |
+| 重写 | `scripts/seed_demo_files.py` |
+| 重写 | `scripts/first_run_check.py` |
+| 重写 | `scripts/import_markdown_paths.py` |
+| 重写 | `scripts/migration_gate_check.py` |
+| **删除** | `backend/`（整个目录） |
+| **删除** | `desktop/`（整个目录） |
+| 更新 | `docs/architecture/STRUCTURE_BASELINE.md`（移除遗留目录描述） |
+
+### 脚本迁移对照
+
+| 脚本 | 旧依赖 | 新依赖 |
+|------|--------|--------|
+| `init_storage.py` | `backend.app.config.REQUIRED_DIRS` | `src.config.paths.ensure_runtime_dirs/ensure_kb_dirs` + `src.adapters.storage.db` |
+| `seed_demo_files.py` | `backend.app.config.RAW_PATH` | `src.config.settings.load_settings().kb_root` |
+| `first_run_check.py` | `SettingsService / WorkspaceService / init_runtime_db / startup_checks` | `src.config.settings` + `src.adapters.storage.db` + `ollama` 可用性检查 |
+| `import_markdown_paths.py` | `backend.app.modules.knowledge_base.ingestion.PathImportService` | 内联实现（`shutil.copy2` + `src.config.paths.kb_domain_dir`） |
+| `migration_gate_check.py` | 检查旧 `backend.*` 路径 | 检查新 `src.*` 路径，调用重写后的 `first_run_check` |
+
+### 设计决策
+
+- `import_markdown_paths.py` 不再依赖旧 `PathImportService`，改为内联 `shutil.copy2` 实现，保持脚本自包含
+- `migration_gate_check.py` 的 `REQUIRED_IMPORTS` 列表覆盖新架构全部 31 个关键模块，作为日后重大变更的快速冒烟测试
+- 保留 `frontend/` 和 `archive/` 目录（归档用途，不参与新架构）
+
+### 验证结果
+
+```
+backend/ 已删除    ✅
+desktop/ 已删除    ✅
+scripts/ 全部无旧 backend/desktop 引用  ✅
+STRUCTURE_BASELINE 遗留目录说明已更新   ✅
+```
+
+---
+
+## 2026-04-16 | Step 14 — 彻底清理历史遗留
+
+### 目标
+
+删除所有与新架构无关的历史目录和脚本，确保项目根目录中不存在任何遗留引用。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| **删除** | `archive/legacy-20260407/`（旧 FastAPI + pywebview 方案，功能已全部迁移至 `src/`） |
+| **删除** | `frontend/`（旧 Vite + Vue3 Web 前端，已被 PySide6 Qt 原生 UI 替代） |
+| **删除** | `scripts/gui.py`（旧 Tkinter 启动器，含硬编码 `F:\PersonalRAG`，已被 `app.py` + `MainWindow` 替代） |
+| 重写 | `scripts/check_import_paths.py`（扫描目录从已删除的 `backend/` `desktop/` 改为 `src/` `scripts/`；拦截前缀扩展为完整旧路径列表） |
+
+### 清理后的目录结构
+
+```
+rag_system/
+├── app.py          唯一可执行入口
+├── src/            新架构（六层，100% 完成）
+├── scripts/        运维脚本（全部已适配 src/）
+├── docs/           架构文档 + 开发日志
+├── data/           示例数据占位
+├── ops/            运维框架占位
+└── runtime/        运行时目录（db + vectors）
+```
+
+### 验证结果
+
+```
+check_import_paths.py   ✅ 76 个文件，0 处旧架构引用
+migration_gate_check.py ✅ 31 个 src/ 模块全部导入成功
+                        ⚠️ Ollama 未运行（预期，非问题）
+```
+
+---
+
+## 2026-04-16 | Step 15 — 端到端启动验证与 Bug 修复
+
+### 目标
+
+首次真实运行 `app.py`，修复静态审查和启动测试中发现的 bug，确认全部依赖就绪。
+
+### Bug 修复
+
+| 文件 | 行 | 问题 | 修复 |
+|------|----|------|------|
+| `src/desktop/views/main_window.py` | 121 | `_build_ui()` 中引用了未定义的局部变量 `container`，应为 `self._container` | 改为 `self._container.settings` |
+
+### 依赖安装
+
+| 包 | 版本 | 说明 |
+|----|------|------|
+| `chromadb` | 1.5.7 | 向量存储依赖，此前未安装 |
+
+### 验证结果
+
+```
+依赖检查（PySide6 / chromadb / ollama / numpy）  ✅ 全部可用
+AppContainer.build()（vector 模式）              ✅ 无异常
+app.py 启动（超时退出）                          ✅ 无 stderr 输出，无崩溃
+信号链静态核查（全部 View / Controller / Worker） ✅ 参数类型匹配
+check_import_paths.py                           ✅ 76 文件 0 违规
+```
+
+### 已建立
+
+- `docs/BACKLOG.md`：记录 B-01 ~ B-08 后续工作项
+
+---
+
+## 2026-04-16 | Step 16 — UI 重设计（Codex 风格）+ 使用指引
+
+### 目标
+
+参考 Codex 桌面端视觉风格重新设计界面：深色主题、低对比度选中态、统一间距；
+同时新增使用指引页，帮助用户快速上手。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 新建 | `src/desktop/style.py`（全局 QSS 样式表） |
+| 新建 | `src/desktop/views/guide_view.py`（使用指引页） |
+| 重写 | `src/desktop/views/main_window.py`（应用样式 + 加入指引导航） |
+
+### 设计决策
+
+**色彩系统（`style.py`）**
+
+| 用途 | 颜色 | 原因 |
+|------|------|------|
+| 主背景 | `#0f1117` | 近黑但不纯黑，减少对比疲劳 |
+| 侧边栏 | `#161b22` | 比主背景亮一级，形成层次感 |
+| 选中背景 | `#1e2a3a` | 低饱和蓝调，不刺眼 |
+| 选中指示 | 左侧 2px `#4493f8` 边框 | 与高亮填充相比视觉噪音更小 |
+| 强调色 | `#4493f8` | 仅用于边框/图标，不大面积填充 |
+
+旧版选中态 `background: #e0e8ff` 替换为 `background: #1e2a3a + 左边框`，减少视觉刺激。
+
+**使用指引（`guide_view.py`）**
+
+- 6 步骤卡片：Ollama 安装 → 创建工作区 → 索引 → 问答 → 生成 → 设置
+- 每张卡片含彩色标签（前提/知识库/问答/生成/设置）
+- 首次启动自动跳转到指引页（通过 `runtime/.guide_shown` 标记文件判断）
+
+**导航栏调整**
+
+- 新增第 5 项导航：`📖 指引`（index = 4）
+- 导航按钮改用 `nav="true"` property，与 QSS 中的专用规则绑定
+- 侧边栏底部增加版本号标注
+
+### 验证结果
+
+```
+src.desktop.style       ✅ 导入成功
+src.desktop.views.guide_view  ✅ 导入成功
+src.desktop.views.main_window ✅ 导入成功
+```
+
+### Backlog 状态更新
+
+- B-09（UI 重设计）→ 已完成
+- B-10（使用指引）→ 已完成
+
+---
+
+## 2026-04-16 | Step 17 — 云端 LLM API 支持（B-11）
+
+### 目标
+
+新增 OpenAI 兼容 API 适配器，支持 DeepSeek / OpenAI / 通义千问 / Kimi 等云端服务；
+设置页提供提供商切换 UI；API Key 支持通过 OS 环境变量注入，无需写入文件。
+
+### 变更文件
+
+| 操作 | 路径 |
+|------|------|
+| 更新 | `src/config/defaults.py`（新增 5 个默认值） |
+| 更新 | `src/config/settings.py`（AppSettings 新增 5 个字段，OS 环境变量扫描扩展） |
+| 新建 | `src/adapters/llm/openai_compat_adapter.py` |
+| 更新 | `src/application/container.py`（LLM + Embed 双路由逻辑） |
+| 更新 | `src/application/settings_usecases.py`（新增 5 个 save 方法） |
+| 重写 | `src/desktop/views/settings_view.py`（提供商分组 + 环境变量感知 UI） |
+| 更新 | `src/desktop/views/main_window.py`（_on_settings_save 处理新字段） |
+| 新建 | `docs/architecture/LLM_PROVIDER_DESIGN.md` |
+| 安装 | `openai` SDK |
+
+### API Key 安全策略（核心设计）
+
+| 来源 | 安全级别 | UI 行为 |
+|------|---------|---------|
+| OS 环境变量 `RAG_LLM_API_KEY` | 最高（内存，不写盘） | 显示绿色「已从环境变量读取」，字段禁用 |
+| `appdata/.env`（UI 填写） | 中（本机明文文件） | 密文输入框，右侧「显示」按钮 |
+| 项目 `.env` | 低（注意 .gitignore） | 同上 |
+
+无论哪种来源，UI 均不回显明文 API Key。
+
+### 新增配置字段
+
+| 字段 | 环境变量 | 默认值 |
+|------|---------|--------|
+| `llm_provider` | `RAG_LLM_PROVIDER` | `"ollama"` |
+| `llm_api_base` | `RAG_LLM_API_BASE` | `"https://api.deepseek.com/v1"` |
+| `llm_api_key` | `RAG_LLM_API_KEY` | `""` |
+| `llm_api_model` | `RAG_LLM_API_MODEL` | `"deepseek-chat"` |
+| `embed_provider` | `RAG_EMBED_PROVIDER` | `"ollama"` |
+
+### 支持的提供商（内置快捷填充）
+
+- DeepSeek：`https://api.deepseek.com/v1`
+- OpenAI：`https://api.openai.com/v1`
+- 通义千问：`https://dashscope.aliyuncs.com/compatible-mode/v1`
+- Kimi（Moonshot）：`https://api.moonshot.cn/v1`
+- 任意 OpenAI 兼容接口（自定义 base_url）
+
+### 验证结果
+
+```
+src.config.settings                      ✅
+src.adapters.llm.openai_compat_adapter   ✅
+src.application.container                ✅
+src.application.settings_usecases        ✅
+src.desktop.views.settings_view          ✅
+src.desktop.views.main_window            ✅
+```
+
+---
+
+---
+
+## 2026-05-02 | B-14~B-19, B-04 — 功能完善与性能优化（P0+P1）
+
+### 目标
+
+修复项目分析中识别的 7 处关键缺陷，涵盖工程化缺失、核心逻辑 Bug、性能瓶颈和检索质量。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新建 | `requirements.txt` | 核心依赖清单（PySide6 / ollama / chromadb / numpy / openai / jieba）|
+| 新建 | `requirements-dev.txt` | 开发依赖（pytest）|
+| 更新 | `docs/BACKLOG.md` | 新增 B-14~B-31 共 18 个工作项 |
+| **重写** | `src/application/ingestion_usecases.py` | B-15: `force_reindex` 增量索引；B-17: Markdown 结构感知分块；B-04: `IngestProgress` 增加 `stage`/`elapsed_ms` 字段 |
+| 更新 | `src/ports/document_store.py` | B-15: 新增 `delete(document_id)` 抽象方法 |
+| 更新 | `src/adapters/storage/sqlite_document_store.py` | B-15: 实现 `delete()`，利用 ON DELETE CASCADE 清理关联 chunks |
+| **重写** | `src/adapters/retrieval/keyword_retriever.py` | B-16: `_tokenize` 升级为 jieba + bigram 中文分词；懒加载 jieba |
+| **重写** | `src/adapters/embedding/ollama_embedder.py` | B-18: `embed_batch` 使用 `ThreadPoolExecutor` 并行（默认 3 线程）；每线程独立 `ollama.Client` |
+| 更新 | `src/ports/chunk_store.py` | B-19: 新增 `list_by_ids(chunk_ids)` 批量加载接口 |
+| 更新 | `src/adapters/storage/sqlite_chunk_store.py` | B-19: 实现 `list_by_ids`，单次 SQL `IN (...)` 查询替代 N 次 `get()` |
+| **重写** | `src/adapters/retrieval/vector_retriever.py` | B-19: `search()` 批量加载 chunk + 新增 tag 过滤支持 |
+| 更新 | `src/desktop/workers/ingest_worker.py` | B-04: 新增 `progress_detailed` Signal（含 stage / elapsed_ms）|
+
+### 关键设计决策
+
+#### B-15: 增量索引
+
+- `force_reindex=True` → 全量重建（清空 → 扫描 → 索引入库）
+- `force_reindex=False` → 增量：比较 `existing_docs[source_path].content`，跳过未变更文件
+- 内容变更时先 `delete()` 旧文档（级联删除 chunks），再插入新文档
+- 增量模式从 DB 重新加载全部 chunks 重建 retriever 索引（保证一致性）
+
+#### B-16: 中文分词
+
+- 优先使用 `jieba`（可选依赖，pip install jieba）
+- 未安装时自动降级为 bigram（连续双字切分：「架构设计」→ "架构"/"构设"/"设计"）
+- 过滤纯数字 token 和单字符
+
+#### B-17: Markdown 结构感知分块
+
+- `_extract_md_sections()` 按 `##` 标题切分段落组
+- 短段落组（≤ chunk_size）→ 独立 chunk
+- 长段落组 → 内部滑窗切分，每个子块前附标题上下文
+- 无标题的纯文本 → 回退传统滑窗
+
+#### B-18: Embedding 并行
+
+- `ThreadPoolExecutor` 默认 3 workers（Ollama 嵌入是 I/O+CPU 混合）
+- 小批量（≤2）回退串行，避免线程开销大于收益
+- 每线程独立创建 `ollama.Client`，避免 httpx 连接池冲突
+
+#### B-19: VectorRetriever N+1 修复
+
+- 原来每个 result 调用 `chunk_store.get()` → N+1 查询
+- 现在 `list_by_ids(all_ids)` → 一次 SQL `WHERE id IN (...)` 查询
+- 同时修复了 VectorRetriever 不支持 tag 过滤的问题
+- `list_by_ids` 限流 500 防止 SQL 过长
+
+#### B-04: 进度信号细化
+
+- `IngestProgress` 新增 `stage: str`（scan/process/embed/store/done）和 `elapsed_ms: int`
+- `_run()` 内部使用 `_p()` 闭包自动计算耗时
+- `IngestWorker` 新增 `progress_detailed` Signal（向后兼容，旧 `progress_updated` 保留）
+
+### 测试结果
+
+```
+98 passed in 1.14s ✅  零回归
+```
+
+### 代码审查发现（已入 Backlog）
+
+| # | 问题 |
+|---|------|
+| B-26 | `import time` 应在模块顶层而非函数体内 |
+| B-27 | 错误分支 `IngestProgress` 未传 `stage` 参数 |
+| B-28 | `list_by_ids` 返回类型应标注 `list[Chunk]` |
+| B-29 | 增量索引对 Vector 模式需重新嵌入全量 — 待增加 `remove_by_document()` |
+| B-30 | 极短 Markdown section 应合并避免碎片化 |
+| B-31 | 新功能待补充专项测试 |
+
+<!-- 新条目追加在下方 -->

@@ -1,23 +1,37 @@
+"""
+init_storage.py — 初始化运行时目录和数据库 Schema。
+
+用法：
+    py -3 scripts/init_storage.py
+"""
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.app.config import REQUIRED_DIRS
+from src.config.settings import load_settings
+from src.config.paths import ensure_runtime_dirs, ensure_kb_dirs
+from src.adapters.storage.db import create_connection, init_schema
 
 
 def main() -> None:
-    created = 0
-    for path in REQUIRED_DIRS:
-        if not path.exists():
-            path.mkdir(parents=True, exist_ok=True)
-            created += 1
-            print(f"[CREATE] {path}")
-        else:
-            print(f"[EXISTS] {path}")
-    print(f"[DONE] created={created}, checked={len(REQUIRED_DIRS)}")
+    s = load_settings()
+
+    # 创建运行时目录和知识库目录
+    ensure_runtime_dirs(s)
+    ensure_kb_dirs(s)
+    print(f"[OK] 运行时目录: {s.runtime_dir}")
+    print(f"[OK] 知识库根目录: {s.kb_root}")
+
+    # 初始化数据库 Schema
+    conn = create_connection(s.db_path)
+    init_schema(conn)
+    conn.close()
+    print(f"[OK] 数据库初始化完成: {s.db_path}")
+
+    print("\n[DONE] 存储层初始化成功。")
 
 
 if __name__ == "__main__":

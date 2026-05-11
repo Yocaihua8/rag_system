@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
+"""
+seed_demo_files.py — 向知识库根目录写入演示 Markdown 文件。
+
+用法：
+    py -3 scripts/seed_demo_files.py
+"""
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.append(str(PROJECT_ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.app.config import RAW_PATH
+from src.config.settings import load_settings
 
+_s = load_settings()
+_KB = _s.kb_root
 
-SEED_CONTENT = {
-    RAW_PATH / "resume" / "resume_master.md": """# Resume Master
+SEED_CONTENT: dict[Path, str] = {
+    _KB / "resume" / "resume_master.md": """# Resume Master
 
 ## Personal Info
 - Name: <Your Name>
@@ -28,7 +36,7 @@ SEED_CONTENT = {
 ## RAG Summary
 - End-to-end workflow for import, chunking, indexing, retrieval, and answer generation.
 """,
-    RAW_PATH / "resume" / "project_bullets.md": """# Project Bullets
+    _KB / "resume" / "project_bullets.md": """# Project Bullets
 
 ## Business Loop
 - [Role] Python Backend
@@ -79,7 +87,7 @@ SEED_CONTENT = {
   [Updated] 2026-04-05
   [Bullet] Diagnosed path/method/field/response mismatches to speed up frontend-backend integration.
 """,
-    RAW_PATH / "resume" / "project_updates.md": """# Project Updates Log
+    _KB / "resume" / "project_updates.md": """# Project Updates Log
 
 ## Entry Template
 - Date:
@@ -105,7 +113,7 @@ SEED_CONTENT = {
 - Validation: Directory init, seed files, and demo generation executed.
 - Tags: python, fastapi, draft, export
 """,
-    RAW_PATH / "jds" / "jd_library.md": """# JD Library
+    _KB / "jds" / "jd_library.md": """# JD Library
 
 ## JD Template
 - Job Title:
@@ -124,7 +132,7 @@ SEED_CONTENT = {
   3. Collaborate with frontend for end-to-end feature delivery.
 - Match Notes: Highlight import/build/query flow, retrieval quality, and integration debugging.
 """,
-    RAW_PATH / "notes" / "notes_overview.md": """# RAG Notes Overview
+    _KB / "notes" / "notes_overview.md": """# RAG Notes Overview
 
 ## Background
 - Improve personal knowledge retrieval quality and local desktop experience.
@@ -134,10 +142,9 @@ SEED_CONTENT = {
 - Chunking and Index Build
 - Retrieval and Query
 - Draft / Export
-- FastAPI + pywebview integration
 
 ## Stack
-- Python, FastAPI, SQLite, Vue3, pywebview
+- Python, PySide6, SQLite, ChromaDB, Ollama
 
 ## Current Stage
 - Core workflow ready; integration and stability are improving.
@@ -159,9 +166,10 @@ def main() -> None:
         if not path.exists():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
-            print("[CREATE] {0}".format(path))
+            print(f"[CREATE] {path}")
         else:
-            print("[SKIP] {0}".format(path))
+            print(f"[SKIP]   {path}")
+    print("\n[DONE] 演示文件写入完成。")
 
 
 if __name__ == "__main__":

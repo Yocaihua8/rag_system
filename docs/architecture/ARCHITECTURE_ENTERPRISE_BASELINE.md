@@ -1,50 +1,36 @@
-# 企业化架构基线（阶段 1）
+# 企业化架构基线（阶段 1-2 历史记录）
 
-本文档定义“目录先收口、代码后迁移”的执行标准。
+> **状态**：Superseded（已被取代）
+> **取代文档**：`SYSTEM_ARCHITECTURE.md`（v3.0，2026-04）
+> **保留原因**：记录阶段 1-2 迁移决策，仅供历史参考，不反映当前代码结构
 
-## 1. 当前状态
+---
 
-当前仓库仍存在新旧链路并行：
+## 历史背景
 
-- 主链路：`desktop/qt + backend/core + backend/platform`
-- 遗留链路：`legacy/desktop-api + frontend(web legacy) + app/main(legacy cli)`
+本文档记录了 2026-04 之前完成的两阶段架构迁移：
 
-该状态可运行，但不利于企业化协作和长期维护。
+**阶段 1（已执行）**：创建 `backend / frontend / desktop` 三分法骨架目录。
 
-## 2. 目标分层（三分法）
+**阶段 2（已执行）**：
+- `core → backend/core`
+- `services/platform → backend/platform`
+- `app/qt → desktop/`
+- `desktop/api + routers/services/db/tasks → archive/legacy-20260407/desktop-api/`
 
-目标目录（企业化三分法）：
+**阶段 3（已由 v3.0 架构取代）**：
+- 不再沿用 `backend/` 顶层结构
+- 改为 `src/` 五层架构（config / domain / ports / adapters / application / desktop）
+- 详见 `SYSTEM_ARCHITECTURE.md`
 
-- `backend/`：核心业务与平台适配
-- `frontend/`：Web 前端（Vite + Vue）
-- `desktop/`：桌面端（Qt）
-- `legacy/`：遗留冻结代码
-- `ops/`：发布与运维脚本
-- `docs/`：架构与流程文档
+---
 
-## 3. 阶段策略
+## 当前有效约束
 
-### 阶段 1（已执行）
+以下约束在新架构中依然有效，但表述已更新：
 
-- 创建企业化骨架目录
-- 保留旧路径运行能力
-
-### 阶段 2（已执行）
-
-- 代码迁移：
-  - `core -> backend/core`（已迁移）
-  - `services/platform -> backend/platform`（已迁移）
-  - `app/qt -> desktop/qt`（已迁移）
-  - `desktop/api + routers/services/db/tasks -> legacy/desktop-api`（已迁移）
-
-### 阶段 3（待执行）
-
-- 清理过渡目录与占位目录
-- 统一文档口径与发布清单
-
-## 4. 执行约束
-
-1. 单次迁移只处理一个目录域。
-2. 每次迁移后必须验证启动主链路。
-3. 保留兼容入口直到迁移全部完成。
-4. 不在遗留目录新增业务功能。
+| 旧约束 | 新约束（见 STRUCTURE_BASELINE.md） |
+|--------|----------------------------------|
+| 不在遗留目录新增业务功能 | 不在 `backend/`、`archive/` 新增代码 |
+| 单次迁移只处理一个目录域 | 按实施顺序逐层推进（共 12 步） |
+| 每次迁移后验证主链路 | 每步完成后运行 `scripts/migration_gate_check.py` |

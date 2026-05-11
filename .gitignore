@@ -9,10 +9,12 @@ __pycache__/
 venv/
 env/
 ENV/
+.env
 
 # IDE / OS
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 
@@ -50,4 +52,5 @@ dist/
 *.log
 *.tmp
 *.bak
+test_output.txt
 *~
