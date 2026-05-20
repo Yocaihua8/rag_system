@@ -21,8 +21,8 @@ class QueryView(QWidget):
     """RAG 问答面板：问题输入、流式答案显示、来源列表。
 
     三种显示状态：
-      - empty     : 尚未选择任何工作区（初始状态）
-      - need_index: 已选工作区但未建索引
+      - empty     : 尚未选择任何项目空间（初始状态）
+      - need_index: 已选项目空间但未建索引
       - ready     : 正常问答状态
     """
 
@@ -51,9 +51,9 @@ class QueryView(QWidget):
         # ── 状态层（用 QStackedWidget 切换空/未索引/就绪三种状态） ──
         self._state_stack = QStackedWidget()
 
-        # 状态 0：没有工作区
+        # 状态 0：没有项目空间
         self._state_stack.addWidget(self._make_empty_state())
-        # 状态 1：有工作区但未索引
+        # 状态 1：有项目空间但未索引
         self._state_stack.addWidget(self._make_index_needed_state())
         # 状态 2：正常问答
         self._state_stack.addWidget(self._make_query_state())
@@ -70,7 +70,7 @@ class QueryView(QWidget):
         icon.setAlignment(Qt.AlignCenter)
         lay.addWidget(icon)
 
-        msg = QLabel("还没有工作区\n\n在左侧点击 ＋ 创建工作区，选择包含文档的目录\n创建后将自动建立索引，完成后即可提问")
+        msg = QLabel("还没有项目空间\n\n在左侧点击 ＋ 创建项目空间，选择包含文档的目录\n创建后将自动建立索引，完成后即可提问")
         msg.setAlignment(Qt.AlignCenter)
         msg.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 14px; line-height: 1.6;")
         msg.setWordWrap(True)
@@ -88,7 +88,7 @@ class QueryView(QWidget):
         icon.setAlignment(Qt.AlignCenter)
         lay.addWidget(icon)
 
-        self._index_needed_msg = QLabel("该工作区尚未建立索引")
+        self._index_needed_msg = QLabel("该项目空间尚未建立索引")
         self._index_needed_msg.setAlignment(Qt.AlignCenter)
         self._index_needed_msg.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 14px;")
         lay.addWidget(self._index_needed_msg)
@@ -118,7 +118,7 @@ class QueryView(QWidget):
         self._question_input.setPlaceholderText("围绕当前项目提问，按 Enter 或点击发送...")
         self._question_input.returnPressed.connect(self._submit)
         self._btn_assessment = QPushButton("开始评估")
-        self._btn_assessment.setToolTip("掌握评估将在后续接入自动出题")
+        self._btn_assessment.setToolTip("进入掌握评估，先自动生成题目再提交答案")
         self._btn_assessment.setEnabled(False)
         self._btn_assessment.clicked.connect(self._start_assessment)
         self._btn_send = QPushButton("发送")
@@ -167,7 +167,7 @@ class QueryView(QWidget):
     # ── 由 MainWindow / Controller 调用 ──────────────────────────────────
 
     def set_workspace(self, workspace: Optional[Workspace]) -> None:
-        """切换工作区，根据索引状态显示对应界面。"""
+        """切换项目空间，根据索引状态显示对应界面。"""
         if workspace is None:
             self._workspace_id = ""
             self._btn_assessment.setEnabled(False)
@@ -181,7 +181,7 @@ class QueryView(QWidget):
         else:
             self._btn_assessment.setEnabled(False)
             self._index_needed_msg.setText(
-                f"工作区「{workspace.name}」尚未建立索引"
+                f"项目空间「{workspace.name}」尚未建立索引"
             )
             self._show_state("need_index")
 

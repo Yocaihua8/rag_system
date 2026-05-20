@@ -26,7 +26,7 @@ class IngestionView(QWidget):
         title.setProperty("title", "true")
         layout.addWidget(title)
 
-        self._info_label = QLabel("请先在左侧选择工作区")
+        self._info_label = QLabel("请先在左侧选择项目空间")
         self._info_label.setProperty("secondary", "true")
         layout.addWidget(self._info_label)
 
@@ -56,7 +56,7 @@ class IngestionView(QWidget):
 
     def set_workspace(self, workspace_id: str, name: str) -> None:
         self._workspace_id = workspace_id
-        self._info_label.setText(f"当前工作区：{name}")
+        self._info_label.setText(f"当前项目空间：{name}")
         self._btn_ingest.setEnabled(True)
         self._btn_reindex.setEnabled(True)
         self._log.clear()

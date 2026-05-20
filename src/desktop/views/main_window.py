@@ -5,7 +5,7 @@ MainWindow — 应用主窗口。
 
 简化后的导航（5 项）：项目问答 | 我的项目 | 知识库 | 掌握评估 | 设置
   - 默认落地页：项目问答（而非知识库索引）
-  - 创建工作区后自动触发索引，无需手动跳转
+  - 创建项目空间后自动触发索引，无需手动跳转
   - 使用指引改为侧边栏底部的 ？帮助按钮
 """
 from __future__ import annotations
@@ -21,8 +21,10 @@ from PySide6.QtWidgets import (
 from src.application.container import AppContainer
 from src.application.ingestion_usecases import IngestWorkspaceUseCase
 from src.application.query_usecases import QueryKnowledgeBaseUseCase
+from src.application.knowledge_mastery_usecases import KnowledgeMasteryUseCase
 from src.application.workspace_usecases import WorkspaceUseCases
 from src.application.settings_usecases import SettingsUseCases
+from src.desktop.controllers.assessment_controller import AssessmentController
 from src.desktop.controllers.ingestion_controller import IngestionController
 from src.desktop.controllers.query_controller import QueryController
 from src.desktop.controllers.workspace_controller import WorkspaceController
@@ -57,7 +59,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._container = container
         self._current_workspace: Optional[Workspace] = None
-        self.setWindowTitle("项目知识库助手")
+        self.setWindowTitle("知识岛")
         self.resize(1200, 760)
 
         self.setStyleSheet(get_stylesheet())
@@ -65,7 +67,7 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._wire_controllers()
 
-        # 初始加载工作区列表
+        # 初始加载项目空间列表
         self._ws_controller.load_all()
 
         # 首次启动弹出使用指引（弹窗，不切换页面）
@@ -130,7 +132,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.setContentsMargins(12, 16, 12, 12)
         sidebar_layout.setSpacing(2)
 
-        app_title = QLabel("项目知识库")
+        app_title = QLabel("知识岛")
         app_title.setStyleSheet(f"""
             font-size: 14px; font-weight: 700;
             color: {TEXT_PRIMARY};
@@ -139,7 +141,7 @@ class MainWindow(QMainWindow):
         """)
         sidebar_layout.addWidget(app_title)
 
-        # 工作区面板
+        # 项目空间面板
         self._ws_view = WorkspaceView()
         sidebar_layout.addWidget(self._ws_view)
 
@@ -250,18 +252,18 @@ class MainWindow(QMainWindow):
         self._ws_controller.error_occurred.connect(
             lambda e: self._status_bar.show_message(f"⚠️ {e}")
         )
-        # 创建工作区后：刷新列表，然后自动触发索引
+        # 创建项目空间后：刷新列表，然后自动触发索引
         self._ws_controller.workspace_created.connect(self._on_workspace_created)
 
         # IngestionController
         ingest_uc = IngestWorkspaceUseCase(
             c.workspace_store, c.document_store, c.chunk_store,
-            c.task_store, c.retriever, s,
+            c.task_store, c.retriever, s, c.source_store
         )
         self._ingest_ctrl = IngestionController(ingest_uc, self)
         self._project_view.ingest_requested.connect(self._ingest_ctrl.start)
         self._ingest_view.ingest_requested.connect(self._ingest_ctrl.start)
-        # 工作区面板上的「▶ 索引」按钮也触发索引
+        # 项目空间面板上的「▶ 索引」按钮也触发索引
         self._ws_view.index_requested.connect(
             lambda ws_id: self._ingest_ctrl.start(ws_id, False)
         )
@@ -313,33 +315,71 @@ class MainWindow(QMainWindow):
         )
 
         # AssessmentView
-        self._assessment_view.start_requested.connect(
-            lambda _: self._status_bar.show_message("掌握评估功能将在后续版本接入自动出题")
+        self._assessment_controller = AssessmentController(
+            KnowledgeMasteryUseCase(
+                c.workspace_store,
+                c.mastery_store,
+                c.project_knowledge_store,
+            ),
+            self,
+        )
+        self._assessment_view.start_requested.connect(self._assessment_controller.start)
+        self._assessment_view.answer_submitted.connect(
+            self._assessment_controller.submit_answer
+        )
+        self._assessment_view.follow_up_requested.connect(
+            self._assessment_controller.start_follow_up
+        )
+        self._assessment_view.retry_missed_requested.connect(
+            self._assessment_controller.retry_missed_questions
+        )
+        self._assessment_controller.session_started.connect(
+            lambda session: self._assessment_view.set_session(len(session.questions))
+        )
+        self._assessment_controller.question_loaded.connect(
+            self._assessment_view.show_question
+        )
+        self._assessment_controller.question_evaluated.connect(
+            self._assessment_view.show_question_feedback
+        )
+        self._assessment_controller.assessment_finished.connect(
+            lambda results, mastered, basic, needs_help, report: (
+                self._assessment_view.show_summary(
+                    mastered,
+                    basic,
+                    needs_help,
+                    len(results),
+                ),
+                self._assessment_view.show_gap_report(report),
+            )
+        )
+        self._assessment_controller.assessment_failed.connect(
+            self._assessment_view.show_error
         )
 
         # SettingsView
         self._settings_view.save_requested.connect(self._on_settings_save)
 
-    # ── 工作区事件 ────────────────────────────────────────────────────────
+    # ── 项目空间事件 ──────────────────────────────────────────────────────
 
     def _on_workspace_created(self, ws: Workspace) -> None:
-        """工作区创建后：刷新列表 + 自动触发索引。"""
+        """项目空间创建后：刷新列表 + 自动触发索引。"""
         self._ws_controller.load_all()
         # 自动开始索引——用户不需要手动跳转到知识库页
         self._ingest_ctrl.start(ws.id, False)
         self._status_bar.show_message(f"⚡ 正在为「{ws.name}」建立索引…")
 
     def _on_workspace_selected(self, workspace: Workspace) -> None:
-        """切换工作区，同步给各个功能页。"""
+        """切换项目空间，同步给各个功能页。"""
         self._current_workspace = workspace
         self._query_view.set_workspace(workspace)
         self._project_view.set_workspace(workspace.id, workspace.name)
         self._ingest_view.set_workspace(workspace.id, workspace.name)
         self._assessment_view.set_workspace(workspace.id)
-        self._status_bar.show_message(f"已切换到工作区：{workspace.name}")
+        self._status_bar.show_message(f"已切换到项目空间：{workspace.name}")
 
     def _on_ingest_finished(self, result) -> None:
-        """索引完成后：刷新工作区列表状态，并通知问答页可以使用了。"""
+        """索引完成后：刷新项目空间列表状态，并通知问答页可以使用了。"""
         self._ws_controller.load_all()
         # 如果当前问答页正显示「未索引」状态，切换为就绪
         self._query_view.mark_indexed()

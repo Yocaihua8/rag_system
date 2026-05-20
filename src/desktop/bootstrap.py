@@ -22,8 +22,8 @@ from src.desktop.views.main_window import MainWindow
 
 def run() -> int:
     app = QApplication.instance() or QApplication(sys.argv)
-    app.setApplicationName("Career Assistant")
-    app.setOrganizationName("CareerAssistant")
+    app.setApplicationName("Knowledge Island")
+    app.setOrganizationName("KnowledgeIsland")
 
     # ① 加载配置
     settings = load_settings()

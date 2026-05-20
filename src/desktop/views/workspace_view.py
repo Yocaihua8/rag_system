@@ -15,7 +15,7 @@ from src.domain.models.workspace import Workspace
 
 
 class WorkspaceView(QWidget):
-    """工作区管理面板：列表、新建、删除、快捷索引。"""
+    """项目空间管理面板：列表、新建、删除、快捷索引。"""
 
     # 发出信号通知 Controller
     create_requested  = Signal(str, str)    # (name, root_path)
@@ -33,7 +33,7 @@ class WorkspaceView(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        title = QLabel("工作区")
+        title = QLabel("项目空间")
         title.setStyleSheet("font-size: 13px; font-weight: 600; padding: 4px 0;")
         layout.addWidget(title)
 
@@ -46,16 +46,16 @@ class WorkspaceView(QWidget):
         btn_row.setSpacing(4)
 
         self._btn_create = QPushButton("＋")
-        self._btn_create.setToolTip("新建工作区")
+        self._btn_create.setToolTip("新建项目空间")
         self._btn_create.setFixedWidth(32)
 
         self._btn_index = QPushButton("▶")
-        self._btn_index.setToolTip("索引当前工作区")
+        self._btn_index.setToolTip("索引当前项目空间")
         self._btn_index.setFixedWidth(32)
         self._btn_index.setEnabled(False)
 
         self._btn_delete = QPushButton("✕")
-        self._btn_delete.setToolTip("删除工作区")
+        self._btn_delete.setToolTip("删除项目空间")
         self._btn_delete.setFixedWidth(32)
         self._btn_delete.setEnabled(False)
 
@@ -121,7 +121,7 @@ class WorkspaceView(QWidget):
             return
         reply = QMessageBox.question(
             self, "确认删除",
-            f"删除工作区「{ws.name}」将同时清除其所有文档、片段和对话历史，确定吗？",
+            f"删除项目空间「{ws.name}」将同时清除其所有文档、片段和对话历史，确定吗？",
             QMessageBox.Yes | QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
@@ -140,13 +140,13 @@ def _status_display(ws: Workspace) -> tuple[str, str]:
         return "○", "尚未建立索引"
 
 
-# ── 新建工作区对话框 ──────────────────────────────────────────────────────────
+# ── 新建项目空间对话框 ────────────────────────────────────────────────────────
 
 class _CreateWorkspaceDialog(QDialog):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("新建工作区")
+        self.setWindowTitle("新建项目空间")
         self.setMinimumWidth(420)
         self._build_ui()
 
@@ -165,8 +165,8 @@ class _CreateWorkspaceDialog(QDialog):
         path_row.addWidget(btn_browse)
         layout.addLayout(path_row)
 
-        # 工作区名称（选目录后自动填写，可修改）
-        layout.addWidget(QLabel("工作区名称："))
+        # 项目空间名称（选目录后自动填写，可修改）
+        layout.addWidget(QLabel("项目空间名称："))
         self._name_edit = QLineEdit()
         self._name_edit.setPlaceholderText("例如：2024 求职（从目录名自动填写）")
         layout.addWidget(self._name_edit)
