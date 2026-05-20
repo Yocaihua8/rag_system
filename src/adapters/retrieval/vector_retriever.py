@@ -98,3 +98,6 @@ class VectorRetriever(IRetriever):
 
     def clear(self, workspace_id: str) -> None:
         self._vector_store.delete_by_workspace(workspace_id)
+
+    def remove_by_document(self, document_id: str) -> None:
+        self._vector_store.delete_by_document(document_id)

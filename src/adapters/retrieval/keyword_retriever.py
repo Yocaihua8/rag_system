@@ -112,3 +112,7 @@ class KeywordRetriever(IRetriever):
 
     def clear(self, workspace_id: str) -> None:
         self._index.pop(workspace_id, None)
+
+    def remove_by_document(self, document_id: str) -> None:
+        for ws_id, chunks in list(self._index.items()):
+            self._index[ws_id] = [c for c in chunks if c.document_id != document_id]

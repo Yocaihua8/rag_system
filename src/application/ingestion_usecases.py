@@ -14,24 +14,34 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator, List, Optional, Set
 
+import hashlib
+
 from src.config.settings import AppSettings
 from src.domain.errors import NotFoundError
 from src.domain.models.chunk import Chunk
 from src.domain.models.document import Document
+from src.domain.models.source import Source
+from src.application.markdown_content import markdown_to_plain_text, normalize_document_content
 from src.domain.models.task import Task, TaskKind, TaskStatus
 from src.ports.chunk_store import IChunkStore
 from src.ports.document_store import IDocumentStore
 from src.ports.retriever import IRetriever
 from src.ports.task_store import ITaskStore
+from src.ports.source_store import ISourceStore
 from src.ports.workspace_store import IWorkspaceStore
 
 
 # ── 支持的文件格式 ────────────────────────────────────────────────────────
 SUPPORTED_SUFFIXES: Set[str] = {
-    ".md", ".txt", ".py", ".ts", ".java",
-    ".json", ".yaml", ".yml",
+    ".md", ".markdown", ".txt", ".py", ".ts", ".java",
+    ".json", ".yaml", ".yml", ".pdf", ".docx",
 }
-TEXT_SUFFIXES: Set[str] = {".pdf", ".docx"}   # 需要额外解析器（后续扩展）
+TEXT_SUFFIXES: Set[str] = {
+    ".md", ".markdown", ".txt", ".py", ".ts", ".java",
+    ".json", ".yaml", ".yml",
+}  # 普通文本格式
+TEXT_SOURCE_TYPES: Set[str] = {s.strip(".") for s in TEXT_SUFFIXES}
+MIN_SECTION_LENGTH = 50
 
 # ── 领域推断关键词 ────────────────────────────────────────────────────────
 _DOMAIN_HINTS = {
@@ -82,6 +92,7 @@ class IngestWorkspaceUseCase:
         task_store: ITaskStore,
         retriever: IRetriever,
         settings: AppSettings,
+        source_store: ISourceStore | None = None,
     ) -> None:
         self._workspace_store = workspace_store
         self._document_store = document_store
@@ -89,6 +100,7 @@ class IngestWorkspaceUseCase:
         self._task_store = task_store
         self._retriever = retriever
         self._settings = settings
+        self._source_store = source_store
 
     def execute(
         self,
@@ -170,6 +182,10 @@ class IngestWorkspaceUseCase:
             existing_map: dict[str, Document] = {
                 d.source_path: d for d in existing_docs
             }
+            existing_sources: dict[str, Source | None] = {}
+            if self._source_store:
+                for doc in existing_docs:
+                    existing_sources[doc.source_path] = self._source_store.get_by_document(doc.id)
 
             # 清理磁盘上已删除的旧文档
             deleted_ids: list[str] = []
@@ -177,8 +193,11 @@ class IngestWorkspaceUseCase:
                 if not Path(doc.source_path).exists():
                     deleted_ids.append(doc.id)
             if deleted_ids:
-                # TODO: 待 IDocumentStore 支持按 ID 删除后启用
-                pass
+                for deleted_doc_id in deleted_ids:
+                    self._retriever.remove_by_document(deleted_doc_id)
+                    self._document_store.delete(deleted_doc_id)
+                    if self._source_store:
+                        self._source_store.delete_by_document(deleted_doc_id)
 
             # 筛选出新文件或内容变更的文件
             files_to_process = []
@@ -188,14 +207,22 @@ class IngestWorkspaceUseCase:
                 if key in existing_map:
                     existing_doc = existing_map[key]
                     try:
-                        current_content = fp.read_text(encoding="utf-8", errors="ignore")
+                        source_type = _infer_source_type(fp)
+                        current_content = _extract_source_content(fp, source_type)
                     except Exception:
                         skipped += 1
                         continue
-                    if current_content == existing_doc.content:
+                    checksum = _compute_checksum(current_content)
+                    if self._source_store:
+                        source = existing_sources.get(key)
+                        if source is not None and source.checksum == checksum:
+                            skipped += 1
+                            continue
+                    elif current_content == existing_doc.raw_content:
                         skipped += 1
                         continue
                     # 内容已变更：删除旧文档（级联删除旧 chunks）
+                    self._retriever.remove_by_document(existing_doc.id)
                     self._document_store.delete(existing_doc.id)
                 files_to_process.append(fp)
 
@@ -218,25 +245,56 @@ class IngestWorkspaceUseCase:
         # ③ 逐文件处理
         all_chunks: List[Chunk] = []
         documents: List[Document] = []
+        source_records: List[Source] = []
 
         for i, file_path in enumerate(files_to_process, 1):
             try:
-                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                source_type = _infer_source_type(file_path)
+                content = _extract_source_content(file_path, source_type)
+            except RuntimeError as exc:
+                yield _p(
+                    i,
+                    new_count,
+                    f"[{i}/{new_count}] {file_path.name}（跳过：{exc}）",
+                    stage="process",
+                )
+                continue
             except Exception:
-                yield _p(i, new_count, f"跳过（读取失败）：{file_path.name}", stage="process")
+                yield _p(
+                    i,
+                    new_count,
+                    f"[{i}/{new_count}] {file_path.name}（读取失败）",
+                    stage="process",
+                )
                 continue
 
+            checksum = _compute_checksum(content)
             domain = _infer_domain(file_path, content)
             tags = _build_tags(content)
+            source_type = _infer_source_type(file_path)
+            normalized = normalize_document_content(content, source_type)
             doc = Document.create(
                 workspace_id=ws.id,
                 title=file_path.stem,
                 source_path=str(file_path),
-                content=content,
+                content=normalized.normalized_markdown,
                 domain=domain,
+                source_type=source_type,
+                raw_content=normalized.raw_content,
+                normalized_markdown=normalized.normalized_markdown,
+                plain_text=normalized.plain_text,
+                rendered_html=normalized.rendered_html,
                 tags=tags,
             )
             documents.append(doc)
+            source_records.append(
+                Source.create(
+                    document_id=doc.id,
+                    source_type=source_type,
+                    source_path=str(file_path),
+                    checksum=checksum,
+                )
+            )
             chunks = _split_document(doc, self._settings.chunk_size, self._settings.chunk_overlap)
             all_chunks.extend(chunks)
 
@@ -247,6 +305,9 @@ class IngestWorkspaceUseCase:
             self._document_store.save_batch(documents)
         if all_chunks:
             self._chunk_store.save_batch(all_chunks)
+        if self._source_store:
+            for source in source_records:
+                self._source_store.save(source)
 
         yield _p(new_count, new_count,
                  f"存储完成，开始建立索引（{len(all_chunks)} 个片段）...",
@@ -254,13 +315,11 @@ class IngestWorkspaceUseCase:
 
         # ⑤ 建立检索索引（含 Embedding）
         #  全量模式：all_chunks 已包含所有文件
-        #  增量模式：从 DB 重新加载全部 chunks 以重建索引（清除变更文件的旧条目）
         if force_reindex:
             self._retriever.index(all_chunks)
         else:
-            self._retriever.clear(ws.id)
-            all_db_chunks = self._chunk_store.list_by_workspace(ws.id)
-            self._retriever.index(all_db_chunks)
+            if all_chunks:
+                self._retriever.index(all_chunks)
 
         # ⑥ 更新工作区状态
         ws_updated = ws.with_index_stats("ok", total_files, total)
@@ -299,6 +358,61 @@ def _build_tags(content: str) -> List[str]:
     return tags
 
 
+def _compute_checksum(content: str) -> str:
+    """基于 UTF-8 文本内容计算文件 checksum。"""
+    return hashlib.sha256(content.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def _infer_source_type(file_path: Path) -> str:
+    suffix = file_path.suffix.lower().strip(".")
+    return suffix if suffix else "file"
+
+
+def _extract_source_content(file_path: Path, source_type: str) -> str:
+    if source_type in TEXT_SOURCE_TYPES:
+        return file_path.read_text(encoding="utf-8", errors="ignore")
+
+    if source_type == "pdf":
+        return _extract_pdf_text(file_path)
+
+    if source_type == "docx":
+        return _extract_docx_text(file_path)
+
+    raise RuntimeError(f"不支持的文件类型: {source_type}")
+
+
+def _extract_pdf_text(file_path: Path) -> str:
+    try:
+        import fitz
+    except ImportError as exc:
+        raise RuntimeError("缺少解析依赖 PyMuPDF，请先安装（pip install pymupdf）") from exc
+
+    with fitz.open(file_path) as doc:
+        text = "\n\n".join(
+            (page.get_text() or "").strip() for page in doc
+        ).strip()
+
+    if not text:
+        raise RuntimeError("PDF 未提取到可读文本（可能为扫描件）")
+    return text
+
+
+def _extract_docx_text(file_path: Path) -> str:
+    try:
+        from docx import Document
+    except ImportError as exc:
+        raise RuntimeError("缺少解析依赖 python-docx，请先安装（pip install python-docx）") from exc
+
+    doc = Document(file_path)
+    text = "\n\n".join(
+        (para.text or "").strip() for para in doc.paragraphs if para.text
+    ).strip()
+
+    if not text:
+        raise RuntimeError("Word 文档未提取到可读文本")
+    return text
+
+
 # ── 分块 ─────────────────────────────────────────────────────────────────
 
 # Markdown 标题匹配：## 标题 / ### 子标题
@@ -316,9 +430,20 @@ def _split_document(doc: Document, chunk_size: int, overlap: int) -> List[Chunk]
       4. 段落组 > chunk_size → 内部滑窗切分（保持 overlap），每个子块前附标题
       5. 纯文本（无标题）直接滑窗切分
     """
-    text = doc.content
+    text = doc.normalized_markdown
     if len(text) <= chunk_size:
-        return [Chunk.create(doc.id, doc.workspace_id, text, 0, doc.domain, doc.tags)]
+        return [Chunk.create(
+            doc.id,
+            doc.workspace_id,
+            text,
+            0,
+            doc.domain,
+            doc.tags,
+            project_id=doc.project_id,
+            chunk_markdown=text,
+            chunk_plain_text=doc.plain_text,
+            token_count=_estimate_token_count(doc.plain_text),
+        )]
 
     sections = _extract_md_sections(text)
     if not sections:
@@ -329,19 +454,54 @@ def _split_document(doc: Document, chunk_size: int, overlap: int) -> List[Chunk]
 
     chunks: List[Chunk] = []
     order = 0
+    short_sections: List[str] = []
+
+    def _flush_short_sections() -> None:
+        nonlocal order, chunks, short_sections
+        if not short_sections:
+            return
+        merged = "\n\n".join(short_sections).strip()
+        if len(merged) <= chunk_size:
+            chunks.append(Chunk.create(
+                doc.id, doc.workspace_id, merged, order, doc.domain, doc.tags,
+                project_id=doc.project_id,
+                chunk_markdown=merged,
+                chunk_plain_text=markdown_to_plain_text(merged),
+                token_count=_estimate_token_count(markdown_to_plain_text(merged)),
+            ))
+            order += 1
+        else:
+            sub = _sliding_window_chunks(
+                doc, merged, "", chunk_size, overlap, order,
+            )
+            chunks.extend(sub)
+            order += len(sub)
+        short_sections = []
+
     for title, body in sections:
         if not body.strip():
             continue  # 跳过纯标题行
         full = f"{title}\n{body}".strip()
+        if len(full) < MIN_SECTION_LENGTH:
+            short_sections.append(full)
+            continue
+
+        _flush_short_sections()
         if len(full) <= chunk_size:
             chunks.append(Chunk.create(
-                doc.id, doc.workspace_id, full, order, doc.domain, doc.tags
+                doc.id, doc.workspace_id, full, order, doc.domain, doc.tags,
+                project_id=doc.project_id,
+                chunk_markdown=full,
+                chunk_plain_text=markdown_to_plain_text(full),
+                token_count=_estimate_token_count(markdown_to_plain_text(full)),
             ))
             order += 1
         else:
             sub = _sliding_window_chunks(doc, body, title, chunk_size, overlap, order)
             chunks.extend(sub)
             order += len(sub)
+    _flush_short_sections()
+
     return chunks
 
 
@@ -390,10 +550,18 @@ def _sliding_window_chunks(
         if section_title:
             snippet = f"{section_title}\n{snippet}"
         chunks.append(Chunk.create(
-            doc.id, doc.workspace_id, snippet.strip(), order, doc.domain, doc.tags
+            doc.id, doc.workspace_id, snippet.strip(), order, doc.domain, doc.tags,
+            project_id=doc.project_id,
+            chunk_markdown=snippet.strip(),
+            chunk_plain_text=markdown_to_plain_text(snippet.strip()),
+            token_count=_estimate_token_count(markdown_to_plain_text(snippet.strip())),
         ))
         order += 1
         if end >= len(text):
             break
         pos += chunk_size - overlap
     return chunks
+
+
+def _estimate_token_count(text: str) -> int:
+    return len(text.split())

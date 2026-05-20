@@ -52,3 +52,8 @@ class IRetriever(ABC):
     def clear(self, workspace_id: str) -> None:
         """清除指定工作区的全部索引数据（重建索引前调用）。"""
         ...
+
+    @abstractmethod
+    def remove_by_document(self, document_id: str) -> None:
+        """删除某个文档对应的索引片段（用于增量更新）。"""
+        ...

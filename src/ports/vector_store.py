@@ -53,6 +53,11 @@ class IVectorStore(ABC):
         ...
 
     @abstractmethod
+    def delete_by_document(self, document_id: str) -> None:
+        """删除某个文档下的全部向量。"""
+        ...
+
+    @abstractmethod
     def count(self, workspace_id: str) -> int:
         """返回指定工作区的向量数量。"""
         ...

@@ -15,8 +15,13 @@ from src.config.paths import ensure_runtime_dirs
 from src.ports.chunk_store import IChunkStore
 from src.ports.conversation_store import IConversationStore
 from src.ports.document_store import IDocumentStore
+from src.ports.knowledge_mastery_store import IKnowledgeMasteryStore
+from src.ports.graph_store import IGraphStore
+from src.ports.tag_store import IDocumentTagStore
+from src.ports.source_store import ISourceStore
 from src.ports.embedder import IEmbedder
 from src.ports.llm_client import ILLMClient
+from src.ports.tag_store import ITagStore
 from src.ports.project_knowledge_store import IProjectKnowledgeStore
 from src.ports.retriever import IRetriever
 from src.ports.task_store import ITaskStore
@@ -35,6 +40,11 @@ class AppContainer:
     task_store: ITaskStore
     conversation_store: IConversationStore
     project_knowledge_store: IProjectKnowledgeStore
+    mastery_store: IKnowledgeMasteryStore
+    source_store: ISourceStore
+    tag_store: ITagStore
+    document_tag_store: IDocumentTagStore
+    graph_store: IGraphStore
 
     # 推理端口
     embedder: IEmbedder
@@ -60,6 +70,10 @@ class AppContainer:
         from src.adapters.storage.sqlite_task_store import SqliteTaskStore
         from src.adapters.storage.sqlite_conversation_store import SqliteConversationStore
         from src.adapters.storage.sqlite_project_knowledge_store import SqliteProjectKnowledgeStore
+        from src.adapters.storage.sqlite_source_store import SqliteSourceStore
+        from src.adapters.storage.sqlite_tag_store import SqliteTagStore, SqliteDocumentTagStore
+        from src.adapters.storage.sqlite_knowledge_mastery_store import SqliteKnowledgeMasteryStore
+        from src.adapters.storage.sqlite_graph_store import SqliteGraphStore
         from src.adapters.llm.ollama_adapter import OllamaAdapter
         from src.adapters.llm.openai_compat_adapter import OpenAICompatAdapter
         from src.adapters.embedding.ollama_embedder import OllamaEmbedder, DummyEmbedder
@@ -81,6 +95,11 @@ class AppContainer:
         task_store = SqliteTaskStore(conn)
         conv_store = SqliteConversationStore(conn)
         project_knowledge_store = SqliteProjectKnowledgeStore(conn)
+        mastery_store = SqliteKnowledgeMasteryStore(conn)
+        source_store = SqliteSourceStore(conn)
+        tag_store = SqliteTagStore(conn)
+        document_tag_store = SqliteDocumentTagStore(conn)
+        graph_store = SqliteGraphStore(conn)
 
         # ── LLM 路由 ──────────────────────────────────────────────────────
         # 优先级：api 模式（有 key）> ollama
@@ -130,6 +149,11 @@ class AppContainer:
             task_store=task_store,
             conversation_store=conv_store,
             project_knowledge_store=project_knowledge_store,
+            mastery_store=mastery_store,
+            source_store=source_store,
+            tag_store=tag_store,
+            document_tag_store=document_tag_store,
+            graph_store=graph_store,
             embedder=embedder,
             vector_store=vector_store,
             retriever=retriever,
@@ -149,6 +173,10 @@ class AppContainer:
         from src.adapters.storage.sqlite_task_store import SqliteTaskStore
         from src.adapters.storage.sqlite_conversation_store import SqliteConversationStore
         from src.adapters.storage.sqlite_project_knowledge_store import SqliteProjectKnowledgeStore
+        from src.adapters.storage.sqlite_source_store import SqliteSourceStore
+        from src.adapters.storage.sqlite_tag_store import SqliteTagStore, SqliteDocumentTagStore
+        from src.adapters.storage.sqlite_knowledge_mastery_store import SqliteKnowledgeMasteryStore
+        from src.adapters.storage.sqlite_graph_store import SqliteGraphStore
         from src.adapters.embedding.ollama_embedder import DummyEmbedder
         from src.adapters.vector_store.numpy_store import NumpyVectorStore
         from src.adapters.retrieval.keyword_retriever import KeywordRetriever
@@ -177,6 +205,11 @@ class AppContainer:
             task_store=SqliteTaskStore(conn),
             conversation_store=SqliteConversationStore(conn),
             project_knowledge_store=SqliteProjectKnowledgeStore(conn),
+            mastery_store=SqliteKnowledgeMasteryStore(conn),
+            source_store=SqliteSourceStore(conn),
+            tag_store=SqliteTagStore(conn),
+            document_tag_store=SqliteDocumentTagStore(conn),
+            graph_store=SqliteGraphStore(conn),
             embedder=embedder,
             vector_store=vector_store,
             retriever=KeywordRetriever(),
