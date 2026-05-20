@@ -21,6 +21,25 @@ class Document:
     domain: str              # 推断的领域，如 resume / jd / notes
     tags: List[str]          # 技术标签列表
     created_at: str          # ISO 8601 字符串
+    project_id: str = ""
+    source_type: str = ""
+    raw_content: str = ""
+    normalized_markdown: str = ""
+    plain_text: str = ""
+    rendered_html: str = ""
+    updated_at: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.project_id:
+            object.__setattr__(self, "project_id", self.workspace_id)
+        if not self.raw_content:
+            object.__setattr__(self, "raw_content", self.content)
+        if not self.normalized_markdown:
+            object.__setattr__(self, "normalized_markdown", self.raw_content)
+        if not self.plain_text:
+            object.__setattr__(self, "plain_text", self.normalized_markdown)
+        if not self.updated_at:
+            object.__setattr__(self, "updated_at", self.created_at)
 
     # ------------------------------------------------------------------ #
     # 工厂方法
@@ -29,22 +48,40 @@ class Document:
     @classmethod
     def create(
         cls,
-        workspace_id: str,
-        title: str,
-        source_path: str,
-        content: str,
+        workspace_id: str = "",
+        title: str = "",
+        source_path: str = "",
+        content: str = "",
         domain: str = "general",
         tags: List[str] = None,
+        *,
+        project_id: str = "",
+        source_type: str = "",
+        raw_content: str = "",
+        normalized_markdown: str = "",
+        plain_text: str = "",
+        rendered_html: str = "",
     ) -> "Document":
+        now = datetime.now(timezone.utc).isoformat()
+        effective_raw = raw_content if raw_content else content
+        effective_markdown = normalized_markdown if normalized_markdown else effective_raw
+        effective_plain = plain_text if plain_text else effective_markdown
         return cls(
             id=str(uuid.uuid4()),
             workspace_id=workspace_id,
             title=title,
             source_path=source_path,
-            content=content,
+            content=effective_raw,
             domain=domain,
             tags=tags or [],
-            created_at=datetime.now(timezone.utc).isoformat(),
+            created_at=now,
+            project_id=project_id or workspace_id,
+            source_type=source_type,
+            raw_content=effective_raw,
+            normalized_markdown=effective_markdown,
+            plain_text=effective_plain,
+            rendered_html=rendered_html,
+            updated_at=now,
         )
 
     # ------------------------------------------------------------------ #
@@ -61,6 +98,13 @@ class Document:
             "domain": self.domain,
             "tags": self.tags,
             "created_at": self.created_at,
+            "project_id": self.project_id,
+            "source_type": self.source_type,
+            "raw_content": self.raw_content,
+            "normalized_markdown": self.normalized_markdown,
+            "plain_text": self.plain_text,
+            "rendered_html": self.rendered_html,
+            "updated_at": self.updated_at,
         }
 
     @classmethod
@@ -74,4 +118,11 @@ class Document:
             domain=data.get("domain", "general"),
             tags=data.get("tags", []),
             created_at=data["created_at"],
+            project_id=data.get("project_id", data.get("workspace_id", "")),
+            source_type=data.get("source_type", ""),
+            raw_content=data.get("raw_content", data.get("content", "")),
+            normalized_markdown=data.get("normalized_markdown", data.get("content", "")),
+            plain_text=data.get("plain_text", data.get("content", "")),
+            rendered_html=data.get("rendered_html", ""),
+            updated_at=data.get("updated_at", data["created_at"]),
         )

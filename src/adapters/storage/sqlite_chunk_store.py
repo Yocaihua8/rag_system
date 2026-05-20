@@ -17,14 +17,21 @@ class SqliteChunkStore(IChunkStore):
         self._conn.executemany(
             """
             INSERT OR REPLACE INTO chunks
-                (id, document_id, workspace_id, domain, tags, content, ord)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (
+                    id, document_id, workspace_id, project_id, domain, tags,
+                    content, ord, chunk_index, heading_path, chunk_markdown,
+                    chunk_plain_text, token_count, embedding_id, created_at, updated_at
+                )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
-                    c.id, c.document_id, c.workspace_id, c.domain,
+                    c.id, c.document_id, c.workspace_id, c.project_id, c.domain,
                     json.dumps(c.tags, ensure_ascii=False),
-                    c.content, c.order,
+                    c.content, c.order, c.chunk_index,
+                    json.dumps(c.heading_path, ensure_ascii=False),
+                    c.chunk_markdown, c.chunk_plain_text, c.token_count,
+                    c.embedding_id, c.created_at, c.updated_at,
                 )
                 for c in chunks
             ],
@@ -54,6 +61,12 @@ class SqliteChunkStore(IChunkStore):
     def delete_by_workspace(self, workspace_id: str) -> None:
         self._conn.execute(
             "DELETE FROM chunks WHERE workspace_id = ?", (workspace_id,)
+        )
+        self._conn.commit()
+
+    def delete_by_document(self, document_id: str) -> None:
+        self._conn.execute(
+            "DELETE FROM chunks WHERE document_id = ?", (document_id,)
         )
         self._conn.commit()
 
@@ -88,4 +101,13 @@ def _row_to_chunk(row: sqlite3.Row) -> Chunk:
         tags=json.loads(row["tags"]),
         content=row["content"],
         order=row["ord"],
+        project_id=row["project_id"],
+        chunk_index=row["chunk_index"],
+        heading_path=json.loads(row["heading_path"]),
+        chunk_markdown=row["chunk_markdown"],
+        chunk_plain_text=row["chunk_plain_text"],
+        token_count=row["token_count"],
+        embedding_id=row["embedding_id"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
     )

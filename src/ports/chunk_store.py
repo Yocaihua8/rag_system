@@ -24,6 +24,9 @@ class IChunkStore(ABC):
     def delete_by_workspace(self, workspace_id: str) -> None: ...
 
     @abstractmethod
+    def delete_by_document(self, document_id: str) -> None: ...
+
+    @abstractmethod
     def count_by_workspace(self, workspace_id: str) -> int: ...
 
     @abstractmethod

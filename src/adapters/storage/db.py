@@ -36,15 +36,31 @@ def init_schema(conn: sqlite3.Connection) -> None:
             supported_files     INTEGER NOT NULL DEFAULT 0
         );
 
+        CREATE TABLE IF NOT EXISTS projects (
+            id              TEXT PRIMARY KEY,
+            name            TEXT NOT NULL,
+            description     TEXT NOT NULL DEFAULT '',
+            root_path       TEXT NOT NULL DEFAULT '',
+            created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS documents (
             id              TEXT PRIMARY KEY,
             workspace_id    TEXT NOT NULL,
+            project_id      TEXT NOT NULL DEFAULT '',
             title           TEXT NOT NULL,
+            source_type     TEXT NOT NULL DEFAULT '',
             source_path     TEXT NOT NULL,
             content         TEXT NOT NULL,
+            raw_content     TEXT NOT NULL DEFAULT '',
+            normalized_markdown TEXT NOT NULL DEFAULT '',
+            plain_text      TEXT NOT NULL DEFAULT '',
+            rendered_html   TEXT NOT NULL DEFAULT '',
             domain          TEXT NOT NULL DEFAULT 'general',
             tags            TEXT NOT NULL DEFAULT '[]',
             created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL DEFAULT '',
             FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
         );
 
@@ -52,12 +68,47 @@ def init_schema(conn: sqlite3.Connection) -> None:
             id              TEXT PRIMARY KEY,
             document_id     TEXT NOT NULL,
             workspace_id    TEXT NOT NULL,
+            project_id      TEXT NOT NULL DEFAULT '',
             domain          TEXT NOT NULL DEFAULT 'general',
             tags            TEXT NOT NULL DEFAULT '[]',
             content         TEXT NOT NULL,
             ord             INTEGER NOT NULL DEFAULT 0,
+            chunk_index     INTEGER NOT NULL DEFAULT 0,
+            heading_path    TEXT NOT NULL DEFAULT '[]',
+            chunk_markdown  TEXT NOT NULL DEFAULT '',
+            chunk_plain_text TEXT NOT NULL DEFAULT '',
+            token_count     INTEGER NOT NULL DEFAULT 0,
+            embedding_id    TEXT NOT NULL DEFAULT '',
+            created_at      TEXT NOT NULL DEFAULT '',
+            updated_at      TEXT NOT NULL DEFAULT '',
             FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
             FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS tags (
+            id          TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            color       TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL,
+            updated_at  TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS document_tags (
+            document_id TEXT NOT NULL,
+            tag_id      TEXT NOT NULL,
+            PRIMARY KEY (document_id, tag_id),
+            FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+            FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS sources (
+            id              TEXT PRIMARY KEY,
+            document_id     TEXT NOT NULL,
+            source_type     TEXT NOT NULL,
+            source_path     TEXT NOT NULL,
+            imported_at     TEXT NOT NULL,
+            checksum        TEXT NOT NULL DEFAULT '',
+            FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS project_knowledge_points (
@@ -71,6 +122,84 @@ def init_schema(conn: sqlite3.Connection) -> None:
             confidence      REAL NOT NULL,
             created_at      TEXT NOT NULL,
             FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS skill_areas (
+            id              TEXT PRIMARY KEY,
+            workspace_id    TEXT NOT NULL,
+            name            TEXT NOT NULL,
+            description     TEXT NOT NULL,
+            created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS knowledge_points (
+            id              TEXT PRIMARY KEY,
+            workspace_id    TEXT NOT NULL,
+            skill_area_id   TEXT NOT NULL,
+            name            TEXT NOT NULL,
+            summary         TEXT NOT NULL,
+            confidence      REAL NOT NULL,
+            created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+            FOREIGN KEY (skill_area_id) REFERENCES skill_areas(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS evidences (
+            id                  TEXT PRIMARY KEY,
+            workspace_id        TEXT NOT NULL,
+            knowledge_point_id   TEXT NOT NULL,
+            source_path         TEXT NOT NULL,
+            snippet             TEXT NOT NULL,
+            confidence          REAL NOT NULL,
+            created_at          TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+            FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS mastery_records (
+            id                  TEXT PRIMARY KEY,
+            workspace_id        TEXT NOT NULL,
+            knowledge_point_id   TEXT NOT NULL,
+            status              TEXT NOT NULL,
+            evidence_id         TEXT NOT NULL DEFAULT '',
+            confidence          REAL NOT NULL,
+            note                TEXT NOT NULL DEFAULT '',
+            created_at          TEXT NOT NULL,
+            updated_at          TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+            FOREIGN KEY (knowledge_point_id) REFERENCES knowledge_points(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS graph_nodes (
+            id              TEXT PRIMARY KEY,
+            workspace_id    TEXT NOT NULL,
+            name            TEXT NOT NULL,
+            label           TEXT NOT NULL,
+            node_type       TEXT NOT NULL,
+            source_ref      TEXT NOT NULL DEFAULT '',
+            confidence      REAL NOT NULL,
+            created_at      TEXT NOT NULL,
+            updated_at      TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS graph_edges (
+            id                  TEXT PRIMARY KEY,
+            workspace_id        TEXT NOT NULL,
+            source_node_id      TEXT NOT NULL,
+            target_node_id      TEXT NOT NULL,
+            relationship        TEXT NOT NULL,
+            confidence          REAL NOT NULL,
+            source_path         TEXT NOT NULL DEFAULT '',
+            source_snippet      TEXT NOT NULL DEFAULT '',
+            created_at          TEXT NOT NULL,
+            updated_at          TEXT NOT NULL,
+            FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+            FOREIGN KEY (source_node_id) REFERENCES graph_nodes(id) ON DELETE CASCADE,
+            FOREIGN KEY (target_node_id) REFERENCES graph_nodes(id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS tasks (
@@ -97,7 +226,47 @@ def init_schema(conn: sqlite3.Connection) -> None:
         );
     """)
     conn.commit()
+    _ensure_columns(conn)
     _ensure_indexes(conn)
+
+
+def _ensure_columns(conn: sqlite3.Connection) -> None:
+    """为已有本地数据库追加新列，避免破坏旧安装。"""
+    _add_missing_columns(conn, "documents", {
+        "project_id": "TEXT NOT NULL DEFAULT ''",
+        "source_type": "TEXT NOT NULL DEFAULT ''",
+        "raw_content": "TEXT NOT NULL DEFAULT ''",
+        "normalized_markdown": "TEXT NOT NULL DEFAULT ''",
+        "plain_text": "TEXT NOT NULL DEFAULT ''",
+        "rendered_html": "TEXT NOT NULL DEFAULT ''",
+        "updated_at": "TEXT NOT NULL DEFAULT ''",
+    })
+    _add_missing_columns(conn, "chunks", {
+        "project_id": "TEXT NOT NULL DEFAULT ''",
+        "chunk_index": "INTEGER NOT NULL DEFAULT 0",
+        "heading_path": "TEXT NOT NULL DEFAULT '[]'",
+        "chunk_markdown": "TEXT NOT NULL DEFAULT ''",
+        "chunk_plain_text": "TEXT NOT NULL DEFAULT ''",
+        "token_count": "INTEGER NOT NULL DEFAULT 0",
+        "embedding_id": "TEXT NOT NULL DEFAULT ''",
+        "created_at": "TEXT NOT NULL DEFAULT ''",
+        "updated_at": "TEXT NOT NULL DEFAULT ''",
+    })
+    conn.commit()
+
+
+def _add_missing_columns(
+    conn: sqlite3.Connection,
+    table_name: str,
+    columns: dict[str, str],
+) -> None:
+    existing = {
+        row["name"]
+        for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    }
+    for column, ddl in columns.items():
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column} {ddl}")
 
 
 def _ensure_indexes(conn: sqlite3.Connection) -> None:
@@ -105,16 +274,50 @@ def _ensure_indexes(conn: sqlite3.Connection) -> None:
     conn.executescript("""
         CREATE INDEX IF NOT EXISTS idx_documents_workspace
             ON documents(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_documents_project
+            ON documents(project_id);
         CREATE INDEX IF NOT EXISTS idx_chunks_workspace
             ON chunks(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_chunks_project
+            ON chunks(project_id);
         CREATE INDEX IF NOT EXISTS idx_chunks_document
             ON chunks(document_id);
+        CREATE INDEX IF NOT EXISTS idx_sources_document
+            ON sources(document_id);
+        CREATE INDEX IF NOT EXISTS idx_sources_checksum
+            ON sources(checksum);
         CREATE INDEX IF NOT EXISTS idx_pkp_workspace
             ON project_knowledge_points(workspace_id);
         CREATE INDEX IF NOT EXISTS idx_pkp_workspace_kind
             ON project_knowledge_points(workspace_id, kind);
+        CREATE INDEX IF NOT EXISTS idx_skill_areas_workspace
+            ON skill_areas(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_kp_workspace
+            ON knowledge_points(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_kp_skill_area
+            ON knowledge_points(skill_area_id);
+        CREATE INDEX IF NOT EXISTS idx_evidences_workspace
+            ON evidences(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_evidences_point
+            ON evidences(knowledge_point_id);
+        CREATE INDEX IF NOT EXISTS idx_mastery_workspace
+            ON mastery_records(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_mastery_point
+            ON mastery_records(knowledge_point_id);
+        CREATE INDEX IF NOT EXISTS idx_mastery_status
+            ON mastery_records(status);
         CREATE INDEX IF NOT EXISTS idx_conversations_workspace
             ON conversations(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_graph_nodes_workspace
+            ON graph_nodes(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_graph_nodes_type
+            ON graph_nodes(workspace_id, node_type);
+        CREATE INDEX IF NOT EXISTS idx_graph_edges_workspace
+            ON graph_edges(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_graph_edges_source
+            ON graph_edges(source_node_id);
+        CREATE INDEX IF NOT EXISTS idx_graph_edges_target
+            ON graph_edges(target_node_id);
         CREATE INDEX IF NOT EXISTS idx_tasks_created
             ON tasks(created_at DESC);
     """)

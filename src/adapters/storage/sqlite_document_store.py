@@ -17,14 +17,21 @@ class SqliteDocumentStore(IDocumentStore):
         self._conn.execute(
             """
             INSERT OR REPLACE INTO documents
-                (id, workspace_id, title, source_path, content, domain, tags, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (
+                    id, workspace_id, project_id, title, source_type, source_path,
+                    content, raw_content, normalized_markdown, plain_text,
+                    rendered_html, domain, tags, created_at, updated_at
+                )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                document.id, document.workspace_id, document.title,
-                document.source_path, document.content, document.domain,
+                document.id, document.workspace_id, document.project_id,
+                document.title, document.source_type, document.source_path,
+                document.content, document.raw_content,
+                document.normalized_markdown, document.plain_text,
+                document.rendered_html, document.domain,
                 json.dumps(document.tags, ensure_ascii=False),
-                document.created_at,
+                document.created_at, document.updated_at,
             ),
         )
         self._conn.commit()
@@ -33,14 +40,21 @@ class SqliteDocumentStore(IDocumentStore):
         self._conn.executemany(
             """
             INSERT OR REPLACE INTO documents
-                (id, workspace_id, title, source_path, content, domain, tags, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (
+                    id, workspace_id, project_id, title, source_type, source_path,
+                    content, raw_content, normalized_markdown, plain_text,
+                    rendered_html, domain, tags, created_at, updated_at
+                )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             [
                 (
-                    d.id, d.workspace_id, d.title, d.source_path,
-                    d.content, d.domain,
-                    json.dumps(d.tags, ensure_ascii=False), d.created_at,
+                    d.id, d.workspace_id, d.project_id, d.title,
+                    d.source_type, d.source_path, d.content,
+                    d.raw_content, d.normalized_markdown, d.plain_text,
+                    d.rendered_html, d.domain,
+                    json.dumps(d.tags, ensure_ascii=False),
+                    d.created_at, d.updated_at,
                 )
                 for d in documents
             ],
@@ -90,4 +104,11 @@ def _row_to_document(row: sqlite3.Row) -> Document:
         domain=row["domain"],
         tags=json.loads(row["tags"]),
         created_at=row["created_at"],
+        project_id=row["project_id"],
+        source_type=row["source_type"],
+        raw_content=row["raw_content"],
+        normalized_markdown=row["normalized_markdown"],
+        plain_text=row["plain_text"],
+        rendered_html=row["rendered_html"],
+        updated_at=row["updated_at"],
     )
