@@ -1,0 +1,40 @@
+TEXT_SUFFIXES = {
+    ".cfg",
+    ".css",
+    ".html",
+    ".ini",
+    ".js",
+    ".json",
+    ".jsx",
+    ".md",
+    ".py",
+    ".sql",
+    ".toml",
+    ".ts",
+    ".tsx",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
+
+IGNORED_DIR_NAMES = {
+    ".agents",
+    ".claude",
+    ".codex",
+    ".git",
+    ".hg",
+    ".idea",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".vscode",
+    ".venv",
+    "build",
+    "dist",
+    "node_modules",
+    "__pycache__",
+}
+
+MAX_TEXT_FILE_BYTES = 1_000_000

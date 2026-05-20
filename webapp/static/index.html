@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>知识岛</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="panel sidebar">
+        <h1>知识岛</h1>
+        <form id="project-form" class="stack">
+          <label>
+            项目名称
+            <input id="project-name" name="name" placeholder="例如：我的项目" />
+          </label>
+          <label>
+            本地目录
+            <input id="project-path" name="path" placeholder="E:\Code\project" required />
+          </label>
+          <button type="submit">创建项目空间</button>
+        </form>
+        <div class="toolbar">
+          <select id="project-select"></select>
+          <button id="import-button" type="button">导入</button>
+          <button id="rename-project-button" type="button">改名</button>
+          <button id="delete-project-button" type="button">删除</button>
+        </div>
+        <p id="project-root" class="status">未选择项目空间</p>
+        <p id="status" class="status"></p>
+        <section>
+          <h2>跳过详情</h2>
+          <ul id="skipped-details" class="skipped-details"></ul>
+        </section>
+        <section>
+          <h2>导入错误</h2>
+          <ul id="import-errors" class="skipped-details"></ul>
+        </section>
+        <section>
+          <h2>已导入文件</h2>
+          <input id="document-filter" placeholder="按路径过滤文件，例如：docs、README" />
+          <p id="document-count" class="status">0 / 0 个文件</p>
+          <ul id="documents" class="documents"></ul>
+        </section>
+        <section>
+          <h2>文件预览</h2>
+          <pre id="document-preview" class="preview"></pre>
+        </section>
+      </aside>
+
+      <section class="panel content">
+        <div class="search-row">
+          <input id="search-query" placeholder="搜索文件片段，例如：endpoint、配置、默认入口" />
+          <button id="search-button" type="button">搜索</button>
+        </div>
+        <section>
+          <h2>检索结果</h2>
+          <ul id="search-results" class="search-results"></ul>
+        </section>
+        <div class="ask-row">
+          <input id="question" placeholder="输入问题，例如：这个项目的默认入口是什么？" />
+          <button id="ask-button" type="button">提问</button>
+        </div>
+        <pre id="answer" class="answer"></pre>
+        <section>
+          <h2>来源</h2>
+          <ul id="sources" class="sources"></ul>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

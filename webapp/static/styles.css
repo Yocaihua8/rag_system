@@ -1,0 +1,147 @@
+:root {
+  color-scheme: dark;
+  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+  background: #101114;
+  color: #ece7df;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+select {
+  border: 1px solid #3e3a32;
+  border-radius: 6px;
+  color: #f4efe7;
+  background: #191b20;
+  font: inherit;
+  min-height: 38px;
+}
+
+button {
+  cursor: pointer;
+  background: #735f31;
+  border-color: #9d8445;
+  font-weight: 600;
+}
+
+input,
+select {
+  padding: 0 10px;
+  width: 100%;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 12px;
+  min-height: 100vh;
+  padding: 12px;
+}
+
+.panel {
+  border: 1px solid #292b30;
+  border-radius: 8px;
+  background: #15171b;
+  padding: 16px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.content {
+  display: grid;
+  grid-template-rows: auto minmax(240px, 1fr) auto;
+  gap: 14px;
+}
+
+.stack,
+.toolbar,
+.ask-row,
+.search-row {
+  display: grid;
+  gap: 10px;
+}
+
+.toolbar,
+.ask-row,
+.search-row {
+  grid-template-columns: 1fr auto;
+}
+
+.status {
+  min-height: 24px;
+  color: #c8b16b;
+}
+
+.answer {
+  margin: 0;
+  padding: 16px;
+  white-space: pre-wrap;
+  border-radius: 8px;
+  background: #0f1013;
+  border: 1px solid #24262b;
+}
+
+.preview {
+  min-height: 120px;
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  white-space: pre-wrap;
+  border-radius: 6px;
+  background: #0f1013;
+  border: 1px solid #24262b;
+  color: #d6d0c8;
+}
+
+.sources,
+.documents,
+.search-results,
+.skipped-details {
+  padding-left: 20px;
+}
+
+.sources li,
+.documents li,
+.search-results li,
+.skipped-details li {
+  margin-bottom: 10px;
+}
+
+.documents button {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  text-align: left;
+  background: #191b20;
+  border-color: #33363d;
+  font-weight: 500;
+}
+
+.search-results button {
+  width: 100%;
+  padding: 8px;
+  text-align: left;
+  background: #191b20;
+  border-color: #33363d;
+  font-weight: 500;
+}
+
+@media (max-width: 760px) {
+  .shell,
+  .toolbar,
+  .ask-row {
+    grid-template-columns: 1fr;
+  }
+}

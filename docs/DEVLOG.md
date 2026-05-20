@@ -4,6 +4,172 @@
 
 ---
 
+## devlog 日志文件索引
+
+- [2026-04-15](devlog/2026-04-15.md)
+- [2026-04-16](devlog/2026-04-16.md)
+- [2026-04-17](devlog/2026-04-17.md)
+- [2026-04-18](devlog/2026-04-18.md)
+- [2026-05-02](devlog/2026-05-02.md)
+- [2026-05-11](devlog/2026-05-11.md)
+- [2026-05-16](devlog/2026-05-16.md)
+- [2026-05-18](devlog/2026-05-18.md)
+- [2026-05-20](devlog/2026-05-20.md)
+
+## 2026-05-20 | B-54 — 默认入口切换为本地 Web MVP
+
+### 目标
+
+将默认启动方式从 PySide6 桌面端切换为本地 Web MVP，优先保证项目能快速投入试用；旧桌面端代码暂时保留为 legacy，避免覆盖当前未提交改动。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `webapp/` | 标准库 HTTP 服务、SQLite 存储、目录导入、关键词检索、回答组合和原生前端 |
+| 更新 | `app.py` | 默认启动 `webapp.server.run_server()` |
+| 新增 | `tests/test_webapp/` | 覆盖导入、检索排序、API 问答流程 |
+| 新增 | `AGENT.md` | 记录 Web 栈边界、文件拆分和验证规则 |
+| 更新 | `README.md`、`docs/guides/setup.md`、`docs/guides/testing.md` | 同步默认启动与验证方式 |
+
+### 关键行为
+
+- 导入 API 返回当前项目空间文档列表，前端侧栏展示已导入文件。
+- 切换项目空间时，前端会刷新对应项目的文件列表。
+- 项目工具栏下方显示当前项目空间绑定的本地目录，切换、创建、改名和删除后同步刷新。
+- 项目列表返回 `root_exists`，绑定目录被移动或删除时前端提示“目录不存在”并阻止导入；导入 API 同时返回明确 400 错误。
+- 重新导入会统计新增、更新、未变更、删除和跳过数量；源目录中已删除的文本文件会从当前项目空间文档列表中移除。
+- 新增单文件预览 API，前端点击已导入文件后可查看正文内容。
+- 新增独立检索入口，不生成回答也可以直接搜索文件片段，并点击结果打开文件预览。
+- 新增单文档移除 API 和前端“移除”按钮，只删除当前项目空间内的文档记录，不删除磁盘源文件。
+- 已导入文件列表新增路径过滤输入框，前端基于当前文档列表本地过滤，不改变搜索 API。
+- 已导入文件列表新增当前显示数量和总文件数提示，便于确认过滤范围。
+- 导入扫描默认跳过 `.git`、`.venv`、`node_modules`、`.claude`、`.codex`、`.agents`、`.vscode`、`.idea`、`__pycache__` 和常见构建/缓存目录，避免真实项目导入时扫进依赖、版本库和本机工具配置。
+- 导入扫描默认跳过超过 1MB 的单个文本文件，并计入本轮跳过数量。
+- 导入规则集中到 `webapp/import_rules.py`，后续调整后缀、排除目录和大小上限不需要修改扫描流程。
+- 导入结果新增 `skipped_details`，前端展示被跳过文件的路径和原因。
+- 前端新增导入错误列表，单独展示 `result.errors`，避免读取失败和普通跳过文件混在一起。
+- 新增项目空间删除 API 和前端删除按钮，删除项目空间时同步清理其文档记录。
+- 项目空间删除按钮增加浏览器二次确认，取消时不会调用删除 API。
+- 新增项目空间改名 API 和前端改名按钮，改名只更新项目名称，不修改绑定目录和文档记录。
+- 前端为空文件列表、空检索结果、空来源、空跳过详情和空文件预览增加明确提示。
+- 前端使用浏览器本地存储记录最近选中的项目空间，刷新页面后优先恢复该项目；项目删除后会清除该记录。
+
+### 测试结果
+
+```text
+.venv\Scripts\python.exe -m pytest tests\test_webapp -q
+10 passed
+```
+
+## 2026-05-20 | 本地 Web MVP 收口文档与接口契约同步
+
+### 目标
+
+补齐默认 Web MVP 切换后的接口契约与发布验收说明，避免 `docs/design/api-spec.md` 仍停留在“无 HTTP/API 服务”的旧状态。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `docs/design/api-spec.md` | 增加本地 Web MVP `/api/*` HTTP 接口、字段和错误契约 |
+| 新增 | `docs/release/WEB_MVP_READINESS_2026-05-20.md` | 增加可交付范围、非承诺范围、验收命令和浏览器验收清单 |
+| 更新 | `README.md` | 将 API 契约与 Web MVP 收口文档加入阅读入口 |
+| 新增 | `tests/test_webapp/test_docs_contract.py` | 防止 Web MVP API 文档再次退回旧的“无 HTTP/API 服务”描述 |
+
+### 关键行为
+
+- Web MVP HTTP API 明确限定为本机服务，不承诺远程多用户部署。
+- API 契约覆盖项目空间、文档导入、文档预览、检索和问答。
+- 发布收口文档明确当前不包含安装包、目录选择器、语义向量检索和完整 LLM 推理质量承诺。
+- 真实仓库导入验收后，导入规则补充忽略 `.claude`、`.codex`、`.agents`、`.vscode`、`.idea` 等本机工具配置目录。
+
+## 2026-05-18 | B-50/B-51/B-52 — 追问闭环与优先复测
+
+### 目标
+
+在能力差距报告之后，补齐追问闭环与错题复测能力：支持“继续追问”题目级重答，支持错题优先复测，并补齐边界回归测试。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 扩展 | `src/application/knowledge_mastery_usecases.py` | 新增错题记录实体与内存态追踪，支持 `prioritize_missed` / `focus_knowledge_point_ids` |
+| 重构 | `src/desktop/controllers/assessment_controller.py` | 新增 `start_follow_up` 与 `retry_missed_questions` |
+| 更新 | `src/desktop/views/assessment_view.py` | 新增“继续追问 / 错题复测”按钮与信号 |
+| 更新 | `src/desktop/views/main_window.py` | 接入追问与复测信号 |
+| 新增 | `tests/test_application/test_knowledge_mastery_usecases.py` | 新增错题优先与复测清理测试 |
+| 更新 | `tests/test_desktop/test_project_knowledge_ui.py` | 增加追问按钮状态与信号回放测试 |
+
+### 关键行为
+
+- 评估会话支持按错题优先复测，缺失错题时按普通策略回退。
+- 错题提交会按知识点存储最新状态，并在达标后清理对应记录。
+- 差距报告会返回 `follow_up_question_ids`，驱动“继续追问”入口。
+- 按钮级回归覆盖“继续追问”和“错题复测”信号触发。
+
+### 测试结果
+
+```text
+.venv\Scripts\python -m pytest tests/test_application/test_knowledge_mastery_usecases.py tests/test_desktop/test_project_knowledge_ui.py
+18 passed
+
+.venv\Scripts\python -m pytest tests/test_application tests/test_desktop
+98 passed
+```
+
+---
+
+## 2026-05-18 | B-21 — `.env` 保存保留注释
+
+### 目标
+
+改造 settings 配置写回行为，避免重写 `.env` 时清除注释、空行与手工顺序。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `src/config/settings.py` | `save_setting()` 改为按行更新 key，未命中行保留原内容，仅追加新增 key |
+| 新增 | `tests/test_application/test_settings_usecases.py` | 新增 `.env` 注释与空行保留回归用例 |
+| 更新 | `docs/BACKLOG.md` | 将 B-21 标记为完成 |
+
+### 验证结果
+
+```text
+.venv\Scripts\python -m pytest tests\test_application\test_settings_usecases.py tests\test_desktop\test_project_knowledge_ui.py
+26 passed
+```
+
+---
+
+## 2026-05-18 | B-53 — 阶段10 发布前收口
+
+### 目标
+
+完成上线前最后一轮可交付检查：形成体验压测记录、异常提示覆盖、发布验收清单与发布说明。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `docs/release/RELEASE_READINESS_2026-05-18.md` | 新增发布说明（能力边界、验收、体验压测、后续排期） |
+| 更新 | `docs/release/NON_TECH_RELEASE_CHECKLIST.md` | 增加评估闭环异常提示与版本验收记录 |
+| 更新 | `docs/BACKLOG.md` | 将 B-53 置为完成 |
+| 更新 | `CHANGELOG.md` | 记录可发布收口项 |
+
+### 验证结果
+
+```text
+.venv\Scripts\python -m pytest tests\test_application\test_knowledge_mastery_usecases.py tests\test_desktop\test_project_knowledge_ui.py -q
+18 passed
+
+.venv\Scripts\python.exe scripts\check_docs_consistency.py
+[PASS] docs consistency checks passed.
+```
+
+---
+
 ## 2026-05-11 | B-36~B-37 — 项目知识点模型与提炼用例（完成）
 
 ### 目标

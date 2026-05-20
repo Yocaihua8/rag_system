@@ -1,7 +1,8 @@
-# 项目知识库助手
+# 知识岛 Knowledge Island
 
-基于六边形架构（Hexagonal Architecture）的本地项目知识库桌面应用。
-第一版目标是导入代码项目，建立可问答的项目知识库，并通过掌握评估帮助用户理解自己与项目要求之间的差距。
+知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口已切换为本地 Web MVP（Python 标准库 HTTP 服务 + SQLite + 原生 HTML/CSS/JS），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
+
+旧 PySide6 桌面端代码暂时保留在 `src/desktop/` 作为 legacy 参考，不再是默认启动入口。
 
 ---
 
@@ -9,12 +10,26 @@
 
 | 功能 | 说明 |
 |------|------|
-| **项目管理** | 创建多个项目工作区，每个工作区指向一个代码项目目录 |
-| **项目导入** | 扫描 README、docs、源码、配置文件和测试文件；依赖目录过滤为后续优化项 |
-| **项目问答** | 基于向量检索或关键词检索回答项目问题，并展示来源片段 |
-| **掌握评估** | 第一版目标中：围绕项目知识点生成评估题，记录掌握情况和能力差距 |
-| **知识库管理** | 查看项目状态和文件处理情况；项目知识点与评估题库为第一版目标 |
-| **输出工具** | 简历、JD 匹配、面试脚本作为后续输出能力保留 |
+| **项目空间** | 在 Web 页面中创建本地项目空间，绑定一个本地目录 |
+| **当前目录显示** | 项目工具栏下方显示当前项目空间绑定的本地目录；目录被移动或删除时提示“目录不存在”，并阻止继续导入 |
+| **最近项目恢复** | 浏览器会记住最近选中的项目空间，刷新页面后自动恢复 |
+| **项目空间改名** | 可在 Web 页面中修改当前项目空间名称，不影响绑定目录和已导入文档 |
+| **项目空间删除** | 可删除误创建的项目空间，删除前会二次确认，并同步删除其文档记录 |
+| **文档导入** | Web MVP 支持 Markdown、TXT、代码与配置文本导入，默认跳过 `.git`、`.venv`、`node_modules`、`.claude`、`.codex`、`.agents`、`.vscode`、`.idea`、`__pycache__` 等目录，并跳过超过 1MB 的单个文本文件 |
+| **导入结果可视化** | 导入后在侧栏展示当前项目空间已入库文件列表，并显示新增、更新、未变更、删除、跳过数量 |
+| **跳过详情** | 导入后展示被跳过文件的路径和原因，例如文件超过 1MB |
+| **导入错误** | 导入后单独展示读取失败等错误信息，避免和普通跳过文件混在一起 |
+| **文件预览** | 点击已导入文件后，在侧栏查看该文件正文预览 |
+| **文档记录移除** | 可从当前项目空间移除单个已导入文档记录，不删除磁盘源文件 |
+| **文件路径过滤** | 已导入文件列表支持按路径本地过滤，便于在大量文件中快速定位 |
+| **文件数量提示** | 已导入文件列表显示当前过滤结果数和总文件数 |
+| **独立检索** | 不提问也可直接搜索文件片段，并点击结果打开文件预览 |
+| **关键词检索** | 基于 SQLite 中的文本内容做本地关键词排序，不依赖 Ollama 或云端 API |
+| **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示 |
+| **知识库问答** | 基于检索片段组合回答，并展示来源文件与片段 |
+| **格式标准化** | legacy PySide6 链路已支持 `raw_content / normalized_markdown / plain_text / rendered_html`，Web MVP 后续迁移 |
+| **知识掌握地图** | 已新增 SkillArea / KnowledgePoint / MasteryRecord / Evidence 的数据模型与状态定义 |
+| **轻量知识图谱** | 计划用 SQLite 关系表表达 Project、Document、KnowledgePoint、Evidence 等节点关系 |
 
 ---
 
@@ -29,7 +44,7 @@
 
 ```bash
 git clone <repo-url>
-cd rag_system
+cd knowledage_island
 python -m venv .venv
 
 # Windows
@@ -45,8 +60,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **最小依赖**（关键词检索 + Ollama 模式）：PySide6、chromadb、sentence-transformers
-> **云端 API 模式**还需要：`pip install openai`
+> **Web MVP 最小依赖**：仅 Python 标准库，不需要新增运行时依赖。
+> **legacy PySide6 / 云端 API 模式**仍需要 PySide6、chromadb、sentence-transformers、openai 等依赖。
 
 ### 3. 配置（可选）
 
@@ -58,13 +73,13 @@ cp .env.example .env
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `RAG_KB_ROOT` | `~/CareerAssistantKB` | 知识库根目录 |
+| `RAG_KB_ROOT` | `~/KnowledgeIslandKB` | 知识库根目录 |
 | `RAG_OLLAMA_HOST` | `http://localhost:11434` | Ollama 服务地址 |
 | `RAG_OLLAMA_MODEL` | `qwen2.5:7b` | 生成模型 |
 | `RAG_EMBEDDING_MODEL` | `nomic-embed-text` | 嵌入模型 |
 | `RAG_RETRIEVER_KIND` | `vector` | `vector`（ChromaDB）或 `keyword` |
 | `RAG_LLM_PROVIDER` | `ollama` | `ollama` 或 `api` |
-| `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明） |
+| `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明）；兼容本机 DeepSeek Key 别名 |
 | `RAG_LLM_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
 | `RAG_LLM_API_MODEL` | `deepseek-chat` | 云端模型名 |
 
@@ -78,6 +93,12 @@ cp .env.example .env
 
 # macOS / Linux
 .venv/bin/python app.py
+```
+
+启动后打开：
+
+```text
+http://127.0.0.1:8765
 ```
 
 ---
@@ -117,6 +138,7 @@ ollama pull nomic-embed-text
 
 1. **OS 环境变量**（推荐）：`RAG_LLM_API_KEY=sk-xxx`
    Key 不写入任何文件，UI 中自动显示「已从环境变量读取」并禁用输入框
+   现阶段也兼容已有的本机 DeepSeek Key 变量：`DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`。检测到这些变量时，默认切到 `api` provider，并使用 DeepSeek 默认地址与模型；如需强制不用云端，可显式设置 `RAG_LLM_PROVIDER=ollama`。
 2. **`.env` 文件**：写入项目根目录的 `.env`（已在 `.gitignore` 中排除）
 3. **设置界面**：直接在 UI 中填写（存储在 appdata 目录）
 
@@ -125,14 +147,23 @@ ollama pull nomic-embed-text
 ## 项目结构
 
 ```
-rag_system/
-├── app.py                    # 程序入口
+knowledage_island/
+├── app.py                    # 默认 Web MVP 程序入口
+├── webapp/                   # 默认 Web MVP 技术栈
+│   ├── server.py             # HTTP server + 静态文件服务
+│   ├── api.py                # API 路由分发
+│   ├── storage.py            # SQLite schema 与读写
+│   ├── ingestion.py          # 本地目录文本导入
+│   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
+│   ├── search.py             # 关键词检索与排序
+│   ├── answers.py            # 基于来源片段组合回答
+│   └── static/               # 原生 HTML/CSS/JS 前端
 ├── src/
 │   ├── config/               # 配置层（defaults / settings / paths）
 │   ├── domain/               # 领域层：不可变数据模型 + 业务错误
-│   │   ├── models/           #   Workspace / Document / Chunk / Task / ConversationRecord
+│   │   ├── models/           #   Project / Document / Chunk / Tag / Source / Workspace / Task / Mastery
 │   │   └── errors.py         #   NotFoundError / ValidationError / ...
-│   ├── ports/                # 端口层：接口定义（IWorkspaceStore / ILLMClient / ...）
+│   ├── ports/                # 端口层：接口定义（IWorkspaceStore 兼容层 / ILLMClient / ...）
 │   ├── adapters/             # 适配器层：具体实现
 │   │   ├── storage/          #   SQLite（5 个 Store）
 │   │   ├── llm/              #   OllamaAdapter / OpenAICompatAdapter
@@ -146,7 +177,7 @@ rag_system/
 │   │   ├── query_usecases.py
 │   │   ├── generation_usecases.py
 │   │   └── settings_usecases.py
-│   └── desktop/              # 桌面层：PySide6 UI
+│   └── desktop/              # legacy 桌面层：PySide6 UI
 │       ├── bootstrap.py      #   程序启动入口
 │       ├── style.py          #   全局 QSS 主题（Codex 暗色风格）
 │       ├── views/            #   MainWindow / 各功能视图 / 使用指引
@@ -156,11 +187,17 @@ rag_system/
 │   ├── conftest.py           # 共用 Fixtures（内存 SQLite + FakeLLM）
 │   ├── test_domain/          # 领域模型测试
 │   ├── test_adapters/        # SQLite Store 测试
-│   └── test_application/     # 用例测试（工作区 / 摄入 / 查询）
+│   ├── test_application/     # 用例测试（项目空间兼容层 / 摄入 / 查询）
+│   └── test_webapp/          # Web MVP API、导入、检索与前端静态约束测试
 ├── docs/
-│   ├── BACKLOG.md            # 待办事项
-│   ├── DEVLOG.md             # 开发日志
-│   └── architecture/         # 架构设计文档
+│   ├── BACKLOG.md
+│   ├── DEVLOG.md
+│   ├── design/api-spec.md
+│   ├── devlog/2026-05-20.md
+│   ├── guides/setup.md
+│   ├── guides/testing.md
+│   ├── release/WEB_MVP_READINESS_2026-05-20.md
+│   └── architecture/              # 历史架构文档（兼容保留）
 ├── data/                     # 示例数据 / 输出目录
 ├── runtime/                  # 运行时产物（db / vector store / logs）
 └── .env.example              # 环境变量示例
@@ -178,8 +215,8 @@ rag_system/
 ## 运行测试
 
 ```bash
-.venv/Scripts/python.exe -m pytest tests/ -v
-# 72 passed，零网络依赖，<1s
+.venv/Scripts/python.exe -m pytest tests/test_webapp -q
+# 当前测试基线以实际运行结果为准
 ```
 
 ---
@@ -188,6 +225,10 @@ rag_system/
 
 | 文档 | 内容 |
 |------|------|
+| `docs/design/api-spec.md` | 本地 Web MVP HTTP API 与 legacy 进程内接口契约 |
+| `docs/guides/setup.md` | 环境启动指引 |
+| `docs/guides/testing.md` | 测试与验证方式 |
+| `docs/release/WEB_MVP_READINESS_2026-05-20.md` | 本地 Web MVP 收口与浏览器验收清单 |
 | `docs/architecture/SYSTEM_ARCHITECTURE.md` | 整体架构说明 |
 | `docs/architecture/LLM_PROVIDER_DESIGN.md` | LLM 提供商路由 + API Key 安全设计 |
 | `docs/architecture/RAG_PIPELINE.md` | RAG 检索增强生成流程 |
