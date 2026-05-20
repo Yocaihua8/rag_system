@@ -21,6 +21,15 @@ from typing import Optional
 from src.config import defaults
 
 
+API_KEY_ENV_NAMES = (
+    "RAG_LLM_API_KEY",
+    "deepseekapikey",
+    "DEEPSEEK_API_KEY",
+    "DEEPSEEK_APIKEY",
+    "DeepSeekApiKey",
+)
+
+
 # ---------------------------------------------------------------------------
 # AppSettings
 # ---------------------------------------------------------------------------
@@ -79,7 +88,7 @@ def _app_data_dir() -> Path:
         base = Path.home() / "Library" / "Application Support"
     else:
         base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return base / "CareerAssistant"
+    return base / "KnowledgeIsland"
 
 
 def _project_root() -> Path:
@@ -115,6 +124,48 @@ def _parse_env_file(path: Path) -> dict[str, str]:
 def _resolve(env: dict[str, str], key: str, fallback: str) -> str:
     """从合并后的环境字典中取值，缺失时用 fallback。"""
     return env.get(key, fallback)
+
+
+def _first_non_empty(env: dict[str, str], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        value = env.get(key)
+        if value:
+            return value
+    return ""
+
+
+def get_api_key_env_name() -> str:
+    """返回当前进程中第一个可用的 API Key 环境变量名，不暴露密钥值。"""
+    for key in API_KEY_ENV_NAMES:
+        if os.environ.get(key):
+            return key
+    return ""
+
+
+def _apply_deepseek_env_alias(
+    env: dict[str, str],
+    source: dict[str, str],
+) -> None:
+    """
+    兼容用户本地已有的 DeepSeek Key 环境变量。
+
+    RAG_LLM_API_KEY 仍是通用正式变量；DeepSeek 别名仅在当前来源没有显式设置
+    RAG_LLM_API_KEY 时生效，并默认切到 DeepSeek API。
+    """
+    deepseek_key = _first_non_empty(
+        source,
+        ("deepseekapikey", "DEEPSEEK_API_KEY", "DEEPSEEK_APIKEY", "DeepSeekApiKey"),
+    )
+    if not deepseek_key or source.get("RAG_LLM_API_KEY"):
+        return
+
+    env["RAG_LLM_API_KEY"] = deepseek_key
+    if not source.get("RAG_LLM_PROVIDER"):
+        env["RAG_LLM_PROVIDER"] = "api"
+    if not source.get("RAG_LLM_API_BASE"):
+        env["RAG_LLM_API_BASE"] = defaults.LLM_API_BASE
+    if not source.get("RAG_LLM_API_MODEL"):
+        env["RAG_LLM_API_MODEL"] = defaults.LLM_API_MODEL
 
 
 # ---------------------------------------------------------------------------
@@ -165,10 +216,12 @@ def load_settings(override_env: Optional[dict[str, str]] = None) -> AppSettings:
     ):
         if key in os.environ:
             env[key] = os.environ[key]
+    _apply_deepseek_env_alias(env, os.environ)
 
     # 层 1：测试覆盖（最高优先级）
     if override_env:
         env.update(override_env)
+        _apply_deepseek_env_alias(env, override_env)
 
     # --- 解析各字段 ---
 
@@ -218,10 +271,29 @@ def save_setting(key: str, value: str, settings: AppSettings) -> None:
     env_file = settings.app_data_dir / ".env"
     settings.app_data_dir.mkdir(parents=True, exist_ok=True)
 
-    # 读取现有内容
-    existing = _parse_env_file(env_file)
-    existing[key] = value
+    escaped_value = str(value).replace('"', '\\"')
+    update_key = key.strip()
+    updated_lines: list[str] = []
+    found = False
 
-    # 回写
-    lines = [f'{k}="{v}"' for k, v in sorted(existing.items())]
-    env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    if env_file.exists():
+        for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+            stripped = raw_line.strip()
+            if stripped.startswith("#") or "=" not in raw_line or not stripped:
+                updated_lines.append(raw_line)
+                continue
+
+            existing_key, _, _ = raw_line.partition("=")
+            if existing_key.strip() == update_key:
+                leading = raw_line[: len(raw_line) - len(raw_line.lstrip())]
+                updated_lines.append(f'{leading}{update_key}="{escaped_value}"')
+                found = True
+            else:
+                updated_lines.append(raw_line)
+    else:
+        updated_lines = []
+
+    if not found:
+        updated_lines.append(f'{update_key}="{escaped_value}"')
+
+    env_file.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")

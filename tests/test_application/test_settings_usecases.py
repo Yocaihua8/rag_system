@@ -22,6 +22,21 @@ from src.application.settings_usecases import SettingsUseCases
 from src.config.settings import AppSettings, load_settings
 
 
+@pytest.fixture(autouse=True)
+def _clear_llm_env(monkeypatch):
+    for key in (
+        "RAG_LLM_PROVIDER",
+        "RAG_LLM_API_BASE",
+        "RAG_LLM_API_KEY",
+        "RAG_LLM_API_MODEL",
+        "DEEPSEEK_API_KEY",
+        "DEEPSEEK_APIKEY",
+        "DeepSeekApiKey",
+        "deepseekapikey",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
 # ── Fixture ───────────────────────────────────────────────────────────────────
 
 @pytest.fixture
@@ -48,6 +63,18 @@ class TestGetCurrent:
     def test_returns_app_settings(self, uc):
         s = uc.get_current()
         assert isinstance(s, AppSettings)
+
+    def test_default_paths_use_knowledge_island_names(self, tmp_path, monkeypatch):
+        appdata_base = tmp_path / "roaming"
+        monkeypatch.setenv("APPDATA", str(appdata_base))
+        monkeypatch.delenv("RAG_KB_ROOT", raising=False)
+        monkeypatch.delenv("RAG_RUNTIME_DIR", raising=False)
+        monkeypatch.setattr(settings_module, "_project_root", lambda: tmp_path / "repo")
+
+        s = load_settings()
+
+        assert s.kb_root.name == "KnowledgeIslandKB"
+        assert s.app_data_dir.name == "KnowledgeIsland"
 
 
 # ── 各字段保存 ────────────────────────────────────────────────────────────────
@@ -98,6 +125,51 @@ class TestSaveLLMApiModel:
     def test_save_and_load(self, uc):
         s = uc.save_llm_api_model("deepseek-chat")
         assert s.llm_api_model == "deepseek-chat"
+
+
+class TestDeepSeekEnvAlias:
+
+    def test_deepseek_api_key_env_enables_api_provider(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(settings_module, "_app_data_dir", lambda: tmp_path / "appdata")
+        monkeypatch.setattr(settings_module, "_project_root", lambda: tmp_path / "repo")
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek")
+
+        s = load_settings(override_env={
+            "RAG_RUNTIME_DIR": str(tmp_path / "runtime"),
+            "RAG_KB_ROOT": str(tmp_path / "kb"),
+        })
+
+        assert s.llm_provider == "api"
+        assert s.llm_api_key == "sk-deepseek"
+        assert s.llm_api_base == "https://api.deepseek.com/v1"
+        assert s.llm_api_model == "deepseek-chat"
+
+    def test_deepseekapikey_override_env_alias(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(settings_module, "_app_data_dir", lambda: tmp_path / "appdata")
+        monkeypatch.setattr(settings_module, "_project_root", lambda: tmp_path / "repo")
+
+        s = load_settings(override_env={
+            "RAG_RUNTIME_DIR": str(tmp_path / "runtime"),
+            "RAG_KB_ROOT": str(tmp_path / "kb"),
+            "deepseekapikey": "sk-local",
+        })
+
+        assert s.llm_provider == "api"
+        assert s.llm_api_key == "sk-local"
+
+    def test_explicit_provider_env_can_keep_ollama(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(settings_module, "_app_data_dir", lambda: tmp_path / "appdata")
+        monkeypatch.setattr(settings_module, "_project_root", lambda: tmp_path / "repo")
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek")
+        monkeypatch.setenv("RAG_LLM_PROVIDER", "ollama")
+
+        s = load_settings(override_env={
+            "RAG_RUNTIME_DIR": str(tmp_path / "runtime"),
+            "RAG_KB_ROOT": str(tmp_path / "kb"),
+        })
+
+        assert s.llm_provider == "ollama"
+        assert s.llm_api_key == "sk-deepseek"
 
 
 class TestSaveEmbedProvider:
@@ -155,3 +227,29 @@ class TestMultiFieldSave:
         assert s.ollama_model == "qwen2.5:7b"
         assert abs(s.llm_temperature - 0.5) < 1e-9
         assert s.llm_max_tokens == 1024
+
+
+class TestEnvFilePreserveFormatting:
+
+    def test_save_preserves_comments_and_blank_lines(self, uc):
+        env_file = uc._settings.app_data_dir / ".env"
+        env_file.write_text(
+            "# 运行时配置\n"
+            "RAG_KB_ROOT=\"old/path\"\n"
+            "\n"
+            "# 模型参数\n"
+            "RAG_OLLAMA_HOST=http://127.0.0.1:11434\n"
+            "RAG_LLM_TEMPERATURE=\"0.5\"\n"
+            "\n",
+            encoding="utf-8",
+        )
+
+        uc.save_ollama_host("http://localhost:11434")
+
+        lines = env_file.read_text(encoding="utf-8").splitlines()
+        assert lines[0] == "# 运行时配置"
+        assert lines[1] == "RAG_KB_ROOT=\"old/path\""
+        assert lines[2] == ""
+        assert lines[3] == "# 模型参数"
+        assert lines[4] == "RAG_OLLAMA_HOST=\"http://localhost:11434\""
+        assert lines[5] == "RAG_LLM_TEMPERATURE=\"0.5\""

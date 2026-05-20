@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 # 知识库根目录（相对用户主目录，运行时展开为绝对路径）
-KB_ROOT = "~/CareerAssistantKB"
+KB_ROOT = "~/KnowledgeIslandKB"
 
 # Ollama
 OLLAMA_HOST = "http://localhost:11434"

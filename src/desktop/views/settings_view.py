@@ -13,8 +13,6 @@ settings_view.py — 设置面板。
 """
 from __future__ import annotations
 
-import os
-
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QButtonGroup, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame,
@@ -22,15 +20,11 @@ from PySide6.QtWidgets import (
     QRadioButton, QSpinBox, QVBoxLayout, QWidget,
 )
 
-from src.config.settings import AppSettings
+from src.config.settings import AppSettings, get_api_key_env_name
 from src.desktop.style import (
     ACCENT, BG_ELEVATED, BG_TERTIARY,
     BORDER, SUCCESS, TEXT_PRIMARY, TEXT_SECONDARY,
 )
-
-# OS 环境变量名
-_ENV_API_KEY = "RAG_LLM_API_KEY"
-
 
 def _section_label(text: str) -> QLabel:
     label = QLabel(text)
@@ -169,7 +163,7 @@ class SettingsView(QWidget):
         key_row.addWidget(self._btn_toggle_key)
 
         # 环境变量安全提示
-        self._env_key_label = QLabel(f"● 已从系统环境变量 {_ENV_API_KEY} 读取（安全）")
+        self._env_key_label = QLabel("● 已从系统环境变量读取（安全）")
         self._env_key_label.setStyleSheet(f"""
             color: {SUCCESS};
             font-size: 12px;
@@ -184,7 +178,7 @@ class SettingsView(QWidget):
         # 环境变量配置提示
         env_hint = QLabel(
             "安全提示：可通过系统环境变量传入 API Key，无需写入任何文件。\n"
-            f"Windows：set {_ENV_API_KEY}=sk-xxx    macOS/Linux：export {_ENV_API_KEY}=sk-xxx"
+            "推荐：RAG_LLM_API_KEY=sk-xxx；现阶段也兼容 DEEPSEEK_API_KEY / DEEPSEEK_APIKEY / deepseekapikey"
         )
         env_hint.setStyleSheet(f"color: {TEXT_SECONDARY}; font-size: 11px; background: transparent; padding-top: 4px;")
         env_hint.setWordWrap(True)
@@ -289,8 +283,10 @@ class SettingsView(QWidget):
         self._api_model.setText(s.llm_api_model)
 
         # 检测 API Key 来源
-        self._api_key_from_env = bool(os.environ.get(_ENV_API_KEY))
+        env_key_name = get_api_key_env_name()
+        self._api_key_from_env = bool(env_key_name)
         if self._api_key_from_env:
+            self._env_key_label.setText(f"● 已从系统环境变量 {env_key_name} 读取（安全）")
             self._api_key.setVisible(False)
             self._btn_toggle_key.setVisible(False)
             self._env_key_label.setVisible(True)

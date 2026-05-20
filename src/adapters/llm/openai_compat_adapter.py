@@ -9,7 +9,7 @@ openai_compat_adapter.py — OpenAI 兼容 API 适配器。
   - 本地 vLLM / LM Studio 等
 
 API Key 读取优先级（由 load_settings() 保证）：
-  OS 环境变量 RAG_LLM_API_KEY > appdata/.env > 项目 .env > 空串
+  OS 环境变量 RAG_LLM_API_KEY / DeepSeek 别名 > appdata/.env > 项目 .env > 空串
 """
 from __future__ import annotations
 
