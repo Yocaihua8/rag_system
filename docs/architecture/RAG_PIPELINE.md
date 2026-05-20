@@ -80,7 +80,8 @@
 
 - `infer_domain(file_path, content) -> str`：根据目录名和内容关键词推断领域（resume / jd / notes / paper 等）
 - `build_tags(file_path, content) -> List[str]`：提取技术标签（Python / FastAPI / Vue …）
-- 不修改原始文本内容，仅丰富元数据
+- 对 Markdown/文本进行标准化处理后输出 `normalized_markdown / plain_text / rendered_html`
+- 同时保留原始文本内容（`raw_content`）与安全展示所需字段
 
 ---
 
@@ -153,7 +154,13 @@ Collection 命名：workspace_{workspace_id}
 
 ```
 首次摄入 → clear(workspace_id) → upsert_batch(all_chunks)
-重新索引 → clear(workspace_id) → upsert_batch(all_chunks)
+重新索引（force_reindex=True） → clear(workspace_id) → upsert_batch(all_chunks)
+增量索引（force_reindex=False）→ 对比文件变更后仅重建新增/变更文档的 chunk：
+
+1) 对变更文档执行 `remove_by_document(document_id)`
+2) 清除旧 doc/chunk 记录后重新 `index` 新 chunks（仅这些文档）
+
+若无变更 → 不触发 clear/index，直接返回无变更完成态
 删除工作区 → delete_by_workspace(workspace_id)
 ```
 
@@ -364,7 +371,7 @@ Ollama 或向量服务不可用时，系统应优雅降级而非崩溃：
 
 ## 项目知识库与掌握评估扩展
 
-项目知识库助手在标准 RAG 流程之上增加两条计划中的应用链路：
+知识岛在标准 RAG 流程之上增加个人知识管理、知识掌握和关系检索链路：
 
 ```text
 项目导入 → 项目知识点提炼 → 项目问答

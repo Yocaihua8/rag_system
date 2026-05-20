@@ -8,15 +8,15 @@
 
 ## 1. 产品定位
 
-项目知识库助手是一款本地桌面 RAG 应用，第一版围绕用户自己的代码项目逐步补齐：
+知识岛（Knowledge Island）是一款本地优先的个人 AI 第二大脑桌面端应用。当前实现仍沿用 PySide6 本地桌面架构，第一阶段围绕个人项目、文档、笔记和代码资料逐步补齐：
 
-- 导入代码项目并建立本地知识库
-- 围绕项目进行问答
-- 项目知识点提炼（规划中）
-- 通过评估题判断掌握情况（规划中）
-- 输出能力差距和建议阅读文件（规划中）
+- 导入本地项目、Markdown、TXT、代码和配置资料并建立本地知识库
+- 围绕项目或文档进行问答
+- Markdown / plain text / HTML 双格式数据模型
+- 项目知识点与掌握证据提炼（规划中）
+- 个人知识掌握地图和轻量知识图谱（规划中）
 
-简历项目子弹点、JD 关键词匹配和面试脚本生成保留为后续输出工具，不作为第一版主线。
+简历项目子弹点、JD 关键词匹配和面试脚本生成保留为后续输出能力，不作为知识岛第一阶段主线。
 
 ---
 
@@ -316,7 +316,7 @@ class ILLMClient(ABC):
 @dataclass(frozen=True)
 class AppSettings:
     # 知识库根目录（用户可配）
-    kb_root: Path             # 环境变量 RAG_KB_ROOT，默认 ~/CareerAssistantKB
+    kb_root: Path             # 环境变量 RAG_KB_ROOT，默认 ~/KnowledgeIslandKB
 
     # 运行时目录（相对项目）
     runtime_dir: Path         # RAG_RUNTIME_DIR，默认 ./runtime
@@ -345,7 +345,7 @@ class AppSettings:
 
 ```
 OS 环境变量
-  → %APPDATA%/CareerAssistant/.env   （用户通过 Settings UI 写入）
+  → %APPDATA%/KnowledgeIsland/.env   （用户通过 Settings UI 写入）
     → 项目根 .env                     （开发者覆盖，gitignore）
       → src/config/defaults.py        （兜底，无硬编码路径）
 ```
