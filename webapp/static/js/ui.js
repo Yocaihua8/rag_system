@@ -3,7 +3,12 @@ export function setStatus(message) {
 }
 
 export function renderAnswer(answerEl, sourcesEl, data) {
-  answerEl.textContent = data.answer;
+  const modeLabel = data.mode === "api"
+    ? `\n\n[真实模型：${data.provider}]`
+    : data.mode === "fallback"
+      ? `\n\n[模型不可用，已回退本地回答：${data.warning}]`
+      : "\n\n[本地片段回答]";
+  answerEl.textContent = `${data.answer}${modeLabel}`;
   sourcesEl.innerHTML = "";
   if (data.sources.length === 0) {
     appendEmptyItem(sourcesEl, "暂无来源");
@@ -99,6 +104,29 @@ export function renderDocumentPreview(previewEl, document) {
   previewEl.textContent = document
     ? `${document.relative_path}\n\n${document.content}`
     : "请选择左侧文件查看内容";
+}
+
+export function renderAssessmentQuestion(questionEl, question) {
+  if (!question) {
+    questionEl.textContent = "请先导入文件，再开始评估。";
+    return;
+  }
+  questionEl.textContent = `${question.prompt}\n\n来源：${question.source_path}\n参考片段：${question.reference_snippet}`;
+}
+
+export function renderAssessmentResult(resultEl, result) {
+  if (!result) {
+    resultEl.textContent = "";
+    return;
+  }
+  resultEl.textContent = [
+    `结果：${result.status}`,
+    `得分：${result.score}`,
+    `命中：${result.matched_points.join("、") || "无"}`,
+    `待补充：${result.missing_points.join("、") || "无"}`,
+    `建议阅读：${result.source_path}`,
+    result.feedback,
+  ].join("\n");
 }
 
 function appendEmptyItem(listEl, message) {

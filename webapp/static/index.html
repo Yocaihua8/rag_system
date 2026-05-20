@@ -50,6 +50,15 @@
       </aside>
 
       <section class="panel content">
+        <section id="first-run-guide" class="guide">
+          <h2>首次使用</h2>
+          <ol>
+            <li>创建项目空间，选择一个真实存在的本地目录。</li>
+            <li>点击导入目录，确认已导入文件和跳过详情。</li>
+            <li>先提问或搜索来源，再开始掌握评估。</li>
+            <li>需要真实模型回答时，在系统环境变量配置 DeepSeek Key。</li>
+          </ol>
+        </section>
         <div class="search-row">
           <input id="search-query" placeholder="搜索文件片段，例如：endpoint、配置、默认入口" />
           <button id="search-button" type="button">搜索</button>
@@ -66,6 +75,16 @@
         <section>
           <h2>来源</h2>
           <ul id="sources" class="sources"></ul>
+        </section>
+        <section class="assessment-panel">
+          <div class="section-title-row">
+            <h2>掌握评估</h2>
+            <button id="start-assessment-button" type="button">开始评估</button>
+          </div>
+          <pre id="assessment-question" class="answer">请先导入文件，再开始评估。</pre>
+          <textarea id="assessment-answer" placeholder="输入你的回答，系统会按来源关键词给出反馈。"></textarea>
+          <button id="assessment-answer-button" type="button">提交回答</button>
+          <pre id="assessment-result" class="answer"></pre>
         </section>
       </section>
     </main>

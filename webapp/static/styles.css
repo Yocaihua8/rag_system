@@ -15,6 +15,7 @@ body {
 
 button,
 input,
+textarea,
 select {
   border: 1px solid #3e3a32;
   border-radius: 6px;
@@ -32,9 +33,16 @@ button {
 }
 
 input,
+textarea,
 select {
   padding: 0 10px;
   width: 100%;
+}
+
+textarea {
+  min-height: 92px;
+  padding: 10px;
+  resize: vertical;
 }
 
 .shell {
@@ -92,6 +100,36 @@ select {
   border: 1px solid #24262b;
 }
 
+.guide {
+  padding: 12px 14px;
+  border: 1px solid #2f333a;
+  border-radius: 8px;
+  background: #111318;
+}
+
+.guide h2,
+.assessment-panel h2 {
+  margin-top: 0;
+}
+
+.guide ol {
+  margin: 0;
+  padding-left: 22px;
+  color: #d8d1c7;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.assessment-panel {
+  display: grid;
+  gap: 10px;
+}
+
 .preview {
   min-height: 120px;
   max-height: 280px;
@@ -141,7 +179,12 @@ select {
 @media (max-width: 760px) {
   .shell,
   .toolbar,
-  .ask-row {
+  .ask-row,
+  .section-title-row {
     grid-template-columns: 1fr;
+  }
+
+  .section-title-row {
+    display: grid;
   }
 }

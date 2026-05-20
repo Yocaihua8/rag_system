@@ -2,6 +2,9 @@
 
 ## 2026-05-20
 
+- Web MVP 接入 OpenAI-compatible Chat Completions：配置 DeepSeek / `RAG_LLM_PROVIDER=api` 后，`/api/answer` 优先使用真实 LLM，失败时回退本地片段回答。
+- Web MVP 新增掌握评估入口：从已导入文件生成最小评估题，提交回答后返回状态、得分、命中/缺失要点和建议阅读来源。
+- Web 首页新增首次使用引导，覆盖创建项目空间、导入目录、提问/评估、配置 DeepSeek。
 - 默认入口切换为本地 Web MVP：`app.py` 现在启动 `http://127.0.0.1:8765`。
 - 新增 `webapp/`：使用 Python 标准库 HTTP 服务、SQLite、原生 HTML/CSS/JS，支持创建项目空间、导入本地文本目录、关键词问答和来源展示。
 - Web MVP 会显示当前项目空间绑定的本地目录，便于确认操作范围。

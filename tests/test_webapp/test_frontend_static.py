@@ -117,3 +117,26 @@ def test_frontend_blocks_import_when_selected_project_root_is_missing():
     assert "selectedProject" in projects_js
     assert "root_exists === false" in projects_js
     assert "项目目录不存在，无法导入" in projects_js
+
+
+def test_first_run_guide_is_visible_on_web_homepage():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+
+    assert 'id="first-run-guide"' in index_html
+    assert "创建项目空间" in index_html
+    assert "导入目录" in index_html
+    assert "配置 DeepSeek" in index_html
+
+
+def test_web_assessment_entrypoint_is_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    qa_js = Path("webapp/static/js/qa.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    assert 'id="start-assessment-button"' in index_html
+    assert 'id="assessment-answer-button"' in index_html
+    assert '"/api/assessment/start"' in qa_js
+    assert '"/api/assessment/answer"' in qa_js
+    assert "startAssessmentButton.addEventListener" in app_js
+    assert "renderAssessmentQuestion" in ui_js

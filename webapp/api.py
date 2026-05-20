@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from webapp.assessment import create_assessment_session, evaluate_assessment_answer
 from webapp.answers import compose_answer
 from webapp.ingestion import import_directory
 from webapp.models import ApiResponse
@@ -16,6 +17,7 @@ def dispatch(
     method: str,
     raw_path: str,
     payload: dict[str, Any] | None = None,
+    llm_client: Any | None = None,
 ) -> ApiResponse:
     payload = payload or {}
     parsed = urlparse(raw_path)
@@ -97,12 +99,42 @@ def dispatch(
         question = str(payload.get("question", ""))
         hits = search_documents(store, project_id, question)
         useful_hits = [hit for hit in hits if hit.score > 0]
+        answer_result = compose_answer(question, hits, llm_client=llm_client)
+        body = {
+            "answer": answer_result.answer,
+            "sources": [hit.to_dict() for hit in useful_hits[:5]],
+            "mode": answer_result.mode,
+            "provider": answer_result.provider,
+        }
+        if answer_result.warning:
+            body["warning"] = answer_result.warning
+        return ApiResponse(200, body)
+
+    if method == "POST" and path == "/api/assessment/start":
+        project_id = str(payload.get("project_id", ""))
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            session = create_assessment_session(store, project_id)
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, {"session": session})
+
+    if method == "POST" and path == "/api/assessment/answer":
+        project_id = str(payload.get("project_id", ""))
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            result = evaluate_assessment_answer(
+                project_id=project_id,
+                question=dict(payload.get("question") or {}),
+                answer=str(payload.get("answer", "")),
+            )
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
         return ApiResponse(
             200,
-            {
-                "answer": compose_answer(question, hits),
-                "sources": [hit.to_dict() for hit in useful_hits[:5]],
-            },
+            {"result": result},
         )
 
     return ApiResponse(404, {"error": "not found"})

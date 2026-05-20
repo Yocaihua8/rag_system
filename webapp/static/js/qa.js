@@ -20,3 +20,26 @@ export async function search(query) {
     query,
   });
 }
+
+export async function startAssessment() {
+  if (!state.selectedProjectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  return apiPost("/api/assessment/start", {
+    project_id: state.selectedProjectId,
+  });
+}
+
+export async function submitAssessmentAnswer(answer) {
+  if (!state.selectedProjectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  if (!state.assessmentQuestion) {
+    throw new Error("请先开始评估");
+  }
+  return apiPost("/api/assessment/answer", {
+    project_id: state.selectedProjectId,
+    question: state.assessmentQuestion,
+    answer,
+  });
+}

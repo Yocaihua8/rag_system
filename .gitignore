@@ -46,6 +46,7 @@ htmlcov/
 # Build artifacts
 build/
 dist/
+/release/
 release-cache/
 *.spec
 *.egg-info/

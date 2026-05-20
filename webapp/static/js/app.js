@@ -9,7 +9,7 @@ import {
   renameSelectedProject,
   selectProject,
 } from "./projects.js";
-import { ask, search } from "./qa.js";
+import { ask, search, startAssessment, submitAssessmentAnswer } from "./qa.js";
 import { state } from "./state.js";
 import {
   renderAnswer,
@@ -18,6 +18,8 @@ import {
   renderDocuments,
   renderImportErrors,
   renderProjectRoot,
+  renderAssessmentQuestion,
+  renderAssessmentResult,
   renderSearchResults,
   renderSkippedDetails,
   setStatus,
@@ -40,6 +42,11 @@ const documentPreviewEl = document.querySelector("#document-preview");
 const searchResultsEl = document.querySelector("#search-results");
 const skippedDetailsEl = document.querySelector("#skipped-details");
 const importErrorsEl = document.querySelector("#import-errors");
+const startAssessmentButton = document.querySelector("#start-assessment-button");
+const assessmentQuestionEl = document.querySelector("#assessment-question");
+const assessmentAnswerInput = document.querySelector("#assessment-answer");
+const assessmentAnswerButton = document.querySelector("#assessment-answer-button");
+const assessmentResultEl = document.querySelector("#assessment-result");
 
 projectSelect.addEventListener("change", async () => {
   selectProject(projectSelect.value);
@@ -155,6 +162,37 @@ askButton.addEventListener("click", async () => {
   }
 });
 
+startAssessmentButton.addEventListener("click", async () => {
+  try {
+    setStatus("正在生成评估题...");
+    const data = await startAssessment();
+    state.assessmentSession = data.session;
+    state.assessmentQuestion = data.session.questions[0] || null;
+    assessmentAnswerInput.value = "";
+    renderAssessmentQuestion(assessmentQuestionEl, state.assessmentQuestion);
+    renderAssessmentResult(assessmentResultEl, null);
+    setStatus("评估题已生成。");
+  } catch (error) {
+    setStatus(error.message);
+  }
+});
+
+assessmentAnswerButton.addEventListener("click", async () => {
+  const answer = assessmentAnswerInput.value.trim();
+  if (!answer) {
+    setStatus("请输入评估回答。");
+    return;
+  }
+  try {
+    setStatus("正在评估回答...");
+    const data = await submitAssessmentAnswer(answer);
+    renderAssessmentResult(assessmentResultEl, data.result);
+    setStatus("评估反馈已生成。");
+  } catch (error) {
+    setStatus(error.message);
+  }
+});
+
 async function refreshDocuments() {
   const data = await listDocuments();
   state.documents = data.documents;
@@ -163,6 +201,10 @@ async function refreshDocuments() {
   renderSearchResults(searchResultsEl, [], previewDocument);
   renderSkippedDetails(skippedDetailsEl, []);
   renderImportErrors(importErrorsEl, []);
+  state.assessmentSession = null;
+  state.assessmentQuestion = null;
+  renderAssessmentQuestion(assessmentQuestionEl, null);
+  renderAssessmentResult(assessmentResultEl, null);
 }
 
 function renderFilteredDocuments() {

@@ -35,7 +35,75 @@ def test_api_import_search_and_answer_flow(tmp_path: Path):
 
     assert answer_response.status == 200
     assert "本地 Web 服务" in answer_response.body["answer"]
+    assert answer_response.body["mode"] == "local"
     assert answer_response.body["sources"][0]["path"] == "stack.md"
+
+
+def test_answer_api_uses_injected_llm_client_when_available(tmp_path: Path):
+    class FakeLlmClient:
+        provider = "deepseek"
+
+        def generate_answer(self, question, hits):
+            assert question == "默认入口是什么？"
+            assert hits[0].document.relative_path == "stack.md"
+            return "DeepSeek 回答：默认入口是 app.py。"
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口是 app.py，本地 Web 服务负责页面和 API。",
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "默认入口是什么？"},
+        llm_client=FakeLlmClient(),
+    )
+
+    assert response.status == 200
+    assert response.body["answer"] == "DeepSeek 回答：默认入口是 app.py。"
+    assert response.body["mode"] == "api"
+    assert response.body["provider"] == "deepseek"
+
+
+def test_answer_api_falls_back_to_local_answer_when_llm_fails(tmp_path: Path):
+    class FailingLlmClient:
+        provider = "deepseek"
+
+        def generate_answer(self, question, hits):
+            raise RuntimeError("network down")
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口改为本地 Web 服务。",
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "默认入口是什么？"},
+        llm_client=FailingLlmClient(),
+    )
+
+    assert response.status == 200
+    assert "本地 Web 服务" in response.body["answer"]
+    assert response.body["mode"] == "fallback"
+    assert response.body["provider"] == "deepseek"
+    assert response.body["warning"] == "network down"
 
 
 def test_import_api_returns_current_document_list(tmp_path: Path):

@@ -22,6 +22,8 @@
 - `POST /api/import`
 - `POST /api/search`
 - `POST /api/answer`
+- `POST /api/assessment/start`
+- `POST /api/assessment/answer`
 
 ### 1.1 健康检查
 
@@ -77,9 +79,18 @@
 | 方法 | 路径 | 请求 | 成功响应 |
 |------|------|------|----------|
 | POST | `/api/search` | `project_id`、`query` | `{"hits":[...]}` |
-| POST | `/api/answer` | `project_id`、`question` | `{"answer":"...","sources":[...]}` |
+| POST | `/api/answer` | `project_id`、`question` | `{"answer":"...","sources":[...],"mode":"local|api|fallback","provider":"local|deepseek|api"}` |
 
-当前 Web MVP 使用 SQLite 中的文本内容做关键词排序，不依赖 Ollama、向量库或云端 API。问答结果由本地命中片段组合生成，并展示来源文件与片段；无命中时不伪造来源。
+当前 Web MVP 使用 SQLite 中的文本内容做关键词排序。问答在配置 `RAG_LLM_PROVIDER=api` 且存在 `RAG_LLM_API_KEY` / DeepSeek Key 别名时，优先请求 OpenAI-compatible Chat Completions；未配置或请求失败时回退到本地命中片段组合回答。无命中时不伪造来源。
+
+### 1.5 掌握评估
+
+| 方法 | 路径 | 请求 | 成功响应 | 错误 |
+|------|------|------|----------|------|
+| POST | `/api/assessment/start` | `project_id` | `{"session":{"id":"...","project_id":"...","questions":[...]}}` | `404 project not found`、`400 assessment requires imported documents` |
+| POST | `/api/assessment/answer` | `project_id`、`question`、`answer` | `{"result":{"status":"已掌握|基本理解|需要补充","score":0.0,"source_path":"..."}}` | `404 project not found`、`400 answer is required` |
+
+Web MVP 评估是最小闭环：题目从已导入文档生成，评分按来源关键词命中给出规则化反馈；不等同于 legacy 桌面端完整 Knowledge Mastery 存储模型。
 
 ## 2. legacy 内部接口边界（应用层）
 

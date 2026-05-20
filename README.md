@@ -26,7 +26,9 @@
 | **独立检索** | 不提问也可直接搜索文件片段，并点击结果打开文件预览 |
 | **关键词检索** | 基于 SQLite 中的文本内容做本地关键词排序，不依赖 Ollama 或云端 API |
 | **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示 |
-| **知识库问答** | 基于检索片段组合回答，并展示来源文件与片段 |
+| **知识库问答** | 默认基于检索片段组合回答；配置 DeepSeek / OpenAI 兼容 API 后优先使用真实 LLM，并保留来源文件与片段 |
+| **掌握评估** | Web 端可从已导入文件生成最小评估题，提交回答后给出规则化反馈和建议阅读来源 |
+| **首次使用引导** | Web 首页展示创建项目空间、导入目录、提问/评估、配置 DeepSeek 的最小步骤 |
 | **格式标准化** | legacy PySide6 链路已支持 `raw_content / normalized_markdown / plain_text / rendered_html`，Web MVP 后续迁移 |
 | **知识掌握地图** | 已新增 SkillArea / KnowledgePoint / MasteryRecord / Evidence 的数据模型与状态定义 |
 | **轻量知识图谱** | 计划用 SQLite 关系表表达 Project、Document、KnowledgePoint、Evidence 等节点关系 |
@@ -61,7 +63,7 @@ pip install -r requirements.txt
 ```
 
 > **Web MVP 最小依赖**：仅 Python 标准库，不需要新增运行时依赖。
-> **legacy PySide6 / 云端 API 模式**仍需要 PySide6、chromadb、sentence-transformers、openai 等依赖。
+> **legacy PySide6** 仍需要 PySide6、chromadb、sentence-transformers、openai 等依赖。Web 端 DeepSeek 调用使用 Python 标准库 `urllib`，不依赖 `openai` SDK。
 
 ### 3. 配置（可选）
 
@@ -82,6 +84,8 @@ cp .env.example .env
 | `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明）；兼容本机 DeepSeek Key 别名 |
 | `RAG_LLM_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
 | `RAG_LLM_API_MODEL` | `deepseek-chat` | 云端模型名 |
+
+Web 端问答会优先读取这些变量。未配置 API Key 时，自动回退到本地片段组合回答。
 
 ---
 
@@ -125,7 +129,7 @@ ollama pull nomic-embed-text
 
 ## 云端 API 配置
 
-在 **设置 → LLM 提供商** 中选择「API 模式」，填入：
+Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API；legacy 桌面端也可在 **设置 → LLM 提供商** 中选择「API 模式」。
 
 | 字段 | DeepSeek | OpenAI | 通义千问 | Kimi |
 |------|----------|--------|----------|------|
@@ -142,6 +146,13 @@ ollama pull nomic-embed-text
 2. **`.env` 文件**：写入项目根目录的 `.env`（已在 `.gitignore` 中排除）
 3. **设置界面**：直接在 UI 中填写（存储在 appdata 目录）
 
+Windows PowerShell 示例：
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("DEEPSEEK_API_KEY", "sk-xxx", "User")
+[System.Environment]::SetEnvironmentVariable("RAG_LLM_PROVIDER", "api", "User")
+```
+
 ---
 
 ## 项目结构
@@ -156,7 +167,9 @@ knowledage_island/
 │   ├── ingestion.py          # 本地目录文本导入
 │   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
 │   ├── search.py             # 关键词检索与排序
-│   ├── answers.py            # 基于来源片段组合回答
+│   ├── answers.py            # LLM 优先回答与本地片段回退
+│   ├── llm.py                # OpenAI-compatible Chat Completions 标准库客户端
+│   ├── assessment.py         # Web 掌握评估最小闭环
 │   └── static/               # 原生 HTML/CSS/JS 前端
 ├── src/
 │   ├── config/               # 配置层（defaults / settings / paths）

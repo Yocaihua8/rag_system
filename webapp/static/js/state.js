@@ -3,4 +3,6 @@ export const state = {
   selectedProjectId: "",
   documents: [],
   documentFilter: "",
+  assessmentSession: null,
+  assessmentQuestion: null,
 };

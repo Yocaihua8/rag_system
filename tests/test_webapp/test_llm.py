@@ -1,0 +1,71 @@
+import json
+from pathlib import Path
+
+from webapp.llm import LlmConfig, OpenAICompatibleChatClient
+from webapp.models import Document, SearchHit
+
+
+class _FakeHttpResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self):
+        return json.dumps(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "这是 DeepSeek 生成的真实回答。"
+                        }
+                    }
+                ]
+            }
+        ).encode("utf-8")
+
+
+def test_openai_compatible_client_posts_chat_completion_payload():
+    captured = {}
+
+    def fake_opener(request, timeout):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return _FakeHttpResponse()
+
+    document = Document(
+        id="doc-1",
+        project_id="project-1",
+        source_path=Path("README.md"),
+        relative_path="README.md",
+        content="默认入口是 app.py，Web 服务负责本地问答。",
+        checksum="checksum",
+        updated_at="2026-05-20T00:00:00+00:00",
+    )
+    hit = SearchHit(document=document, score=3.0, snippet="默认入口是 app.py，Web 服务负责本地问答。")
+    client = OpenAICompatibleChatClient(
+        LlmConfig(
+            provider="api",
+            api_base="https://api.deepseek.com/v1",
+            api_key="sk-test",
+            model="deepseek-chat",
+            temperature=0.2,
+            max_tokens=512,
+        ),
+        opener=fake_opener,
+    )
+
+    answer = client.generate_answer("默认入口是什么？", [hit])
+
+    assert answer == "这是 DeepSeek 生成的真实回答。"
+    assert captured["url"] == "https://api.deepseek.com/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer sk-test"
+    assert captured["payload"]["model"] == "deepseek-chat"
+    assert captured["payload"]["temperature"] == 0.2
+    assert captured["payload"]["max_tokens"] == 512
+    assert captured["payload"]["messages"][0]["role"] == "system"
+    assert "README.md" in captured["payload"]["messages"][1]["content"]
+    assert "默认入口是什么？" in captured["payload"]["messages"][1]["content"]

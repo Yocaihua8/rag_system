@@ -62,6 +62,14 @@ class SearchHit:
 
 
 @dataclass(frozen=True)
+class AnswerResult:
+    answer: str
+    mode: str
+    provider: str = "local"
+    warning: str = ""
+
+
+@dataclass(frozen=True)
 class ImportResult:
     imported: int
     skipped: int
