@@ -123,6 +123,61 @@ def test_import_api_returns_current_document_list(tmp_path: Path):
     assert [doc["relative_path"] for doc in response.body["documents"]] == ["a.md", "b.md"]
 
 
+def test_upload_import_api_creates_project_without_host_directory(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/upload",
+        {
+            "project_name": "浏览器项目",
+            "files": [
+                {"relative_path": "README.md", "content": "浏览器选择文件夹导入"},
+                {"relative_path": "src/app.py", "content": "print('hello')"},
+            ],
+        },
+    )
+
+    assert response.status == 200
+    assert response.body["project"]["name"] == "浏览器项目"
+    assert response.body["project"]["root_path"] == "browser-upload:浏览器项目"
+    assert response.body["project"]["root_exists"] is True
+    assert response.body["result"]["created"] == 2
+    assert [doc["relative_path"] for doc in response.body["documents"]] == ["README.md", "src/app.py"]
+
+
+def test_upload_import_api_reuses_selected_project_and_applies_import_rules(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("已有项目", Path("browser-upload:已有项目"))
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/upload",
+        {
+            "project_id": project.id,
+            "files": [
+                {"relative_path": "README.md", "content": "可导入"},
+                {"relative_path": "node_modules/pkg/index.js", "content": "跳过依赖"},
+                {"relative_path": "image.png", "content": "跳过图片"},
+                {"relative_path": "../escape.md", "content": "跳过非法路径"},
+            ],
+        },
+    )
+
+    assert response.status == 200
+    assert response.body["project"]["id"] == project.id
+    assert response.body["result"]["imported"] == 1
+    assert response.body["result"]["skipped"] == 3
+    assert response.body["result"]["skipped_details"] == [
+        {"path": "node_modules/pkg/index.js", "reason": "ignored directory"},
+        {"path": "image.png", "reason": "unsupported file type"},
+        {"path": "../escape.md", "reason": "invalid relative path"},
+    ]
+    assert [doc["relative_path"] for doc in response.body["documents"]] == ["README.md"]
+
+
 def test_import_api_ignores_local_tool_config_directories(tmp_path: Path):
     project_dir = tmp_path / "project"
     project_dir.mkdir()

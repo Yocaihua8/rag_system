@@ -13,11 +13,13 @@ class Project:
     created_at: str
 
     def to_dict(self) -> dict[str, Any]:
+        root_text = str(self.root_path)
+        is_browser_upload = root_text.startswith("browser-upload:")
         return {
             "id": self.id,
             "name": self.name,
-            "root_path": str(self.root_path),
-            "root_exists": self.root_path.exists() and self.root_path.is_dir(),
+            "root_path": root_text,
+            "root_exists": is_browser_upload or (self.root_path.exists() and self.root_path.is_dir()),
             "created_at": self.created_at,
         }
 

@@ -3,6 +3,7 @@ import {
   deleteDocument,
   deleteSelectedProject,
   getDocument,
+  importBrowserFolder,
   importSelectedProject,
   listDocuments,
   refreshProjects,
@@ -20,6 +21,7 @@ import {
   renderProjectRoot,
   renderAssessmentQuestion,
   renderAssessmentResult,
+  renderAssessmentOverview,
   renderSearchResults,
   renderSkippedDetails,
   setStatus,
@@ -29,6 +31,8 @@ const projectForm = document.querySelector("#project-form");
 const projectSelect = document.querySelector("#project-select");
 const projectRootEl = document.querySelector("#project-root");
 const importButton = document.querySelector("#import-button");
+const folderImportButton = document.querySelector("#folder-import-button");
+const folderImportInput = document.querySelector("#folder-import-input");
 const renameProjectButton = document.querySelector("#rename-project-button");
 const deleteProjectButton = document.querySelector("#delete-project-button");
 const askButton = document.querySelector("#ask-button");
@@ -47,6 +51,15 @@ const assessmentQuestionEl = document.querySelector("#assessment-question");
 const assessmentAnswerInput = document.querySelector("#assessment-answer");
 const assessmentAnswerButton = document.querySelector("#assessment-answer-button");
 const assessmentResultEl = document.querySelector("#assessment-result");
+const assessmentOverviewEl = document.querySelector("#assessment-overview");
+const viewNavButtons = Array.from(document.querySelectorAll("[data-view-target]"));
+const workspaceViews = Array.from(document.querySelectorAll(".workspace-view"));
+
+for (const button of viewNavButtons) {
+  button.addEventListener("click", () => showView(button.dataset.viewTarget));
+}
+
+showView("workbench-view");
 
 projectSelect.addEventListener("change", async () => {
   selectProject(projectSelect.value);
@@ -89,6 +102,33 @@ importButton.addEventListener("click", async () => {
     );
   } catch (error) {
     setStatus(error.message);
+  }
+});
+
+folderImportButton.addEventListener("click", () => {
+  folderImportInput.click();
+});
+
+folderImportInput.addEventListener("change", async () => {
+  try {
+    setStatus("正在读取浏览器选择的文件夹...");
+    const data = await importBrowserFolder(folderImportInput.files);
+    state.documents = data.documents;
+    await refreshProjects(projectSelect);
+    projectSelect.value = state.selectedProjectId;
+    renderSelectedProjectRoot();
+    renderFilteredDocuments();
+    renderDocumentPreview(documentPreviewEl, null);
+    renderSearchResults(searchResultsEl, [], previewDocument);
+    renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
+    renderImportErrors(importErrorsEl, data.result.errors);
+    setStatus(
+      `浏览器导入完成：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}，删除 ${data.result.deleted}，跳过 ${data.result.skipped}。`,
+    );
+  } catch (error) {
+    setStatus(error.message);
+  } finally {
+    folderImportInput.value = "";
   }
 });
 
@@ -171,6 +211,7 @@ startAssessmentButton.addEventListener("click", async () => {
     assessmentAnswerInput.value = "";
     renderAssessmentQuestion(assessmentQuestionEl, state.assessmentQuestion);
     renderAssessmentResult(assessmentResultEl, null);
+    renderAssessmentOverview(assessmentOverviewEl, null);
     setStatus("评估题已生成。");
   } catch (error) {
     setStatus(error.message);
@@ -187,6 +228,7 @@ assessmentAnswerButton.addEventListener("click", async () => {
     setStatus("正在评估回答...");
     const data = await submitAssessmentAnswer(answer);
     renderAssessmentResult(assessmentResultEl, data.result);
+    renderAssessmentOverview(assessmentOverviewEl, data.result);
     setStatus("评估反馈已生成。");
   } catch (error) {
     setStatus(error.message);
@@ -205,6 +247,7 @@ async function refreshDocuments() {
   state.assessmentQuestion = null;
   renderAssessmentQuestion(assessmentQuestionEl, null);
   renderAssessmentResult(assessmentResultEl, null);
+  renderAssessmentOverview(assessmentOverviewEl, null);
 }
 
 function renderFilteredDocuments() {
@@ -244,15 +287,34 @@ async function previewDocument(documentId) {
     setStatus("正在读取文件预览...");
     const data = await getDocument(documentId);
     renderDocumentPreview(documentPreviewEl, data.document);
+    showView("library-view");
     setStatus("已显示文件预览。");
   } catch (error) {
     setStatus(error.message);
   }
 }
 
+function showView(viewId) {
+  for (const view of workspaceViews) {
+    const isActive = view.id === viewId;
+    view.hidden = !isActive;
+    view.classList.toggle("active", isActive);
+  }
+  for (const button of viewNavButtons) {
+    const isActive = button.dataset.viewTarget === viewId;
+    button.classList.toggle("active", isActive);
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  }
+}
+
 refreshProjects(projectSelect)
   .then(() => {
     renderSelectedProjectRoot();
+    renderAssessmentOverview(assessmentOverviewEl, null);
     return refreshDocuments();
   })
   .catch((error) => setStatus(error.message));

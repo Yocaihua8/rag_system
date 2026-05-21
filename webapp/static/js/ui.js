@@ -129,6 +129,94 @@ export function renderAssessmentResult(resultEl, result) {
   ].join("\n");
 }
 
+export function renderAssessmentOverview(overviewEl, result) {
+  const radarPolygon = overviewEl.querySelector("#assessment-radar-polygon");
+  const statusEl = overviewEl.querySelector("#assessment-overview-status");
+  const scoreRingEl = overviewEl.querySelector("#assessment-score-ring");
+  const scoreValueEl = overviewEl.querySelector("#assessment-score-value");
+  const scoreTitleEl = overviewEl.querySelector("#assessment-score-title");
+  const scoreSummaryEl = overviewEl.querySelector("#assessment-score-summary");
+  const matchedListEl = overviewEl.querySelector("#assessment-matched-points");
+  const missingListEl = overviewEl.querySelector("#assessment-missing-points");
+  const sourcePathEl = overviewEl.querySelector("#assessment-source-path");
+
+  if (!result) {
+    overviewEl.classList.add("is-empty");
+    radarPolygon.setAttribute("points", buildRadarPoints([0, 0, 0, 0, 0]));
+    scoreRingEl.style.setProperty("--score-percent", "0%");
+    statusEl.textContent = "等待评估";
+    scoreValueEl.textContent = "0%";
+    scoreTitleEl.textContent = "暂无结果";
+    scoreSummaryEl.textContent = "提交回答后显示得分、命中点和待补充点。";
+    renderPointTags(matchedListEl, [], "暂无命中要点");
+    renderPointTags(missingListEl, [], "暂无待补充要点");
+    sourcePathEl.textContent = "暂无";
+    return;
+  }
+
+  const score = clampScore(Number(result.score));
+  const scorePercent = Math.round(score * 100);
+  const matchedPoints = Array.isArray(result.matched_points) ? result.matched_points : [];
+  const missingPoints = Array.isArray(result.missing_points) ? result.missing_points : [];
+  const totalPoints = Math.max(1, matchedPoints.length + missingPoints.length);
+  const hitRatio = matchedPoints.length / totalPoints;
+  const completionRatio = missingPoints.length === 0 ? 1 : Math.max(0.12, 1 - missingPoints.length / totalPoints);
+  const expressionRatio = Math.min(1, 0.35 + score * 0.65);
+  const sourceRatio = result.source_path ? Math.max(0.35, score) : 0.2;
+
+  overviewEl.classList.remove("is-empty");
+  radarPolygon.setAttribute("points", buildRadarPoints([
+    score,
+    hitRatio,
+    expressionRatio,
+    sourceRatio,
+    completionRatio,
+  ]));
+  scoreRingEl.style.setProperty("--score-percent", `${scorePercent}%`);
+  statusEl.textContent = result.status;
+  scoreValueEl.textContent = `${scorePercent}%`;
+  scoreTitleEl.textContent = result.status;
+  scoreSummaryEl.textContent = `命中 ${matchedPoints.length} / ${totalPoints} 个参考要点`;
+  renderPointTags(matchedListEl, matchedPoints, "暂无命中要点");
+  renderPointTags(missingListEl, missingPoints, "暂无待补充要点");
+  sourcePathEl.textContent = result.source_path || "暂无";
+}
+
+function buildRadarPoints(values) {
+  const centerX = 120;
+  const centerY = 105;
+  const radius = 83;
+  return values
+    .map((value, index) => {
+      const angle = -Math.PI / 2 + index * (Math.PI * 2 / values.length);
+      const pointRadius = radius * clampScore(value);
+      const x = centerX + Math.cos(angle) * pointRadius;
+      const y = centerY + Math.sin(angle) * pointRadius;
+      return `${Math.round(x)},${Math.round(y)}`;
+    })
+    .join(" ");
+}
+
+function renderPointTags(listEl, points, emptyMessage) {
+  listEl.innerHTML = "";
+  if (points.length === 0) {
+    appendEmptyItem(listEl, emptyMessage);
+    return;
+  }
+  for (const point of points) {
+    const item = document.createElement("li");
+    item.textContent = point;
+    listEl.appendChild(item);
+  }
+}
+
+function clampScore(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, value));
+}
+
 function appendEmptyItem(listEl, message) {
   const item = document.createElement("li");
   item.textContent = message;

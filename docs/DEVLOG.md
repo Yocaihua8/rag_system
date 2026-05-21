@@ -16,6 +16,85 @@
 - [2026-05-18](devlog/2026-05-18.md)
 - [2026-05-20](devlog/2026-05-20.md)
 
+## 2026-05-21 | B-61 — Web 掌握评估图表概览
+
+### 目标
+
+在 Web MVP 掌握评估页加入 A+B 可视化：保留雷达图的能力画像感，同时用得分环和命中/缺失要点保证信息来源真实；不引入新依赖，不修改评估 API、存储结构或后端评分逻辑。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 在评估视图新增 `assessment-overview` 图表区域 |
+| 更新 | `webapp/static/js/ui.js` | 新增 `renderAssessmentOverview()`，用当前评估结果派生雷达图和得分环 |
+| 更新 | `webapp/static/js/app.js` | 在开始评估、提交回答和刷新文档时同步刷新图表概览 |
+| 更新 | `webapp/static/styles.css` | 新增雷达图、得分环、命中/待补充标签和响应式布局样式 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 新增评估图表入口与渲染函数静态约束 |
+| 更新 | `docs/design/ui-wireframes.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步 B-61 前端行为 |
+
+### 关键行为
+
+- 图表只消费现有 `score`、`matched_points`、`missing_points` 和 `source_path`，不新增接口字段。
+- 雷达图的五个维度是当前单题结果的派生视图，不代表长期能力画像数据。
+- 未提交回答时显示空状态；提交回答后展示百分比分数、命中要点、待补充要点和建议阅读来源。
+
+### 测试结果
+
+```text
+.venv\Scripts\python.exe -m pytest tests\test_webapp -q
+50 passed
+
+.venv\Scripts\python.exe -m compileall -q app.py webapp
+通过，无输出错误
+
+Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName }
+通过，无输出错误
+
+.venv\Scripts\python.exe scripts\check_docs_consistency.py
+[PASS] docs consistency checks passed.
+```
+
+## 2026-05-21 | B-60 — Web 首页工作台分视图重设计
+
+### 目标
+
+根据已确认的 Figma `Workbench Simplified V2` 方向，把 Web MVP 首页从旧双栏暗色页面调整为简洁工作台；左侧只保留主导航，工作台、资料库、掌握评估和设置改为独立视图切换，降低默认信息密度并保留现有 API 调用与前端业务逻辑。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 拆分为工作台、资料库、评估、设置四个独立视图 |
+| 更新 | `webapp/static/styles.css` | 改为浅灰底、白色面板、青绿色主色，并补充分视图显示规则 |
+| 更新 | `webapp/static/js/app.js` | 新增左侧导航视图切换逻辑，替代页面内锚点跳转 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 新增工作台结构、独立视图导航与主题 token 静态约束 |
+| 更新 | `docs/design/ui-wireframes.md` | 同步 Web MVP 分视图工作台结构与信息密度原则 |
+| 更新 | `CHANGELOG.md`、`docs/BACKLOG.md` | 记录 B-60 已完成 |
+
+### 关键行为
+
+- 保留 `project-select`、`folder-import-button`、`documents`、`question`、`answer`、`sources`、`assessment-*` 等现有 DOM ID，避免改动既有 API 调用和数据渲染逻辑。
+- 左侧导航按钮使用 `data-view-target` 切换 `workspace-view`，不再通过 `href="#..."` 跳到页面内卡片。
+- 工作台只展示问答主流程；项目选择、导入、文件列表、文件预览和导入状态集中在资料库视图。
+- 点击来源或文件预览时会切换到资料库视图，继续复用 `document-preview` 展示当前文件片段。
+
+### 测试结果
+
+```text
+.venv\Scripts\python.exe -m pytest tests\test_webapp -q
+49 passed
+
+.venv\Scripts\python.exe -m compileall -q app.py webapp
+通过，无输出错误
+
+Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName }
+通过，无输出错误
+
+.venv\Scripts\python.exe scripts\check_docs_consistency.py
+[PASS] docs consistency checks passed.
+```
+
 ## 2026-05-20 | B-54 — 默认入口切换为本地 Web MVP
 
 ### 目标
@@ -202,6 +281,29 @@ Docker API 冒烟：imported=1, answerMode=api, provider=deepseek, sourceCount=1
 - 双击启动入口只负责调用已有 PowerShell 启动脚本，避免复制 Docker Compose 逻辑。
 - 双击停止入口调用 `docker compose down`，默认保留 `runtime/docker/` 数据。
 - 快速开始明确 Docker 模式页面路径填写 `/workspace`，宿主机文件放入 `docker-workspace/`。
+
+## 2026-05-21 | B-59 — Web 浏览器文件夹导入
+
+### 目标
+
+解决 Docker 模式下后端无法直接读取 Windows 路径的问题，让用户可以像普通本机应用一样在浏览器里选择本地项目文件夹导入。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `webapp/upload_import.py` | 接收浏览器上传的文件相对路径和内容，按导入规则入库 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/import/upload` |
+| 更新 | `webapp/models.py` | `browser-upload:` 项目空间视为可导入来源 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/app.js`、`webapp/static/js/projects.js` | 新增“选择文件夹导入”入口，使用 `webkitdirectory` 读取本地文件夹 |
+| 更新 | `tests/test_webapp/` | 覆盖上传导入创建项目、复用项目、跳过规则和前端入口 |
+| 更新 | `README.md`、`README-Docker-Quickstart.txt`、`docs/design/api-spec.md`、`docs/guides/*`、`docs/release/*`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步 Docker 模式导入方式和接口契约 |
+
+### 关键行为
+
+- 浏览器文件夹导入不要求后端访问 Windows 路径，适合 Docker 模式直接选择 `E:\Code\your-project`。
+- 未传 `project_id` 时，后端创建 `browser-upload:<project_name>` 项目空间并写入文档记录。
+- 前后端都会按文本后缀、忽略目录和 1MB 大小限制跳过文件；后端仍保留最终校验。
 
 ## 2026-05-18 | B-50/B-51/B-52 — 追问闭环与优先复测
 

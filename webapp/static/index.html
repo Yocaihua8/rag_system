@@ -7,84 +7,240 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <main class="shell">
-      <aside class="panel sidebar">
-        <h1>知识岛</h1>
-        <form id="project-form" class="stack">
-          <label>
-            项目名称
-            <input id="project-name" name="name" placeholder="例如：我的项目" />
-          </label>
-          <label>
-            本地目录
-            <input id="project-path" name="path" placeholder="E:\Code\project" required />
-          </label>
-          <button type="submit">创建项目空间</button>
-        </form>
-        <div class="toolbar">
-          <select id="project-select"></select>
-          <button id="import-button" type="button">导入</button>
-          <button id="rename-project-button" type="button">改名</button>
-          <button id="delete-project-button" type="button">删除</button>
-        </div>
-        <p id="project-root" class="status">未选择项目空间</p>
-        <p id="status" class="status"></p>
-        <section>
-          <h2>跳过详情</h2>
-          <ul id="skipped-details" class="skipped-details"></ul>
-        </section>
-        <section>
-          <h2>导入错误</h2>
-          <ul id="import-errors" class="skipped-details"></ul>
-        </section>
-        <section>
-          <h2>已导入文件</h2>
-          <input id="document-filter" placeholder="按路径过滤文件，例如：docs、README" />
-          <p id="document-count" class="status">0 / 0 个文件</p>
-          <ul id="documents" class="documents"></ul>
-        </section>
-        <section>
-          <h2>文件预览</h2>
-          <pre id="document-preview" class="preview"></pre>
-        </section>
+    <main class="workspace-shell">
+      <aside class="workspace-left">
+        <header class="brand-block">
+          <h1>知识岛</h1>
+          <p>本地项目知识工作台</p>
+        </header>
+
+        <nav class="main-nav" aria-label="主导航">
+          <button class="active" type="button" data-view-target="workbench-view" aria-current="page">工作台</button>
+          <button type="button" data-view-target="library-view">资料库</button>
+          <button type="button" data-view-target="assessment-view">评估</button>
+          <button type="button" data-view-target="settings-view">设置</button>
+        </nav>
       </aside>
 
-      <section class="panel content">
-        <section id="first-run-guide" class="guide">
-          <h2>首次使用</h2>
-          <ol>
-            <li>创建项目空间，选择一个真实存在的本地目录。</li>
-            <li>点击导入目录，确认已导入文件和跳过详情。</li>
-            <li>先提问或搜索来源，再开始掌握评估。</li>
-            <li>需要真实模型回答时，在系统环境变量配置 DeepSeek Key。</li>
-          </ol>
+      <section class="workspace-main">
+        <section id="workbench-view" class="workspace-view active">
+          <section class="workspace-center">
+            <header class="topbar">
+              <div>
+                <h2>项目问答</h2>
+                <p>围绕当前项目资料提问，答案始终绑定来源。</p>
+              </div>
+              <div class="status-pills" aria-label="服务状态">
+                <span>本地服务</span>
+                <span>DeepSeek</span>
+              </div>
+            </header>
+
+            <section id="first-run-guide" class="guide-card">
+              <h2>首次使用</h2>
+              <ol>
+                <li>先到资料库创建或选择项目空间。</li>
+                <li>导入目录后回到工作台提问或检索来源。</li>
+                <li>需要真实模型回答时，在系统环境变量配置 DeepSeek Key。</li>
+              </ol>
+            </section>
+
+            <section id="ask-panel" class="ask-card">
+              <label for="question">输入问题</label>
+              <div class="ask-row">
+                <input id="question" placeholder="例如：这个项目的默认入口是什么？" />
+                <button id="ask-button" class="primary-action" type="button">提问</button>
+              </div>
+              <p id="status" class="status-line"></p>
+            </section>
+
+            <section class="answer-card">
+              <div class="section-title-row">
+                <h2>回答</h2>
+                <span class="soft-label">来源可追溯</span>
+              </div>
+              <pre id="answer" class="answer"></pre>
+            </section>
+
+            <section class="source-summary-card">
+              <div class="section-title-row">
+                <h2>来源</h2>
+                <div class="search-row">
+                  <input id="search-query" placeholder="搜索文件片段，例如：endpoint、默认入口" />
+                  <button id="search-button" type="button">搜索</button>
+                </div>
+              </div>
+              <ul id="sources" class="sources"></ul>
+              <ul id="search-results" class="search-results"></ul>
+            </section>
+          </section>
         </section>
-        <div class="search-row">
-          <input id="search-query" placeholder="搜索文件片段，例如：endpoint、配置、默认入口" />
-          <button id="search-button" type="button">搜索</button>
-        </div>
-        <section>
-          <h2>检索结果</h2>
-          <ul id="search-results" class="search-results"></ul>
+
+        <section id="library-view" class="workspace-view" hidden>
+          <section class="workspace-center">
+            <header class="topbar">
+              <div>
+                <h2>资料库</h2>
+                <p>管理项目空间、导入文件，并查看当前文件片段。</p>
+              </div>
+            </header>
+
+            <section class="project-card" aria-labelledby="project-title">
+              <p class="section-kicker">当前项目</p>
+              <h2 id="project-title">项目空间</h2>
+              <select id="project-select" aria-label="选择项目空间"></select>
+              <p id="project-root" class="muted-line">未选择项目空间</p>
+              <div class="project-actions">
+                <button id="folder-import-button" class="primary-action" type="button">导入文件夹</button>
+                <input id="folder-import-input" type="file" webkitdirectory multiple hidden />
+                <button id="import-button" type="button">同步</button>
+              </div>
+              <div class="project-actions compact">
+                <button id="rename-project-button" type="button">改名</button>
+                <button id="delete-project-button" type="button">删除</button>
+              </div>
+            </section>
+
+            <section id="documents-section" class="documents-card">
+              <div class="section-title-row">
+                <div>
+                  <p class="section-kicker">资料库</p>
+                  <h2>最近文件</h2>
+                </div>
+                <p id="document-count" class="count-pill">0 / 0</p>
+              </div>
+              <input id="document-filter" placeholder="按路径过滤文件" />
+              <ul id="documents" class="documents"></ul>
+            </section>
+          </section>
+
+          <aside class="workspace-right">
+            <section class="source-preview-card">
+              <div class="section-title-row">
+                <div>
+                  <p class="section-kicker">当前来源</p>
+                  <h2>文件预览</h2>
+                </div>
+                <span class="soft-label">片段</span>
+              </div>
+              <pre id="document-preview" class="preview"></pre>
+            </section>
+
+            <section class="import-state-card">
+              <h2>导入状态</h2>
+              <ul id="skipped-details" class="skipped-details"></ul>
+              <ul id="import-errors" class="skipped-details"></ul>
+            </section>
+          </aside>
         </section>
-        <div class="ask-row">
-          <input id="question" placeholder="输入问题，例如：这个项目的默认入口是什么？" />
-          <button id="ask-button" type="button">提问</button>
-        </div>
-        <pre id="answer" class="answer"></pre>
-        <section>
-          <h2>来源</h2>
-          <ul id="sources" class="sources"></ul>
+
+        <section id="assessment-view" class="workspace-view" hidden>
+          <section class="workspace-center">
+            <header class="topbar">
+              <div>
+                <h2>掌握评估</h2>
+                <p>从已导入资料生成检查题，并基于来源关键词反馈。</p>
+              </div>
+            </header>
+
+            <section id="assessment-section" class="assessment-card">
+              <div class="section-title-row">
+                <div>
+                  <p class="section-kicker">掌握评估</p>
+                  <h2>从资料生成一道检查题</h2>
+                </div>
+                <button id="start-assessment-button" type="button">开始评估</button>
+              </div>
+              <pre id="assessment-question" class="answer compact-answer">请先导入文件，再开始评估。</pre>
+              <textarea id="assessment-answer" placeholder="输入你的回答，系统会按来源关键词给出反馈。"></textarea>
+              <button id="assessment-answer-button" type="button">提交回答</button>
+              <pre id="assessment-result" class="answer compact-answer"></pre>
+            </section>
+
+            <section id="assessment-overview" class="assessment-overview-card is-empty" aria-labelledby="assessment-overview-title">
+              <div class="section-title-row">
+                <div>
+                  <p class="section-kicker">评估概览</p>
+                  <h2 id="assessment-overview-title">能力画像</h2>
+                </div>
+                <span id="assessment-overview-status" class="soft-label">等待评估</span>
+              </div>
+
+              <div class="assessment-overview-grid">
+                <div class="assessment-radar-panel">
+                  <svg class="assessment-radar" viewBox="0 0 240 210" role="img" aria-label="评估雷达图">
+                    <polygon class="radar-grid" points="120,22 196,78 168,168 72,168 44,78"></polygon>
+                    <polygon class="radar-grid" points="120,48 171,86 153,146 87,146 69,86"></polygon>
+                    <polygon class="radar-grid" points="120,74 145,94 136,124 104,124 95,94"></polygon>
+                    <line class="radar-axis" x1="120" y1="105" x2="120" y2="22"></line>
+                    <line class="radar-axis" x1="120" y1="105" x2="196" y2="78"></line>
+                    <line class="radar-axis" x1="120" y1="105" x2="168" y2="168"></line>
+                    <line class="radar-axis" x1="120" y1="105" x2="72" y2="168"></line>
+                    <line class="radar-axis" x1="120" y1="105" x2="44" y2="78"></line>
+                    <polygon id="assessment-radar-polygon" class="radar-data" points="120,105 120,105 120,105 120,105 120,105"></polygon>
+                    <text x="101" y="16">总体</text>
+                    <text x="194" y="76">命中</text>
+                    <text x="154" y="194">表达</text>
+                    <text x="48" y="194">来源</text>
+                    <text x="10" y="76">补齐</text>
+                  </svg>
+                  <p class="assessment-empty-note">完成一次评估后生成图表。</p>
+                </div>
+
+                <div class="assessment-score-panel">
+                  <div id="assessment-score-ring" class="score-ring" style="--score-percent: 0%">
+                    <span id="assessment-score-value">0%</span>
+                  </div>
+                  <div class="assessment-score-copy">
+                    <h3 id="assessment-score-title">暂无结果</h3>
+                    <p id="assessment-score-summary" class="muted-line">提交回答后显示得分、命中点和待补充点。</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="assessment-points-grid">
+                <section>
+                  <h3>命中要点</h3>
+                  <ul id="assessment-matched-points" class="point-tags"></ul>
+                </section>
+                <section>
+                  <h3>待补充</h3>
+                  <ul id="assessment-missing-points" class="point-tags missing"></ul>
+                </section>
+              </div>
+
+              <p class="assessment-source-line">建议阅读：<span id="assessment-source-path">暂无</span></p>
+            </section>
+          </section>
         </section>
-        <section class="assessment-panel">
-          <div class="section-title-row">
-            <h2>掌握评估</h2>
-            <button id="start-assessment-button" type="button">开始评估</button>
-          </div>
-          <pre id="assessment-question" class="answer">请先导入文件，再开始评估。</pre>
-          <textarea id="assessment-answer" placeholder="输入你的回答，系统会按来源关键词给出反馈。"></textarea>
-          <button id="assessment-answer-button" type="button">提交回答</button>
-          <pre id="assessment-result" class="answer"></pre>
+
+        <section id="settings-view" class="workspace-view" hidden>
+          <section class="workspace-center">
+            <header class="topbar">
+              <div>
+                <h2>设置</h2>
+                <p>创建新的本地项目空间。</p>
+              </div>
+            </header>
+
+            <form id="project-form" class="project-form">
+              <p class="section-kicker">新建项目空间</p>
+              <label>
+                项目名称
+                <input id="project-name" name="name" placeholder="例如：我的项目" />
+              </label>
+              <label>
+                本地目录
+                <input id="project-path" name="path" placeholder="E:\Code\project" required />
+              </label>
+              <button type="submit">创建项目空间</button>
+            </form>
+
+            <section class="design-note-card">
+              <h2>使用原则</h2>
+              <p>工作台只保留问答主流程；资料导入、文件管理、评估和设置拆分到独立视图。</p>
+            </section>
+          </section>
         </section>
       </section>
     </main>

@@ -20,6 +20,7 @@
 - `GET /api/document`
 - `POST /api/documents/delete`
 - `POST /api/import`
+- `POST /api/import/upload`
 - `POST /api/search`
 - `POST /api/answer`
 - `POST /api/assessment/start`
@@ -58,6 +59,9 @@
 | GET | `/api/document?document_id=...` | query `document_id` | `{"document":...}` | `400 document_id is required`、`404 document not found` |
 | POST | `/api/documents/delete` | `document_id` | `{"deleted":true,"documents":[...]}` | `404 document not found` |
 | POST | `/api/import` | `project_id` | `{"result":...,"documents":[...]}` | `404 project not found`、`400 project root path does not exist` |
+| POST | `/api/import/upload` | `project_id`（可选）、`project_name`（新建时使用）、`files:[{relative_path,content}]` | `{"project":...,"result":...,"documents":[...]}` | `400 files is required`、`404 project not found` |
+
+`/api/import/upload` 用于浏览器文件夹导入。浏览器通过 `webkitdirectory` 获取用户授权文件夹内的文本文件和相对路径，再把内容上传给本地服务入库；后端不会尝试读取 Windows 原始路径。未传 `project_id` 时，接口会创建 `browser-upload:<project_name>` 项目空间；该类项目的 `root_exists` 固定为 `true`。
 
 导入结果字段：
 

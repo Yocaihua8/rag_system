@@ -140,3 +140,83 @@ def test_web_assessment_entrypoint_is_wired():
     assert '"/api/assessment/answer"' in qa_js
     assert "startAssessmentButton.addEventListener" in app_js
     assert "renderAssessmentQuestion" in ui_js
+
+
+def test_browser_folder_import_entrypoint_is_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    projects_js = Path("webapp/static/js/projects.js").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+
+    assert 'id="folder-import-input"' in index_html
+    assert "webkitdirectory" in index_html
+    assert 'id="folder-import-button"' in index_html
+    assert "/api/import/upload" in projects_js
+    assert "webkitRelativePath" in projects_js
+    assert "folderImportInput.addEventListener" in app_js
+
+
+def test_web_homepage_uses_simplified_three_column_workbench_layout():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    styles_css = Path("webapp/static/styles.css").read_text(encoding="utf-8")
+
+    for class_name in [
+        "workspace-shell",
+        "workspace-left",
+        "workspace-main",
+        "workspace-center",
+        "workspace-right",
+        "ask-card",
+        "source-preview-card",
+    ]:
+        assert class_name in index_html
+
+    assert "grid-template-columns: 252px minmax(0, 1fr)" in styles_css
+    assert "--color-bg: #f5f7fa" in styles_css
+    assert "--color-primary: #0e7c70" in styles_css
+    assert "color-scheme: light" in styles_css
+
+
+def test_left_navigation_switches_between_dedicated_views():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    styles_css = Path("webapp/static/styles.css").read_text(encoding="utf-8")
+
+    assert 'data-view-target="workbench-view"' in index_html
+    assert 'data-view-target="library-view"' in index_html
+    assert 'data-view-target="assessment-view"' in index_html
+    assert 'data-view-target="settings-view"' in index_html
+
+    assert 'id="workbench-view"' in index_html
+    assert 'id="library-view"' in index_html
+    assert 'id="assessment-view"' in index_html
+    assert 'id="settings-view"' in index_html
+    assert 'class="workspace-view active"' in index_html
+
+    assert "viewNavButtons" in app_js
+    assert "showView" in app_js
+    assert "hidden" in app_js
+    assert "workspace-view" in styles_css
+    assert ".workspace-view[hidden]" in styles_css
+
+
+def test_assessment_view_has_radar_and_score_overview():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+    styles_css = Path("webapp/static/styles.css").read_text(encoding="utf-8")
+
+    assert 'id="assessment-overview"' in index_html
+    assert 'id="assessment-radar-polygon"' in index_html
+    assert 'id="assessment-score-ring"' in index_html
+    assert 'id="assessment-score-value"' in index_html
+    assert 'id="assessment-matched-points"' in index_html
+    assert 'id="assessment-missing-points"' in index_html
+    assert 'id="assessment-source-path"' in index_html
+
+    assert "assessmentOverviewEl" in app_js
+    assert "renderAssessmentOverview" in app_js
+    assert "export function renderAssessmentOverview" in ui_js
+    assert "buildRadarPoints" in ui_js
+    assert "--score-percent" in ui_js
+    assert "assessment-radar" in styles_css
+    assert "score-ring" in styles_css

@@ -9,6 +9,7 @@
 - 默认入口：运行 `app.py` 后启动 `http://127.0.0.1:8765`。
 - 项目空间：创建、选择、改名、删除本地项目空间。
 - 本地目录导入：导入 Markdown、TXT、代码与配置类文本文件。
+- 浏览器文件夹导入：Docker 模式下可通过“选择文件夹导入”直接选择 Windows 本地目录，浏览器上传文本内容入库。
 - 导入保护：跳过常见依赖、缓存、版本库和本机工具配置目录；跳过超过 1MB 的单文件；读取失败单独展示错误。
 - 增量导入：展示新增、更新、未变更、删除、跳过数量；源目录删除的文件会同步清理记录。
 - 文档管理：查看已导入文件列表、路径过滤、数量提示、文件预览、移除单条文档记录。
@@ -39,8 +40,8 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 ## 4. 浏览器验收清单
 
 1. 启动 `app.py`，打开 `http://127.0.0.1:8765`。
-2. 创建项目空间，路径填写一个真实存在的本地目录。
-3. 点击“导入”，确认文件列表、导入统计、跳过详情和导入错误区域正常显示。
+2. 点击“选择文件夹导入”，选择一个包含 Markdown、TXT 或代码文件的本地项目目录，确认自动创建项目空间并显示导入统计。
+3. 如需验证挂载目录导入，再创建项目空间，路径填写一个真实存在且对后端可见的目录，点击“导入”。
 4. 点击文件列表中的文件，确认右侧文件预览显示正文。
 5. 输入关键词并点击“搜索”，确认结果可点击并打开文件预览。
 6. 输入问题并点击“提问”，确认回答、回答模式和来源列表同时出现。
@@ -49,7 +50,7 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 
 ## 5. 当前风险
 
-- 浏览器只能手动输入本地目录路径，尚未提供系统目录选择器。
+- 浏览器文件夹导入依赖 Chromium/Edge 等支持 `webkitdirectory` 的浏览器；不支持该能力的浏览器仍可使用挂载目录导入。
 - 未配置或无法访问 DeepSeek 时，问答会回退为关键词片段组合；复杂总结质量有限。
 - 当前发布面向开发者或技术用户本机试用；Windows zip 产物需要实际打包验收后才能交给非技术用户。
 
@@ -89,7 +90,7 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 - Docker 导入目录：容器内 `/workspace`，宿主机 `docker-workspace/`
 - 功能冒烟：创建项目空间、导入 1 个文件、DeepSeek 问答 `answerMode=api/provider=deepseek`、来源数 1
 
-限制：Docker 模式仍需用户安装并启动 Docker Desktop；Web 页面中本地目录需填写容器路径 `/workspace`，不是 Windows 原始路径。
+限制：Docker 模式仍需用户安装并启动 Docker Desktop；使用挂载目录导入时，Web 页面中本地目录需填写容器路径 `/workspace`，不是 Windows 原始路径。普通用户优先使用“选择文件夹导入”。
 
 ## 8. Docker 双击入口验收记录
 

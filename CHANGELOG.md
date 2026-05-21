@@ -1,7 +1,15 @@
 # Changelog
 
+## 2026-05-21
+
+- Web MVP 掌握评估页新增 A+B 可视化：使用原生 SVG 雷达图展示派生能力画像，并用得分环、命中要点和待补充要点展示本次评估结果。
+- Web MVP 首页重排为简洁工作台：左侧只保留主导航，工作台、资料库、掌握评估、设置改为独立视图切换，不再把全部功能堆在首页。
+- Web MVP 视觉主题从旧暗色棕金风格调整为浅灰底、白色面板、青绿色主色和靛蓝辅助状态，降低默认信息密度。
+- 前端静态测试新增工作台布局、独立视图导航与主题 token 约束，防止首页退回旧双栏暗色布局或锚点跳转式导航。
+
 ## 2026-05-20
 
+- Web MVP 新增浏览器文件夹导入：通过 `webkitdirectory` 选择本地项目文件夹，上传允许的文本文件内容并入库，解决 Docker 模式不能直接读取 Windows 路径的问题。
 - 新增 Docker 双击启动/停止入口：`Start-KnowledgeIsland-Docker.bat`、`Stop-KnowledgeIsland-Docker.bat`、`scripts/docker_down.ps1` 和 `README-Docker-Quickstart.txt`。
 - 新增 Docker 一键启动：`Dockerfile`、`compose.yaml` 和 `scripts/docker_up.ps1`，默认映射 `http://127.0.0.1:8765`，持久化 `runtime/docker/`，挂载 `docker-workspace/` 为容器内 `/workspace`。
 - Windows 配置层补读 User/Machine 级持久环境变量，当前进程未继承 `DEEPSEEK_API_KEY` 时也能启用 Web DeepSeek。

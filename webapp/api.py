@@ -10,6 +10,7 @@ from webapp.ingestion import import_directory
 from webapp.models import ApiResponse
 from webapp.search import search_documents
 from webapp.storage import KnowledgeStore
+from webapp.upload_import import create_browser_upload_project, import_uploaded_files
 
 
 def dispatch(
@@ -87,6 +88,27 @@ def dispatch(
         result = import_directory(store, project.id, project.root_path)
         documents = [doc.to_dict() for doc in store.list_documents(project.id)]
         return ApiResponse(200, {"result": result.to_dict(), "documents": documents})
+
+    if method == "POST" and path == "/api/import/upload":
+        files = payload.get("files")
+        if not isinstance(files, list):
+            return ApiResponse(400, {"error": "files is required"})
+        project_id = str(payload.get("project_id", ""))
+        project = store.get_project(project_id) if project_id else None
+        if project_id and not project:
+            return ApiResponse(404, {"error": "project not found"})
+        if not project:
+            project = create_browser_upload_project(store, str(payload.get("project_name", "")))
+        result = import_uploaded_files(store, files, project)
+        documents = [doc.to_dict() for doc in store.list_documents(project.id)]
+        return ApiResponse(
+            200,
+            {
+                "project": project.to_dict(),
+                "result": result.to_dict(),
+                "documents": documents,
+            },
+        )
 
     if method == "POST" and path == "/api/search":
         project_id = str(payload.get("project_id", ""))
