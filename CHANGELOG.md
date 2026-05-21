@@ -2,6 +2,7 @@
 
 ## 2026-05-20
 
+- Windows 配置层补读 User/Machine 级持久环境变量，当前进程未继承 `DEEPSEEK_API_KEY` 时也能启用 Web DeepSeek。
 - Web MVP 接入 OpenAI-compatible Chat Completions：配置 DeepSeek / `RAG_LLM_PROVIDER=api` 后，`/api/answer` 优先使用真实 LLM，失败时回退本地片段回答。
 - Web MVP 新增掌握评估入口：从已导入文件生成最小评估题，提交回答后返回状态、得分、命中/缺失要点和建议阅读来源。
 - Web 首页新增首次使用引导，覆盖创建项目空间、导入目录、提问/评估、配置 DeepSeek。

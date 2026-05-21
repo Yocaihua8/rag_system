@@ -115,6 +115,35 @@
 9 passed
 ```
 
+## 2026-05-21 | B-56 — Windows 持久环境变量读取 DeepSeek Key
+
+### 目标
+
+修复当前 Codex/终端进程未继承 Windows User 级 `DEEPSEEK_API_KEY` 时，Web 端无法识别本机已配置 Key 的问题。
+
+### 根因
+
+`load_settings()` 只读取当前进程 `os.environ`。Windows 用户通过系统设置写入环境变量后，已打开的 Codex/PowerShell 进程不会自动刷新，因此进程环境为空，但 User 级持久环境实际存在。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `src/config/settings.py` | 新增 Windows User/Machine 持久环境变量读取；当前进程变量仍保持更高优先级 |
+| 更新 | `tests/test_application/test_settings_usecases.py` | 新增未继承进程环境时读取持久 DeepSeek Key 的回归测试 |
+| 更新 | `README.md`、`docs/guides/setup.md`、`docs/architecture/LLM_PROVIDER_DESIGN.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步配置行为 |
+
+### 验证结果
+
+```text
+.venv\Scripts\python.exe -m pytest tests\test_application\test_settings_usecases.py::TestDeepSeekEnvAlias -q
+4 passed
+
+真实 DeepSeek 最小调用：
+PROVIDER=deepseek
+ANSWER_HAS_APP_PY=True
+```
+
 ## 2026-05-18 | B-50/B-51/B-52 — 追问闭环与优先复测
 
 ### 目标

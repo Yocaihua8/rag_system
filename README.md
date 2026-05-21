@@ -143,6 +143,7 @@ Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API；le
 1. **OS 环境变量**（推荐）：`RAG_LLM_API_KEY=sk-xxx`
    Key 不写入任何文件，UI 中自动显示「已从环境变量读取」并禁用输入框
    现阶段也兼容已有的本机 DeepSeek Key 变量：`DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`。检测到这些变量时，默认切到 `api` provider，并使用 DeepSeek 默认地址与模型；如需强制不用云端，可显式设置 `RAG_LLM_PROVIDER=ollama`。
+   Windows 上会额外读取 User/Machine 级持久环境变量；即使当前终端或 Codex 进程未继承新变量，应用也能识别已保存的 `DEEPSEEK_API_KEY`。
 2. **`.env` 文件**：写入项目根目录的 `.env`（已在 `.gitignore` 中排除）
 3. **设置界面**：直接在 UI 中填写（存储在 appdata 目录）
 

@@ -44,6 +44,8 @@ http://127.0.0.1:8765
 
 重启终端后再运行 `app.py`。未配置 API Key 时，Web 端自动使用本地片段回答。
 
+Windows 上应用会读取 User/Machine 级持久环境变量；如果当前终端没有继承新设置的 `DEEPSEEK_API_KEY`，`load_settings()` 仍会尝试从 Windows 持久环境中读取。
+
 ## 3. 常见校验
 
 - 检查 `http://127.0.0.1:8765/api/health` 是否返回 `{"status": "ok"}`。

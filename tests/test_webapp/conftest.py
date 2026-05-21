@@ -1,5 +1,7 @@
 import pytest
 
+import src.config.settings as settings_module
+
 
 @pytest.fixture(autouse=True)
 def _clear_web_llm_env(monkeypatch):
@@ -16,3 +18,4 @@ def _clear_web_llm_env(monkeypatch):
         "deepseekapikey",
     ):
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(settings_module, "_persistent_env", lambda: {})

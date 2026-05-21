@@ -139,6 +139,9 @@ def get_api_key_env_name() -> str:
     for key in API_KEY_ENV_NAMES:
         if os.environ.get(key):
             return key
+    for key in API_KEY_ENV_NAMES:
+        if _persistent_env().get(key):
+            return key
     return ""
 
 
@@ -168,6 +171,50 @@ def _apply_deepseek_env_alias(
         env["RAG_LLM_API_MODEL"] = defaults.LLM_API_MODEL
 
 
+def _persistent_env() -> dict[str, str]:
+    """
+    读取 Windows User/Machine 级持久环境变量。
+
+    已打开的 Codex/终端进程可能没有继承用户新设置的环境变量；这里仅补读本项目
+    关心的非枚举全量变量名，避免扫描或输出无关环境内容。
+    """
+    if platform.system() != "Windows":
+        return {}
+
+    try:
+        import winreg
+    except ImportError:
+        return {}
+
+    keys = (
+        "RAG_LLM_PROVIDER",
+        "RAG_LLM_API_BASE",
+        "RAG_LLM_API_KEY",
+        "RAG_LLM_API_MODEL",
+        "RAG_EMBED_PROVIDER",
+        *API_KEY_ENV_NAMES,
+    )
+    result: dict[str, str] = {}
+    locations = (
+        (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment"),
+        (winreg.HKEY_CURRENT_USER, "Environment"),
+    )
+
+    for root, path in locations:
+        try:
+            with winreg.OpenKey(root, path) as handle:
+                for key in keys:
+                    try:
+                        value, _ = winreg.QueryValueEx(handle, key)
+                    except OSError:
+                        continue
+                    if isinstance(value, str) and value:
+                        result[key] = value
+        except OSError:
+            continue
+    return result
+
+
 # ---------------------------------------------------------------------------
 # 公开 API
 # ---------------------------------------------------------------------------
@@ -192,6 +239,11 @@ def load_settings(override_env: Optional[dict[str, str]] = None) -> AppSettings:
 
     # 层 3：appdata/.env（用户运行时设置）
     env.update(_parse_env_file(app_data / ".env"))
+
+    # 层 2.5：Windows User/Machine 持久环境变量
+    persistent_env = _persistent_env()
+    env.update(persistent_env)
+    _apply_deepseek_env_alias(env, persistent_env)
 
     # 层 2：OS 环境变量
     for key in (

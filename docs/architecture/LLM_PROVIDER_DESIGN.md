@@ -54,6 +54,8 @@ OS 环境变量  >  appdata/.env  >  项目根 .env  >  defaults.py
 
 当检测到 `DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`，且没有显式设置 `RAG_LLM_PROVIDER` 时，`load_settings()` 默认使用 `api` provider、DeepSeek 默认地址和 `deepseek-chat` 模型。
 
+Windows 场景下，`load_settings()` 不只读取当前进程 `os.environ`，还会读取 User/Machine 级持久环境变量。这样用户通过系统设置写入 `DEEPSEEK_API_KEY` 后，即使已经打开的 Codex/终端进程没有继承新变量，Web 端仍能识别该 Key。当前进程环境变量仍拥有更高优先级。
+
 **macOS / Linux：**
 ```bash
 export RAG_LLM_API_KEY=sk-xxx
@@ -95,7 +97,7 @@ embed_provider = "ollama" | "none"    # 控制向量索引用哪个 Embedder
 | `llm_api_model` | `RAG_LLM_API_MODEL` | `"deepseek-chat"` | 云端模型名 |
 | `embed_provider` | `RAG_EMBED_PROVIDER` | `"ollama"` | `"ollama"` 或 `"none"` |
 
-**`llm_api_key` 的特殊处理**：`load_settings()` 已按优先级合并所有来源。通用变量 `RAG_LLM_API_KEY` 仍是正式配置；为适配现阶段本机环境，也兼容 `DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`。来源感知仅在 UI 层需要（用于决定是否禁用输入框），通过 `get_api_key_env_name()` 判断。
+**`llm_api_key` 的特殊处理**：`load_settings()` 已按优先级合并所有来源。通用变量 `RAG_LLM_API_KEY` 仍是正式配置；为适配现阶段本机环境，也兼容 `DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`。Windows 下还会补读 User/Machine 持久环境。来源感知仅在 UI 层需要（用于决定是否禁用输入框），通过 `get_api_key_env_name()` 判断。
 
 ### 新增适配器
 

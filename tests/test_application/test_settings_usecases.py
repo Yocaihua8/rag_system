@@ -35,6 +35,7 @@ def _clear_llm_env(monkeypatch):
         "deepseekapikey",
     ):
         monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(settings_module, "_persistent_env", lambda: {})
 
 
 # ── Fixture ───────────────────────────────────────────────────────────────────
@@ -156,6 +157,24 @@ class TestDeepSeekEnvAlias:
 
         assert s.llm_provider == "api"
         assert s.llm_api_key == "sk-local"
+
+    def test_windows_persistent_user_env_alias_is_read_when_process_env_is_missing(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(settings_module, "_app_data_dir", lambda: tmp_path / "appdata")
+        monkeypatch.setattr(settings_module, "_project_root", lambda: tmp_path / "repo")
+        monkeypatch.setattr(
+            settings_module,
+            "_persistent_env",
+            lambda: {"DEEPSEEK_API_KEY": "sk-user-env"},
+            raising=False,
+        )
+
+        s = load_settings(override_env={
+            "RAG_RUNTIME_DIR": str(tmp_path / "runtime"),
+            "RAG_KB_ROOT": str(tmp_path / "kb"),
+        })
+
+        assert s.llm_provider == "api"
+        assert s.llm_api_key == "sk-user-env"
 
     def test_explicit_provider_env_can_keep_ollama(self, tmp_path, monkeypatch):
         monkeypatch.setattr(settings_module, "_app_data_dir", lambda: tmp_path / "appdata")
