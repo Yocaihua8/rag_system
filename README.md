@@ -28,6 +28,7 @@
 | **关键词检索** | 基于 SQLite 中的文本内容做本地关键词排序，不依赖 Ollama 或云端 API |
 | **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示 |
 | **知识库问答** | 默认基于检索片段组合回答；配置 DeepSeek / OpenAI 兼容 API 后优先使用真实 LLM，并保留来源文件与片段 |
+| **模型设置** | Web 设置页可查看 API Key 状态、保存 API Base / 模型名 / Key，并执行连接测试；Key 不回显明文 |
 | **掌握评估** | Web 端可从已导入文件生成最小评估题，提交回答后给出规则化反馈和建议阅读来源 |
 | **首次使用引导** | Web 首页展示创建项目空间、导入目录、提问/评估、配置 DeepSeek 的最小步骤 |
 | **格式标准化** | legacy PySide6 链路已支持 `raw_content / normalized_markdown / plain_text / rendered_html`，Web MVP 后续迁移 |
@@ -174,7 +175,7 @@ ollama pull nomic-embed-text
 
 ## 云端 API 配置
 
-Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API；legacy 桌面端也可在 **设置 → LLM 提供商** 中选择「API 模式」。
+Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API，也可在 Web **设置 → 模型设置** 中填写 API Base、模型名和 API Key；legacy 桌面端仍可在 **设置 → LLM 提供商** 中选择「API 模式」。
 
 | 字段 | DeepSeek | OpenAI | 通义千问 | Kimi |
 |------|----------|--------|----------|------|
@@ -190,7 +191,7 @@ Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API；le
    现阶段也兼容已有的本机 DeepSeek Key 变量：`DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`。检测到这些变量时，默认切到 `api` provider，并使用 DeepSeek 默认地址与模型；如需强制不用云端，可显式设置 `RAG_LLM_PROVIDER=ollama`。
    Windows 上会额外读取 User/Machine 级持久环境变量；即使当前终端或 Codex 进程未继承新变量，应用也能识别已保存的 `DEEPSEEK_API_KEY`。
 2. **`.env` 文件**：写入项目根目录的 `.env`（已在 `.gitignore` 中排除）
-3. **设置界面**：直接在 UI 中填写（存储在 appdata 目录）
+3. **Web 设置页**：直接在 UI 中填写（存储在 appdata 目录）；页面只显示“已配置/未配置”，不回显 API Key 明文。
 
 Windows PowerShell 示例：
 

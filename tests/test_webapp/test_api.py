@@ -106,6 +106,65 @@ def test_answer_api_falls_back_to_local_answer_when_llm_fails(tmp_path: Path):
     assert response.body["warning"] == "network down"
 
 
+def test_llm_settings_api_returns_masked_current_config(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("RAG_RUNTIME_DIR", str(tmp_path / "runtime"))
+    monkeypatch.setenv("RAG_LLM_PROVIDER", "api")
+    monkeypatch.setenv("RAG_LLM_API_BASE", "https://api.deepseek.com/v1")
+    monkeypatch.setenv("RAG_LLM_API_KEY", "sk-secret")
+    monkeypatch.setenv("RAG_LLM_API_MODEL", "deepseek-chat")
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch(store, "GET", "/api/settings/llm")
+
+    assert response.status == 200
+    assert response.body["settings"] == {
+        "provider": "api",
+        "api_base": "https://api.deepseek.com/v1",
+        "model": "deepseek-chat",
+        "has_api_key": True,
+        "api_key_source": "environment",
+    }
+    assert "sk-secret" not in str(response.body)
+
+
+def test_llm_settings_api_saves_config_without_echoing_key(tmp_path: Path, monkeypatch):
+    appdata = tmp_path / "appdata"
+    monkeypatch.setenv("APPDATA", str(appdata))
+    monkeypatch.setenv("RAG_RUNTIME_DIR", str(tmp_path / "runtime"))
+    monkeypatch.delenv("RAG_LLM_API_KEY", raising=False)
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/settings/llm",
+        {
+            "provider": "api",
+            "api_base": "https://api.deepseek.com/v1",
+            "model": "deepseek-chat",
+            "api_key": "sk-new-secret",
+        },
+    )
+
+    saved_env = (appdata / "KnowledgeIsland" / ".env").read_text(encoding="utf-8")
+    assert response.status == 200
+    assert response.body["settings"]["has_api_key"] is True
+    assert response.body["settings"]["api_key_source"] == "saved"
+    assert "sk-new-secret" in saved_env
+    assert "sk-new-secret" not in str(response.body)
+
+
+def test_llm_settings_test_api_requires_configured_key(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("RAG_RUNTIME_DIR", str(tmp_path / "runtime"))
+    monkeypatch.delenv("RAG_LLM_API_KEY", raising=False)
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch(store, "POST", "/api/settings/llm/test")
+
+    assert response.status == 400
+    assert response.body["error"] == "LLM provider is not configured"
+
+
 def test_import_api_returns_current_document_list(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()

@@ -9,6 +9,7 @@ from webapp.answers import compose_answer
 from webapp.ingestion import import_directory
 from webapp.models import ApiResponse
 from webapp.search import search_documents
+from webapp.settings_api import get_llm_settings_body, save_llm_settings, test_llm_settings
 from webapp.storage import KnowledgeStore
 from webapp.upload_import import create_browser_upload_project, import_uploaded_files
 
@@ -53,6 +54,18 @@ def dispatch(
         if not store.delete_project(project_id):
             return ApiResponse(404, {"error": "project not found"})
         return ApiResponse(200, {"deleted": True})
+
+    if method == "GET" and path == "/api/settings/llm":
+        return ApiResponse(200, get_llm_settings_body())
+
+    if method == "POST" and path == "/api/settings/llm":
+        return ApiResponse(200, save_llm_settings(payload))
+
+    if method == "POST" and path == "/api/settings/llm/test":
+        try:
+            return ApiResponse(200, test_llm_settings())
+        except RuntimeError as exc:
+            return ApiResponse(400, {"error": str(exc)})
 
     if method == "GET" and path == "/api/documents":
         project_id = _value(query, "project_id")

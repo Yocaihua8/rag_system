@@ -23,6 +23,9 @@
 - `POST /api/import/upload`
 - `POST /api/search`
 - `POST /api/answer`
+- `GET /api/settings/llm`
+- `POST /api/settings/llm`
+- `POST /api/settings/llm/test`
 - `POST /api/assessment/start`
 - `POST /api/assessment/answer`
 
@@ -87,7 +90,17 @@
 
 当前 Web MVP 使用 SQLite 中的文本内容做关键词排序。问答在配置 `RAG_LLM_PROVIDER=api` 且存在 `RAG_LLM_API_KEY` / DeepSeek Key 别名时，优先请求 OpenAI-compatible Chat Completions；未配置或请求失败时回退到本地命中片段组合回答。无命中时不伪造来源。
 
-### 1.5 掌握评估
+### 1.5 模型设置
+
+| 方法 | 路径 | 请求 | 成功响应 | 错误 |
+|------|------|------|----------|------|
+| GET | `/api/settings/llm` | N/A | `{"settings":{"provider":"api","api_base":"...","model":"...","has_api_key":true,"api_key_source":"environment|saved"}}` | N/A |
+| POST | `/api/settings/llm` | `provider`、`api_base`、`model`、`api_key`（可空） | 同 GET | N/A |
+| POST | `/api/settings/llm/test` | N/A | `{"ok":true,"provider":"deepseek","message":"..."}` | `400 LLM provider is not configured` 或连接错误 |
+
+模型设置接口不回显 API Key 明文。`api_key` 留空时不会覆盖既有环境变量或已保存配置；保存位置沿用配置层的 appdata `.env`。
+
+### 1.6 掌握评估
 
 | 方法 | 路径 | 请求 | 成功响应 | 错误 |
 |------|------|------|----------|------|

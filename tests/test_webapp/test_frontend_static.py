@@ -220,3 +220,26 @@ def test_assessment_view_has_radar_and_score_overview():
     assert "--score-percent" in ui_js
     assert "assessment-radar" in styles_css
     assert "score-ring" in styles_css
+
+
+def test_model_settings_view_is_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    settings_js = Path("webapp/static/js/settings.js").read_text(encoding="utf-8")
+
+    for element_id in [
+        "llm-settings-form",
+        "llm-provider",
+        "llm-api-base",
+        "llm-api-model",
+        "llm-api-key",
+        "llm-settings-status",
+        "llm-test-button",
+    ]:
+        assert f'id="{element_id}"' in index_html
+
+    assert "/api/settings/llm" in settings_js
+    assert "/api/settings/llm/test" in settings_js
+    assert "loadLlmSettings" in app_js
+    assert "saveLlmSettings" in app_js
+    assert "testLlmSettings" in app_js

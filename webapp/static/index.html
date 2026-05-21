@@ -219,9 +219,39 @@
             <header class="topbar">
               <div>
                 <h2>设置</h2>
-                <p>创建新的本地项目空间。</p>
+                <p>配置模型连接和新的本地项目空间。</p>
               </div>
             </header>
+
+            <section class="design-note-card">
+              <h2>模型设置</h2>
+              <form id="llm-settings-form" class="project-form">
+                <label>
+                  模型提供商
+                  <select id="llm-provider" name="provider">
+                    <option value="api">DeepSeek / OpenAI-compatible API</option>
+                    <option value="ollama">Ollama 本地模式</option>
+                  </select>
+                </label>
+                <label>
+                  API 地址
+                  <input id="llm-api-base" name="api_base" placeholder="https://api.deepseek.com/v1" />
+                </label>
+                <label>
+                  模型名称
+                  <input id="llm-api-model" name="model" placeholder="deepseek-chat" />
+                </label>
+                <label>
+                  API Key
+                  <input id="llm-api-key" name="api_key" type="password" autocomplete="off" placeholder="留空则不覆盖已保存或环境变量 Key" />
+                </label>
+                <p id="llm-settings-status" class="status-line">正在读取模型设置...</p>
+                <div class="project-actions compact">
+                  <button class="primary-action" type="submit">保存模型设置</button>
+                  <button id="llm-test-button" type="button">测试连接</button>
+                </div>
+              </form>
+            </section>
 
             <form id="project-form" class="project-form">
               <p class="section-kicker">新建项目空间</p>

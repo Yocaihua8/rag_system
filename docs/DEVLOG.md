@@ -55,6 +55,29 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 [PASS] docs consistency checks passed.
 ```
 
+## 2026-05-21 | B-62 — Web 模型设置页
+
+### 目标
+
+参考 Cherry Studio 的 provider 配置体验，在 Web 设置页补齐模型配置入口，让用户不用只依赖环境变量即可配置 DeepSeek / OpenAI-compatible API。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `webapp/settings_api.py` | 读取、保存和测试 LLM 设置；响应不回显 API Key 明文 |
+| 更新 | `webapp/api.py` | 新增 `GET/POST /api/settings/llm` 与 `POST /api/settings/llm/test` |
+| 新增 | `webapp/static/js/settings.js` | 设置页 API 调用封装 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/app.js` | 在设置视图接入模型设置表单和连接测试 |
+| 更新 | `tests/test_webapp/` | 覆盖设置读取、保存、未配置测试错误和前端入口 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/guides/*`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步接口契约和使用方式 |
+
+### 关键行为
+
+- 设置页可保存 `provider`、`api_base`、`model` 和非空 `api_key`。
+- API Key 只保存到配置层 appdata `.env`，接口和前端状态不回显明文。
+- 连接测试复用现有 OpenAI-compatible Chat Completions 客户端；未配置 Key 时返回可读错误。
+
 ## 2026-05-21 | B-60 — Web 首页工作台分视图重设计
 
 ### 目标

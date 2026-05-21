@@ -11,6 +11,7 @@ import {
   selectProject,
 } from "./projects.js";
 import { ask, search, startAssessment, submitAssessmentAnswer } from "./qa.js";
+import { loadLlmSettings, saveLlmSettings, testLlmSettings } from "./settings.js";
 import { state } from "./state.js";
 import {
   renderAnswer,
@@ -52,6 +53,13 @@ const assessmentAnswerInput = document.querySelector("#assessment-answer");
 const assessmentAnswerButton = document.querySelector("#assessment-answer-button");
 const assessmentResultEl = document.querySelector("#assessment-result");
 const assessmentOverviewEl = document.querySelector("#assessment-overview");
+const llmSettingsForm = document.querySelector("#llm-settings-form");
+const llmProviderSelect = document.querySelector("#llm-provider");
+const llmApiBaseInput = document.querySelector("#llm-api-base");
+const llmApiModelInput = document.querySelector("#llm-api-model");
+const llmApiKeyInput = document.querySelector("#llm-api-key");
+const llmSettingsStatusEl = document.querySelector("#llm-settings-status");
+const llmTestButton = document.querySelector("#llm-test-button");
 const viewNavButtons = Array.from(document.querySelectorAll("[data-view-target]"));
 const workspaceViews = Array.from(document.querySelectorAll(".workspace-view"));
 
@@ -235,6 +243,29 @@ assessmentAnswerButton.addEventListener("click", async () => {
   }
 });
 
+llmSettingsForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    llmSettingsStatusEl.textContent = "正在保存模型设置...";
+    const data = await saveLlmSettings(llmSettingsForm);
+    renderLlmSettings(data.settings);
+    llmApiKeyInput.value = "";
+    llmSettingsStatusEl.textContent = "模型设置已保存。";
+  } catch (error) {
+    llmSettingsStatusEl.textContent = error.message;
+  }
+});
+
+llmTestButton.addEventListener("click", async () => {
+  try {
+    llmSettingsStatusEl.textContent = "正在测试模型连接...";
+    const data = await testLlmSettings();
+    llmSettingsStatusEl.textContent = `连接成功：${data.provider}`;
+  } catch (error) {
+    llmSettingsStatusEl.textContent = error.message;
+  }
+});
+
 async function refreshDocuments() {
   const data = await listDocuments();
   state.documents = data.documents;
@@ -248,6 +279,18 @@ async function refreshDocuments() {
   renderAssessmentQuestion(assessmentQuestionEl, null);
   renderAssessmentResult(assessmentResultEl, null);
   renderAssessmentOverview(assessmentOverviewEl, null);
+}
+
+function renderLlmSettings(settings) {
+  llmProviderSelect.value = settings.provider || "api";
+  llmApiBaseInput.value = settings.api_base || "";
+  llmApiModelInput.value = settings.model || "";
+  const keyLabel = settings.has_api_key
+    ? settings.api_key_source === "environment"
+      ? "已从环境变量读取 API Key"
+      : "已保存 API Key"
+    : "未配置 API Key";
+  llmSettingsStatusEl.textContent = keyLabel;
 }
 
 function renderFilteredDocuments() {
@@ -315,6 +358,11 @@ refreshProjects(projectSelect)
   .then(() => {
     renderSelectedProjectRoot();
     renderAssessmentOverview(assessmentOverviewEl, null);
+    loadLlmSettings()
+      .then((data) => renderLlmSettings(data.settings))
+      .catch((error) => {
+        llmSettingsStatusEl.textContent = error.message;
+      });
     return refreshDocuments();
   })
   .catch((error) => setStatus(error.message));
