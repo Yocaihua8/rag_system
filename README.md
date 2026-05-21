@@ -24,8 +24,8 @@
 | **文档记录移除** | 可从当前项目空间移除单个已导入文档记录，不删除磁盘源文件 |
 | **文件路径过滤** | 已导入文件列表支持按路径本地过滤，便于在大量文件中快速定位 |
 | **文件数量提示** | 已导入文件列表显示当前过滤结果数和总文件数 |
-| **独立检索** | 不提问也可直接搜索文件片段，并点击结果打开文件预览 |
-| **关键词检索** | 基于 SQLite 中的文本内容做本地关键词排序，不依赖 Ollama 或云端 API |
+| **独立检索** | 不提问也可直接搜索文件分块片段，并点击结果打开文件预览 |
+| **RAG 分块检索** | 导入时生成 SQLite 文档分块，检索和问答优先召回命中的 chunk 片段，并返回 `chunk_index` 便于追踪来源 |
 | **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示 |
 | **知识库问答** | 默认基于检索片段组合回答；配置 DeepSeek / OpenAI 兼容 API 后优先使用真实 LLM，并保留来源文件与片段 |
 | **模型设置** | Web 设置页可查看 API Key 状态、保存 API Base / 模型名 / Key，并执行连接测试；Key 不回显明文 |
@@ -214,9 +214,10 @@ knowledage_island/
 │   ├── api.py                # API 路由分发
 │   ├── storage.py            # SQLite schema 与读写
 │   ├── ingestion.py          # 本地目录导入
+│   ├── chunking.py           # Web MVP 文档分块
 │   ├── document_processing.py # 文本/DOCX/PDF 导入处理
 │   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
-│   ├── search.py             # 关键词检索与排序
+│   ├── search.py             # 基于分块的关键词召回与排序
 │   ├── answers.py            # LLM 优先回答与本地片段回退
 │   ├── llm.py                # OpenAI-compatible Chat Completions 标准库客户端
 │   ├── assessment.py         # Web 掌握评估最小闭环

@@ -14,10 +14,20 @@ def search_documents(
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
     hits: list[SearchHit] = []
-    for document in store.list_documents(project_id):
-        score = _score(document.content, tokens, query)
-        hits.append(SearchHit(document=document, score=score, snippet=_snippet(document.content, tokens)))
-    hits.sort(key=lambda hit: (hit.score, hit.document.updated_at), reverse=True)
+    for chunk in store.list_chunks(project_id):
+        score = _score(chunk.content, tokens, query)
+        hits.append(
+            SearchHit(
+                document=chunk.document,
+                score=score,
+                snippet=_snippet(chunk.content, tokens),
+                chunk=chunk,
+            )
+        )
+    hits.sort(
+        key=lambda hit: (hit.score, hit.document.updated_at, -_chunk_index(hit)),
+        reverse=True,
+    )
     return hits[:limit]
 
 
@@ -52,3 +62,7 @@ def _snippet(content: str, tokens: list[str], radius: int = 80) -> str:
 
 def _is_cjk(text: str) -> bool:
     return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def _chunk_index(hit: SearchHit) -> int:
+    return hit.chunk.chunk_index if hit.chunk is not None else 0

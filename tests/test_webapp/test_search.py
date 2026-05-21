@@ -45,6 +45,7 @@ def test_import_directory_reports_reimport_changes_and_removes_missing_files(tmp
     assert second.deleted == 1
     assert second.unchanged == 0
     assert [doc.relative_path for doc in store.list_documents(project.id)] == ["a.md", "c.md"]
+    assert [chunk.document.relative_path for chunk in store.list_chunks(project.id)] == ["a.md", "c.md"]
 
 
 def test_import_directory_skips_dependency_cache_and_vcs_directories(tmp_path: Path):
@@ -105,3 +106,44 @@ def test_search_documents_ranks_matching_documents_first(tmp_path: Path):
     assert hits[0].document.relative_path == "api.md"
     assert hits[0].score > hits[-1].score
     assert "request handler" in hits[0].snippet
+
+
+def test_upsert_document_builds_retrievable_chunks(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    content = "\n\n".join(
+        [
+            "安装步骤：先启动 Docker Desktop，然后运行启动脚本。",
+            "模型配置：打开设置页，填写 DeepSeek API Key。",
+            "检索说明：导入后会生成分块，用于 RAG 召回。",
+        ]
+    )
+
+    store.upsert_document(project.id, tmp_path / "guide.md", "guide.md", content)
+    chunks = store.list_chunks(project.id)
+
+    assert len(chunks) >= 2
+    assert [chunk.chunk_index for chunk in chunks] == list(range(len(chunks)))
+    assert all(chunk.document.relative_path == "guide.md" for chunk in chunks)
+    assert "DeepSeek API Key" in " ".join(chunk.content for chunk in chunks)
+
+
+def test_search_returns_best_matching_chunk_not_entire_document(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    content = "\n\n".join(
+        [
+            "安装说明：启动 Docker 后打开浏览器。",
+            "模型设置：在设置页填写 DeepSeek API Key，并点击测试连接。",
+            "导入说明：选择文件夹导入后查看来源。",
+        ]
+    )
+    store.upsert_document(project.id, tmp_path / "guide.md", "guide.md", content)
+
+    hits = search_documents(store, project.id, "DeepSeek API Key", limit=1)
+    body = hits[0].to_dict()
+
+    assert body["path"] == "guide.md"
+    assert body["chunk_index"] == 1
+    assert "模型设置" in body["snippet"]
+    assert "安装说明" not in body["snippet"]

@@ -6,7 +6,8 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from webapp.models import Document, Project
+from webapp.chunking import count_tokens, split_into_chunks
+from webapp.models import Document, DocumentChunk, Project
 
 
 class DocumentWriteResult:
@@ -86,6 +87,15 @@ class KnowledgeStore:
             if existing:
                 document_id = existing["id"]
                 action = "unchanged" if existing["checksum"] == checksum else "updated"
+            document = Document(
+                document_id,
+                project_id,
+                source_path,
+                relative_path,
+                content,
+                checksum,
+                now,
+            )
             conn.execute(
                 """
                 INSERT INTO documents
@@ -107,7 +117,7 @@ class KnowledgeStore:
                     now,
                 ),
             )
-        document = Document(document_id, project_id, source_path, relative_path, content, checksum, now)
+            self._replace_document_chunks(conn, document)
         return DocumentWriteResult(document=document, action=action)
 
     def list_documents(self, project_id: str) -> list[Document]:
@@ -122,6 +132,32 @@ class KnowledgeStore:
                 (project_id,),
             ).fetchall()
         return [_document_from_row(row) for row in rows]
+
+    def list_chunks(self, project_id: str) -> list[DocumentChunk]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    c.id AS chunk_id,
+                    c.chunk_index,
+                    c.content AS chunk_content,
+                    c.token_count,
+                    c.created_at AS chunk_created_at,
+                    d.id,
+                    d.project_id,
+                    d.source_path,
+                    d.relative_path,
+                    d.content,
+                    d.checksum,
+                    d.updated_at
+                FROM document_chunks c
+                JOIN documents d ON d.id = c.document_id
+                WHERE c.project_id = ?
+                ORDER BY d.relative_path ASC, c.chunk_index ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_chunk_from_row(row) for row in rows]
 
     def get_document(self, document_id: str) -> Document | None:
         with self._connect() as conn:
@@ -186,8 +222,68 @@ class KnowledgeStore:
 
                 CREATE INDEX IF NOT EXISTS idx_documents_project
                     ON documents(project_id);
+
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id TEXT PRIMARY KEY,
+                    document_id TEXT NOT NULL,
+                    project_id TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    content TEXT NOT NULL,
+                    token_count INTEGER NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(document_id, chunk_index),
+                    FOREIGN KEY(document_id) REFERENCES documents(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_document_chunks_project
+                    ON document_chunks(project_id);
                 """
             )
+            self._backfill_document_chunks(conn)
+
+    def _replace_document_chunks(self, conn: sqlite3.Connection, document: Document) -> None:
+        conn.execute("DELETE FROM document_chunks WHERE document_id = ?", (document.id,))
+        rows = []
+        now = _now()
+        for index, chunk in enumerate(split_into_chunks(document.content)):
+            rows.append(
+                (
+                    str(uuid.uuid4()),
+                    document.id,
+                    document.project_id,
+                    index,
+                    chunk,
+                    count_tokens(chunk),
+                    now,
+                )
+            )
+        conn.executemany(
+            """
+            INSERT INTO document_chunks
+                (id, document_id, project_id, chunk_index, content, token_count, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+
+    def _backfill_document_chunks(self, conn: sqlite3.Connection) -> None:
+        rows = conn.execute(
+            """
+            SELECT
+                d.id,
+                d.project_id,
+                d.source_path,
+                d.relative_path,
+                d.content,
+                d.checksum,
+                d.updated_at
+            FROM documents d
+            LEFT JOIN document_chunks c ON c.document_id = d.id
+            WHERE c.id IS NULL
+            """
+        ).fetchall()
+        for row in rows:
+            self._replace_document_chunks(conn, _document_from_row(row))
 
 
 def _now() -> str:
@@ -207,4 +303,24 @@ def _document_from_row(row: sqlite3.Row) -> Document:
         row["content"],
         row["checksum"],
         row["updated_at"],
+    )
+
+
+def _chunk_from_row(row: sqlite3.Row) -> DocumentChunk:
+    document = Document(
+        row["id"],
+        row["project_id"],
+        Path(row["source_path"]),
+        row["relative_path"],
+        row["content"],
+        row["checksum"],
+        row["updated_at"],
+    )
+    return DocumentChunk(
+        id=row["chunk_id"],
+        document=document,
+        chunk_index=row["chunk_index"],
+        content=row["chunk_content"],
+        token_count=row["token_count"],
+        created_at=row["chunk_created_at"],
     )

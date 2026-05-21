@@ -2,6 +2,8 @@
 
 ## 2026-05-21
 
+- Web MVP 新增 RAG 分块检索第一片：导入时写入 `document_chunks`，搜索和问答按 chunk 召回来源片段。
+- Web 搜索结果新增 `chunk_id` / `chunk_index` 字段，保留原有 `path`、`document_id`、`snippet`、`score` 兼容字段。
 - Web MVP 新增文档处理管线第一片：目录导入和浏览器文件夹导入共用处理模块，支持 DOCX 正文抽取。
 - 浏览器文件夹导入支持 DOCX/PDF 二进制 base64 上传；PDF 当前在无可选解析器时明确跳过，不阻断其他文件入库。
 - Web MVP 掌握评估页新增 A+B 可视化：使用原生 SVG 雷达图展示派生能力画像，并用得分环、命中要点和待补充要点展示本次评估结果。

@@ -49,18 +49,45 @@ class Document:
 
 
 @dataclass(frozen=True)
+class DocumentChunk:
+    id: str
+    document: Document
+    chunk_index: int
+    content: str
+    token_count: int
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "document_id": self.document.id,
+            "project_id": self.document.project_id,
+            "path": self.document.relative_path,
+            "chunk_index": self.chunk_index,
+            "content": self.content,
+            "token_count": self.token_count,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
 class SearchHit:
     document: Document
     score: float
     snippet: str
+    chunk: DocumentChunk | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "path": self.document.relative_path,
             "score": self.score,
             "snippet": self.snippet,
             "document_id": self.document.id,
         }
+        if self.chunk is not None:
+            data["chunk_id"] = self.chunk.id
+            data["chunk_index"] = self.chunk.chunk_index
+        return data
 
 
 @dataclass(frozen=True)
