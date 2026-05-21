@@ -7,6 +7,7 @@
 - [ ] 提供 Windows 安装包（双击安装）
 - [ ] 安装后桌面有快捷方式
 - [x] zip 产物内 `Run_KnowledgeIsland.bat` 可双击启动本地 Web 服务（仍非安装器）
+- [x] Docker 模式提供 `Start-KnowledgeIsland-Docker.bat` / `Stop-KnowledgeIsland-Docker.bat` 双击启动和停止（仍需 Docker Desktop）
 - [x] Web 首屏有首次使用引导（项目空间/导入/提问评估/DeepSeek 配置）
 
 ## B. 首次使用引导
@@ -39,7 +40,7 @@
 
 ## E. 文档与支持
 
-- [ ] 提供《快速开始（1页）》
+- [x] 提供 Docker《快速开始（1页）》：`README-Docker-Quickstart.txt`
 - [ ] 提供《常见问题（FAQ）》
 - [ ] 提供《问题反馈方式》入口
 
@@ -59,6 +60,7 @@
 - [x] 打包后 bat 启动冒烟通过：`GET /api/health` 返回 `{"status":"ok"}`
 - [x] 打包后核心功能冒烟通过：创建项目、导入、问答来源、评估题生成
 - [x] Docker 一键启动冒烟通过：容器 healthy，`/workspace` 导入，DeepSeek 问答 `answerMode=api`
+- [x] Docker 停止脚本冒烟通过：`scripts/docker_down.ps1` 可停止 Compose 服务
 - [ ] 3 名非技术用户独立完成首次使用（不依赖开发者在场）
 - [ ] 首次使用平均完成时间 < 10 分钟
 - [ ] 关键路径失败率 < 10%

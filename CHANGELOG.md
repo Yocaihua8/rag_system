@@ -2,6 +2,7 @@
 
 ## 2026-05-20
 
+- 新增 Docker 双击启动/停止入口：`Start-KnowledgeIsland-Docker.bat`、`Stop-KnowledgeIsland-Docker.bat`、`scripts/docker_down.ps1` 和 `README-Docker-Quickstart.txt`。
 - 新增 Docker 一键启动：`Dockerfile`、`compose.yaml` 和 `scripts/docker_up.ps1`，默认映射 `http://127.0.0.1:8765`，持久化 `runtime/docker/`，挂载 `docker-workspace/` 为容器内 `/workspace`。
 - Windows 配置层补读 User/Machine 级持久环境变量，当前进程未继承 `DEEPSEEK_API_KEY` 时也能启用 Web DeepSeek。
 - Web MVP 接入 OpenAI-compatible Chat Completions：配置 DeepSeek / `RAG_LLM_PROVIDER=api` 后，`/api/answer` 优先使用真实 LLM，失败时回退本地片段回答。

@@ -180,6 +180,29 @@ HTTP /api/health => {"status":"ok"}
 Docker API 冒烟：imported=1, answerMode=api, provider=deepseek, sourceCount=1
 ```
 
+## 2026-05-21 | B-58 — Docker 双击启动与停止入口
+
+### 目标
+
+把 Docker 启动从 PowerShell 命令进一步降低为可双击入口，方便非技术用户在已安装 Docker Desktop 后启动和停止本地 Web MVP。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `Start-KnowledgeIsland-Docker.bat` | 双击调用 `scripts/docker_up.ps1` 启动 Docker Web |
+| 新增 | `Stop-KnowledgeIsland-Docker.bat` | 双击调用 `scripts/docker_down.ps1` 停止 Docker Web |
+| 新增 | `scripts/docker_down.ps1` | 执行 `docker compose down`，支持可选 `-RemoveVolumes` |
+| 新增 | `README-Docker-Quickstart.txt` | 面向非技术用户说明启动、导入 `/workspace`、停止和数据位置 |
+| 更新 | `README.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`docs/release/*`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步 Docker 双击入口和验收方式 |
+| 更新 | `tests/test_webapp/test_docker_startup.py` | 覆盖停止脚本、双击包装文件和快速开始说明 |
+
+### 关键行为
+
+- 双击启动入口只负责调用已有 PowerShell 启动脚本，避免复制 Docker Compose 逻辑。
+- 双击停止入口调用 `docker compose down`，默认保留 `runtime/docker/` 数据。
+- 快速开始明确 Docker 模式页面路径填写 `/workspace`，宿主机文件放入 `docker-workspace/`。
+
 ## 2026-05-18 | B-50/B-51/B-52 — 追问闭环与优先复测
 
 ### 目标

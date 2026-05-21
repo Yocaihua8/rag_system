@@ -21,7 +21,7 @@
 
 - 不提供远程多用户部署和权限系统。
 - 不承诺语义向量检索、Reranker 或云端 LLM 生成质量；真实 LLM 取决于用户配置的 API Key、网络和服务商状态。
-- 发布脚本可生成 Windows 打包产物，但尚未完成安装器、桌面快捷方式或非技术用户一键安装流程。
+- 发布脚本可生成 Windows 打包产物，Docker 模式已提供双击启动/停止入口；但尚未完成安装器、桌面快捷方式或非技术用户一键安装流程。
 - 不删除 legacy PySide6 桌面端代码；`src/desktop/` 仅作为迁移参考保留。
 
 ## 3. 验收命令
@@ -31,7 +31,9 @@
 .venv\Scripts\python.exe -m pytest tests\test_domain tests\test_application tests\test_adapters -q
 .venv\Scripts\python.exe scripts\check_docs_consistency.py
 .venv\Scripts\python.exe -m compileall -q app.py webapp
-node --check webapp\static\js\*.js
+Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName }
+.\scripts\docker_down.ps1
+.\scripts\docker_up.ps1 -NoOpen
 ```
 
 ## 4. 浏览器验收清单
@@ -88,3 +90,14 @@ node --check webapp\static\js\*.js
 - 功能冒烟：创建项目空间、导入 1 个文件、DeepSeek 问答 `answerMode=api/provider=deepseek`、来源数 1
 
 限制：Docker 模式仍需用户安装并启动 Docker Desktop；Web 页面中本地目录需填写容器路径 `/workspace`，不是 Windows 原始路径。
+
+## 8. Docker 双击入口验收记录
+
+2026-05-21 已补充 Docker 双击入口：
+
+- 启动入口：`Start-KnowledgeIsland-Docker.bat`
+- 停止入口：`Stop-KnowledgeIsland-Docker.bat`
+- 快速开始：`README-Docker-Quickstart.txt`
+- 停止脚本：`scripts/docker_down.ps1`
+
+限制：双击入口不是安装器；仍需要用户先安装并启动 Docker Desktop。

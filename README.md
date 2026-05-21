@@ -107,6 +107,24 @@ http://127.0.0.1:8765
 
 ## Docker 一键启动
 
+非技术用户可先阅读根目录：
+
+```text
+README-Docker-Quickstart.txt
+```
+
+然后双击启动：
+
+```text
+Start-KnowledgeIsland-Docker.bat
+```
+
+停止服务：
+
+```text
+Stop-KnowledgeIsland-Docker.bat
+```
+
 Windows PowerShell：
 
 ```powershell

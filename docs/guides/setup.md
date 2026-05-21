@@ -37,6 +37,20 @@ http://127.0.0.1:8765
 
 ## 3. Docker 一键启动
 
+非技术用户优先使用根目录双击入口：
+
+```text
+Start-KnowledgeIsland-Docker.bat
+Stop-KnowledgeIsland-Docker.bat
+README-Docker-Quickstart.txt
+```
+
+双击启动后访问：
+
+```text
+http://127.0.0.1:8765
+```
+
 Windows PowerShell：
 
 ```powershell

@@ -30,3 +30,16 @@ def test_docker_one_click_script_injects_user_deepseek_key_without_printing_it()
     assert "GetEnvironmentVariable('DEEPSEEK_API_KEY', 'User')" in script
     assert "docker-workspace" in script
     assert "DEEPSEEK_API_KEY=" not in script
+
+
+def test_docker_stop_script_and_double_click_wrappers_exist():
+    stop_script = Path("scripts/docker_down.ps1").read_text(encoding="utf-8")
+    start_bat = Path("Start-KnowledgeIsland-Docker.bat").read_text(encoding="utf-8")
+    stop_bat = Path("Stop-KnowledgeIsland-Docker.bat").read_text(encoding="utf-8")
+    quickstart = Path("README-Docker-Quickstart.txt").read_text(encoding="utf-8")
+
+    assert "docker compose down" in stop_script
+    assert "docker_up.ps1" in start_bat
+    assert "docker_down.ps1" in stop_bat
+    assert "http://127.0.0.1:8765" in quickstart
+    assert "/workspace" in quickstart
