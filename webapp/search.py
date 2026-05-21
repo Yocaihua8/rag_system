@@ -4,6 +4,7 @@ import re
 
 from webapp.models import SearchHit
 from webapp.storage import KnowledgeStore
+from webapp.vector_index import cosine_similarity, text_vector
 
 
 def search_documents(
@@ -13,15 +14,22 @@ def search_documents(
     limit: int = 5,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
+    query_vector = text_vector(query)
+    chunk_vectors = store.list_chunk_vectors(project_id)
     hits: list[SearchHit] = []
     for chunk in store.list_chunks(project_id):
-        score = _score(chunk.content, tokens, query)
+        keyword_score = _score(chunk.content, tokens, query)
+        vector_score = cosine_similarity(query_vector, chunk_vectors.get(chunk.id, {}))
+        score = keyword_score + vector_score
         hits.append(
             SearchHit(
                 document=chunk.document,
                 score=score,
                 snippet=_snippet(chunk.content, tokens),
                 chunk=chunk,
+                keyword_score=keyword_score,
+                vector_score=vector_score,
+                retrieval="hybrid",
             )
         )
     hits.sort(

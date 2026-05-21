@@ -76,6 +76,9 @@ class SearchHit:
     score: float
     snippet: str
     chunk: DocumentChunk | None = None
+    keyword_score: float = 0.0
+    vector_score: float = 0.0
+    retrieval: str = "keyword"
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -83,6 +86,9 @@ class SearchHit:
             "score": self.score,
             "snippet": self.snippet,
             "document_id": self.document.id,
+            "retrieval": self.retrieval,
+            "keyword_score": self.keyword_score,
+            "vector_score": self.vector_score,
         }
         if self.chunk is not None:
             data["chunk_id"] = self.chunk.id

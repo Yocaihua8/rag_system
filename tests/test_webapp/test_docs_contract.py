@@ -30,3 +30,12 @@ def test_search_api_spec_documents_chunk_source_fields():
     assert "chunk_id" in api_spec
     assert "chunk_index" in api_spec
     assert "document_chunks" in database_design
+
+
+def test_search_api_spec_documents_hybrid_vector_fields():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
+
+    for field in ["retrieval", "keyword_score", "vector_score"]:
+        assert field in api_spec
+    assert "chunk_vectors" in database_design

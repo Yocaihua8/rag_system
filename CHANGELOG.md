@@ -2,6 +2,8 @@
 
 ## 2026-05-21
 
+- Web MVP 新增本地向量检索：导入 chunk 时写入 `chunk_vectors`，搜索使用 keyword + vector 混合召回。
+- Web 搜索结果新增 `retrieval`、`keyword_score`、`vector_score` 字段，便于区分关键词分和向量分。
 - Web MVP 新增 RAG 分块检索第一片：导入时写入 `document_chunks`，搜索和问答按 chunk 召回来源片段。
 - Web 搜索结果新增 `chunk_id` / `chunk_index` 字段，保留原有 `path`、`document_id`、`snippet`、`score` 兼容字段。
 - Web MVP 新增文档处理管线第一片：目录导入和浏览器文件夹导入共用处理模块，支持 DOCX 正文抽取。

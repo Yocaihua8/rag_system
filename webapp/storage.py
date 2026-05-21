@@ -8,6 +8,7 @@ from pathlib import Path
 
 from webapp.chunking import count_tokens, split_into_chunks
 from webapp.models import Document, DocumentChunk, Project
+from webapp.vector_index import deserialize_vector, serialize_vector, text_vector
 
 
 class DocumentWriteResult:
@@ -159,6 +160,22 @@ class KnowledgeStore:
             ).fetchall()
         return [_chunk_from_row(row) for row in rows]
 
+    def list_chunk_vectors(self, project_id: str) -> dict[str, dict[str, float]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT chunk_id, vector_json FROM chunk_vectors WHERE project_id = ?",
+                (project_id,),
+            ).fetchall()
+        return {row["chunk_id"]: deserialize_vector(row["vector_json"]) for row in rows}
+
+    def count_chunk_vectors(self, project_id: str) -> int:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) AS total FROM chunk_vectors WHERE project_id = ?",
+                (project_id,),
+            ).fetchone()
+        return int(row["total"])
+
     def get_document(self, document_id: str) -> Document | None:
         with self._connect() as conn:
             row = conn.execute(
@@ -237,23 +254,45 @@ class KnowledgeStore:
 
                 CREATE INDEX IF NOT EXISTS idx_document_chunks_project
                     ON document_chunks(project_id);
+
+                CREATE TABLE IF NOT EXISTS chunk_vectors (
+                    chunk_id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    vector_json TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(chunk_id) REFERENCES document_chunks(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_chunk_vectors_project
+                    ON chunk_vectors(project_id);
                 """
             )
             self._backfill_document_chunks(conn)
+            self._backfill_chunk_vectors(conn)
 
     def _replace_document_chunks(self, conn: sqlite3.Connection, document: Document) -> None:
         conn.execute("DELETE FROM document_chunks WHERE document_id = ?", (document.id,))
-        rows = []
+        chunk_rows = []
+        vector_rows = []
         now = _now()
         for index, chunk in enumerate(split_into_chunks(document.content)):
-            rows.append(
+            chunk_id = str(uuid.uuid4())
+            chunk_rows.append(
                 (
-                    str(uuid.uuid4()),
+                    chunk_id,
                     document.id,
                     document.project_id,
                     index,
                     chunk,
                     count_tokens(chunk),
+                    now,
+                )
+            )
+            vector_rows.append(
+                (
+                    chunk_id,
+                    document.project_id,
+                    serialize_vector(text_vector(chunk)),
                     now,
                 )
             )
@@ -263,7 +302,15 @@ class KnowledgeStore:
                 (id, document_id, project_id, chunk_index, content, token_count, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            rows,
+            chunk_rows,
+        )
+        conn.executemany(
+            """
+            INSERT INTO chunk_vectors
+                (chunk_id, project_id, vector_json, updated_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            vector_rows,
         )
 
     def _backfill_document_chunks(self, conn: sqlite3.Connection) -> None:
@@ -284,6 +331,33 @@ class KnowledgeStore:
         ).fetchall()
         for row in rows:
             self._replace_document_chunks(conn, _document_from_row(row))
+
+    def _backfill_chunk_vectors(self, conn: sqlite3.Connection) -> None:
+        now = _now()
+        rows = conn.execute(
+            """
+            SELECT c.id, c.project_id, c.content
+            FROM document_chunks c
+            LEFT JOIN chunk_vectors v ON v.chunk_id = c.id
+            WHERE v.chunk_id IS NULL
+            """
+        ).fetchall()
+        conn.executemany(
+            """
+            INSERT INTO chunk_vectors
+                (chunk_id, project_id, vector_json, updated_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            [
+                (
+                    row["id"],
+                    row["project_id"],
+                    serialize_vector(text_vector(row["content"])),
+                    now,
+                )
+                for row in rows
+            ],
+        )
 
 
 def _now() -> str:

@@ -147,3 +147,43 @@ def test_search_returns_best_matching_chunk_not_entire_document(tmp_path: Path):
     assert body["chunk_index"] == 1
     assert "模型设置" in body["snippet"]
     assert "安装说明" not in body["snippet"]
+
+
+def test_upsert_document_persists_vectors_for_chunks(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+
+    store.upsert_document(
+        project.id,
+        tmp_path / "guide.md",
+        "guide.md",
+        "模型设置：填写 DeepSeek API Key。\n\n导入说明：选择文件夹导入。",
+    )
+
+    assert store.count_chunk_vectors(project.id) == len(store.list_chunks(project.id))
+
+
+def test_search_returns_hybrid_scores_for_vector_retrieval(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(
+        project.id,
+        tmp_path / "model.md",
+        "model.md",
+        "模型设置：填写 DeepSeek API Key，并点击测试连接。",
+    )
+    store.upsert_document(
+        project.id,
+        tmp_path / "docker.md",
+        "docker.md",
+        "Docker 启动：运行一键脚本后打开浏览器。",
+    )
+
+    hits = search_documents(store, project.id, "模型 API Key", limit=2)
+    body = hits[0].to_dict()
+
+    assert body["path"] == "model.md"
+    assert body["retrieval"] == "hybrid"
+    assert body["keyword_score"] > 0
+    assert body["vector_score"] > 0
+    assert body["score"] == body["keyword_score"] + body["vector_score"]
