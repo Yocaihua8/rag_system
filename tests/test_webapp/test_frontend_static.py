@@ -278,7 +278,10 @@ def test_agent_readonly_tool_entrypoint_is_wired():
 
     assert 'id="agent-tools-panel"' in index_html
     assert 'id="agent-overview-button"' in index_html
+    assert 'id="agent-search-query"' in index_html
+    assert 'id="agent-search-button"' in index_html
     assert 'id="agent-tool-result"' in index_html
     assert 'from "./agent.js"' in app_js
     assert "runAgentTool" in app_js
+    assert "search_sources" in app_js
     assert "renderAgentToolResult" in ui_js

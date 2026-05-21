@@ -2,6 +2,7 @@
 
 ## 2026-05-21
 
+- Web MVP Agent 只读工具新增 `search_sources`：复用现有 RAG 检索返回来源片段，并写入工具调用审计。
 - Web MVP 新增 Agent 只读工具第一片：开放 `project_overview` 项目概览工具，写入 `agent_tool_runs` 审计记录，并拒绝 shell/未知工具。
 - Web MVP 真实 LLM 问答新增最近 3 轮项目聊天历史上下文，保留来源片段约束。
 - Web MVP 新增项目聊天记录：`/api/answer` 返回后保存 question/answer/mode/provider/sources，工作台可按项目恢复最近对话。

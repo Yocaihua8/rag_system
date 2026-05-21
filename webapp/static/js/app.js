@@ -41,6 +41,8 @@ const renameProjectButton = document.querySelector("#rename-project-button");
 const deleteProjectButton = document.querySelector("#delete-project-button");
 const askButton = document.querySelector("#ask-button");
 const agentOverviewButton = document.querySelector("#agent-overview-button");
+const agentSearchButton = document.querySelector("#agent-search-button");
+const agentSearchQueryInput = document.querySelector("#agent-search-query");
 const agentToolResultEl = document.querySelector("#agent-tool-result");
 const searchButton = document.querySelector("#search-button");
 const answerEl = document.querySelector("#answer");
@@ -212,6 +214,22 @@ agentOverviewButton.addEventListener("click", async () => {
     const data = await runAgentTool("project_overview");
     renderAgentToolResult(agentToolResultEl, data);
     setStatus("项目概览工具已完成。");
+  } catch (error) {
+    setStatus(error.message);
+  }
+});
+
+agentSearchButton.addEventListener("click", async () => {
+  const query = agentSearchQueryInput.value.trim();
+  if (!query) {
+    setStatus("请输入 Agent 来源检索词。");
+    return;
+  }
+  try {
+    setStatus("正在运行只读来源检索工具...");
+    const data = await runAgentTool("search_sources", { query });
+    renderAgentToolResult(agentToolResultEl, data);
+    setStatus(`来源检索工具已完成：${data.result.hit_count} 条。`);
   } catch (error) {
     setStatus(error.message);
   }

@@ -51,6 +51,17 @@ export function renderAgentToolResult(resultEl, data) {
     return;
   }
   const result = data.result || {};
+  if (data.run?.tool_name === "search_sources") {
+    const hits = Array.isArray(result.hits) ? result.hits : [];
+    resultEl.textContent = [
+      `工具：${data.run.tool_name}`,
+      `状态：${data.run.status}`,
+      `查询：${result.query || ""}`,
+      `命中：${result.hit_count ?? hits.length}`,
+      ...hits.map((hit, index) => `${index + 1}. ${hit.path}：${hit.snippet}`),
+    ].join("\n");
+    return;
+  }
   resultEl.textContent = [
     `工具：${data.run?.tool_name || "project_overview"}`,
     `状态：${data.run?.status || "success"}`,

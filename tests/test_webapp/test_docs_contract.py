@@ -68,6 +68,7 @@ def test_agent_readonly_tools_are_documented():
     database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
 
     assert "project_overview" in api_spec
+    assert "search_sources" in api_spec
     assert "只读" in api_spec
     assert "不开放 shell" in api_spec
     assert "agent_tool_runs" in database_design
