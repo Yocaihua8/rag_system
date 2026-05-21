@@ -68,3 +68,23 @@ node --check webapp\static\js\*.js
 - 打包后功能冒烟：创建项目空间、导入 1 个文件、问答返回 1 个来源、掌握评估生成 1 道题。
 
 限制：当前是 zip + bat 运行包，不是安装器；尚未提供桌面快捷方式自动创建。
+
+## 7. Docker 一键启动验收记录
+
+2026-05-21 已执行真实 Docker 启动：
+
+```powershell
+.\scripts\docker_up.ps1 -NoOpen
+```
+
+结果：
+
+- Compose 服务：`knowledge-island-web`
+- 镜像：`knowledge-island-web:local`
+- 访问地址：`http://127.0.0.1:8765`
+- 健康状态：`healthy`
+- DeepSeek Key 注入：已检测到布尔值 `True`，未输出 Key
+- Docker 导入目录：容器内 `/workspace`，宿主机 `docker-workspace/`
+- 功能冒烟：创建项目空间、导入 1 个文件、DeepSeek 问答 `answerMode=api/provider=deepseek`、来源数 1
+
+限制：Docker 模式仍需用户安装并启动 Docker Desktop；Web 页面中本地目录需填写容器路径 `/workspace`，不是 Windows 原始路径。

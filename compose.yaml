@@ -1,0 +1,32 @@
+name: knowledge-island
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: knowledge-island-web:local
+    container_name: knowledge-island-web
+    ports:
+      - "8765:8765"
+    environment:
+      RAG_RUNTIME_DIR: /app/runtime
+      RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-api}
+      RAG_LLM_API_BASE: ${RAG_LLM_API_BASE:-https://api.deepseek.com/v1}
+      RAG_LLM_API_MODEL: ${RAG_LLM_API_MODEL:-deepseek-chat}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+    volumes:
+      - ./runtime/docker:/app/runtime
+      - ${KNOWLEDGE_ISLAND_WORKSPACE:-./docker-workspace}:/workspace
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=5).read()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s

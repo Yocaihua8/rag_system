@@ -48,6 +48,7 @@ build/
 dist/
 /release/
 release-cache/
+/docker-workspace/
 *.spec
 *.egg-info/
 

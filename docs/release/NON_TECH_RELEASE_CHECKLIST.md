@@ -58,6 +58,7 @@
 - [x] Windows zip 产物已生成：`release\KnowledgeIsland_win64.zip`
 - [x] 打包后 bat 启动冒烟通过：`GET /api/health` 返回 `{"status":"ok"}`
 - [x] 打包后核心功能冒烟通过：创建项目、导入、问答来源、评估题生成
+- [x] Docker 一键启动冒烟通过：容器 healthy，`/workspace` 导入，DeepSeek 问答 `answerMode=api`
 - [ ] 3 名非技术用户独立完成首次使用（不依赖开发者在场）
 - [ ] 首次使用平均完成时间 < 10 分钟
 - [ ] 关键路径失败率 < 10%

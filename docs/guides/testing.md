@@ -15,6 +15,7 @@
 .venv\Scripts\python.exe -m pytest tests/test_application/test_markdown_content.py -q
 .venv\Scripts\python.exe -m pytest tests/test_application/test_ingestion_usecases.py -q
 .venv\Scripts\python.exe -m pytest tests/test_adapters/test_storage.py tests/test_domain/test_models.py -q
+docker compose config
 ```
 
 ## 3. 说明
@@ -34,3 +35,4 @@
 - Web MVP DeepSeek 配置存在时优先真实 LLM，失败时本地回退
 - Web MVP 掌握评估入口、题目生成、回答反馈
 - Web MVP 首次使用引导可见
+- Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射符合约定

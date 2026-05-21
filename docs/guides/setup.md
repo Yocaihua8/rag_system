@@ -35,6 +35,43 @@ http://127.0.0.1:8765
 
 当前默认入口使用 Python 标准库 HTTP 服务、SQLite 和原生前端，不新增运行时依赖。Web 端 DeepSeek / OpenAI 兼容调用同样使用 Python 标准库，不依赖 `openai` SDK。旧 PySide6 桌面端代码仍保留在 `src/desktop/`，后续按功能迁移。
 
+## 3. Docker 一键启动
+
+Windows PowerShell：
+
+```powershell
+.\scripts\docker_up.ps1
+```
+
+脚本会：
+
+- 创建 `docker-workspace/` 作为 Docker 模式默认导入目录。
+- 创建 `runtime/docker/` 作为容器运行时持久化目录。
+- 从 Windows User 环境读取 `DEEPSEEK_API_KEY` 并注入给 Compose（不打印 Key）。
+- 执行 `docker compose up --build -d`。
+- 打开 `http://127.0.0.1:8765`。
+
+Docker 模式下，Web 页面创建项目空间时目录填写：
+
+```text
+/workspace
+```
+
+该路径对应宿主机的 `docker-workspace/`。如果要导入其他宿主机目录，可设置：
+
+```powershell
+$env:KNOWLEDGE_ISLAND_WORKSPACE="E:\Code\your-project"
+.\scripts\docker_up.ps1
+```
+
+也可以直接使用 Compose：
+
+```powershell
+docker compose up --build -d
+docker compose logs -f web
+docker compose down
+```
+
 启用 DeepSeek 真实回答（可选）：
 
 ```powershell
@@ -46,7 +83,7 @@ http://127.0.0.1:8765
 
 Windows 上应用会读取 User/Machine 级持久环境变量；如果当前终端没有继承新设置的 `DEEPSEEK_API_KEY`，`load_settings()` 仍会尝试从 Windows 持久环境中读取。
 
-## 3. 常见校验
+## 4. 常见校验
 
 - 检查 `http://127.0.0.1:8765/api/health` 是否返回 `{"status": "ok"}`。
 - 创建项目空间时，本地目录必须真实存在。
