@@ -2,6 +2,9 @@
 
 ## 2026-05-21
 
+- Web MVP 新增 OpenAI-compatible embeddings 接入：配置 `RAG_EMBED_PROVIDER=api` 后可请求 `/embeddings` 写入真实 chunk 向量，失败时回退本地 hashing。
+- Docker 一键启动透传 `RAG_EMBED_*` 配置，支持容器模式使用真实 Embedding API。
+- Web 搜索结果新增 `vector_provider`、`vector_model` 字段，便于确认来源使用真实 embedding 还是本地 fallback。
 - Web MVP 新增本地向量检索：导入 chunk 时写入 `chunk_vectors`，搜索使用 keyword + vector 混合召回。
 - Web 搜索结果新增 `retrieval`、`keyword_score`、`vector_score` 字段，便于区分关键词分和向量分。
 - Web MVP 新增 RAG 分块检索第一片：导入时写入 `document_chunks`，搜索和问答按 chunk 召回来源片段。

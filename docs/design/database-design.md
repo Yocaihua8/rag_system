@@ -44,9 +44,9 @@
 - 用于本地 Web MVP 的轻量 RAG 分块检索；legacy `chunks` 表继续服务旧应用层和向量检索链路。
 
 ### chunk_vectors（Web MVP）
-- `chunk_id / project_id / vector_json / updated_at`
+- `chunk_id / project_id / vector_json / provider / model / updated_at`
 - `chunk_id` 与 `document_chunks.id` 一一对应，用于 Web MVP keyword + vector 混合召回。
-- 当前向量由标准库本地 hashing 生成，后续可替换为真实 embedding provider。
+- `provider/model` 记录向量来源；配置 OpenAI-compatible Embeddings 时写入真实 embedding，否则写入本地 hashing 向量。
 
 ### mastery_records
 - `status` 三态：`claimed / evidence_found / verified`
@@ -58,7 +58,7 @@
 
 - 外键删除采用 SQLite 外键级联，清理文档时联动 chunk/source/关系。
 - Web MVP 删除或重建文档时会同步删除并重建 `document_chunks`，避免旧 chunk 残留影响检索来源。
-- Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。
+- Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。Embedding API 失败时回退本地 hashing，不阻断文档入库。
 - 增量摄入中会按 `document_id` 删除旧数据，防止重建重复。
 - 向量库侧与 `chunks.id` 保持一一对应便于回填来源。
 

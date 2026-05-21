@@ -20,6 +20,8 @@ def test_compose_maps_port_runtime_workspace_and_deepseek_env():
     assert "${KNOWLEDGE_ISLAND_WORKSPACE:-./docker-workspace}:/workspace" in compose
     assert "DEEPSEEK_API_KEY" in compose
     assert "RAG_LLM_PROVIDER" in compose
+    assert "RAG_EMBED_PROVIDER" in compose
+    assert "RAG_EMBED_API_KEY" in compose
     assert "healthcheck:" in compose
 
 
@@ -28,8 +30,10 @@ def test_docker_one_click_script_injects_user_deepseek_key_without_printing_it()
 
     assert "docker compose up --build -d" in script
     assert "GetEnvironmentVariable('DEEPSEEK_API_KEY', 'User')" in script
+    assert "GetEnvironmentVariable('RAG_EMBED_API_KEY', 'User')" in script
     assert "docker-workspace" in script
     assert "DEEPSEEK_API_KEY=" not in script
+    assert "RAG_EMBED_API_KEY=" not in script
 
 
 def test_docker_stop_script_and_double_click_wrappers_exist():

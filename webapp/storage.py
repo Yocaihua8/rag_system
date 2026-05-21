@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from webapp.chunking import count_tokens, split_into_chunks
+from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import Document, DocumentChunk, Project
-from webapp.vector_index import deserialize_vector, serialize_vector, text_vector
+from webapp.vector_index import deserialize_vector, serialize_vector
 
 
 class DocumentWriteResult:
@@ -18,8 +19,9 @@ class DocumentWriteResult:
 
 
 class KnowledgeStore:
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, embedding_client: EmbeddingClient | None = None):
         self.db_path = Path(db_path)
+        self._embedding_client = embedding_client or get_default_embedding_client()
         if str(self.db_path) != ":memory:":
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
@@ -168,6 +170,28 @@ class KnowledgeStore:
             ).fetchall()
         return {row["chunk_id"]: deserialize_vector(row["vector_json"]) for row in rows}
 
+    def list_chunk_vector_records(self, project_id: str) -> list[dict[str, object]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT chunk_id, vector_json, provider, model, updated_at
+                FROM chunk_vectors
+                WHERE project_id = ?
+                ORDER BY chunk_id ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [
+            {
+                "chunk_id": row["chunk_id"],
+                "vector": deserialize_vector(row["vector_json"]),
+                "provider": row["provider"],
+                "model": row["model"],
+                "updated_at": row["updated_at"],
+            }
+            for row in rows
+        ]
+
     def count_chunk_vectors(self, project_id: str) -> int:
         with self._connect() as conn:
             row = conn.execute(
@@ -259,6 +283,8 @@ class KnowledgeStore:
                     chunk_id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
                     vector_json TEXT NOT NULL,
+                    provider TEXT NOT NULL DEFAULT 'local',
+                    model TEXT NOT NULL DEFAULT 'hashing-96',
                     updated_at TEXT NOT NULL,
                     FOREIGN KEY(chunk_id) REFERENCES document_chunks(id) ON DELETE CASCADE
                 );
@@ -267,6 +293,8 @@ class KnowledgeStore:
                     ON chunk_vectors(project_id);
                 """
             )
+            _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
+            _ensure_column(conn, "chunk_vectors", "model", "TEXT NOT NULL DEFAULT 'hashing-96'")
             self._backfill_document_chunks(conn)
             self._backfill_chunk_vectors(conn)
 
@@ -275,7 +303,9 @@ class KnowledgeStore:
         chunk_rows = []
         vector_rows = []
         now = _now()
-        for index, chunk in enumerate(split_into_chunks(document.content)):
+        chunks = split_into_chunks(document.content)
+        vectors, provider, model = embed_with_fallback(self._embedding_client, chunks)
+        for index, chunk in enumerate(chunks):
             chunk_id = str(uuid.uuid4())
             chunk_rows.append(
                 (
@@ -292,7 +322,9 @@ class KnowledgeStore:
                 (
                     chunk_id,
                     document.project_id,
-                    serialize_vector(text_vector(chunk)),
+                    serialize_vector(vectors[index]),
+                    provider,
+                    model,
                     now,
                 )
             )
@@ -307,8 +339,8 @@ class KnowledgeStore:
         conn.executemany(
             """
             INSERT INTO chunk_vectors
-                (chunk_id, project_id, vector_json, updated_at)
-            VALUES (?, ?, ?, ?)
+                (chunk_id, project_id, vector_json, provider, model, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             vector_rows,
         )
@@ -342,20 +374,24 @@ class KnowledgeStore:
             WHERE v.chunk_id IS NULL
             """
         ).fetchall()
+        chunks = [row["content"] for row in rows]
+        vectors, provider, model = embed_with_fallback(self._embedding_client, chunks)
         conn.executemany(
             """
             INSERT INTO chunk_vectors
-                (chunk_id, project_id, vector_json, updated_at)
-            VALUES (?, ?, ?, ?)
+                (chunk_id, project_id, vector_json, provider, model, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             [
                 (
                     row["id"],
                     row["project_id"],
-                    serialize_vector(text_vector(row["content"])),
+                    serialize_vector(vectors[index]),
+                    provider,
+                    model,
                     now,
                 )
-                for row in rows
+                for index, row in enumerate(rows)
             ],
         )
 
@@ -366,6 +402,17 @@ def _now() -> str:
 
 def _project_from_row(row: sqlite3.Row) -> Project:
     return Project(row["id"], row["name"], Path(row["root_path"]), row["created_at"])
+
+
+def _ensure_column(
+    conn: sqlite3.Connection,
+    table_name: str,
+    column_name: str,
+    column_definition: str,
+) -> None:
+    columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table_name})")}
+    if column_name not in columns:
+        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")
 
 
 def _document_from_row(row: sqlite3.Row) -> Document:

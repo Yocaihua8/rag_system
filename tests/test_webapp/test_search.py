@@ -187,3 +187,61 @@ def test_search_returns_hybrid_scores_for_vector_retrieval(tmp_path: Path):
     assert body["keyword_score"] > 0
     assert body["vector_score"] > 0
     assert body["score"] == body["keyword_score"] + body["vector_score"]
+
+
+def test_upsert_document_can_use_api_embedding_client(tmp_path: Path):
+    embedding_client = FakeEmbeddingClient()
+    store = KnowledgeStore(tmp_path / "app.db", embedding_client=embedding_client)
+    project = store.create_project("Demo", tmp_path)
+
+    store.upsert_document(
+        project.id,
+        tmp_path / "model.md",
+        "model.md",
+        "模型设置：填写 DeepSeek API Key。\n\n导入说明：选择文件夹导入。",
+    )
+
+    records = store.list_chunk_vector_records(project.id)
+    assert embedding_client.calls == [["模型设置：填写 DeepSeek API Key。", "导入说明：选择文件夹导入。"]]
+    assert {record["provider"] for record in records} == {"api"}
+    assert {record["model"] for record in records} == {"fake-embedding"}
+
+
+def test_search_can_use_api_embedding_client_for_query_vector(tmp_path: Path):
+    embedding_client = FakeEmbeddingClient()
+    store = KnowledgeStore(tmp_path / "app.db", embedding_client=embedding_client)
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(
+        project.id,
+        tmp_path / "model.md",
+        "model.md",
+        "模型设置：填写 DeepSeek API Key，并点击测试连接。",
+    )
+
+    hits = search_documents(store, project.id, "DeepSeek API Key", limit=1, embedding_client=embedding_client)
+    body = hits[0].to_dict()
+
+    assert body["retrieval"] == "hybrid"
+    assert body["vector_provider"] == "api"
+    assert body["vector_model"] == "fake-embedding"
+    assert body["vector_score"] > 0
+
+
+class FakeEmbeddingClient:
+    provider = "api"
+    model = "fake-embedding"
+
+    def __init__(self):
+        self.calls = []
+
+    def embed_texts(self, texts):
+        self.calls.append(list(texts))
+        vectors = []
+        for text in texts:
+            lowered = text.lower()
+            vectors.append({
+                "deepseek": 1.0 if "deepseek" in lowered else 0.0,
+                "api": 1.0 if "api" in lowered else 0.0,
+                "key": 1.0 if "key" in lowered else 0.0,
+            })
+        return vectors

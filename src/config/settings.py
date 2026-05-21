@@ -72,7 +72,10 @@ class AppSettings:
     llm_api_model: str      # 云端模型名
 
     # Embedding 提供商
-    embed_provider: str     # "ollama" | "none"
+    embed_provider: str     # "ollama" | "none" | "api"
+    embedding_api_base: str
+    embedding_api_key: str
+    embedding_api_model: str
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +195,9 @@ def _persistent_env() -> dict[str, str]:
         "RAG_LLM_API_KEY",
         "RAG_LLM_API_MODEL",
         "RAG_EMBED_PROVIDER",
+        "RAG_EMBED_API_BASE",
+        "RAG_EMBED_API_KEY",
+        "RAG_EMBED_API_MODEL",
         *API_KEY_ENV_NAMES,
     )
     result: dict[str, str] = {}
@@ -265,6 +271,9 @@ def load_settings(override_env: Optional[dict[str, str]] = None) -> AppSettings:
         "RAG_LLM_API_KEY",
         "RAG_LLM_API_MODEL",
         "RAG_EMBED_PROVIDER",
+        "RAG_EMBED_API_BASE",
+        "RAG_EMBED_API_KEY",
+        "RAG_EMBED_API_MODEL",
     ):
         if key in os.environ:
             env[key] = os.environ[key]
@@ -312,6 +321,9 @@ def load_settings(override_env: Optional[dict[str, str]] = None) -> AppSettings:
         llm_api_key=_resolve(env, "RAG_LLM_API_KEY", defaults.LLM_API_KEY),
         llm_api_model=_resolve(env, "RAG_LLM_API_MODEL", defaults.LLM_API_MODEL),
         embed_provider=_resolve(env, "RAG_EMBED_PROVIDER", defaults.EMBED_PROVIDER),
+        embedding_api_base=_resolve(env, "RAG_EMBED_API_BASE", defaults.EMBED_API_BASE),
+        embedding_api_key=_resolve(env, "RAG_EMBED_API_KEY", defaults.EMBED_API_KEY),
+        embedding_api_model=_resolve(env, "RAG_EMBED_API_MODEL", defaults.EMBED_API_MODEL),
     )
 
 

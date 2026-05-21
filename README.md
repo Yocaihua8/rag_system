@@ -25,7 +25,7 @@
 | **文件路径过滤** | 已导入文件列表支持按路径本地过滤，便于在大量文件中快速定位 |
 | **文件数量提示** | 已导入文件列表显示当前过滤结果数和总文件数 |
 | **独立检索** | 不提问也可直接搜索文件分块片段，并点击结果打开文件预览 |
-| **RAG 分块检索** | 导入时生成 SQLite 文档分块和本地轻量向量，检索和问答使用 keyword + vector 混合召回，并返回 `chunk_index` 便于追踪来源 |
+| **RAG 分块检索** | 导入时生成 SQLite 文档分块和向量，检索和问答使用 keyword + vector 混合召回；配置 OpenAI-compatible Embeddings 后优先使用真实 embedding，否则回退本地 hashing 向量 |
 | **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示 |
 | **知识库问答** | 默认基于检索片段组合回答；配置 DeepSeek / OpenAI 兼容 API 后优先使用真实 LLM，并保留来源文件与片段 |
 | **模型设置** | Web 设置页可查看 API Key 状态、保存 API Base / 模型名 / Key，并执行连接测试；Key 不回显明文 |
@@ -81,6 +81,10 @@ cp .env.example .env
 | `RAG_OLLAMA_HOST` | `http://localhost:11434` | Ollama 服务地址 |
 | `RAG_OLLAMA_MODEL` | `qwen2.5:7b` | 生成模型 |
 | `RAG_EMBEDDING_MODEL` | `nomic-embed-text` | 嵌入模型 |
+| `RAG_EMBED_PROVIDER` | `ollama` | Web MVP 支持 `api` 时请求 OpenAI-compatible `/embeddings`，否则使用本地 hashing 向量回退 |
+| `RAG_EMBED_API_BASE` | `https://api.deepseek.com/v1` | Embedding API 地址；需要服务实际支持 `/embeddings` |
+| `RAG_EMBED_API_MODEL` | `text-embedding-3-small` | Embedding 模型名 |
+| `RAG_EMBED_API_KEY` | _(空)_ | Embedding API Key；不复用或回显 LLM Key |
 | `RAG_RETRIEVER_KIND` | `vector` | `vector`（ChromaDB）或 `keyword` |
 | `RAG_LLM_PROVIDER` | `ollama` | `ollama` 或 `api` |
 | `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明）；兼容本机 DeepSeek Key 别名 |
@@ -88,6 +92,8 @@ cp .env.example .env
 | `RAG_LLM_API_MODEL` | `deepseek-chat` | 云端模型名 |
 
 Web 端问答会优先读取这些变量。未配置 API Key 时，自动回退到本地片段组合回答。
+
+Web 端检索会优先使用 `RAG_EMBED_PROVIDER=api` 对应的 OpenAI-compatible Embeddings；未配置、请求失败或服务不支持 `/embeddings` 时，自动回退到本地 hashing 向量，导入不中断。DeepSeek 当前主要用于聊天回答；如果所用 DeepSeek 端点不提供 embeddings，请单独配置支持 `/embeddings` 的服务。
 
 ---
 

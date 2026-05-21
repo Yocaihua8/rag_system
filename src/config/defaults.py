@@ -30,5 +30,8 @@ LLM_API_BASE = "https://api.deepseek.com/v1"
 LLM_API_KEY = ""            # 优先由 OS 环境变量 RAG_LLM_API_KEY 提供
 LLM_API_MODEL = "deepseek-chat"
 
-# Embedding 提供商（"ollama" | "none"）
+# Embedding 提供商（"ollama" | "none" | "api"）
 EMBED_PROVIDER = "ollama"
+EMBED_API_BASE = LLM_API_BASE
+EMBED_API_KEY = ""
+EMBED_API_MODEL = "text-embedding-3-small"

@@ -15,6 +15,10 @@ services:
       RAG_LLM_API_BASE: ${RAG_LLM_API_BASE:-https://api.deepseek.com/v1}
       RAG_LLM_API_MODEL: ${RAG_LLM_API_MODEL:-deepseek-chat}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      RAG_EMBED_PROVIDER: ${RAG_EMBED_PROVIDER:-}
+      RAG_EMBED_API_BASE: ${RAG_EMBED_API_BASE:-}
+      RAG_EMBED_API_MODEL: ${RAG_EMBED_API_MODEL:-}
+      RAG_EMBED_API_KEY: ${RAG_EMBED_API_KEY:-}
     volumes:
       - ./runtime/docker:/app/runtime
       - ${KNOWLEDGE_ISLAND_WORKSPACE:-./docker-workspace}:/workspace

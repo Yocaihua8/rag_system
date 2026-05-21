@@ -62,6 +62,7 @@ Windows PowerShell：
 - 创建 `docker-workspace/` 作为 Docker 模式默认导入目录。
 - 创建 `runtime/docker/` 作为容器运行时持久化目录。
 - 从 Windows User 环境读取 `DEEPSEEK_API_KEY` 并注入给 Compose（不打印 Key）。
+- 从 Windows User 环境读取 `RAG_EMBED_API_KEY` 并注入给 Compose（不打印 Key）。
 - 执行 `docker compose up --build -d`。
 - 打开 `http://127.0.0.1:8765`。
 
@@ -103,10 +104,22 @@ docker compose down
 
 Windows 上应用会读取 User/Machine 级持久环境变量；如果当前终端没有继承新设置的 `DEEPSEEK_API_KEY`，`load_settings()` 仍会尝试从 Windows 持久环境中读取。
 
+启用真实 Embedding（可选）：
+
+```powershell
+[System.Environment]::SetEnvironmentVariable("RAG_EMBED_PROVIDER", "api", "User")
+[System.Environment]::SetEnvironmentVariable("RAG_EMBED_API_BASE", "https://api.openai.com/v1", "User")
+[System.Environment]::SetEnvironmentVariable("RAG_EMBED_API_MODEL", "text-embedding-3-small", "User")
+[System.Environment]::SetEnvironmentVariable("RAG_EMBED_API_KEY", "sk-xxx", "User")
+```
+
+Embedding 服务必须支持 OpenAI-compatible `/embeddings`。未配置或请求失败时，Web MVP 会回退到本地 hashing 向量，导入不中断。
+
 ## 4. 常见校验
 
 - 检查 `http://127.0.0.1:8765/api/health` 是否返回 `{"status": "ok"}`。
 - 创建项目空间时，本地目录必须对当前后端进程真实存在；Docker 模式下 Windows 路径不会直接存在于容器内，推荐改用“选择文件夹导入”。
 - Web MVP 无 Ollama、无 API Key 时仍可导入文本与 DOCX 正文并进行关键词问答。
 - Web MVP 配置 DeepSeek Key 后，`/api/answer` 会优先请求 OpenAI-compatible Chat Completions；请求失败时回退到本地片段回答。
+- Web MVP 配置 `RAG_EMBED_PROVIDER=api` 和 `RAG_EMBED_API_KEY` 后，导入 chunk 时会优先请求 OpenAI-compatible Embeddings；请求失败时回退本地向量。
 - 模型设置页可通过 `GET/POST /api/settings/llm` 读取或保存 API Base、模型名和 API Key 状态，并通过 `/api/settings/llm/test` 做连接测试。

@@ -7,6 +7,7 @@
 1. 已安装 Docker Desktop。
 2. Docker Desktop 已经启动。
 3. 如果要使用 DeepSeek 真实回答，Windows User 环境变量里已经配置 DEEPSEEK_API_KEY。
+4. 如果要使用真实 Embedding，Windows User 环境变量里已经配置 RAG_EMBED_PROVIDER、RAG_EMBED_API_BASE、RAG_EMBED_API_MODEL、RAG_EMBED_API_KEY。
 
 启动：
 1. 双击 Start-KnowledgeIsland-Docker.bat。
@@ -38,4 +39,6 @@
 - Docker 模式下，Web 页面里的目录要填写容器路径 /workspace，不要填写 Windows 路径。
 - 如果不想理解 Docker 路径，直接使用“选择文件夹导入”。
 - 启动脚本会读取 DEEPSEEK_API_KEY 并传给容器，但不会在命令窗口打印 Key。
+- 启动脚本会读取 RAG_EMBED_API_KEY 并传给容器，但不会在命令窗口打印 Key。
+- Embedding 服务必须支持 OpenAI-compatible /embeddings；未配置或失败时会回退本地向量。
 - 如果启动失败，请先确认 Docker Desktop 是否正在运行。

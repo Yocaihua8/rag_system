@@ -23,7 +23,7 @@ docker compose config
 - 受环境限制时，`pytest` 可能因依赖/网络导致不能完整运行，需在提交说明里写出失败原因与替代验证。
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
 - 变更默认 Web MVP 的 API、导入、检索或回答行为时，必须复跑 `tests/test_webapp`。
-- 变更 Web RAG 分块、向量索引、搜索排序或来源字段时，必须覆盖 chunk 生成、向量持久化、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score` 和问答来源兼容。
+- 变更 Web RAG 分块、embedding provider、向量索引、搜索排序或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model` 和问答来源兼容。
 - 变更浏览器文件夹导入时，必须覆盖 `/api/import/upload`、前端 `webkitdirectory` 入口和导入规则跳过行为。
 - 变更 Web 文档处理管线时，必须覆盖 DOCX 正文抽取、PDF 明确跳过、浏览器上传 `content_base64` 和普通文本导入兼容行为。
 - 变更模型设置页时，必须覆盖 `/api/settings/llm`、`/api/settings/llm/test`、Key 不回显和前端设置入口。

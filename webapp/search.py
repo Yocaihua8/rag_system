@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 
+from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import SearchHit
 from webapp.storage import KnowledgeStore
-from webapp.vector_index import cosine_similarity, text_vector
+from webapp.vector_index import cosine_similarity
 
 
 def search_documents(
@@ -12,14 +13,23 @@ def search_documents(
     project_id: str,
     query: str,
     limit: int = 5,
+    embedding_client: EmbeddingClient | None = None,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
-    query_vector = text_vector(query)
-    chunk_vectors = store.list_chunk_vectors(project_id)
+    query_vectors, _, _ = embed_with_fallback(
+        embedding_client or get_default_embedding_client(),
+        [query],
+    )
+    query_vector = query_vectors[0] if query_vectors else {}
+    vector_records = {
+        str(record["chunk_id"]): record
+        for record in store.list_chunk_vector_records(project_id)
+    }
     hits: list[SearchHit] = []
     for chunk in store.list_chunks(project_id):
         keyword_score = _score(chunk.content, tokens, query)
-        vector_score = cosine_similarity(query_vector, chunk_vectors.get(chunk.id, {}))
+        vector_record = vector_records.get(chunk.id, {})
+        vector_score = cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
         score = keyword_score + vector_score
         hits.append(
             SearchHit(
@@ -30,6 +40,8 @@ def search_documents(
                 keyword_score=keyword_score,
                 vector_score=vector_score,
                 retrieval="hybrid",
+                vector_provider=str(vector_record.get("provider", "local")),
+                vector_model=str(vector_record.get("model", "hashing-96")),
             )
         )
     hits.sort(

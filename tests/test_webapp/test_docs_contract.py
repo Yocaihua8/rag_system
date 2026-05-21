@@ -36,6 +36,16 @@ def test_search_api_spec_documents_hybrid_vector_fields():
     api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
     database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
 
-    for field in ["retrieval", "keyword_score", "vector_score"]:
+    for field in ["retrieval", "keyword_score", "vector_score", "vector_provider", "vector_model"]:
         assert field in api_spec
     assert "chunk_vectors" in database_design
+    assert "provider/model" in database_design
+
+
+def test_embedding_provider_config_is_documented():
+    readme = Path("README.md").read_text(encoding="utf-8")
+    env_example = Path(".env.example").read_text(encoding="utf-8")
+
+    for key in ["RAG_EMBED_PROVIDER", "RAG_EMBED_API_BASE", "RAG_EMBED_API_MODEL", "RAG_EMBED_API_KEY"]:
+        assert key in readme
+        assert key in env_example

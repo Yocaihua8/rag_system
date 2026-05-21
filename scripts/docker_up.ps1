@@ -23,6 +23,13 @@ if (-not $env:DEEPSEEK_API_KEY) {
     }
 }
 
+if (-not $env:RAG_EMBED_API_KEY) {
+    $embedKey = [Environment]::GetEnvironmentVariable('RAG_EMBED_API_KEY', 'User')
+    if ($embedKey) {
+        $env:RAG_EMBED_API_KEY = $embedKey
+    }
+}
+
 if (-not $env:RAG_LLM_PROVIDER) {
     $env:RAG_LLM_PROVIDER = "api"
 }
