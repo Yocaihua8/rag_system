@@ -2,6 +2,8 @@
 
 ## 2026-05-21
 
+- Web MVP 新增项目聊天记录：`/api/answer` 返回后保存 question/answer/mode/provider/sources，工作台可按项目恢复最近对话。
+- 新增 `GET /api/chat/messages`，用于加载当前项目聊天历史。
 - Web MVP 新增 OpenAI-compatible embeddings 接入：配置 `RAG_EMBED_PROVIDER=api` 后可请求 `/embeddings` 写入真实 chunk 向量，失败时回退本地 hashing。
 - Docker 一键启动透传 `RAG_EMBED_*` 配置，支持容器模式使用真实 Embedding API。
 - Web 搜索结果新增 `vector_provider`、`vector_model` 字段，便于确认来源使用真实 embedding 还是本地 fallback。

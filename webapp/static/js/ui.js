@@ -21,6 +21,30 @@ export function renderAnswer(answerEl, sourcesEl, data) {
   }
 }
 
+export function renderChatHistory(historyEl, messages) {
+  historyEl.innerHTML = "";
+  if (messages.length === 0) {
+    appendEmptyItem(historyEl, "暂无对话记录");
+    return;
+  }
+  for (const message of messages) {
+    const item = document.createElement("li");
+    const question = document.createElement("p");
+    const answer = document.createElement("p");
+    const meta = document.createElement("span");
+    question.className = "chat-question";
+    answer.className = "chat-answer";
+    meta.className = "chat-meta";
+    question.textContent = `问：${message.question}`;
+    answer.textContent = `答：${message.answer}`;
+    meta.textContent = `${message.mode || "local"} / ${message.provider || "local"} / 来源 ${message.sources?.length || 0}`;
+    item.appendChild(question);
+    item.appendChild(answer);
+    item.appendChild(meta);
+    historyEl.appendChild(item);
+  }
+}
+
 export function renderSearchResults(resultsEl, hits, onSelect) {
   resultsEl.innerHTML = "";
   if (hits.length === 0) {

@@ -13,6 +13,7 @@
 - `documents`
 - `document_chunks`（Web MVP）
 - `chunk_vectors`（Web MVP）
+- `chat_messages`（Web MVP）
 - `chunks`
 - `workspaces`
 - `tasks`
@@ -48,6 +49,11 @@
 - `chunk_id` 与 `document_chunks.id` 一一对应，用于 Web MVP keyword + vector 混合召回。
 - `provider/model` 记录向量来源；配置 OpenAI-compatible Embeddings 时写入真实 embedding，否则写入本地 hashing 向量。
 
+### chat_messages（Web MVP）
+- `id / project_id / question / answer / mode / provider / warning / sources_json / created_at`
+- 每次 `/api/answer` 返回后写入一条记录，用于 Web 工作台按项目恢复最近问答。
+- `sources_json` 保存本轮回答使用的来源片段快照，避免后续文档更新导致历史对话失去当时来源。
+
 ### mastery_records
 - `status` 三态：`claimed / evidence_found / verified`
 
@@ -59,6 +65,7 @@
 - 外键删除采用 SQLite 外键级联，清理文档时联动 chunk/source/关系。
 - Web MVP 删除或重建文档时会同步删除并重建 `document_chunks`，避免旧 chunk 残留影响检索来源。
 - Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。Embedding API 失败时回退本地 hashing，不阻断文档入库。
+- Web MVP 删除项目空间时通过外键级联清理 `chat_messages`，避免孤立聊天记录。
 - 增量摄入中会按 `document_id` 删除旧数据，防止重建重复。
 - 向量库侧与 `chunks.id` 保持一一对应便于回填来源。
 

@@ -109,6 +109,32 @@ class AnswerResult:
 
 
 @dataclass(frozen=True)
+class ChatMessage:
+    id: str
+    project_id: str
+    question: str
+    answer: str
+    mode: str
+    provider: str
+    warning: str
+    sources: list[dict[str, Any]]
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "question": self.question,
+            "answer": self.answer,
+            "mode": self.mode,
+            "provider": self.provider,
+            "warning": self.warning,
+            "sources": self.sources,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
 class ImportResult:
     imported: int
     skipped: int

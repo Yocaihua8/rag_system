@@ -12,6 +12,7 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "POST /api/import",
         "POST /api/search",
         "POST /api/answer",
+        "GET /api/chat/messages",
     ]:
         assert endpoint in api_spec
 

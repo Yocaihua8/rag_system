@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -8,7 +9,7 @@ from pathlib import Path
 
 from webapp.chunking import count_tokens, split_into_chunks
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
-from webapp.models import Document, DocumentChunk, Project
+from webapp.models import ChatMessage, Document, DocumentChunk, Project
 from webapp.vector_index import deserialize_vector, serialize_vector
 
 
@@ -200,6 +201,61 @@ class KnowledgeStore:
             ).fetchone()
         return int(row["total"])
 
+    def create_chat_message(
+        self,
+        project_id: str,
+        question: str,
+        answer: str,
+        mode: str,
+        provider: str,
+        warning: str,
+        sources: list[dict[str, object]],
+    ) -> ChatMessage:
+        message = ChatMessage(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            question=question,
+            answer=answer,
+            mode=mode,
+            provider=provider,
+            warning=warning,
+            sources=[dict(source) for source in sources],
+            created_at=_now(),
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_messages
+                    (id, project_id, question, answer, mode, provider, warning, sources_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    message.id,
+                    message.project_id,
+                    message.question,
+                    message.answer,
+                    message.mode,
+                    message.provider,
+                    message.warning,
+                    json.dumps(message.sources, ensure_ascii=False),
+                    message.created_at,
+                ),
+            )
+        return message
+
+    def list_chat_messages(self, project_id: str) -> list[ChatMessage]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, project_id, question, answer, mode, provider, warning, sources_json, created_at
+                FROM chat_messages
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_chat_message_from_row(row) for row in rows]
+
     def get_document(self, document_id: str) -> Document | None:
         with self._connect() as conn:
             row = conn.execute(
@@ -291,6 +347,22 @@ class KnowledgeStore:
 
                 CREATE INDEX IF NOT EXISTS idx_chunk_vectors_project
                     ON chunk_vectors(project_id);
+
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    warning TEXT NOT NULL DEFAULT '',
+                    sources_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_project
+                    ON chat_messages(project_id, created_at);
                 """
             )
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
@@ -444,4 +516,24 @@ def _chunk_from_row(row: sqlite3.Row) -> DocumentChunk:
         content=row["chunk_content"],
         token_count=row["token_count"],
         created_at=row["chunk_created_at"],
+    )
+
+
+def _chat_message_from_row(row: sqlite3.Row) -> ChatMessage:
+    try:
+        sources = json.loads(row["sources_json"])
+    except json.JSONDecodeError:
+        sources = []
+    if not isinstance(sources, list):
+        sources = []
+    return ChatMessage(
+        id=row["id"],
+        project_id=row["project_id"],
+        question=row["question"],
+        answer=row["answer"],
+        mode=row["mode"],
+        provider=row["provider"],
+        warning=row["warning"],
+        sources=[source for source in sources if isinstance(source, dict)],
+        created_at=row["created_at"],
     )

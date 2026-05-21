@@ -28,6 +28,7 @@
 | **RAG 分块检索** | 导入时生成 SQLite 文档分块和向量，检索和问答使用 keyword + vector 混合召回；配置 OpenAI-compatible Embeddings 后优先使用真实 embedding，否则回退本地 hashing 向量 |
 | **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示 |
 | **知识库问答** | 默认基于检索片段组合回答；配置 DeepSeek / OpenAI 兼容 API 后优先使用真实 LLM，并保留来源文件与片段 |
+| **项目聊天记录** | 每次提问后按项目保存问题、回答、模型模式和来源快照，刷新页面或切换项目后可恢复最近对话 |
 | **模型设置** | Web 设置页可查看 API Key 状态、保存 API Base / 模型名 / Key，并执行连接测试；Key 不回显明文 |
 | **掌握评估** | Web 端可从已导入文件生成最小评估题，提交回答后给出规则化反馈和建议阅读来源 |
 | **首次使用引导** | Web 首页展示创建项目空间、导入目录、提问/评估、配置 DeepSeek 的最小步骤 |
@@ -226,6 +227,7 @@ knowledage_island/
 │   ├── search.py             # 基于分块的关键词召回与排序
 │   ├── answers.py            # LLM 优先回答与本地片段回退
 │   ├── llm.py                # OpenAI-compatible Chat Completions 标准库客户端
+│   ├── models.py             # Web MVP 响应模型、搜索命中和聊天记录模型
 │   ├── assessment.py         # Web 掌握评估最小闭环
 │   └── static/               # 原生 HTML/CSS/JS 前端
 ├── src/

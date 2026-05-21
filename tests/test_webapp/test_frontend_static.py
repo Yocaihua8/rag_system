@@ -253,3 +253,19 @@ def test_model_settings_view_is_wired():
     assert "loadLlmSettings" in app_js
     assert "saveLlmSettings" in app_js
     assert "testLlmSettings" in app_js
+
+
+def test_project_chat_history_is_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+    qa_js = Path("webapp/static/js/qa.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+
+    assert 'id="chat-history"' in index_html
+    assert "chatMessages:" in state_js
+    assert "listChatMessages" in qa_js
+    assert "/api/chat/messages" in qa_js
+    assert "renderChatHistory" in ui_js
+    assert "chatHistoryEl" in app_js
+    assert "refreshChatHistory" in app_js

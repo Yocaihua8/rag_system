@@ -1,4 +1,4 @@
-import { apiPost } from "./api.js";
+import { apiGet, apiPost } from "./api.js";
 import { state } from "./state.js";
 
 export async function ask(question) {
@@ -9,6 +9,13 @@ export async function ask(question) {
     project_id: state.selectedProjectId,
     question,
   });
+}
+
+export async function listChatMessages() {
+  if (!state.selectedProjectId) {
+    return { messages: [] };
+  }
+  return apiGet(`/api/chat/messages?project_id=${encodeURIComponent(state.selectedProjectId)}`);
 }
 
 export async function search(query) {

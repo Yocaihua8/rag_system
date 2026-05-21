@@ -10,7 +10,7 @@ import {
   renameSelectedProject,
   selectProject,
 } from "./projects.js";
-import { ask, search, startAssessment, submitAssessmentAnswer } from "./qa.js";
+import { ask, listChatMessages, search, startAssessment, submitAssessmentAnswer } from "./qa.js";
 import { loadLlmSettings, saveLlmSettings, testLlmSettings } from "./settings.js";
 import { state } from "./state.js";
 import {
@@ -23,6 +23,7 @@ import {
   renderAssessmentQuestion,
   renderAssessmentResult,
   renderAssessmentOverview,
+  renderChatHistory,
   renderSearchResults,
   renderSkippedDetails,
   setStatus,
@@ -40,6 +41,7 @@ const askButton = document.querySelector("#ask-button");
 const searchButton = document.querySelector("#search-button");
 const answerEl = document.querySelector("#answer");
 const sourcesEl = document.querySelector("#sources");
+const chatHistoryEl = document.querySelector("#chat-history");
 const documentsEl = document.querySelector("#documents");
 const documentFilterInput = document.querySelector("#document-filter");
 const documentCountEl = document.querySelector("#document-count");
@@ -73,6 +75,7 @@ projectSelect.addEventListener("change", async () => {
   selectProject(projectSelect.value);
   renderSelectedProjectRoot();
   await refreshDocuments();
+  await refreshChatHistory();
 });
 
 projectForm.addEventListener("submit", async (event) => {
@@ -84,7 +87,9 @@ projectForm.addEventListener("submit", async (event) => {
     projectSelect.value = state.selectedProjectId;
     renderSelectedProjectRoot();
     state.documents = [];
+    state.chatMessages = [];
     renderFilteredDocuments();
+    renderChatHistory(chatHistoryEl, state.chatMessages);
     renderDocumentPreview(documentPreviewEl, null);
     renderSearchResults(searchResultsEl, [], previewDocument);
     renderSkippedDetails(skippedDetailsEl, []);
@@ -168,6 +173,7 @@ deleteProjectButton.addEventListener("click", async () => {
     await refreshProjects(projectSelect);
     renderSelectedProjectRoot();
     await refreshDocuments();
+    await refreshChatHistory();
     setStatus("项目空间已删除。");
   } catch (error) {
     setStatus(error.message);
@@ -203,7 +209,12 @@ askButton.addEventListener("click", async () => {
   }
   try {
     setStatus("正在检索资料...");
-    renderAnswer(answerEl, sourcesEl, await ask(question));
+    const data = await ask(question);
+    renderAnswer(answerEl, sourcesEl, data);
+    if (data.message) {
+      state.chatMessages = [...state.chatMessages, data.message];
+      renderChatHistory(chatHistoryEl, state.chatMessages);
+    }
     setStatus("已返回答案。");
   } catch (error) {
     setStatus(error.message);
@@ -279,6 +290,12 @@ async function refreshDocuments() {
   renderAssessmentQuestion(assessmentQuestionEl, null);
   renderAssessmentResult(assessmentResultEl, null);
   renderAssessmentOverview(assessmentOverviewEl, null);
+}
+
+async function refreshChatHistory() {
+  const data = await listChatMessages();
+  state.chatMessages = data.messages;
+  renderChatHistory(chatHistoryEl, state.chatMessages);
 }
 
 function renderLlmSettings(settings) {
@@ -365,4 +382,5 @@ refreshProjects(projectSelect)
       });
     return refreshDocuments();
   })
+  .then(() => refreshChatHistory())
   .catch((error) => setStatus(error.message));

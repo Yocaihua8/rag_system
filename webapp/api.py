@@ -74,6 +74,15 @@ def dispatch(
         documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         return ApiResponse(200, {"documents": documents})
 
+    if method == "GET" and path == "/api/chat/messages":
+        project_id = _value(query, "project_id")
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        messages = [message.to_dict() for message in store.list_chat_messages(project_id)]
+        return ApiResponse(200, {"messages": messages})
+
     if method == "GET" and path == "/api/document":
         document_id = _value(query, "document_id")
         if not document_id:
@@ -135,12 +144,26 @@ def dispatch(
         hits = search_documents(store, project_id, question)
         useful_hits = [hit for hit in hits if hit.score > 0]
         answer_result = compose_answer(question, hits, llm_client=llm_client)
+        sources = [hit.to_dict() for hit in useful_hits[:5]]
+        message = None
+        if store.get_project(project_id):
+            message = store.create_chat_message(
+                project_id=project_id,
+                question=question,
+                answer=answer_result.answer,
+                mode=answer_result.mode,
+                provider=answer_result.provider,
+                warning=answer_result.warning,
+                sources=sources,
+            )
         body = {
             "answer": answer_result.answer,
-            "sources": [hit.to_dict() for hit in useful_hits[:5]],
+            "sources": sources,
             "mode": answer_result.mode,
             "provider": answer_result.provider,
         }
+        if message:
+            body["message"] = message.to_dict()
         if answer_result.warning:
             body["warning"] = answer_result.warning
         return ApiResponse(200, body)
