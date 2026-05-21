@@ -37,7 +37,7 @@ docker compose config
 - 向量检索 + 来源返回一致性
 - 用例级错误消息与状态码（若有）
 - Web MVP 创建项目空间、导入目录、分块生成、向量索引生成、问答来源返回
-- Web MVP 提问后可持久化聊天记录，并能按项目重新加载 `question/answer/mode/provider/sources`
+- Web MVP 提问后可持久化聊天记录，并能按项目重新加载 `question/answer/mode/provider/sources`；真实 LLM prompt 会包含最近 3 轮历史
 - Web MVP 浏览器文件夹导入可创建上传项目，并按后缀、忽略目录和大小规则跳过文件；DOCX 可抽取正文，PDF 有明确跳过原因
 - Web MVP DeepSeek 配置存在时优先真实 LLM，失败时本地回退
 - Web MVP 模型设置页可保存 API Base / 模型名 / Key，且不回显 Key 明文

@@ -143,10 +143,17 @@ def dispatch(
         question = str(payload.get("question", ""))
         hits = search_documents(store, project_id, question)
         useful_hits = [hit for hit in hits if hit.score > 0]
-        answer_result = compose_answer(question, hits, llm_client=llm_client)
+        project = store.get_project(project_id)
+        history_messages = store.list_chat_messages(project_id)[-3:] if project else []
+        answer_result = compose_answer(
+            question,
+            hits,
+            llm_client=llm_client,
+            history_messages=history_messages,
+        )
         sources = [hit.to_dict() for hit in useful_hits[:5]]
         message = None
-        if store.get_project(project_id):
+        if project:
             message = store.create_chat_message(
                 project_id=project_id,
                 question=question,

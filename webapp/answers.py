@@ -3,13 +3,18 @@ from __future__ import annotations
 from typing import Protocol
 
 from webapp.llm import get_default_llm_client
-from webapp.models import AnswerResult, SearchHit
+from webapp.models import AnswerResult, ChatMessage, SearchHit
 
 
 class LlmAnswerClient(Protocol):
     provider: str
 
-    def generate_answer(self, question: str, hits: list[SearchHit]) -> str:
+    def generate_answer(
+        self,
+        question: str,
+        hits: list[SearchHit],
+        history_messages: list[ChatMessage] | None = None,
+    ) -> str:
         ...
 
 
@@ -17,6 +22,7 @@ def compose_answer(
     question: str,
     hits: list[SearchHit],
     llm_client: LlmAnswerClient | None = None,
+    history_messages: list[ChatMessage] | None = None,
 ) -> AnswerResult:
     useful_hits = [hit for hit in hits if hit.score > 0]
     if not useful_hits:
@@ -29,7 +35,7 @@ def compose_answer(
     if client is not None:
         provider = getattr(client, "provider", "api")
         try:
-            answer = client.generate_answer(question, useful_hits[:5])
+            answer = client.generate_answer(question, useful_hits[:5], history_messages or [])
             if answer.strip():
                 return AnswerResult(answer=answer.strip(), mode="api", provider=provider)
         except Exception as exc:

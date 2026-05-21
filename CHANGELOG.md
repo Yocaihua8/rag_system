@@ -2,6 +2,7 @@
 
 ## 2026-05-21
 
+- Web MVP 真实 LLM 问答新增最近 3 轮项目聊天历史上下文，保留来源片段约束。
 - Web MVP 新增项目聊天记录：`/api/answer` 返回后保存 question/answer/mode/provider/sources，工作台可按项目恢复最近对话。
 - 新增 `GET /api/chat/messages`，用于加载当前项目聊天历史。
 - Web MVP 新增 OpenAI-compatible embeddings 接入：配置 `RAG_EMBED_PROVIDER=api` 后可请求 `/embeddings` 写入真实 chunk 向量，失败时回退本地 hashing。

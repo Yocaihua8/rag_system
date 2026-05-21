@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from webapp.llm import LlmConfig, OpenAICompatibleChatClient
-from webapp.models import Document, SearchHit
+from webapp.models import ChatMessage, Document, SearchHit
 
 
 class _FakeHttpResponse:
@@ -69,3 +69,54 @@ def test_openai_compatible_client_posts_chat_completion_payload():
     assert captured["payload"]["messages"][0]["role"] == "system"
     assert "README.md" in captured["payload"]["messages"][1]["content"]
     assert "默认入口是什么？" in captured["payload"]["messages"][1]["content"]
+
+
+def test_openai_compatible_client_includes_recent_chat_history_in_prompt():
+    captured = {}
+
+    def fake_opener(request, timeout):
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return _FakeHttpResponse()
+
+    document = Document(
+        id="doc-1",
+        project_id="project-1",
+        source_path=Path("README.md"),
+        relative_path="README.md",
+        content="默认入口是 app.py，Web 服务负责本地问答。",
+        checksum="checksum",
+        updated_at="2026-05-20T00:00:00+00:00",
+    )
+    hit = SearchHit(document=document, score=3.0, snippet="默认入口是 app.py，Web 服务负责本地问答。")
+    history = [
+        ChatMessage(
+            id="msg-1",
+            project_id="project-1",
+            question="这个项目叫什么？",
+            answer="项目叫知识岛。",
+            mode="api",
+            provider="deepseek",
+            warning="",
+            sources=[],
+            created_at="2026-05-21T00:00:00+00:00",
+        )
+    ]
+    client = OpenAICompatibleChatClient(
+        LlmConfig(
+            provider="api",
+            api_base="https://api.deepseek.com/v1",
+            api_key="sk-test",
+            model="deepseek-chat",
+            temperature=0.2,
+            max_tokens=512,
+        ),
+        opener=fake_opener,
+    )
+
+    client.generate_answer("默认入口是什么？", [hit], history_messages=history)
+
+    prompt = captured["payload"]["messages"][1]["content"]
+    assert "最近对话：" in prompt
+    assert "用户：这个项目叫什么？" in prompt
+    assert "助手：项目叫知识岛。" in prompt
+    assert "当前问题：" in prompt

@@ -43,9 +43,10 @@ def test_answer_api_uses_injected_llm_client_when_available(tmp_path: Path):
     class FakeLlmClient:
         provider = "deepseek"
 
-        def generate_answer(self, question, hits):
+        def generate_answer(self, question, hits, history_messages=None):
             assert question == "默认入口是什么？"
             assert hits[0].document.relative_path == "stack.md"
+            assert history_messages == []
             return "DeepSeek 回答：默认入口是 app.py。"
 
     project_dir = tmp_path / "notes"
@@ -73,11 +74,54 @@ def test_answer_api_uses_injected_llm_client_when_available(tmp_path: Path):
     assert response.body["provider"] == "deepseek"
 
 
+def test_answer_api_passes_recent_chat_history_to_llm_client(tmp_path: Path):
+    class FakeLlmClient:
+        provider = "deepseek"
+
+        def generate_answer(self, question, hits, history_messages=None):
+            assert question == "默认入口在哪里？"
+            assert len(history_messages) == 1
+            assert history_messages[0].question == "这个项目叫什么？"
+            assert history_messages[0].answer == "项目叫知识岛。"
+            return "DeepSeek 回答：默认入口是 app.py。"
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口是 app.py，本地 Web 服务负责页面和 API。",
+    )
+    store.create_chat_message(
+        project_id=project.id,
+        question="这个项目叫什么？",
+        answer="项目叫知识岛。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[],
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "默认入口在哪里？"},
+        llm_client=FakeLlmClient(),
+    )
+
+    assert response.status == 200
+    assert response.body["message"]["answer"] == "DeepSeek 回答：默认入口是 app.py。"
+
+
 def test_answer_api_falls_back_to_local_answer_when_llm_fails(tmp_path: Path):
     class FailingLlmClient:
         provider = "deepseek"
 
-        def generate_answer(self, question, hits):
+        def generate_answer(self, question, hits, history_messages=None):
             raise RuntimeError("network down")
 
     project_dir = tmp_path / "notes"

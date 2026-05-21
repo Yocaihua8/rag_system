@@ -50,3 +50,12 @@ def test_embedding_provider_config_is_documented():
     for key in ["RAG_EMBED_PROVIDER", "RAG_EMBED_API_BASE", "RAG_EMBED_API_MODEL", "RAG_EMBED_API_KEY"]:
         assert key in readme
         assert key in env_example
+
+
+def test_chat_history_context_boundary_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "最近 3 轮" in api_spec
+    assert "最近 3 轮" in readme
+    assert "不是完整 Agent 记忆" in api_spec

@@ -6,7 +6,7 @@ from typing import Callable
 from urllib.request import Request, urlopen
 
 from src.config.settings import AppSettings, load_settings
-from webapp.models import SearchHit
+from webapp.models import ChatMessage, SearchHit
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,12 @@ class OpenAICompatibleChatClient:
             and bool(self._config.model.strip())
         )
 
-    def generate_answer(self, question: str, hits: list[SearchHit]) -> str:
+    def generate_answer(
+        self,
+        question: str,
+        hits: list[SearchHit],
+        history_messages: list[ChatMessage] | None = None,
+    ) -> str:
         if not self.is_configured():
             raise RuntimeError("LLM provider is not configured")
 
@@ -60,7 +65,7 @@ class OpenAICompatibleChatClient:
                 },
                 {
                     "role": "user",
-                    "content": _build_user_prompt(question, hits),
+                    "content": _build_user_prompt(question, hits, history_messages or []),
                 },
             ],
             "temperature": self._config.temperature,
@@ -107,15 +112,30 @@ def _chat_completions_url(api_base: str) -> str:
     return f"{api_base.rstrip('/')}/chat/completions"
 
 
-def _build_user_prompt(question: str, hits: list[SearchHit]) -> str:
+def _build_user_prompt(
+    question: str,
+    hits: list[SearchHit],
+    history_messages: list[ChatMessage] | None = None,
+) -> str:
+    history_messages = history_messages or []
+    history_lines = []
+    for message in history_messages[-3:]:
+        history_lines.append(
+            f"用户：{message.question.strip()}\n"
+            f"助手：{message.answer.strip()[:500]}"
+        )
     sources = []
     for index, hit in enumerate(hits[:5], start=1):
         sources.append(
             f"[{index}] {hit.document.relative_path}\n"
             f"{hit.snippet or hit.document.content[:500]}"
         )
+    history_section = ""
+    if history_lines:
+        history_section = "最近对话：\n" + "\n\n".join(history_lines) + "\n\n"
     return (
-        "问题：\n"
+        history_section
+        + "当前问题：\n"
         f"{question.strip()}\n\n"
         "来源片段：\n"
         + "\n\n".join(sources)
