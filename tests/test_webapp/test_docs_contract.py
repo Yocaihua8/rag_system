@@ -13,6 +13,8 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "POST /api/search",
         "POST /api/answer",
         "GET /api/chat/messages",
+        "GET /api/agent/tools",
+        "POST /api/agent/tools/run",
     ]:
         assert endpoint in api_spec
 
@@ -59,3 +61,13 @@ def test_chat_history_context_boundary_is_documented():
     assert "最近 3 轮" in api_spec
     assert "最近 3 轮" in readme
     assert "不是完整 Agent 记忆" in api_spec
+
+
+def test_agent_readonly_tools_are_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
+
+    assert "project_overview" in api_spec
+    assert "只读" in api_spec
+    assert "不开放 shell" in api_spec
+    assert "agent_tool_runs" in database_design

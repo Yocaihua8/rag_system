@@ -269,3 +269,16 @@ def test_project_chat_history_is_wired():
     assert "renderChatHistory" in ui_js
     assert "chatHistoryEl" in app_js
     assert "refreshChatHistory" in app_js
+
+
+def test_agent_readonly_tool_entrypoint_is_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    assert 'id="agent-tools-panel"' in index_html
+    assert 'id="agent-overview-button"' in index_html
+    assert 'id="agent-tool-result"' in index_html
+    assert 'from "./agent.js"' in app_js
+    assert "runAgentTool" in app_js
+    assert "renderAgentToolResult" in ui_js

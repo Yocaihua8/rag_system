@@ -45,6 +45,23 @@ export function renderChatHistory(historyEl, messages) {
   }
 }
 
+export function renderAgentToolResult(resultEl, data) {
+  if (!data) {
+    resultEl.textContent = "暂无工具结果";
+    return;
+  }
+  const result = data.result || {};
+  resultEl.textContent = [
+    `工具：${data.run?.tool_name || "project_overview"}`,
+    `状态：${data.run?.status || "success"}`,
+    `项目：${result.project_name || "未知"}`,
+    `文档：${result.document_count ?? 0}`,
+    `分块：${result.chunk_count ?? 0}`,
+    `向量：${result.vector_count ?? 0}`,
+    `对话：${result.chat_message_count ?? 0}`,
+  ].join("\n");
+}
+
 export function renderSearchResults(resultsEl, hits, onSelect) {
   resultsEl.innerHTML = "";
   if (hits.length === 0) {

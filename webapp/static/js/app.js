@@ -10,6 +10,7 @@ import {
   renameSelectedProject,
   selectProject,
 } from "./projects.js";
+import { runAgentTool } from "./agent.js";
 import { ask, listChatMessages, search, startAssessment, submitAssessmentAnswer } from "./qa.js";
 import { loadLlmSettings, saveLlmSettings, testLlmSettings } from "./settings.js";
 import { state } from "./state.js";
@@ -23,6 +24,7 @@ import {
   renderAssessmentQuestion,
   renderAssessmentResult,
   renderAssessmentOverview,
+  renderAgentToolResult,
   renderChatHistory,
   renderSearchResults,
   renderSkippedDetails,
@@ -38,6 +40,8 @@ const folderImportInput = document.querySelector("#folder-import-input");
 const renameProjectButton = document.querySelector("#rename-project-button");
 const deleteProjectButton = document.querySelector("#delete-project-button");
 const askButton = document.querySelector("#ask-button");
+const agentOverviewButton = document.querySelector("#agent-overview-button");
+const agentToolResultEl = document.querySelector("#agent-tool-result");
 const searchButton = document.querySelector("#search-button");
 const answerEl = document.querySelector("#answer");
 const sourcesEl = document.querySelector("#sources");
@@ -90,6 +94,7 @@ projectForm.addEventListener("submit", async (event) => {
     state.chatMessages = [];
     renderFilteredDocuments();
     renderChatHistory(chatHistoryEl, state.chatMessages);
+    renderAgentToolResult(agentToolResultEl, null);
     renderDocumentPreview(documentPreviewEl, null);
     renderSearchResults(searchResultsEl, [], previewDocument);
     renderSkippedDetails(skippedDetailsEl, []);
@@ -196,6 +201,17 @@ searchButton.addEventListener("click", async () => {
     const data = await search(query);
     renderSearchResults(searchResultsEl, data.hits, previewDocument);
     setStatus(`找到 ${data.hits.length} 条结果。`);
+  } catch (error) {
+    setStatus(error.message);
+  }
+});
+
+agentOverviewButton.addEventListener("click", async () => {
+  try {
+    setStatus("正在运行只读项目概览工具...");
+    const data = await runAgentTool("project_overview");
+    renderAgentToolResult(agentToolResultEl, data);
+    setStatus("项目概览工具已完成。");
   } catch (error) {
     setStatus(error.message);
   }

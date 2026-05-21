@@ -9,7 +9,7 @@ from pathlib import Path
 
 from webapp.chunking import count_tokens, split_into_chunks
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
-from webapp.models import ChatMessage, Document, DocumentChunk, Project
+from webapp.models import AgentToolRun, ChatMessage, Document, DocumentChunk, Project
 from webapp.vector_index import deserialize_vector, serialize_vector
 
 
@@ -256,6 +256,58 @@ class KnowledgeStore:
             ).fetchall()
         return [_chat_message_from_row(row) for row in rows]
 
+    def create_agent_tool_run(
+        self,
+        project_id: str,
+        tool_name: str,
+        arguments: dict[str, object],
+        result: dict[str, object],
+        status: str,
+        error: str = "",
+    ) -> AgentToolRun:
+        run = AgentToolRun(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            tool_name=tool_name,
+            arguments=dict(arguments),
+            result=dict(result),
+            status=status,
+            error=error,
+            created_at=_now(),
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO agent_tool_runs
+                    (id, project_id, tool_name, arguments_json, result_json, status, error, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run.id,
+                    run.project_id,
+                    run.tool_name,
+                    json.dumps(run.arguments, ensure_ascii=False),
+                    json.dumps(run.result, ensure_ascii=False),
+                    run.status,
+                    run.error,
+                    run.created_at,
+                ),
+            )
+        return run
+
+    def list_agent_tool_runs(self, project_id: str) -> list[AgentToolRun]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, project_id, tool_name, arguments_json, result_json, status, error, created_at
+                FROM agent_tool_runs
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_agent_tool_run_from_row(row) for row in rows]
+
     def get_document(self, document_id: str) -> Document | None:
         with self._connect() as conn:
             row = conn.execute(
@@ -363,6 +415,21 @@ class KnowledgeStore:
 
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_project
                     ON chat_messages(project_id, created_at);
+
+                CREATE TABLE IF NOT EXISTS agent_tool_runs (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    arguments_json TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    error TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_agent_tool_runs_project
+                    ON agent_tool_runs(project_id, created_at);
                 """
             )
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
@@ -537,3 +604,24 @@ def _chat_message_from_row(row: sqlite3.Row) -> ChatMessage:
         sources=[source for source in sources if isinstance(source, dict)],
         created_at=row["created_at"],
     )
+
+
+def _agent_tool_run_from_row(row: sqlite3.Row) -> AgentToolRun:
+    return AgentToolRun(
+        id=row["id"],
+        project_id=row["project_id"],
+        tool_name=row["tool_name"],
+        arguments=_json_object(row["arguments_json"]),
+        result=_json_object(row["result_json"]),
+        status=row["status"],
+        error=row["error"],
+        created_at=row["created_at"],
+    )
+
+
+def _json_object(raw: str) -> dict[str, object]:
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}

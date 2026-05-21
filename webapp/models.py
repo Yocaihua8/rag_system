@@ -135,6 +135,30 @@ class ChatMessage:
 
 
 @dataclass(frozen=True)
+class AgentToolRun:
+    id: str
+    project_id: str
+    tool_name: str
+    arguments: dict[str, Any]
+    result: dict[str, Any]
+    status: str
+    error: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "tool_name": self.tool_name,
+            "arguments": self.arguments,
+            "result": self.result,
+            "status": self.status,
+            "error": self.error,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
 class ImportResult:
     imported: int
     skipped: int

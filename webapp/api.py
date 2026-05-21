@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from webapp.agent_tools import AgentToolError, list_agent_tools, run_agent_tool
 from webapp.assessment import create_assessment_session, evaluate_assessment_answer
 from webapp.answers import compose_answer
 from webapp.ingestion import import_directory
@@ -31,6 +32,9 @@ def dispatch(
 
     if method == "GET" and path == "/api/projects":
         return ApiResponse(200, {"projects": [project.to_dict() for project in store.list_projects()]})
+
+    if method == "GET" and path == "/api/agent/tools":
+        return ApiResponse(200, {"tools": list_agent_tools()})
 
     if method == "POST" and path == "/api/projects":
         root = Path(str(payload.get("path", ""))).expanduser()
@@ -137,6 +141,18 @@ def dispatch(
         query_text = str(payload.get("query", ""))
         hits = search_documents(store, project_id, query_text)
         return ApiResponse(200, {"hits": [hit.to_dict() for hit in hits if hit.score > 0]})
+
+    if method == "POST" and path == "/api/agent/tools/run":
+        project_id = str(payload.get("project_id", ""))
+        tool_name = str(payload.get("tool", ""))
+        arguments = payload.get("arguments") if isinstance(payload.get("arguments"), dict) else {}
+        try:
+            result, run = run_agent_tool(store, project_id, tool_name, arguments)
+        except AgentToolError as exc:
+            return ApiResponse(400, {"error": str(exc), "run": exc.run.to_dict()})
+        except ValueError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        return ApiResponse(200, {"result": result, "run": run.to_dict()})
 
     if method == "POST" and path == "/api/answer":
         project_id = str(payload.get("project_id", ""))
