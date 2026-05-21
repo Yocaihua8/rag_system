@@ -72,3 +72,13 @@ def test_agent_readonly_tools_are_documented():
     assert "只读" in api_spec
     assert "不开放 shell" in api_spec
     assert "agent_tool_runs" in database_design
+
+
+def test_answer_tool_suggestion_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "tool_suggestion" in api_spec
+    assert "search_sources" in api_spec
+    assert "不自动执行" in api_spec
+    assert "建议工具" in readme

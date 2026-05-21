@@ -8,7 +8,8 @@ export function renderAnswer(answerEl, sourcesEl, data) {
     : data.mode === "fallback"
       ? `\n\n[模型不可用，已回退本地回答：${data.warning}]`
       : "\n\n[本地片段回答]";
-  answerEl.textContent = `${data.answer}${modeLabel}`;
+  const suggestionLabel = formatToolSuggestion(data.tool_suggestion);
+  answerEl.textContent = `${data.answer}${modeLabel}${suggestionLabel}`;
   sourcesEl.innerHTML = "";
   if (data.sources.length === 0) {
     appendEmptyItem(sourcesEl, "暂无来源");
@@ -19,6 +20,16 @@ export function renderAnswer(answerEl, sourcesEl, data) {
     item.textContent = `${source.path}：${source.snippet}`;
     sourcesEl.appendChild(item);
   }
+}
+
+function formatToolSuggestion(toolSuggestion) {
+  if (!toolSuggestion) {
+    return "";
+  }
+  const toolName = toolSuggestion.tool || "search_sources";
+  const query = toolSuggestion.arguments?.query || "";
+  const reason = toolSuggestion.reason || "当前来源不足，可先扩大来源检索。";
+  return `\n\n[建议工具：${toolName}]\n${reason}\n查询：${query}`;
 }
 
 export function renderChatHistory(historyEl, messages) {

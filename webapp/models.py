@@ -106,6 +106,7 @@ class AnswerResult:
     mode: str
     provider: str = "local"
     warning: str = ""
+    tool_suggestion: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

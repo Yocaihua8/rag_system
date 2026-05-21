@@ -285,3 +285,12 @@ def test_agent_readonly_tool_entrypoint_is_wired():
     assert "runAgentTool" in app_js
     assert "search_sources" in app_js
     assert "renderAgentToolResult" in ui_js
+
+
+def test_answer_tool_suggestion_is_rendered_without_auto_running_tools():
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    assert "tool_suggestion" in ui_js
+    assert "建议工具" in ui_js
+    assert "search_sources" in ui_js
+    assert "runAgentTool(" not in ui_js

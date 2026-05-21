@@ -16,6 +16,27 @@
 - [2026-05-18](devlog/2026-05-18.md)
 - [2026-05-20](devlog/2026-05-20.md)
 
+## 2026-05-21 | B-72 — Web 回答工具建议第一片
+
+### 目标
+
+在不让模型自动执行工具的前提下，让 `/api/answer` 在来源不足时返回结构化工具建议，提示用户手动运行只读 `search_sources` 扩大来源检索。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/answers.py`、`webapp/models.py`、`webapp/api.py` | `AnswerResult` 增加可选 `tool_suggestion`，无有效来源时返回 `search_sources` 建议 |
+| 更新 | `webapp/static/js/ui.js` | 回答区展示建议工具、原因和查询词，不调用工具接口 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖 API 字段、前端展示和文档契约，并确认不自动写入工具审计 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步工具建议边界 |
+
+### 关键行为
+
+- 来源不足时返回 `tool_suggestion.tool=search_sources` 和原问题查询词。
+- 建议只用于 UI 提示，不自动执行 `/api/agent/tools/run`，也不写入 `agent_tool_runs`。
+- 有可用来源时不返回 `tool_suggestion`，避免干扰正常回答。
+
 ## 2026-05-21 | B-71 — Web Agent 只读来源检索工具
 
 ### 目标

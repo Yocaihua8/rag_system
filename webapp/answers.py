@@ -29,6 +29,7 @@ def compose_answer(
         return AnswerResult(
             answer=f"没有找到与“{question}”直接相关的资料。请先导入项目文档，或换一个更具体的问题。",
             mode="local",
+            tool_suggestion=_build_source_search_suggestion(question),
         )
 
     client = llm_client if llm_client is not None else get_default_llm_client()
@@ -55,3 +56,11 @@ def _compose_local_answer(question: str, useful_hits: list[SearchHit]) -> str:
     if not snippets:
         return "找到了相关资料，但片段为空。请检查导入文件内容。"
     return "根据已导入资料：\n\n" + "\n\n".join(f"- {snippet}" for snippet in snippets)
+
+
+def _build_source_search_suggestion(question: str) -> dict[str, object]:
+    return {
+        "tool": "search_sources",
+        "arguments": {"query": question.strip()},
+        "reason": "当前回答没有可用来源，可先用只读来源检索工具扩大召回。",
+    }

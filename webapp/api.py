@@ -189,6 +189,8 @@ def dispatch(
             body["message"] = message.to_dict()
         if answer_result.warning:
             body["warning"] = answer_result.warning
+        if answer_result.tool_suggestion:
+            body["tool_suggestion"] = answer_result.tool_suggestion
         return ApiResponse(200, body)
 
     if method == "POST" and path == "/api/assessment/start":

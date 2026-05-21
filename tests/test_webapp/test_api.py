@@ -37,6 +37,30 @@ def test_api_import_search_and_answer_flow(tmp_path: Path):
     assert "本地 Web 服务" in answer_response.body["answer"]
     assert answer_response.body["mode"] == "local"
     assert answer_response.body["sources"][0]["path"] == "stack.md"
+    assert "tool_suggestion" not in answer_response.body
+
+
+def test_answer_api_suggests_readonly_source_search_when_sources_are_missing(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "默认入口是什么？"},
+    )
+
+    assert response.status == 200
+    assert response.body["sources"] == []
+    assert response.body["tool_suggestion"] == {
+        "tool": "search_sources",
+        "arguments": {"query": "默认入口是什么？"},
+        "reason": "当前回答没有可用来源，可先用只读来源检索工具扩大召回。",
+    }
+    assert store.list_agent_tool_runs(project.id) == []
 
 
 def test_answer_api_uses_injected_llm_client_when_available(tmp_path: Path):
