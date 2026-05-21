@@ -32,6 +32,7 @@
 
 - [ ] 可创建项目空间
 - [ ] 可导入目录
+- [x] Web 可导入 DOCX 正文；PDF 暂有明确跳过原因
 - [ ] 可构建索引
 - [x] Web 可提问并看到回答；配置 DeepSeek 后优先真实 LLM，失败时回退本地片段
 - [x] Docker Web 可通过“选择文件夹导入”选择 Windows 本地项目目录，无需理解 `/workspace`

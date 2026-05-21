@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from webapp.import_rules import IGNORED_DIR_NAMES, MAX_TEXT_FILE_BYTES, TEXT_SUFFIXES
+from webapp.document_processing import process_local_file
+from webapp.import_rules import IGNORED_DIR_NAMES, TEXT_SUFFIXES
 from webapp.models import ImportResult
 from webapp.storage import KnowledgeStore
 
@@ -22,15 +23,16 @@ def import_directory(store: KnowledgeStore, project_id: str, root_path: Path) ->
         if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
         try:
-            if path.stat().st_size > MAX_TEXT_FILE_BYTES:
+            processed = process_local_file(path, root)
+            if not processed.is_importable:
                 skipped += 1
                 skipped_details.append({
-                    "path": path.relative_to(root).as_posix(),
-                    "reason": "file too large",
+                    "path": processed.relative_path,
+                    "reason": processed.skipped_reason,
                 })
                 continue
-            content = path.read_text(encoding="utf-8", errors="ignore")
-            relative_path = path.relative_to(root).as_posix()
+            content = processed.content
+            relative_path = processed.relative_path
             seen_paths.add(relative_path)
             result = store.upsert_document(project_id, path, relative_path, content)
             if result.action == "created":

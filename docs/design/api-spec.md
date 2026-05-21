@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-20
+> Last Updated：2026-05-21
 > Scope：本地 Web MVP HTTP API + legacy 进程内接口
 
 ## 1. 本地 Web MVP HTTP API
@@ -62,9 +62,11 @@
 | GET | `/api/document?document_id=...` | query `document_id` | `{"document":...}` | `400 document_id is required`、`404 document not found` |
 | POST | `/api/documents/delete` | `document_id` | `{"deleted":true,"documents":[...]}` | `404 document not found` |
 | POST | `/api/import` | `project_id` | `{"result":...,"documents":[...]}` | `404 project not found`、`400 project root path does not exist` |
-| POST | `/api/import/upload` | `project_id`（可选）、`project_name`（新建时使用）、`files:[{relative_path,content}]` | `{"project":...,"result":...,"documents":[...]}` | `400 files is required`、`404 project not found` |
+| POST | `/api/import/upload` | `project_id`（可选）、`project_name`（新建时使用）、`files:[{relative_path,content}]` 或 `files:[{relative_path,content_base64,size}]` | `{"project":...,"result":...,"documents":[...]}` | `400 files is required`、`404 project not found` |
 
-`/api/import/upload` 用于浏览器文件夹导入。浏览器通过 `webkitdirectory` 获取用户授权文件夹内的文本文件和相对路径，再把内容上传给本地服务入库；后端不会尝试读取 Windows 原始路径。未传 `project_id` 时，接口会创建 `browser-upload:<project_name>` 项目空间；该类项目的 `root_exists` 固定为 `true`。
+`/api/import/upload` 用于浏览器文件夹导入。浏览器通过 `webkitdirectory` 获取用户授权文件夹内的文件和相对路径，再把允许的文本内容或 DOCX/PDF 二进制 base64 上传给本地服务处理；后端不会尝试读取 Windows 原始路径。未传 `project_id` 时，接口会创建 `browser-upload:<project_name>` 项目空间；该类项目的 `root_exists` 固定为 `true`。
+
+Web MVP 当前支持文本类文件和 DOCX 正文抽取。PDF 会被识别为可处理候选，但在没有可选解析器时返回跳过原因 `pdf extraction requires optional parser`，不会阻断其他文件入库。
 
 导入结果字段：
 

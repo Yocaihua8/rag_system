@@ -155,6 +155,16 @@ def test_browser_folder_import_entrypoint_is_wired():
     assert "folderImportInput.addEventListener" in app_js
 
 
+def test_browser_folder_import_sends_binary_documents_as_base64():
+    projects_js = Path("webapp/static/js/projects.js").read_text(encoding="utf-8")
+
+    assert '".docx"' in projects_js
+    assert '".pdf"' in projects_js
+    assert "content_base64" in projects_js
+    assert "arrayBuffer" in projects_js
+    assert "btoa" in projects_js
+
+
 def test_web_homepage_uses_simplified_three_column_workbench_layout():
     index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
     styles_css = Path("webapp/static/styles.css").read_text(encoding="utf-8")

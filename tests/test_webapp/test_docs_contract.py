@@ -14,3 +14,10 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "POST /api/answer",
     ]:
         assert endpoint in api_spec
+
+
+def test_upload_api_spec_documents_binary_document_payload():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+
+    assert "content_base64" in api_spec
+    assert "pdf extraction requires optional parser" in api_spec

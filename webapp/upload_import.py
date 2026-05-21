@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from webapp.import_rules import IGNORED_DIR_NAMES, MAX_TEXT_FILE_BYTES, TEXT_SUFFIXES
+from webapp.document_processing import process_uploaded_file
+from webapp.import_rules import IGNORED_DIR_NAMES
 from webapp.models import ImportResult, Project
 from webapp.storage import KnowledgeStore
 
@@ -27,7 +28,6 @@ def import_uploaded_files(
 
     for entry in files:
         raw_path = str(entry.get("relative_path", ""))
-        content = str(entry.get("content", ""))
         clean_path, reason = validate_uploaded_relative_path(raw_path)
         if reason:
             skipped += 1
@@ -37,18 +37,15 @@ def import_uploaded_files(
             skipped += 1
             skipped_details.append({"path": clean_path, "reason": "ignored directory"})
             continue
-        if PurePosixPath(clean_path).suffix.lower() not in TEXT_SUFFIXES:
+        processed = process_uploaded_file(clean_path, entry)
+        if not processed.is_importable:
             skipped += 1
-            skipped_details.append({"path": clean_path, "reason": "unsupported file type"})
-            continue
-        if len(content.encode("utf-8")) > MAX_TEXT_FILE_BYTES:
-            skipped += 1
-            skipped_details.append({"path": clean_path, "reason": "file too large"})
+            skipped_details.append({"path": clean_path, "reason": processed.skipped_reason})
             continue
 
         seen_paths.add(clean_path)
         source_path = Path(str(project.root_path)) / Path(clean_path)
-        result = store.upsert_document(project.id, source_path, clean_path, content)
+        result = store.upsert_document(project.id, source_path, clean_path, processed.content)
         if result.action == "created":
             created += 1
         elif result.action == "updated":

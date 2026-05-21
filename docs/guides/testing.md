@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-20
+> Last Updated：2026-05-21
 
 ## 1. 目标
 
@@ -24,6 +24,7 @@ docker compose config
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
 - 变更默认 Web MVP 的 API、导入、检索或回答行为时，必须复跑 `tests/test_webapp`。
 - 变更浏览器文件夹导入时，必须覆盖 `/api/import/upload`、前端 `webkitdirectory` 入口和导入规则跳过行为。
+- 变更 Web 文档处理管线时，必须覆盖 DOCX 正文抽取、PDF 明确跳过、浏览器上传 `content_base64` 和普通文本导入兼容行为。
 - 变更模型设置页时，必须覆盖 `/api/settings/llm`、`/api/settings/llm/test`、Key 不回显和前端设置入口。
 - 变更 Web 端 LLM、掌握评估、首次引导或静态前端约束时，必须复跑 `tests/test_webapp`，并执行 `Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName }`。
 - 变更 Docker 启停入口时，必须复跑 `tests/test_webapp/test_docker_startup.py`，并至少真实执行一次启动或停止脚本。
@@ -35,7 +36,7 @@ docker compose config
 - 向量检索 + 来源返回一致性
 - 用例级错误消息与状态码（若有）
 - Web MVP 创建项目空间、导入目录、问答来源返回
-- Web MVP 浏览器文件夹导入可创建上传项目，并按后缀、忽略目录和大小规则跳过文件
+- Web MVP 浏览器文件夹导入可创建上传项目，并按后缀、忽略目录和大小规则跳过文件；DOCX 可抽取正文，PDF 有明确跳过原因
 - Web MVP DeepSeek 配置存在时优先真实 LLM，失败时本地回退
 - Web MVP 模型设置页可保存 API Base / 模型名 / Key，且不回显 Key 明文
 - Web MVP 掌握评估入口、题目生成、回答反馈

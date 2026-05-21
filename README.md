@@ -15,8 +15,8 @@
 | **最近项目恢复** | 浏览器会记住最近选中的项目空间，刷新页面后自动恢复 |
 | **项目空间改名** | 可在 Web 页面中修改当前项目空间名称，不影响绑定目录和已导入文档 |
 | **项目空间删除** | 可删除误创建的项目空间，删除前会二次确认，并同步删除其文档记录 |
-| **文档导入** | Web MVP 支持 Markdown、TXT、代码与配置文本导入，默认跳过 `.git`、`.venv`、`node_modules`、`.claude`、`.codex`、`.agents`、`.vscode`、`.idea`、`__pycache__` 等目录，并跳过超过 1MB 的单个文本文件 |
-| **浏览器文件夹导入** | Docker 模式下可点击“选择文件夹导入”，浏览器读取用户授权的本地项目文件夹并上传文本内容入库，不需要在页面填写 Windows 路径 |
+| **文档导入** | Web MVP 支持 Markdown、TXT、代码、配置文本和 DOCX 正文抽取；PDF 会进入跳过明细并提示需要可选解析器；默认跳过 `.git`、`.venv`、`node_modules`、`.claude`、`.codex`、`.agents`、`.vscode`、`.idea`、`__pycache__` 等目录，并跳过超过 1MB 的单个文件 |
+| **浏览器文件夹导入** | Docker 模式下可点击“选择文件夹导入”，浏览器读取用户授权的本地项目文件夹并上传允许的文本或 DOCX 内容入库，不需要在页面填写 Windows 路径 |
 | **导入结果可视化** | 导入后在侧栏展示当前项目空间已入库文件列表，并显示新增、更新、未变更、删除、跳过数量 |
 | **跳过详情** | 导入后展示被跳过文件的路径和原因，例如文件超过 1MB |
 | **导入错误** | 导入后单独展示读取失败等错误信息，避免和普通跳过文件混在一起 |
@@ -145,9 +145,9 @@ Docker 模式下，Web 页面创建项目空间时，本地目录请填写容器
 /workspace
 ```
 
-宿主机对应目录默认为仓库根目录下的 `docker-workspace/`。把要导入的 Markdown、TXT、代码和配置文件放到该目录后，在 Web 页面点击“导入”。
+宿主机对应目录默认为仓库根目录下的 `docker-workspace/`。把要导入的 Markdown、TXT、DOCX、代码和配置文件放到该目录后，在 Web 页面点击“导入”。
 
-如果要直接导入 `E:\Code\your-project` 这类 Windows 本地目录，推荐点击 Web 侧栏的“选择文件夹导入”。浏览器会请求选择一个本地项目文件夹，并把允许的文本文件内容上传给本地服务入库；这种方式不需要在页面填写 Windows 路径。
+如果要直接导入 `E:\Code\your-project` 这类 Windows 本地目录，推荐点击 Web 侧栏的“选择文件夹导入”。浏览器会请求选择一个本地项目文件夹，并把允许的文本和 DOCX 文件内容上传给本地服务入库；这种方式不需要在页面填写 Windows 路径。PDF 暂不做无依赖正文解析，会在导入结果中显示跳过原因。
 
 如果 Windows User 环境变量里存在 `DEEPSEEK_API_KEY`，一键脚本会注入给 Docker Compose，但不会打印 Key。运行数据持久化到 `runtime/docker/`。
 
@@ -213,7 +213,8 @@ knowledage_island/
 │   ├── server.py             # HTTP server + 静态文件服务
 │   ├── api.py                # API 路由分发
 │   ├── storage.py            # SQLite schema 与读写
-│   ├── ingestion.py          # 本地目录文本导入
+│   ├── ingestion.py          # 本地目录导入
+│   ├── document_processing.py # 文本/DOCX/PDF 导入处理
 │   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
 │   ├── search.py             # 关键词检索与排序
 │   ├── answers.py            # LLM 优先回答与本地片段回退

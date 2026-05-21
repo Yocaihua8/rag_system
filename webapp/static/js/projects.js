@@ -131,7 +131,12 @@ async function buildBrowserFolderPayload(fileList) {
     }
     uploadFiles.push({
       relative_path: entry.relativePath,
-      content: await entry.file.text(),
+      ...(BINARY_SUFFIXES.has(fileSuffix(entry.relativePath))
+        ? {
+            content_base64: await fileToBase64(entry.file),
+            size: entry.file.size,
+          }
+        : { content: await entry.file.text() }),
     });
   }
   if (uploadFiles.length === 0) {
@@ -174,15 +179,27 @@ function fileSuffix(path) {
   return index === -1 ? "" : path.slice(index).toLowerCase();
 }
 
+async function fileToBase64(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
 const TEXT_SUFFIXES = new Set([
   ".cfg",
   ".css",
+  ".docx",
   ".html",
   ".ini",
   ".js",
   ".json",
   ".jsx",
   ".md",
+  ".pdf",
   ".py",
   ".sql",
   ".toml",
@@ -192,6 +209,8 @@ const TEXT_SUFFIXES = new Set([
   ".yaml",
   ".yml",
 ]);
+
+const BINARY_SUFFIXES = new Set([".docx", ".pdf"]);
 
 const IGNORED_DIR_NAMES = new Set([
   ".agents",
