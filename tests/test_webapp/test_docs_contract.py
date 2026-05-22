@@ -15,6 +15,7 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "GET /api/chat/messages",
         "GET /api/agent/tools",
         "POST /api/agent/tools/run",
+        "GET /api/agent/tools/runs",
     ]:
         assert endpoint in api_spec
 
@@ -72,6 +73,7 @@ def test_agent_readonly_tools_are_documented():
     assert "只读" in api_spec
     assert "不开放 shell" in api_spec
     assert "agent_tool_runs" in database_design
+    assert "工具运行历史" in api_spec
 
 
 def test_answer_tool_suggestion_contract_is_documented():

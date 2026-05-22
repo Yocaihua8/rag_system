@@ -36,6 +36,15 @@ def dispatch(
     if method == "GET" and path == "/api/agent/tools":
         return ApiResponse(200, {"tools": list_agent_tools()})
 
+    if method == "GET" and path == "/api/agent/tools/runs":
+        project_id = _value(query, "project_id")
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        runs = [run.to_dict() for run in reversed(store.list_agent_tool_runs(project_id))]
+        return ApiResponse(200, {"runs": runs})
+
     if method == "POST" and path == "/api/projects":
         root = Path(str(payload.get("path", ""))).expanduser()
         if not root.exists() or not root.is_dir():

@@ -10,7 +10,7 @@ import {
   renameSelectedProject,
   selectProject,
 } from "./projects.js";
-import { runAgentTool } from "./agent.js";
+import { listAgentToolRuns, runAgentTool } from "./agent.js";
 import { ask, listChatMessages, search, startAssessment, submitAssessmentAnswer } from "./qa.js";
 import { loadLlmSettings, saveLlmSettings, testLlmSettings } from "./settings.js";
 import { state } from "./state.js";
@@ -25,6 +25,7 @@ import {
   renderAssessmentResult,
   renderAssessmentOverview,
   renderAgentToolResult,
+  renderAgentToolRuns,
   renderChatHistory,
   renderSearchResults,
   renderSkippedDetails,
@@ -45,6 +46,7 @@ const agentOverviewButton = document.querySelector("#agent-overview-button");
 const agentSearchButton = document.querySelector("#agent-search-button");
 const agentSearchQueryInput = document.querySelector("#agent-search-query");
 const agentToolResultEl = document.querySelector("#agent-tool-result");
+const agentToolRunsEl = document.querySelector("#agent-tool-runs");
 const searchButton = document.querySelector("#search-button");
 const answerEl = document.querySelector("#answer");
 const applyToolSuggestionButton = document.querySelector("#apply-tool-suggestion-button");
@@ -85,6 +87,7 @@ projectSelect.addEventListener("change", async () => {
   renderSelectedProjectRoot();
   await refreshDocuments();
   await refreshChatHistory();
+  await refreshAgentToolRuns();
 });
 
 projectForm.addEventListener("submit", async (event) => {
@@ -100,6 +103,8 @@ projectForm.addEventListener("submit", async (event) => {
     renderFilteredDocuments();
     renderChatHistory(chatHistoryEl, state.chatMessages);
     renderAgentToolResult(agentToolResultEl, null);
+    state.agentToolRuns = [];
+    renderAgentToolRuns(agentToolRunsEl, state.agentToolRuns);
     clearToolSuggestion();
     renderDocumentPreview(documentPreviewEl, null);
     renderSearchResults(searchResultsEl, [], previewDocument);
@@ -186,6 +191,7 @@ deleteProjectButton.addEventListener("click", async () => {
     renderSelectedProjectRoot();
     await refreshDocuments();
     await refreshChatHistory();
+    await refreshAgentToolRuns();
     setStatus("项目空间已删除。");
   } catch (error) {
     setStatus(error.message);
@@ -218,6 +224,7 @@ agentOverviewButton.addEventListener("click", async () => {
     setStatus("正在运行只读项目概览工具...");
     const data = await runAgentTool("project_overview");
     renderAgentToolResult(agentToolResultEl, data);
+    await refreshAgentToolRuns();
     setStatus("项目概览工具已完成。");
   } catch (error) {
     setStatus(error.message);
@@ -234,6 +241,7 @@ agentSearchButton.addEventListener("click", async () => {
     setStatus("正在运行只读来源检索工具...");
     const data = await runAgentTool("search_sources", { query });
     renderAgentToolResult(agentToolResultEl, data);
+    await refreshAgentToolRuns();
     setStatus(`来源检索工具已完成：${data.result.hit_count} 条。`);
   } catch (error) {
     setStatus(error.message);
@@ -277,6 +285,7 @@ applyToolSuggestionButton.addEventListener("click", async () => {
     setStatus("正在按建议运行只读来源检索工具...");
     const data = await runAgentTool("search_sources", state.currentToolSuggestion.arguments);
     renderAgentToolResult(agentToolResultEl, data);
+    await refreshAgentToolRuns();
     setStatus(`建议工具已完成：${data.result.hit_count} 条。`);
   } catch (error) {
     setStatus(error.message);
@@ -365,6 +374,12 @@ async function refreshChatHistory() {
   renderChatHistory(chatHistoryEl, state.chatMessages);
 }
 
+async function refreshAgentToolRuns() {
+  const data = await listAgentToolRuns();
+  state.agentToolRuns = data.runs;
+  renderAgentToolRuns(agentToolRunsEl, state.agentToolRuns);
+}
+
 function renderLlmSettings(settings) {
   llmProviderSelect.value = settings.provider || "api";
   llmApiBaseInput.value = settings.api_base || "";
@@ -450,4 +465,5 @@ refreshProjects(projectSelect)
     return refreshDocuments();
   })
   .then(() => refreshChatHistory())
+  .then(() => refreshAgentToolRuns())
   .catch((error) => setStatus(error.message));

@@ -3,6 +3,7 @@ export const state = {
   selectedProjectId: "",
   documents: [],
   chatMessages: [],
+  agentToolRuns: [],
   documentFilter: "",
   assessmentSession: null,
   assessmentQuestion: null,

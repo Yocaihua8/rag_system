@@ -2,6 +2,7 @@
 
 ## 2026-05-22
 
+- Web MVP 新增 Agent 工具运行历史：`GET /api/agent/tools/runs` 返回当前项目审计记录，工作台展示工具名、状态、参数和错误。
 - Web MVP 回答区新增“运行建议工具”按钮：来源不足时可由用户手动运行只读 `search_sources`，不会自动执行 Agent 工具。
 
 ## 2026-05-21

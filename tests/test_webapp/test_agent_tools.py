@@ -130,3 +130,42 @@ def test_agent_search_sources_tool_requires_query_and_records_error(tmp_path: Pa
     runs = store.list_agent_tool_runs(project.id)
     assert runs[0].tool_name == "search_sources"
     assert runs[0].status == "error"
+
+
+def test_agent_tool_runs_api_lists_current_project_audit_history(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+
+    dispatch(
+        store,
+        "POST",
+        "/api/agent/tools/run",
+        {"project_id": project.id, "tool": "project_overview", "arguments": {}},
+    )
+    dispatch(
+        store,
+        "POST",
+        "/api/agent/tools/run",
+        {"project_id": project.id, "tool": "search_sources", "arguments": {"query": "默认入口"}},
+    )
+
+    response = dispatch(store, "GET", f"/api/agent/tools/runs?project_id={project.id}")
+
+    assert response.status == 200
+    assert [run["tool_name"] for run in response.body["runs"]] == ["search_sources", "project_overview"]
+    assert response.body["runs"][0]["arguments"] == {"query": "默认入口"}
+    assert response.body["runs"][0]["status"] == "success"
+
+
+def test_agent_tool_runs_api_rejects_missing_or_unknown_project(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    missing_id_response = dispatch(store, "GET", "/api/agent/tools/runs")
+    unknown_project_response = dispatch(store, "GET", "/api/agent/tools/runs?project_id=missing")
+
+    assert missing_id_response.status == 400
+    assert missing_id_response.body["error"] == "project_id is required"
+    assert unknown_project_response.status == 404
+    assert unknown_project_response.body["error"] == "project not found"

@@ -273,6 +273,7 @@ def test_project_chat_history_is_wired():
 
 def test_agent_readonly_tool_entrypoint_is_wired():
     index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    agent_js = Path("webapp/static/js/agent.js").read_text(encoding="utf-8")
     app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
     ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
 
@@ -281,10 +282,15 @@ def test_agent_readonly_tool_entrypoint_is_wired():
     assert 'id="agent-search-query"' in index_html
     assert 'id="agent-search-button"' in index_html
     assert 'id="agent-tool-result"' in index_html
+    assert 'id="agent-tool-runs"' in index_html
     assert 'from "./agent.js"' in app_js
     assert "runAgentTool" in app_js
+    assert "listAgentToolRuns" in agent_js
+    assert "/api/agent/tools/runs" in agent_js
     assert "search_sources" in app_js
     assert "renderAgentToolResult" in ui_js
+    assert "renderAgentToolRuns" in ui_js
+    assert "refreshAgentToolRuns" in app_js
 
 
 def test_answer_tool_suggestion_is_rendered_without_auto_running_tools():

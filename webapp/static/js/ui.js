@@ -92,6 +92,21 @@ export function renderAgentToolResult(resultEl, data) {
   ].join("\n");
 }
 
+export function renderAgentToolRuns(runsEl, runs) {
+  runsEl.innerHTML = "";
+  if (runs.length === 0) {
+    appendEmptyItem(runsEl, "暂无工具运行历史");
+    return;
+  }
+  for (const run of runs) {
+    const item = document.createElement("li");
+    const query = run.arguments?.query ? ` / ${run.arguments.query}` : "";
+    const error = run.error ? ` / ${run.error}` : "";
+    item.textContent = `${run.tool_name} / ${run.status}${query}${error}`;
+    runsEl.appendChild(item);
+  }
+}
+
 export function renderSearchResults(resultsEl, hits, onSelect) {
   resultsEl.innerHTML = "";
   if (hits.length === 0) {
