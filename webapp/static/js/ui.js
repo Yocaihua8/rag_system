@@ -22,6 +22,14 @@ export function renderAnswer(answerEl, sourcesEl, data) {
   }
 }
 
+export function renderToolSuggestionAction(buttonEl, toolSuggestion) {
+  buttonEl.hidden = !toolSuggestion;
+  buttonEl.disabled = !toolSuggestion;
+  buttonEl.textContent = toolSuggestion
+    ? `运行建议工具：${toolSuggestion.tool || "search_sources"}`
+    : "运行建议工具";
+}
+
 function formatToolSuggestion(toolSuggestion) {
   if (!toolSuggestion) {
     return "";

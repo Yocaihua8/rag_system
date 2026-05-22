@@ -6,4 +6,5 @@ export const state = {
   documentFilter: "",
   assessmentSession: null,
   assessmentQuestion: null,
+  currentToolSuggestion: null,
 };

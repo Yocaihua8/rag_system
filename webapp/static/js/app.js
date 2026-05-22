@@ -28,6 +28,7 @@ import {
   renderChatHistory,
   renderSearchResults,
   renderSkippedDetails,
+  renderToolSuggestionAction,
   setStatus,
 } from "./ui.js";
 
@@ -46,6 +47,7 @@ const agentSearchQueryInput = document.querySelector("#agent-search-query");
 const agentToolResultEl = document.querySelector("#agent-tool-result");
 const searchButton = document.querySelector("#search-button");
 const answerEl = document.querySelector("#answer");
+const applyToolSuggestionButton = document.querySelector("#apply-tool-suggestion-button");
 const sourcesEl = document.querySelector("#sources");
 const chatHistoryEl = document.querySelector("#chat-history");
 const documentsEl = document.querySelector("#documents");
@@ -79,6 +81,7 @@ showView("workbench-view");
 
 projectSelect.addEventListener("change", async () => {
   selectProject(projectSelect.value);
+  clearToolSuggestion();
   renderSelectedProjectRoot();
   await refreshDocuments();
   await refreshChatHistory();
@@ -97,6 +100,7 @@ projectForm.addEventListener("submit", async (event) => {
     renderFilteredDocuments();
     renderChatHistory(chatHistoryEl, state.chatMessages);
     renderAgentToolResult(agentToolResultEl, null);
+    clearToolSuggestion();
     renderDocumentPreview(documentPreviewEl, null);
     renderSearchResults(searchResultsEl, [], previewDocument);
     renderSkippedDetails(skippedDetailsEl, []);
@@ -178,6 +182,7 @@ deleteProjectButton.addEventListener("click", async () => {
     setStatus("正在删除项目空间...");
     await deleteSelectedProject();
     await refreshProjects(projectSelect);
+    clearToolSuggestion();
     renderSelectedProjectRoot();
     await refreshDocuments();
     await refreshChatHistory();
@@ -245,11 +250,34 @@ askButton.addEventListener("click", async () => {
     setStatus("正在检索资料...");
     const data = await ask(question);
     renderAnswer(answerEl, sourcesEl, data);
+    state.currentToolSuggestion = data.tool_suggestion || null;
+    renderToolSuggestionAction(applyToolSuggestionButton, state.currentToolSuggestion);
     if (data.message) {
       state.chatMessages = [...state.chatMessages, data.message];
       renderChatHistory(chatHistoryEl, state.chatMessages);
     }
     setStatus("已返回答案。");
+  } catch (error) {
+    setStatus(error.message);
+  }
+});
+
+applyToolSuggestionButton.addEventListener("click", async () => {
+  if (!state.currentToolSuggestion) {
+    setStatus("暂无可运行的建议工具。");
+    return;
+  }
+  if (state.currentToolSuggestion.tool !== "search_sources") {
+    setStatus("当前只支持运行 search_sources 建议工具。");
+    return;
+  }
+  try {
+    const argumentsPayload = state.currentToolSuggestion.arguments || {};
+    agentSearchQueryInput.value = argumentsPayload.query || "";
+    setStatus("正在按建议运行只读来源检索工具...");
+    const data = await runAgentTool("search_sources", state.currentToolSuggestion.arguments);
+    renderAgentToolResult(agentToolResultEl, data);
+    setStatus(`建议工具已完成：${data.result.hit_count} 条。`);
   } catch (error) {
     setStatus(error.message);
   }
@@ -324,6 +352,11 @@ async function refreshDocuments() {
   renderAssessmentQuestion(assessmentQuestionEl, null);
   renderAssessmentResult(assessmentResultEl, null);
   renderAssessmentOverview(assessmentOverviewEl, null);
+}
+
+function clearToolSuggestion() {
+  state.currentToolSuggestion = null;
+  renderToolSuggestionAction(applyToolSuggestionButton, state.currentToolSuggestion);
 }
 
 async function refreshChatHistory() {

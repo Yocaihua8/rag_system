@@ -439,8 +439,12 @@ p {
 .answer-card {
   min-height: 280px;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 14px;
+}
+
+.suggestion-action {
+  justify-self: start;
 }
 
 .answer,

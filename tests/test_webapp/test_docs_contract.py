@@ -82,3 +82,4 @@ def test_answer_tool_suggestion_contract_is_documented():
     assert "search_sources" in api_spec
     assert "不自动执行" in api_spec
     assert "建议工具" in readme
+    assert "手动运行" in readme

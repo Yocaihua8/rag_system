@@ -294,3 +294,18 @@ def test_answer_tool_suggestion_is_rendered_without_auto_running_tools():
     assert "建议工具" in ui_js
     assert "search_sources" in ui_js
     assert "runAgentTool(" not in ui_js
+
+
+def test_answer_tool_suggestion_can_be_accepted_by_user_action():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    assert 'id="apply-tool-suggestion-button"' in index_html
+    assert "currentToolSuggestion:" in state_js
+    assert "renderToolSuggestionAction" in ui_js
+    assert "clearToolSuggestion" in app_js
+    assert "applyToolSuggestionButton.addEventListener" in app_js
+    assert 'runAgentTool("search_sources"' in app_js
+    assert "state.currentToolSuggestion.arguments" in app_js

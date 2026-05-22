@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-05-22
+
+- Web MVP 回答区新增“运行建议工具”按钮：来源不足时可由用户手动运行只读 `search_sources`，不会自动执行 Agent 工具。
+
 ## 2026-05-21
 
 - Web MVP 问答在来源不足时新增 `tool_suggestion`，提示手动运行只读 `search_sources` 扩大来源检索，不自动执行工具。
