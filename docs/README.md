@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-20
+> Last Updated：2026-05-22
 
 本仓库的文档按“项目约束 → 架构设计 → 开发流程”分层组织。新的文档目录用于降低历史冗余，并保持与现有 `docs/architecture`、`docs/release` 历史文档的兼容。
 
@@ -12,26 +12,27 @@
 
 1. `requirements/project-background-and-scope.md`
 2. `design/system-design-overview.md`
-3. `architecture/ARCHITECTURE_ENTERPRISE_BASELINE.md`（历史基线）
-4. `design/architecture-overview.md`
-5. `design/database-design.md`
-6. `design/api-spec.md`
+3. `design/architecture-overview.md`
+4. `design/database-design.md`
+5. `design/api-spec.md`
+6. `design/model-profiles-design.md`（B-111 模型 Profile 多配置设计；当前仅为设计，不代表已建表）
 7. `requirements/functional-modules.md`
+8. `release/WEB_MVP_READINESS_2026-05-20.md`（本地 Web MVP 收口快照；当前能力以最新文档为准）
 
 **再读（参与开发）：**
 
-8. `../README.md`（项目入口与目录）
-9. `../CONTRIBUTING.md`（若存在）
-10. `guides/setup.md`
-11. `guides/testing.md`
-12. `guides/release-process.md`
+9. `../README.md`（项目入口与目录）
+10. `../CONTRIBUTING.md`（若存在）
+11. `guides/setup.md`
+12. `guides/testing.md`
+13. `guides/release-process.md`
 
 **按需读：**
 
-13. `BACKLOG.md`（未完成项与优先级）
-14. `DEVLOG.md`（现有开发日志，保留历史）
-15. `release/WEB_MVP_READINESS_2026-05-20.md`（本地 Web MVP 收口说明）
-16. `../CHANGELOG.md`（发布变更）
+14. `BACKLOG.md`（未完成项与优先级）
+15. `DEVLOG.md`（现有开发日志，保留历史）
+16. `architecture/ARCHITECTURE_ENTERPRISE_BASELINE.md`（历史基线，仅作历史参考）
+17. `../CHANGELOG.md`（发布变更）
 
 ## 2. 目录说明
 
@@ -59,7 +60,7 @@
 - `architecture/DATA_MODEL.md`
 - `architecture/LLM_PROVIDER_DESIGN.md`
 
-当它们与 `requirements/`、`design/`、`guides/` 冲突时，以 `requirements/` 与 `design/` 为准，并补充更新对应文件。
+当它们与 `AGENT.md`、`requirements/`、`design/`、`guides/` 冲突时，以 `AGENT.md` 与当前 `requirements/`、`design/` 为准，并补充更新对应文件。当前默认入口以本地 Web MVP 为准，历史架构文档不定义当前默认启动方式。
 
 ## 4. 文档一致性要求
 
