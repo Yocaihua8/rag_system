@@ -68,6 +68,12 @@ select {
   padding: 0 12px;
 }
 
+input[type="checkbox"] {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+}
+
 textarea {
   min-height: 92px;
   padding: 12px;
@@ -216,6 +222,7 @@ p {
 
 .project-card,
 .project-form,
+.project-health-card,
 .documents-card,
 .guide-card,
 .ask-card,
@@ -234,6 +241,7 @@ p {
 
 .project-card,
 .project-form,
+.project-health-card,
 .documents-card,
 .guide-card,
 .ask-card,
@@ -249,6 +257,7 @@ p {
 
 .project-card,
 .project-form,
+.project-health-card,
 .documents-card {
   width: 100%;
   max-width: 100%;
@@ -257,6 +266,7 @@ p {
 
 .project-card > *,
 .project-form > *,
+.project-health-card > *,
 .documents-card > * {
   min-width: 0;
   max-width: 100%;
@@ -278,6 +288,7 @@ p {
 
 .project-card,
 .project-form,
+.project-health-card,
 .documents-card,
 .assessment-card,
 .assessment-overview-card,
@@ -290,6 +301,7 @@ p {
 
 .project-card,
 .project-form,
+.project-health-card,
 .documents-card,
 .import-state-card,
 .design-note-card {
@@ -304,6 +316,7 @@ p {
 }
 
 .project-card h2,
+.project-health-card h2,
 .documents-card h2,
 .topbar h2,
 .answer-card h2,
@@ -436,6 +449,14 @@ p {
   gap: 10px;
 }
 
+.tool-parameter-field {
+  display: grid;
+  gap: 6px;
+  color: var(--color-subtle);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .answer-card {
   min-height: 280px;
   display: grid;
@@ -493,6 +514,8 @@ p {
 .search-results,
 .chat-history,
 .tool-runs,
+.agent-tools-list,
+.retrieval-health-list,
 .skipped-details {
   list-style: none;
   margin: 0;
@@ -511,6 +534,8 @@ p {
 .search-results li,
 .chat-history li,
 .tool-runs li,
+.agent-tools-list li,
+.retrieval-health-list li,
 .skipped-details li {
   border: 1px solid var(--color-border-soft);
   border-radius: 8px;
@@ -523,13 +548,92 @@ p {
 .sources li,
 .chat-history li,
 .tool-runs li,
+.agent-tools-list li,
+.retrieval-health-list li,
 .skipped-details li {
   padding: 10px 12px;
+}
+
+.health-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.health-metrics div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 8px;
+  background: var(--color-panel);
+}
+
+.health-metrics dt {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.health-metrics dd {
+  margin: 4px 0 0;
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.retrieval-health-list {
+  display: grid;
+  gap: 8px;
+}
+
+.retrieval-health-list li.is-ok {
+  border-color: #cde8e3;
+  background: #edf8f6;
+  color: var(--color-primary);
+}
+
+.retrieval-health-list li.is-missing {
+  border-color: #f0dfc4;
+  background: #fff8ec;
+  color: var(--color-warning);
 }
 
 .tool-runs {
   display: grid;
   gap: 8px;
+}
+
+.agent-tools-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.agent-tools-list strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.agent-tools-list p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.tool-runs li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, auto);
+  gap: 8px;
+  align-items: center;
+}
+
+.tool-runs button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 12px;
 }
 
 .chat-question,
@@ -847,6 +951,7 @@ p {
   .project-actions.compact,
   .ask-row,
   .search-row,
+  .agent-tools-list,
   .assessment-overview-grid,
   .assessment-score-panel,
   .assessment-points-grid,
@@ -862,6 +967,7 @@ p {
 
   .project-card,
   .project-form,
+  .project-health-card,
   .documents-card,
   .guide-card,
   .ask-card,

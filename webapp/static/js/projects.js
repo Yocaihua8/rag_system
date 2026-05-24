@@ -51,6 +51,47 @@ export async function importBrowserFolder(files) {
   return response;
 }
 
+export async function importBrowserFiles(files) {
+  const payload = await buildBrowserFolderPayload(files, "请选择一个或多个本地文件");
+  if (state.selectedProjectId) {
+    payload.project_id = state.selectedProjectId;
+  } else {
+    payload.project_name = "browser-upload";
+  }
+  const response = await apiPost("/api/import/upload", payload);
+  state.selectedProjectId = response.project.id;
+  persistSelectedProject(state.selectedProjectId);
+  response.result.skipped += payload.clientSkippedDetails.length;
+  response.result.skipped_details = [
+    ...response.result.skipped_details,
+    ...payload.clientSkippedDetails,
+  ];
+  return response;
+}
+
+export async function importPlainTextNote(title, content) {
+  if (!state.selectedProjectId) {
+    throw new Error("请先选择项目空间");
+  }
+  return apiPost("/api/import/note", {
+    project_id: state.selectedProjectId,
+    title,
+    content,
+  });
+}
+
+export async function importUrlExcerpt(url, title, content) {
+  if (!state.selectedProjectId) {
+    throw new Error("请先选择项目空间");
+  }
+  return apiPost("/api/import/url", {
+    project_id: state.selectedProjectId,
+    url,
+    title,
+    content,
+  });
+}
+
 export async function renameSelectedProject(name) {
   if (!state.selectedProjectId) {
     throw new Error("请先选择项目空间");
@@ -87,6 +128,13 @@ export async function listDocuments() {
   return apiGet(`/api/documents?project_id=${encodeURIComponent(state.selectedProjectId)}`);
 }
 
+export async function getProjectSummary() {
+  if (!state.selectedProjectId) {
+    return { summary: null };
+  }
+  return apiGet(`/api/projects/summary?project_id=${encodeURIComponent(state.selectedProjectId)}`);
+}
+
 export async function getDocument(documentId) {
   return apiGet(`/api/document?document_id=${encodeURIComponent(documentId)}`);
 }
@@ -114,10 +162,10 @@ function persistSelectedProject(projectId) {
   }
 }
 
-async function buildBrowserFolderPayload(fileList) {
+async function buildBrowserFolderPayload(fileList, emptyMessage = "请选择一个本地项目文件夹") {
   const files = Array.from(fileList || []);
   if (files.length === 0) {
-    throw new Error("请选择一个本地项目文件夹");
+    throw new Error(emptyMessage);
   }
   const normalized = files.map(normalizeBrowserFile);
   const projectName = normalized.find((entry) => entry.projectName)?.projectName || "浏览器导入项目";

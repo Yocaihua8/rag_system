@@ -39,9 +39,10 @@
             <section id="first-run-guide" class="guide-card">
               <h2>首次使用</h2>
               <ol>
-                <li>先到资料库创建或选择项目空间。</li>
-                <li>导入目录后回到工作台提问或检索来源。</li>
-                <li>需要真实模型回答时，在系统环境变量配置 DeepSeek Key。</li>
+                <li>先到设置页创建项目空间，或在资料库选择已有项目空间。</li>
+                <li>点击“选择本机文件夹导入”导入目录；Docker 用户不需要填写 Windows 路径。</li>
+                <li>导入完成后回到工作台提问、检索来源，或进入评估页开始检查题。</li>
+                <li>未配置模型时也可使用本地片段回答；需要真实模型回答时，在设置页配置 DeepSeek / OpenAI-compatible API Key。</li>
               </ol>
             </section>
 
@@ -51,6 +52,7 @@
                 <input id="question" placeholder="例如：这个项目的默认入口是什么？" />
                 <button id="ask-button" class="primary-action" type="button">提问</button>
               </div>
+              <p id="tool-context-notice" class="status-line"></p>
               <p id="status" class="status-line"></p>
             </section>
 
@@ -63,11 +65,17 @@
                 <button id="agent-overview-button" type="button">项目概览</button>
               </div>
               <div class="search-row">
-                <input id="agent-search-query" placeholder="检索来源，例如：默认入口、API endpoint" />
+                <label id="agent-tool-parameter-query" class="tool-parameter-field" for="agent-search-query">
+                  <span>工具参数：query</span>
+                  <input id="agent-search-query" placeholder="检索来源，例如：默认入口、API endpoint" />
+                </label>
                 <button id="agent-search-button" type="button">检索来源</button>
               </div>
+              <ul id="agent-tools-list" class="agent-tools-list"></ul>
               <pre id="agent-tool-result" class="answer compact-answer">暂无工具结果</pre>
+              <button id="use-tool-result-button" class="suggestion-action" type="button" hidden>使用工具结果作为下一问上下文</button>
               <ul id="agent-tool-runs" class="tool-runs"></ul>
+              <pre id="agent-tool-run-detail" class="answer compact-answer">请选择一条工具运行查看详情</pre>
             </section>
 
             <section class="answer-card">
@@ -76,13 +84,26 @@
                 <span class="soft-label">来源可追溯</span>
               </div>
               <pre id="answer" class="answer"></pre>
+              <div id="answer-feedback" class="project-actions compact" hidden>
+                <button type="button" data-feedback-rating="useful">有用</button>
+                <button type="button" data-feedback-rating="not_useful">无用</button>
+                <button type="button" data-feedback-rating="source_wrong">来源不准</button>
+                <button type="button" data-feedback-rating="need_more_context">需要更多上下文</button>
+                <span id="answer-feedback-status" class="muted-line"></span>
+              </div>
               <button id="apply-tool-suggestion-button" class="suggestion-action" type="button" hidden>运行建议工具</button>
             </section>
 
             <section class="answer-card">
               <div class="section-title-row">
                 <h2>最近对话</h2>
-                <span class="soft-label">当前项目</span>
+                <button id="clear-chat-history-button" type="button">清空</button>
+              </div>
+              <div class="project-actions compact">
+                <select id="chat-session-select" aria-label="选择聊天会话"></select>
+                <button id="new-chat-session-button" type="button">新建会话</button>
+                <button id="rename-chat-session-button" type="button">改名</button>
+                <button id="delete-chat-session-button" type="button">删除会话</button>
               </div>
               <ul id="chat-history" class="chat-history"></ul>
             </section>
@@ -97,6 +118,43 @@
               </div>
               <ul id="sources" class="sources"></ul>
               <ul id="search-results" class="search-results"></ul>
+            </section>
+
+            <section class="source-summary-card">
+              <div class="section-title-row">
+                <div>
+                  <h2>检索调试</h2>
+                  <p class="muted-line">查看命中片段、分数和实际上下文。</p>
+                </div>
+                <button id="search-debug-button" type="button">诊断</button>
+              </div>
+              <div class="search-row">
+                <label>
+                  Top K
+                  <input id="rag-top-k" type="number" min="1" max="20" value="5" />
+                </label>
+                <label>
+                  最低分
+                  <input id="rag-min-score" type="number" min="0" step="0.1" value="0" />
+                </label>
+                <label>
+                  <input id="rag-use-keyword" type="checkbox" checked />
+                  关键词
+                </label>
+                <label>
+                  <input id="rag-use-vector" type="checkbox" checked />
+                  向量
+                </label>
+              </div>
+              <pre id="search-debug-results" class="answer compact-answer">暂无检索诊断</pre>
+              <textarea id="retrieval-review-note" placeholder="记录这次检索是否命中正确来源、还缺什么资料"></textarea>
+              <div class="project-actions compact">
+                <button id="save-rag-defaults-button" type="button">保存为默认</button>
+                <button id="save-retrieval-review-button" type="button">保存复盘</button>
+                <span id="rag-settings-status" class="muted-line"></span>
+              </div>
+              <ul id="retrieval-reviews" class="tool-runs"></ul>
+              <pre id="retrieval-review-detail" class="answer compact-answer">请选择一条检索复盘查看详情</pre>
             </section>
           </section>
         </section>
@@ -116,14 +174,53 @@
               <select id="project-select" aria-label="选择项目空间"></select>
               <p id="project-root" class="muted-line">未选择项目空间</p>
               <div class="project-actions">
-                <button id="folder-import-button" class="primary-action" type="button">导入文件夹</button>
+                <button id="folder-import-button" class="primary-action" type="button">选择本机文件夹导入</button>
                 <input id="folder-import-input" type="file" webkitdirectory multiple hidden />
-                <button id="import-button" type="button">同步</button>
+                <button id="file-import-button" type="button">选择文件上传导入</button>
+                <input id="file-import-input" type="file" multiple hidden />
+                <button id="import-button" type="button">同步当前项目目录</button>
               </div>
               <div class="project-actions compact">
                 <button id="rename-project-button" type="button">改名</button>
                 <button id="delete-project-button" type="button">删除</button>
               </div>
+            </section>
+
+            <section id="project-health-summary" class="project-health-card" aria-labelledby="project-health-title">
+              <div class="section-title-row">
+                <div>
+                  <p class="section-kicker">健康概览</p>
+                  <h2 id="project-health-title">当前项目状态</h2>
+                </div>
+                <span id="project-health-status" class="soft-label">请选择项目</span>
+              </div>
+              <dl id="project-health-metrics" class="health-metrics"></dl>
+              <ul id="retrieval-health-list" class="retrieval-health-list"></ul>
+            </section>
+
+            <section class="project-card" aria-labelledby="note-import-title">
+              <p class="section-kicker">文本笔记</p>
+              <h2 id="note-import-title">导入文本笔记</h2>
+              <input id="note-title" placeholder="笔记标题" />
+              <textarea id="note-content" placeholder="输入要加入当前项目空间的文本笔记"></textarea>
+              <button id="note-import-button" class="primary-action" type="button">导入笔记</button>
+            </section>
+
+            <section class="project-card" aria-labelledby="clipboard-import-title">
+              <p class="section-kicker">剪贴板文本</p>
+              <h2 id="clipboard-import-title">快速导入摘录</h2>
+              <input id="clipboard-title" placeholder="摘录标题，例如：会议记录、网页摘录" />
+              <textarea id="clipboard-content" placeholder="粘贴要加入当前项目空间的文本"></textarea>
+              <button id="clipboard-import-button" class="primary-action" type="button">导入摘录</button>
+            </section>
+
+            <section class="project-card" aria-labelledby="url-excerpt-title-heading">
+              <p class="section-kicker">URL 摘录</p>
+              <h2 id="url-excerpt-title-heading">保存网页来源</h2>
+              <input id="url-excerpt-url" placeholder="https://example.com/article" />
+              <input id="url-excerpt-title" placeholder="网页标题" />
+              <textarea id="url-excerpt-content" placeholder="粘贴网页正文或摘要；当前不会自动抓取网页"></textarea>
+              <button id="url-excerpt-import-button" class="primary-action" type="button">导入 URL 摘录</button>
             </section>
 
             <section id="documents-section" class="documents-card">
@@ -260,22 +357,60 @@
                 </label>
                 <label>
                   API 地址
-                  <input id="llm-api-base" name="api_base" placeholder="https://api.deepseek.com/v1" />
+                  <input id="llm-api-base" name="api_base" placeholder="例如：https://api.deepseek.com/v1" />
                 </label>
+                <p class="muted-line">填写 OpenAI-compatible API 地址，通常以 /v1 结尾。</p>
                 <label>
                   模型名称
-                  <input id="llm-api-model" name="model" placeholder="deepseek-chat" />
+                  <input id="llm-api-model" name="model" placeholder="例如：deepseek-chat" />
                 </label>
+                <p class="muted-line">填写服务商提供的模型名称，需和账号权限一致。</p>
                 <label>
                   API Key
-                  <input id="llm-api-key" name="api_key" type="password" autocomplete="off" placeholder="留空则不覆盖已保存或环境变量 Key" />
+                  <input id="llm-api-key" name="api_key" type="password" autocomplete="off" placeholder="粘贴 API Key；留空不覆盖已有 Key" />
                 </label>
+                <p class="muted-line">页面只显示 Key 状态，不回显明文。</p>
                 <p id="llm-settings-status" class="status-line">正在读取模型设置...</p>
                 <div class="project-actions compact">
                   <button class="primary-action" type="submit">保存模型设置</button>
                   <button id="llm-test-button" type="button">测试连接</button>
                 </div>
               </form>
+            </section>
+
+            <section class="design-note-card">
+              <h2>Prompt 预设</h2>
+              <p class="status-line">当前默认：<span id="current-prompt-preset-label">未选择</span></p>
+              <ul id="prompt-preset-list" class="tool-runs"></ul>
+              <div class="project-actions compact">
+                <button id="clear-default-prompt-preset-button" type="button">清空默认</button>
+              </div>
+              <form id="prompt-preset-form" class="project-form compact-form">
+                <input id="prompt-preset-id" name="preset_id" type="hidden" />
+                <label>
+                  名称
+                  <input id="prompt-preset-name" name="name" placeholder="例如：项目问答" />
+                </label>
+                <label>
+                  说明
+                  <input id="prompt-preset-description" name="description" placeholder="用于回答项目资料问题" />
+                </label>
+                <label>
+                  系统提示词
+                  <textarea id="prompt-preset-system" name="system_prompt" placeholder="只基于来源片段回答，资料不足时说明缺口"></textarea>
+                </label>
+                <label>
+                  回答格式
+                  <textarea id="prompt-preset-format" name="answer_format" placeholder="先结论，再列依据来源"></textarea>
+                </label>
+                <p id="prompt-preset-status" class="status-line">请选择项目空间后管理 Prompt 预设。</p>
+                <div class="project-actions compact">
+                  <button class="primary-action" type="submit">保存预设</button>
+                  <button id="reset-prompt-preset-form-button" type="button">取消编辑</button>
+                </div>
+              </form>
+              <p class="section-kicker">内置模板</p>
+              <ul id="prompt-preset-template-list" class="tool-runs"></ul>
             </section>
 
             <form id="project-form" class="project-form">
@@ -286,7 +421,7 @@
               </label>
               <label>
                 本地目录
-                <input id="project-path" name="path" placeholder="E:\Code\project" required />
+                <input id="project-path" name="path" placeholder="本机运行：E:\Code\project；Docker 挂载目录：/workspace" required />
               </label>
               <button type="submit">创建项目空间</button>
             </form>
