@@ -16,16 +16,16 @@
 
 导入文件：
 推荐方式：
-1. 打开 Web 页面后，点击“选择文件夹导入”。
+1. 打开 Web 页面后，点击“选择本机文件夹导入”。
 2. 选择你的本地项目文件夹，例如 E:\Code\your-project。
-3. 浏览器会把允许的文本文件和 DOCX 内容上传到本地服务并入库。
-4. PDF 暂不做无依赖正文解析，如被选择会在跳过明细里显示原因。
+3. 浏览器会把允许的文本文件、DOCX 和 PDF 二进制内容上传到本地服务并入库。
+4. PDF 正文抽取需要可选 pymupdf；未安装时会在跳过明细里显示原因，不影响其他文件导入。
 
 高级方式：
 1. 把要导入的 Markdown、TXT、DOCX、代码或配置文件放入 docker-workspace 文件夹。
 2. 在 Web 页面创建项目空间。
 3. 项目空间目录填写 /workspace。
-4. 点击导入。
+4. 点击“同步当前项目目录”。
 
 停止：
 双击 Stop-KnowledgeIsland-Docker.bat。
@@ -37,7 +37,7 @@
 
 注意：
 - Docker 模式下，Web 页面里的目录要填写容器路径 /workspace，不要填写 Windows 路径。
-- 如果不想理解 Docker 路径，直接使用“选择文件夹导入”。
+- 如果不想理解 Docker 路径，直接使用“选择本机文件夹导入”。
 - 启动脚本会读取 DEEPSEEK_API_KEY 并传给容器，但不会在命令窗口打印 Key。
 - 启动脚本会读取 RAG_EMBED_API_KEY 并传给容器，但不会在命令窗口打印 Key。
 - Embedding 服务必须支持 OpenAI-compatible /embeddings；未配置或失败时会回退本地向量。

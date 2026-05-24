@@ -1,7 +1,52 @@
 # Changelog
 
+## 2026-05-24
+
+- 新增 B-111 模型 Profile 多配置设计：规划多 provider / 多模型 Profile、默认 Profile、连接测试和 API Key 引用边界；本次只写设计，不建表、不改现有模型设置行为。
+- Web MVP 新增项目级 Prompt 设置第一片：设置页支持新增、编辑、删除 Prompt 预设，并可设置或清空当前项目默认预设。
+- 新增 `GET/POST /api/prompt-presets`、`POST /api/prompt-presets/update`、`POST /api/prompt-presets/delete`、`POST /api/prompt-presets/default`；预设按项目隔离，不保存 API Key。
+- `/api/answer` 在真实 LLM 模式下会读取当前项目默认 Prompt 预设，并在固定来源约束之后注入 `system_prompt` 与 `answer_format`；未选择预设时保持原有行为。
+
+## 2026-05-23
+
+- Web MVP 新增多会话聊天第一片：工作台可新建、切换、改名和删除聊天会话，`/api/answer` 支持按 `session_id` 保存消息并按当前会话读取最近上下文。
+- Web MVP 新增项目级检索默认值：当前项目可保存 `top_k`、最低分、关键词/向量开关，问答和检索诊断共用这组设置。
+- Web MVP 新增问答可观察性第一片：`POST /api/answer` 返回并展示本轮默认检索参数、命中来源数量、模型模式和耗时，不改变检索行为、不新增数据库表。
+- Web MVP 新增回答质量反馈入口：回答下方可标记“有用 / 无用 / 来源不准 / 需要更多上下文”，通过 `POST /api/answer/feedback` 保存到本地 `answer_feedback` 表，不调用外部服务。
+- Web MVP 新增 URL 摘录占位导入：保存 URL、标题和人工粘贴正文为 `url:` 虚拟来源，第一版不自动抓取网页。
+- Web MVP 新增备份导出第一片：`GET /api/export/project` 只读返回当前项目、文档元数据、聊天记录和模型配置摘要；不写文件、不新增数据库表、不导出文档正文或 API Key。
+- Web MVP 资料库新增文件上传导入入口：可一次选择一个或多个临时 PDF/DOCX/Markdown 等文件，复用 `POST /api/import/upload`；有当前项目时导入当前项目，没有项目时创建 `browser-upload` 项目。
+- Web MVP 资料库新增剪贴板文本导入入口：复用文本笔记导入，把网页摘录、会议记录和临时材料快速写入当前项目空间。
+- Web MVP 工作台新增 Agent 轻量工具面板运行入口：按 `/api/agent/tools` 元数据展示只读工具、参数 schema 和运行按钮，`search_sources` 明确使用 `query` 工具参数，运行后复用现有工具结果与运行历史。
+- Web MVP 新增工具结果引用入口：成功运行 `search_sources` 后可一键把工具运行 ID 带入下一轮提问，并在页面明确显示引用的运行 ID。
+- Web MVP 新增聊天记录删除能力：支持删除单条或清空当前项目聊天记录，前端删除前二次确认，只影响本地 `chat_messages`。
+- Web MVP 新增检索复盘详情与删除入口：`GET /api/retrieval/reviews/detail` 返回单条复盘快照，`POST /api/retrieval/reviews/delete` 仅删除 `retrieval_reviews` 记录；前端列表提供“查看详情”和二次确认删除。
+- Web MVP 新增导入预检只读接口：`GET /api/import/preview` 预估当前项目可导入文件数、跳过数和跳过原因，不写入文档。
+- Web MVP 工作台新增 Agent 工具能力说明与运行详情展示：读取 `/api/agent/tools` 展示只读工具说明、参数摘要和适用场景，并在工具运行历史中通过“查看详情”读取 B-91 单条详情接口；详情读取失败只影响详情区域。
+- Web MVP 扩展 Agent 只读工具白名单元数据：`GET /api/agent/tools` 为 `project_overview`、`search_sources` 返回 `label`、`parameters_schema`、`result_summary` 和 `use_cases`，保留既有 `name` / `description` 兼容字段。
+- Web MVP 新增工具运行详情只读 API：`GET /api/agent/tools/runs/detail` 按 `run_id` 返回单条 `agent_tool_runs` 审计记录，不开放 shell、不写文件。
+- Web MVP 资料库新增项目健康概览第一片：通过 `GET /api/projects/summary` 展示文档、Chunk、向量、聊天、工具运行、检索复盘数量和最近活动时间。
+- Web MVP 新增检索健康只读提示：基于项目 summary 推导是否已有 Chunk、向量和检索复盘；未选择项目时不请求 summary，读取失败不影响项目和文档列表。
+- Web MVP 新增项目健康概览只读 API：`GET /api/projects/summary` 返回当前项目文档、chunk、向量、聊天、工具运行、检索复盘数量和最近活动时间。
+- 参考 Cherry Studio / AnythingLLM 补充产品化 backlog：拆分知识库控制台、模型配置、助手/Prompt、会话主题、Agent 工具、导入扩展、备份导出和可观察性任务，并按近期/中期/长期分类。
+- Web MVP 资料库导入状态说明收口第一片：跳过文件说明改为“未导入”并解释常见原因，导入错误改为“读取失败”，降低跳过与失败混淆。
+- Web MVP 模型设置输入提示收口第一片：API 地址、模型名称和 API Key 输入框补充非技术用户提示，使用中性示例说明、权限一致性和 Key 不回显边界。
+- Web MVP 模型设置状态摘要第一片：设置页读取、保存和连接测试成功后显示模型服务、API 地址、模型名称和 API Key 来源状态，不回显 API Key 明文。
+- Web MVP 模型设置错误提示细分第一片：连接测试失败时针对 API Key 未配置、模型服务连接失败、鉴权或权限错误给出更具体的恢复提示。
+
 ## 2026-05-22
 
+- Web MVP 服务不可用错误兜底第一片：前端 API 层在本地服务断开、非 JSON 响应和无可读错误体的 HTTP 异常下返回可恢复提示，避免直接暴露浏览器解析错误。
+- Web MVP 错误提示可恢复化第一片：前端状态栏保留原始错误原因，并针对项目目录不可访问、未选择文件夹、无可导入文件、未选择项目空间等高频失败补充下一步操作提示。
+- Web MVP 首次使用空状态补充下一步动作提示：暂无文件、暂无来源、暂无检索结果和评估前提示会指向资料库导入或更换关键词。
+- Web MVP 首次使用引导改为设置页创建项目空间、选择本机文件夹导入、提问/评估和设置页配置模型；关键异步按钮运行中会禁用并显示进行中状态。
+- 统一 Web MVP 当前产品边界文档：明确 `app.py` 本地 Web 服务是默认入口，PySide6 桌面端作为 legacy 参考保留，并标注 2026-05-20 发布说明为历史快照。
+- Web MVP 新增检索复盘第一片：可把一次检索诊断保存为快照，记录查询参数、命中来源、来源质量和人工备注，并在当前项目查看最近复盘。
+- Web MVP 资料库页新增文本笔记导入：可把标题和正文作为 `note:` 虚拟来源写入当前项目空间，同标题再次导入会更新原记录，目录同步和浏览器文件夹导入不会误删或覆盖笔记。
+- Web MVP 新增检索调试接口与工作台诊断区：可临时设置 `top_k`、最低分、关键词/向量开关，查看命中 chunk、分数、来源质量和上下文预览。
+- Web MVP 问答返回 `source_quality`，用于提示来源较充分、来源偏少或没有可用来源；该字段不是事实正确性评分。
+- Web MVP PDF 正文抽取接入可选 `pymupdf`；未安装解析器时继续返回明确跳过原因，不阻断其他文件入库。
+- Web MVP 新增工具来源回填：用户运行 `search_sources` 后，下一轮 `/api/answer` 可通过 `tool_run_id` 合并工具命中来源，并返回 `tool_context`。
 - Web MVP 新增 Agent 工具运行历史：`GET /api/agent/tools/runs` 返回当前项目审计记录，工作台展示工具名、状态、参数和错误。
 - Web MVP 回答区新增“运行建议工具”按钮：来源不足时可由用户手动运行只读 `search_sources`，不会自动执行 Agent 工具。
 

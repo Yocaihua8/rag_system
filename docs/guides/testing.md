@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-22
+> Last Updated：2026-05-24
 
 ## 1. 目标
 
@@ -23,12 +23,16 @@ docker compose config
 - 受环境限制时，`pytest` 可能因依赖/网络导致不能完整运行，需在提交说明里写出失败原因与替代验证。
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/test_webapp`。
-- 变更 Web RAG 分块、embedding provider、向量索引、搜索排序或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model` 和问答来源兼容。
+- 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
+- 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更浏览器文件夹导入时，必须覆盖 `/api/import/upload`、前端 `webkitdirectory` 入口和导入规则跳过行为。
-- 变更 Web 文档处理管线时，必须覆盖 DOCX 正文抽取、PDF 明确跳过、浏览器上传 `content_base64` 和普通文本导入兼容行为。
+- 变更文本笔记或 URL 摘录导入时，必须覆盖 `/api/import/note`、`/api/import/url`、同标题或同 URL 更新、空标题/空正文/超大正文/非字符串输入拒绝、前端资料库入口，以及目录同步和浏览器文件夹导入不会删除或覆盖 `note:` / `url:` 虚拟来源。
+- 变更 Web 文档处理管线时，必须覆盖 DOCX 正文抽取、PDF 可选 `pymupdf` 正文抽取、缺少 PDF 解析器时明确跳过、浏览器上传 `content_base64` 和普通文本导入兼容行为。
 - 变更模型设置页时，必须覆盖 `/api/settings/llm`、`/api/settings/llm/test`、Key 不回显和前端设置入口。
+- 变更 Prompt 预设时，必须覆盖 `/api/prompt-presets`、`/api/prompt-presets/update`、`/api/prompt-presets/delete`、`/api/prompt-presets/default`、项目隔离、默认预设注入 `/api/answer`、固定来源约束优先级和前端设置入口。
 - 变更 Agent 工具能力时，必须覆盖 `/api/agent/tools`、`/api/agent/tools/run`、`/api/agent/tools/runs`、只读工具白名单、未知工具拒绝和 `agent_tool_runs` 审计记录。
 - 变更回答工具建议时，必须覆盖 `/api/answer` 的 `tool_suggestion`、前端建议工具展示、用户手动运行按钮，并确认不会自动写入 `agent_tool_runs`。
+- 变更工具来源回填时，必须覆盖 `/api/answer` 的 `tool_run_id/tool_context`、同项目校验、跨项目拒绝和前端上下文提示。
 - 变更 Web 端 LLM、掌握评估、首次引导或静态前端约束时，必须复跑 `tests/test_webapp`，并执行 `Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName }`。
 - 变更 Docker 启停入口时，必须复跑 `tests/test_webapp/test_docker_startup.py`，并至少真实执行一次启动或停止脚本。
 
@@ -43,9 +47,14 @@ docker compose config
 - Web MVP Agent 工具只开放只读项目概览和来源检索，未知工具会被拒绝并记录审计
 - Web MVP Agent 工具运行历史按当前项目展示，切换项目后重新加载
 - Web MVP 来源不足时只提示建议工具 `search_sources`；用户点击按钮后才运行 Agent 只读工具
-- Web MVP 浏览器文件夹导入可创建上传项目，并按后缀、忽略目录和大小规则跳过文件；DOCX 可抽取正文，PDF 有明确跳过原因
+- Web MVP `search_sources` 工具结果可显式回填到下一轮问答；跨项目工具运行 ID 必须被拒绝
+- Web MVP 检索调试可返回命中 chunk、分数、来源质量、上下文预览和临时 RAG 参数
+- Web MVP 检索复盘可保存一次诊断快照，保留查询参数、命中来源、来源质量和人工备注
+- Web MVP 浏览器文件夹导入可创建上传项目，并按后缀、忽略目录和大小规则跳过文件；DOCX 可抽取正文，PDF 在安装可选解析器时可抽取正文，缺少解析器时有明确跳过原因
+- Web MVP 文本笔记和 URL 摘录导入会写入 `note:` / `url:` 虚拟来源，同标题或同 URL 再次导入只更新原记录，目录同步和浏览器文件夹导入不会误删这些虚拟来源；真实文件或上传文件撞到笔记相对路径时会被跳过
 - Web MVP DeepSeek 配置存在时优先真实 LLM，失败时本地回退
 - Web MVP 模型设置页可保存 API Base / 模型名 / Key，且不回显 Key 明文
+- Web MVP Prompt 预设可新增、编辑、删除、设置默认；真实 LLM prompt 保留固定来源约束，预设不保存 API Key
 - Web MVP 掌握评估入口、题目生成、回答反馈
 - Web MVP 首次使用引导可见
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定

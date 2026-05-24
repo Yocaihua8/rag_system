@@ -3,6 +3,7 @@
 > 目标：确认默认本地 Web MVP 可用于个人项目资料导入、检索、问答和来源查看
 > Owner：RAG 团队
 > 适用范围：`app.py` 启动的本机 Web 服务
+> 说明：本文是 2026-05-20 收口快照；2026-05-22 后新增能力以 `README.md`、`docs/design/api-spec.md`、`docs/BACKLOG.md`、`docs/DEVLOG.md` 和 `CHANGELOG.md` 为准。
 
 ## 1. 可交付范围
 
@@ -21,9 +22,18 @@
 ## 2. 非承诺范围
 
 - 不提供远程多用户部署和权限系统。
-- 不承诺语义向量检索、Reranker 或云端 LLM 生成质量；真实 LLM 取决于用户配置的 API Key、网络和服务商状态。
+- 不承诺高质量语义检索、Reranker 或云端 LLM 生成质量；2026-05-22 后 Web MVP 已具备轻量向量召回，可使用本地 hashing 向量或用户配置的 OpenAI-compatible Embeddings。
 - 发布脚本可生成 Windows 打包产物，Docker 模式已提供双击启动/停止入口；但尚未完成安装器、桌面快捷方式或非技术用户一键安装流程。
 - 不删除 legacy PySide6 桌面端代码；`src/desktop/` 仅作为迁移参考保留。
+
+## 2.1 后续已补充能力（截至 2026-05-22）
+
+- 浏览器文件夹导入已支持 DOCX/PDF 二进制上传；PDF 正文抽取依赖可选 `pymupdf`，未安装时仍明确跳过。
+- Web MVP 已接入 `document_chunks` 与 `chunk_vectors`，检索和问答按 chunk 片段做 keyword + vector 混合召回。
+- 工作台已补充检索调试、来源质量提示和检索复盘保存。
+- 资料库页已补充文本笔记导入，使用 `note:` 虚拟来源并避免被目录同步误删。
+- Agent 只读工具已补充运行历史和 `search_sources` 工具来源回填到下一轮问答上下文。
+- 首次使用引导已改为设置页创建项目空间、选择本机文件夹导入、提问/评估和设置页配置模型；关键异步按钮运行中会禁用并显示进行中状态。
 
 ## 3. 验收命令
 
@@ -40,7 +50,7 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 ## 4. 浏览器验收清单
 
 1. 启动 `app.py`，打开 `http://127.0.0.1:8765`。
-2. 点击“选择文件夹导入”，选择一个包含 Markdown、TXT、DOCX 或代码文件的本地项目目录，确认自动创建项目空间并显示导入统计。
+2. 点击“选择本机文件夹导入”，选择一个包含 Markdown、TXT、DOCX、PDF 或代码文件的本地项目目录，确认自动创建项目空间并显示导入统计。
 3. 如需验证挂载目录导入，再创建项目空间，路径填写一个真实存在且对后端可见的目录，点击“导入”。
 4. 点击文件列表中的文件，确认右侧文件预览显示正文。
 5. 输入关键词并点击“搜索”，确认结果可点击并打开文件预览。
@@ -51,7 +61,7 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 ## 5. 当前风险
 
 - 浏览器文件夹导入依赖 Chromium/Edge 等支持 `webkitdirectory` 的浏览器；不支持该能力的浏览器仍可使用挂载目录导入。
-- PDF 当前只识别并明确跳过，尚未接入 PyMuPDF 等可选解析器。
+- PDF 正文抽取依赖可选 `pymupdf`；未安装解析器、PDF 无文本或文件无效时仍会明确跳过。
 - 未配置或无法访问 DeepSeek 时，问答会回退为关键词片段组合；复杂总结质量有限。
 - 当前发布面向开发者或技术用户本机试用；Windows zip 产物需要实际打包验收后才能交给非技术用户。
 
@@ -91,7 +101,7 @@ Get-ChildItem webapp\static\js\*.js | ForEach-Object { node --check $_.FullName 
 - Docker 导入目录：容器内 `/workspace`，宿主机 `docker-workspace/`
 - 功能冒烟：创建项目空间、导入 1 个文件、DeepSeek 问答 `answerMode=api/provider=deepseek`、来源数 1
 
-限制：Docker 模式仍需用户安装并启动 Docker Desktop；使用挂载目录导入时，Web 页面中本地目录需填写容器路径 `/workspace`，不是 Windows 原始路径。普通用户优先使用“选择文件夹导入”。
+限制：Docker 模式仍需用户安装并启动 Docker Desktop；使用挂载目录导入时，Web 页面中本地目录需填写容器路径 `/workspace`，不是 Windows 原始路径。普通用户优先使用“选择本机文件夹导入”。
 
 ## 8. Docker 双击入口验收记录
 

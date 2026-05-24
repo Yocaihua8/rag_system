@@ -16,6 +16,706 @@
 - [2026-05-18](devlog/2026-05-18.md)
 - [2026-05-20](devlog/2026-05-20.md)
 
+## 2026-05-24 | B-111 — Web 模型 Profile 多配置设计
+
+### 目标
+
+先设计多 provider / 多模型配置的 Profile 数据结构、接口和安全边界，为 B-112 的最小实现提供约束；本次不建表、不改接口实现、不改变现有单模型设置行为。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `docs/design/model-profiles-design.md` | 说明 Model Profile 目标、非目标、数据模型、API、Key 引用策略、前端交互、测试建议和风险 |
+| 更新 | `docs/BACKLOG.md` | 标记 B-111 完成，B-112 保持待实现 |
+| 更新 | `docs/DEVLOG.md` | 记录本次设计文档变更 |
+| 更新 | `docs/README.md` | 将模型 Profile 设计文档加入设计文档索引 |
+| 更新 | `CHANGELOG.md` | 记录 B-111 设计文档变更 |
+
+### 关键行为
+
+- 本次只产出设计文档，不新增 `model_profiles` 表。
+- 设计建议 Profile 只保存 provider、API Base、模型名、温度和最大 tokens 等非敏感配置。
+- API Key 只保存受控引用，例如 `env:RAG_LLM_API_KEY` 或 `saved:RAG_LLM_API_KEY`，不保存明文。
+- 未配置默认 Profile 时，后续实现仍应保持当前 `load_settings()` 单配置兼容行为。
+
+## 2026-05-24 | B-110 — Web 项目级 Prompt 设置第一片
+
+### 目标
+
+在 B-109 设计基础上落地项目级 Prompt 预设最小闭环：支持当前项目空间新增、编辑、删除预设，设置或清空默认预设，并让真实 LLM 问答在固定来源约束之后读取默认预设。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/models.py`、`webapp/storage.py` | 新增 `PromptPreset`、`prompt_presets` 表和 `projects.default_prompt_preset_id` |
+| 更新 | `webapp/api.py` | 新增 Prompt 预设 CRUD、默认预设接口，并让 `/api/answer` 读取当前项目默认预设 |
+| 更新 | `webapp/answers.py`、`webapp/llm.py` | 真实 LLM 请求支持注入 `system_prompt` 与 `answer_format`，固定来源约束仍保持最高优先级 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/app.js`、`webapp/static/js/state.js` | 设置页新增 Prompt 预设列表、表单、内置模板复制、默认预设操作 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_llm.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖 CRUD、跨项目默认拒绝、问答注入、LLM prompt 层级、前端接线和文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/design/database-design.md`、`README.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步接口、数据库字段、用户可见能力、验证规则和 backlog 状态 |
+
+### 关键行为
+
+- `prompt_presets` 按项目隔离；设置默认预设时校验 preset 必须属于当前项目。
+- 内置“项目问答 / 代码解释 / 学习复盘”模板只用于前端复制，不自动写入数据库。
+- Prompt 预设不保存 API Key、不改变检索参数、不自动运行工具。
+- 固定来源约束仍先于用户 Prompt；资料不足时仍要求说明缺口，不允许编造来源。
+
+## 2026-05-24 | B-109 — Web 项目级 Prompt 设置设计
+
+### 目标
+
+先设计项目级 Prompt / 助手预设的数据结构和问答注入边界，为 B-110 的最小 CRUD 实现提供约束；本次不建表、不改接口实现。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `docs/design/project-prompt-settings-design.md` | 说明 Prompt 预设目标、非目标、数据模型、注入边界、API、前端交互、测试建议和风险 |
+| 更新 | `docs/BACKLOG.md` | 标记 B-109 完成，B-110 保持待实现 |
+| 更新 | `docs/DEVLOG.md` | 记录本次设计文档变更 |
+
+### 关键行为
+
+- 本次只产出设计文档，不新增 `prompt_presets` 表。
+- 设计要求固定来源约束优先级高于用户 Prompt，避免模型绕过 RAG 来源。
+- Prompt 预设不保存 API Key、不改变检索参数、不自动执行工具。
+
+## 2026-05-23 | B-108 — Web 多会话聊天第一片
+
+### 目标
+
+在 B-107 设计基础上实现 Web 多会话聊天最小闭环：支持新建、切换、改名、删除会话，并让问答写入当前会话、上下文只读取当前会话最近 3 轮。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/models.py`、`webapp/storage.py` | 新增 `ChatSession`、`chat_sessions` 表，并为 `chat_messages` 增加可空 `session_id` |
+| 更新 | `webapp/api.py` | 新增会话 CRUD 接口，`/api/chat/messages` 和 `/api/answer` 支持 `session_id` |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 工作台最近对话区新增会话选择、新建、改名和删除入口 |
+| 更新 | `tests/test_webapp/test_chat_history.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖会话 CRUD、消息隔离、上下文隔离、前端接线和文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/design/database-design.md`、`docs/BACKLOG.md`、`README.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步接口、数据库字段、用户可见能力和 backlog 状态 |
+
+### 关键行为
+
+- 不带 `session_id` 的旧消息继续归入默认会话。
+- 带 `session_id` 的 `/api/answer` 会保存到当前会话，并只读取该会话最近 3 轮上下文。
+- 删除会话只删除该会话消息及其回答反馈，不删除文档、检索复盘、工具运行或项目设置。
+
+## 2026-05-23 | B-107 — Web 多会话聊天模型设计
+
+### 目标
+
+先设计 `chat_sessions` 与现有 `chat_messages` 的兼容关系，为后续 B-108 多会话聊天第一片提供明确实现边界；本次不建表、不改接口实现。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `docs/design/chat-sessions-design.md` | 说明多会话目标、非目标、数据模型、API、前端交互、上下文策略、迁移策略和测试建议 |
+| 更新 | `docs/BACKLOG.md` | 标记 B-107 完成，B-108 保持待实现 |
+| 更新 | `docs/DEVLOG.md` | 记录本次设计文档变更 |
+
+### 关键行为
+
+- 本次只产出设计文档，不新增 `chat_sessions` 表。
+- 设计建议旧 `chat_messages.session_id IS NULL` 归入默认会话，避免破坏历史消息。
+- 后续 `/api/answer` 可通过 `session_id` 限定最近 3 轮上下文范围，减少主题串扰。
+
+## 2026-05-23 | B-105 — Web 检索参数项目级默认值
+
+### 目标
+
+让当前项目空间可以保存默认 `top_k`、最低分、关键词开关和向量开关，并让问答与检索诊断共用这组设置。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/storage.py` | `projects` 表新增检索默认值字段，并提供读取和保存方法 |
+| 更新 | `webapp/api.py` | 新增 `GET/POST /api/projects/retrieval-settings`，`/api/answer` 和 `/api/search/debug` 使用项目默认值 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js` | 检索调试控件加载当前项目默认值，并支持保存为默认 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖默认值保存、问答/诊断共用、前端接线和文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/design/database-design.md`、`docs/BACKLOG.md`、`README.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步接口、数据库字段、用户可见能力和 backlog 状态 |
+
+### 关键行为
+
+- 未保存时默认 `top_k=5`、`min_score=0.0`、`use_keyword=true`、`use_vector=true`。
+- `/api/answer` 直接使用当前项目默认值；`/api/search/debug` 在请求未显式传参时使用项目默认值。
+- 保存默认值不创建检索复盘、不执行检索、不调用模型。
+
+## 2026-05-23 | B-104 — Web 问答与检索可观察性第一片
+
+### 目标
+
+让每次问答都能看到本轮使用的默认检索参数、命中来源数量、模型模式和耗时，方便判断回答路径和检索覆盖情况。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/api.py` | `/api/answer` 新增 `observability` 响应，包含检索参数、命中数量、模型模式和耗时 |
+| 更新 | `webapp/static/js/ui.js` | 回答区追加“问答观测”文本，展示 `top_k/min_score/keyword/vector/命中来源/模型/耗时` |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖 API 返回、前端渲染和文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/BACKLOG.md`、`README.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步接口字段、用户可见行为和 backlog 状态 |
+
+### 关键行为
+
+- 本次不改变 `/api/answer` 的检索行为，仍使用默认 `top_k=5`、`min_score=0.0`、关键词和向量混合检索。
+- `elapsed_ms` 只用于本地调试和可观察性展示，不作为性能 SLA。
+- 不新增数据库表，也不提前实现 B-105 的项目级检索参数默认值。
+
+## 2026-05-23 | B-101 — Web URL 摘录占位第一片
+
+### 目标
+
+让资料库支持保存 URL、标题和人工粘贴正文作为来源；第一版只保存用户提交内容，不自动抓取网页、不联网。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/source_import.py` | 新增 `import_url_excerpt()`，生成 `url:` 虚拟来源和稳定 `urls/<url-hash>.txt` 相对路径 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/import/url` |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/projects.js`、`webapp/static/js/app.js` | 资料库新增 URL 摘录表单并接入导入流程 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖 URL 摘录导入、同 URL 更新、无效 URL 和前端/文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/BACKLOG.md`、`README.md`、`CHANGELOG.md` | 同步接口、边界和 backlog 状态 |
+
+### 关键行为
+
+- `POST /api/import/url` 要求 `url/title/content`，URL 只允许 `http://` 或 `https://`。
+- 同一 URL 再次导入会更新原记录。
+- 不自动抓取网页，不新增数据库表，不改变文本笔记或文件上传导入规则。
+
+## 2026-05-23 | B-100 — Web 剪贴板文本导入第一片
+
+### 目标
+
+在资料库页提供更直接的摘录入口，让网页摘录、会议记录和临时材料可以通过文本框快速进入当前项目空间；复用已有文本笔记导入，不新增后端接口。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 新增剪贴板文本标题、正文和导入按钮 |
+| 更新 | `webapp/static/js/app.js` | 复用 `importPlainTextNote()` 导入剪贴板文本，导入后刷新资料库、健康概览和预览 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充剪贴板文本导入静态契约 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 标记 B-100 完成并同步变更记录 |
+
+### 关键行为
+
+- 继续写入 `note:` 虚拟来源，沿用标题、正文校验和同标题更新规则。
+- 不新增数据库表、不改变 `/api/import/note` 请求字段或导入规则。
+
+## 2026-05-23 | B-97 — Web Agent 工具面板第一片
+
+### 目标
+
+在现有 Agent 工具区域上小步增强：按 B-96 的 `/api/agent/tools` 元数据展示工具说明、参数 schema 和运行入口；运行后继续复用现有工具结果区、可引用结果入口和工具运行历史。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | Agent 来源检索输入明确标注为 `query` 工具参数 |
+| 更新 | `webapp/static/js/app.js`、`webapp/static/js/ui.js` | 工具元数据卡片新增运行按钮，`project_overview` 无参数运行，`search_sources` 复用 `query` 参数输入 |
+| 更新 | `webapp/static/styles.css` | 补充工具参数输入标签样式 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充 B-97 静态契约测试 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步用户可见行为和 backlog 状态 |
+
+### 关键行为
+
+- 工具面板不会自动运行工具，只有用户点击工具卡片或现有按钮才会调用 `/api/agent/tools/run`。
+- `project_overview` 以空参数运行；`search_sources` 必须填写 `query`，UI 明确这是工具参数。
+- 本次不新增后端写入能力，不开放 shell、不写文件、不新增数据库表。
+
+## 2026-05-23 | B-98 — Web 工具调用结果可引用
+
+### 目标
+
+让用户在运行 `search_sources` 后，可以明确选择把这次工具结果作为下一轮提问上下文，并看到被引用的工具运行 ID；继续保持手动引用，不自动执行工具。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 工具结果区新增“使用工具结果作为下一问上下文”按钮 |
+| 更新 | `webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 保存最近可引用的 `search_sources` 运行，点击后设置 `tool_run_id` 并显示运行 ID |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充工具结果引用静态契约 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 标记 B-98 完成并同步变更记录 |
+
+### 关键行为
+
+- 只有成功的 `search_sources` 工具运行可被引用到下一问。
+- 页面会显示工具运行 ID；点击引用后，下一轮 `/api/answer` 沿用现有 `tool_run_id` 参数。
+- 本次不新增后端接口，不自动运行工具，也不改变工具结果结构。
+
+## 2026-05-23 | B-95 — Web 聊天记录单条删除与清空接口
+
+### 目标
+
+允许用户整理当前项目聊天记录：可删除单条，也可清空当前项目全部聊天记录；删除前二次确认，只影响本地 `chat_messages`。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/storage.py` | 新增聊天记录单条读取、单条删除和按项目清空方法 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/chat/messages/delete` 和 `POST /api/chat/messages/clear` |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/ui.js` | 最近对话区增加单条删除和清空入口，删除前使用 `confirm` 二次确认 |
+| 更新 | `tests/test_webapp/test_chat_history.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖删除、清空、跨项目隔离、前端接线和文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步接口和 backlog 状态 |
+
+### 关键行为
+
+- `POST /api/chat/messages/delete` 按 `message_id` 删除单条，返回同项目剩余消息。
+- `POST /api/chat/messages/clear` 只清空当前 `project_id` 的聊天记录。
+- 不删除文档、检索复盘、工具运行记录或模型设置。
+
+## 2026-05-23 | B-94 — Web 检索复盘详情与删除入口
+
+### 目标
+
+在现有检索复盘列表上补齐单条详情读取和删除入口，方便回看一次复盘的查询参数、命中来源和人工备注；删除只影响 `retrieval_reviews`，不自动调整检索参数。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/storage.py` | 新增 `get_retrieval_review()` 和 `delete_retrieval_review()`，按复盘 ID 读取或删除单条记录 |
+| 更新 | `webapp/api.py` | 新增 `GET /api/retrieval/reviews/detail?review_id=...` 和 `POST /api/retrieval/reviews/delete` |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js`、`webapp/static/styles.css` | 检索复盘列表新增“查看详情”和“删除”，详情读取失败只写入详情区域，删除前二次确认 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 先补失败测试，再实现详情、删除、前端接线和文档契约 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步 B-94 用户可见行为、接口契约和 backlog 状态 |
+
+### 关键行为
+
+- 缺少 `review_id` 返回 `400 review_id is required`。
+- 复盘不存在返回 `404 retrieval review not found`。
+- 删除成功返回 `{"deleted":true,"reviews":[...]}`，并只删除 `retrieval_reviews` 中对应记录。
+- 前端详情读取失败不阻塞复盘列表；删除前必须通过浏览器 `confirm` 二次确认。
+
+## 2026-05-23 | B-93 — Web 导入预检第一片
+
+### 目标
+
+在真正导入前提供只读预检能力，让用户先看到当前项目目录预计可导入文件数、跳过数和跳过原因；不写入文档、不生成 chunk/vector、不删除已有记录。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/ingestion.py` | 新增 `preview_import_directory()`，复用目录忽略、后缀和虚拟来源保护规则做只读统计 |
+| 更新 | `webapp/api.py` | 新增 `GET /api/import/preview?project_id=...` 路由 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖预检成功、缺少项目 ID、未知项目、目录不存在和文档契约 |
+| 更新 | `docs/design/api-spec.md` | 记录预检端点和只读边界 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md` | 标记 B-93 完成并记录变更 |
+
+### 关键行为
+
+- 预检返回 `preview.project_id`、`importable`、`skipped` 和 `skipped_details`。
+- 预检不调用 `store.upsert_document()`，不会写入 `documents`、不会生成 chunk/vector，也不会触发删除。
+- 目录不存在、项目不存在和缺少 `project_id` 继续返回明确错误。
+
+## 2026-05-23 | B-92 — Web Agent 工具能力说明与运行详情展示
+
+### 目标
+
+在现有工作台 Agent 工具面板内小步扩展，只读展示工具能力说明和单条运行详情；复用 B-91 的详情接口，不新增后端写入，也不自动运行工具。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | Agent 工具卡片新增工具能力列表和工具运行详情区域 |
+| 更新 | `webapp/static/js/agent.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 接入 `/api/agent/tools` 与 `/api/agent/tools/runs/detail`，渲染工具说明、参数摘要、适用场景和单条运行详情 |
+| 更新 | `webapp/static/styles.css` | 补充工具能力列表和历史详情按钮样式 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 先补 B-92 前端静态契约测试，再实现 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步用户可见行为和 backlog 状态 |
+
+### 关键行为
+
+- 工作台加载 `GET /api/agent/tools`，优先展示工具说明、参数摘要和适用场景；字段不存在时兼容显示 `name` / `description`。
+- 工具运行历史每条提供“查看详情”，点击后调用 `GET /api/agent/tools/runs/detail?run_id=...` 并展示 `arguments/result/status/error/created_at`。
+- 详情读取失败只写入详情区域，不阻塞工具运行历史列表。
+
+## 2026-05-23 | B-96 — Web Agent 工具白名单元数据
+
+### 目标
+
+为 `project_overview` 和 `search_sources` 补充前端工具面板可直接消费的白名单元数据；继续保持只读工具边界，不开放 shell、文件写入或网络抓取。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/agent_tools.py` | 为只读工具增加 `label`、`parameters_schema`、`result_summary` 和 `use_cases`，保留 `name`、`description`、`title` 和 `arguments` 兼容字段 |
+| 更新 | `tests/test_webapp/test_agent_tools.py` | 补充工具白名单元数据契约测试 |
+| 更新 | `tests/test_webapp/test_docs_contract.py` | 补充 API 文档元数据字段契约 |
+| 更新 | `docs/design/api-spec.md` | 记录 `GET /api/agent/tools` 工具元数据字段、参数 schema 和兼容边界 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 标记 B-96 完成并同步变更记录 |
+
+### 关键行为
+
+- `GET /api/agent/tools` 仍只返回 `project_overview` 和 `search_sources` 两个只读工具。
+- `parameters_schema` 使用对象 schema：`project_overview` 无参数且禁止额外字段；`search_sources` 要求非空字符串 `query`。
+- 本次不新增数据库表，不改变工具运行接口、不改变工具执行结果结构。
+
+## 2026-05-23 | B-89 + B-90 — Web 项目健康与检索健康前端第一片
+
+### 目标
+
+在不新增后端写入和新接口的前提下，把 B-88 的项目健康 summary 展示到资料库页，并用 summary 推导当前项目是否已有 Chunk、向量和检索复盘。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 资料库页新增项目健康概览卡片 |
+| 更新 | `webapp/static/js/projects.js` | 新增 `getProjectSummary()`，通过 `GET /api/projects/summary?project_id=...` 读取只读概览；未选择项目时不请求 |
+| 更新 | `webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 接线 summary 刷新、空状态、错误提示和检索健康推导展示 |
+| 更新 | `webapp/static/styles.css` | 补充健康概览和检索健康列表样式 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充 B-89/B-90 前端静态契约测试 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步用户可见行为和 backlog 状态 |
+
+### 关键行为
+
+- 资料库页展示文档数、Chunk 数、向量数、聊天数、工具运行数、检索复盘数和最近活动时间。
+- 检索健康只从 `chunk_count > 0`、`vector_count > 0`、`retrieval_review_count > 0` 推导，不新增接口。
+- 未选择项目时不请求 summary；summary 读取失败只影响健康概览卡片，不阻断项目列表和文档列表。
+
+## 2026-05-23 | B-91 — Web 工具运行详情只读接口
+
+### 目标
+
+为现有 Agent 工具运行历史补充单条详情读取能力，供后续前端详情展示复用；本次只读查询，不开放 shell、不写文件、不新增数据库表。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/api.py` | 新增 `GET /api/agent/tools/runs/detail?run_id=...`，校验 `run_id` 并返回单条工具运行记录 |
+| 更新 | `tests/test_webapp/test_api.py` | 补充成功、缺少 `run_id`、运行记录不存在的 API 测试 |
+| 更新 | `tests/test_webapp/test_docs_contract.py` | 补充工具运行详情端点和错误文案契约 |
+| 更新 | `docs/design/api-spec.md` | 记录新增端点、响应和错误 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md` | 标记 B-91 完成并同步变更记录 |
+
+### 关键行为
+
+- `GET /api/agent/tools/runs/detail?run_id=...` 返回 `{"run": ...}`，字段沿用 `AgentToolRun.to_dict()`。
+- 未传 `run_id` 返回 `400 run_id is required`，运行记录不存在返回 `404 tool run not found`。
+- API 层只做路由、参数校验和响应封装，复用 `KnowledgeStore.get_agent_tool_run()` 读取 SQLite。
+
+## 2026-05-23 | Cherry Studio / AnythingLLM 对标 backlog 拆分
+
+### 目标
+
+把参考 Cherry Studio 和 AnythingLLM 后识别出的产品化能力拆成可执行 backlog，优先保留适合当前本地 Web MVP 的“可管理、可配置、可观察”能力，不直接复刻多用户平台、插件市场或任意 Agent 执行。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `docs/BACKLOG.md` | 新增 B-88 到 B-119，按近期 P1、中期 P2、长期 P3 分类 |
+| 更新 | `CHANGELOG.md` | 记录 backlog 拆分来源和范围 |
+
+### 关键行为
+
+- 本次 backlog 拆分本身不改变代码行为、接口、数据库或前端页面。
+- 第一批执行顺序以只读/API 小步为主：先做项目健康概览，再做仪表盘、检索健康、工具详情等能力。
+
+## 2026-05-23 | B-88 — Web 项目健康概览只读 API
+
+### 目标
+
+为后续项目仪表盘提供只读数据基础，先通过 API 聚合当前项目知识库健康概览，不新增数据库表、不改变现有导入、问答或工具运行行为。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/api.py` | 新增 `GET /api/projects/summary` 路由，校验 `project_id` 并返回项目健康概览 |
+| 更新 | `webapp/storage.py` | 新增 `get_project_summary()`，从 SQLite 聚合文档、chunk、向量、聊天、工具运行、检索复盘数量和最近活动时间 |
+| 更新 | `tests/test_webapp/test_api.py` | 补充项目健康概览成功、缺少项目 ID 和项目不存在测试 |
+| 更新 | `tests/test_webapp/test_docs_contract.py` | 补充接口文档契约检查 |
+| 更新 | `docs/design/api-spec.md` | 记录新增端点和 `summary` 字段 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md` | 标记 B-88 完成并同步变更记录 |
+
+### 关键行为
+
+- `GET /api/projects/summary?project_id=...` 返回 `summary`，包含 `project_id`、`project_name`、`document_count`、`chunk_count`、`vector_count`、`chat_message_count`、`agent_tool_run_count`、`retrieval_review_count` 和 `last_activity_at`。
+- 未传 `project_id` 返回 `400 project_id is required`，项目不存在返回 `404 project not found`。
+- 本次只新增只读查询，不新增数据库表，不写入业务数据。
+
+## 2026-05-23 | B-85 — Web 模型设置状态摘要第一片
+
+### 目标
+
+让设置页读取、保存和连接测试成功后的状态行更容易判断当前模型配置：展示模型服务、API 地址、模型名称和 API Key 来源状态，同时继续禁止回显 API Key 明文。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/js/app.js` | 新增模型设置状态摘要 helper；读取、保存和连接测试成功后展示模型服务、API 地址、模型名称和 API Key 来源状态 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充模型设置状态摘要静态契约，确认摘要不读取 API Key 输入框内容 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步模型设置状态摘要行为 |
+
+### 关键行为
+
+- 本次只改前端状态文案，不改设置页接口、请求字段、API Key 存储方式或环境变量优先级。
+- 状态摘要只显示 Key 来源状态，不显示 API Key 明文、掩码或输入框内容。
+
+## 2026-05-23 | B-86 — Web 模型设置输入提示收口第一片
+
+### 目标
+
+让设置页模型配置输入框更适合非技术用户：API 地址和模型名称使用中性的“例如”示例，API Key 输入框说明留空不覆盖已有 Key，并继续强调页面不回显明文。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 收口 API 地址、模型名称和 API Key 输入框 placeholder，并补充简短说明文案 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充模型设置输入提示静态契约，限制 Key 输入区域不能出现明文 Key 示例 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步模型设置输入提示行为 |
+
+### 关键行为
+
+- 本次只改设置页前端文案，不改表单字段、接口路径、请求方式、API Key 保存逻辑或环境变量优先级。
+- API Key 输入区域不提供 `sk-` 这类明文格式示例，继续只说明留空不覆盖和页面不回显。
+
+## 2026-05-23 | B-87 — Web 资料库导入状态说明收口第一片
+
+### 目标
+
+让资料库导入状态更容易理解：把普通跳过文件表达为“未导入”，说明常见原因；把导入错误表达为“读取失败”，避免用户把规则跳过和失败混在一起。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/js/ui.js` | 调整跳过文件和导入错误的空状态与列表项文案 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充导入状态说明静态契约 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步导入状态说明变化 |
+
+### 关键行为
+
+- 本次只改前端导入状态文案，不改导入规则、文件大小限制、后端接口、数据库或可选 PDF 解析逻辑。
+- 跳过文件继续展示路径和原因；读取失败继续单独展示在导入错误列表。
+
+## 2026-05-23 | B-84 — Web 模型设置错误提示细分第一片
+
+### 目标
+
+让设置页连接测试失败时给出更贴近问题的恢复提示，避免把 API Key 未配置、鉴权失败和模型服务连接失败都归到泛化错误里。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/js/ui.js` | 在 `formatRecoverableError` 中补充模型 API Key 未配置、鉴权失败和模型服务连接失败的提示分类 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充模型设置错误提示静态契约，确认连接测试失败仍走 `setInlineErrorStatus` |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步模型设置错误提示细分行为 |
+
+### 关键行为
+
+- 本次只改前端错误提示映射，不改模型设置接口、API Key 存储方式、环境变量优先级或真实问答 fallback 行为。
+- 错误提示仍保留原始错误原因，再追加针对性的恢复建议。
+
+## 2026-05-22 | B-83 — Web 服务不可用错误兜底第一片
+
+### 目标
+
+补齐前端 API 层的服务不可用兜底：当本地服务断开、接口返回非 JSON 或 HTTP 异常没有可读错误体时，页面给出可恢复提示，而不是直接暴露浏览器网络或 JSON 解析错误。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/js/api.js` | 为 `apiGet` / `apiPost` 增加 fetch 错误归一化；`readJson` 对非 JSON 响应和无可读错误体的 HTTP 异常提供兜底文案 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充 API 层服务不可用、非 JSON 响应和 HTTP 异常兜底的静态契约 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步服务不可用错误兜底行为 |
+
+### 关键行为
+
+- 本次只改前端 API 错误解析，不改后端接口、请求参数、响应字段、数据库结构或导入规则。
+- 后端返回 `{ error }` 时仍保留原始业务错误，继续交给前端错误恢复提示补充下一步动作。
+
+## 2026-05-22 | B-82 — Web 错误提示可恢复化第一片
+
+### 目标
+
+让首次使用者遇到高频失败时不只看到原始错误原因，还能知道下一步该检查项目空间、资料或网络，降低卡在错误状态栏的概率。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/js/ui.js` | 新增统一可恢复错误格式化入口，针对目录不可访问、未选择文件夹、无可导入文件、未选择项目空间等错误补充下一步提示 |
+| 更新 | `webapp/static/js/app.js` | 将前端 `catch` 分支接入统一错误提示；模型设置状态行复用同一格式化逻辑 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充错误恢复提示静态契约，防止回退到裸 `error.message` |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步错误恢复提示行为 |
+
+### 关键行为
+
+- 本次只改前端错误展示，不改 API 路径、请求方式、响应字段、数据库结构或导入规则。
+- 错误提示会保留原始原因，再追加可恢复操作建议，避免吞掉后端返回的真实错误。
+
+## 2026-05-22 | B-81 — Web 首次使用空状态下一步提示
+
+### 目标
+
+让首次使用者看到空状态时知道下一步怎么做，避免停在“暂无文件 / 暂无来源 / 暂无检索结果 / 请先导入文件”的静态提示上。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/js/ui.js` | 为文件列表、回答来源、检索结果和评估题空状态补充下一步动作提示 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充空状态下一步提示的静态契约 |
+| 更新 | `README.md`、`docs/BACKLOG.md`、`CHANGELOG.md` | 同步空状态提示行为 |
+
+### 关键行为
+
+- 本次只改前端展示文本，不改 API、数据库、检索、问答或评估逻辑。
+- 空状态继续使用现有渲染结构，只替换用户可见提示文案。
+
+## 2026-05-22 | B-80 — Web 首次使用闭环文案与按钮状态
+
+### 目标
+
+降低非技术用户第一次使用 Web MVP 时的路径误解：明确从设置页创建项目空间、在资料库选择本机文件夹导入、回到工作台提问/评估，并避免关键异步操作被重复点击。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 首次使用卡片改为当前真实路径；导入按钮区分“选择本机文件夹导入”和“同步当前项目目录”；项目路径 placeholder 同时提示本机路径与 Docker `/workspace` |
+| 更新 | `webapp/static/js/app.js` | 新增 `withBusyButton`，为导入、浏览器导入、文本笔记、提问、评估、模型保存和模型测试提供运行中禁用与文案恢复 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充首次使用文案、导入按钮区分和 busy button 静态契约 |
+| 更新 | `README.md`、`README-Docker-Quickstart.txt`、`docs/guides/setup.md`、`docs/release/WEB_MVP_READINESS_2026-05-20.md` | 同步当前按钮名称、PDF 可选解析和首次使用路径 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md` | 记录本次首次使用闭环打磨 |
+
+### 关键行为
+
+- 本次不改后端接口、数据库 schema、导入规则或文件大小限制。
+- “选择本机文件夹导入”仍走浏览器授权上传；“同步当前项目目录”仍要求后端进程能访问项目空间路径。
+- 未配置模型时仍可使用本地片段回答；真实模型配置优先引导到 Web 设置页，而不是系统环境变量。
+
+## 2026-05-22 | B-79 — Web MVP 产品边界文档统一
+
+### 目标
+
+统一当前默认交付边界，避免需求、架构和发布文档继续把项目误描述为以 PySide6 桌面端为默认入口。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `docs/requirements/project-background-and-scope.md`、`docs/requirements/functional-modules.md` | 明确 Web MVP 是当前默认交付形态，PySide6 为 legacy 参考；同步当前已上线模块和非目标范围 |
+| 更新 | `docs/design/system-design-overview.md`、`docs/design/architecture-overview.md`、`docs/design/database-design.md`、`docs/design/permission-matrix.md` | 补充 Web MVP 运行链路、模块边界、默认 SQLite 表边界和单机本地权限边界 |
+| 更新 | `docs/README.md`、`docs/release/WEB_MVP_READINESS_2026-05-20.md` | 标注 2026-05-20 发布说明为历史快照，并补充 2026-05-22 后续能力索引 |
+| 更新 | `docs/BACKLOG.md`、`CHANGELOG.md` | 记录本次文档基线统一 |
+
+### 关键行为
+
+- 本次只同步文档，不修改代码、接口、数据库 schema 或前端行为。
+- 不删除 legacy PySide6 目录；后续任务默认优先维护 `webapp/`，除非需求明确要求迁移 legacy。
+
+## 2026-05-22 | B-78 — Web 检索复盘第一片
+
+### 目标
+
+把一次检索诊断保存为可回看的复盘记录，先形成“查询词 -> 检索参数 -> 命中来源 -> 来源质量 -> 人工备注”的最小闭环，为后续调参、补资料或评估页复盘打基础。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/models.py`、`webapp/storage.py` | 新增 `RetrievalReview` 模型和 `retrieval_reviews` SQLite 表，保存参数、命中快照、来源质量和备注 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/retrieval/reviews` 和 `GET /api/retrieval/reviews` |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 检索调试区新增保存复盘入口和最近复盘列表 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖复盘保存、空命中、错误参数、前端接线和文档契约 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/design/database-design.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步检索复盘能力和边界 |
+
+### 关键行为
+
+- 保存复盘时后端重新执行检索，不信任前端传回的命中结果。
+- 复盘只保存快照和人工备注，不自动调整检索权重、不执行 Agent 工具。
+- 本片不做评测集、Reranker、模型评分或评估页自动复盘。
+
+## 2026-05-22 | B-77 — Web 文本笔记导入第一片
+
+### 目标
+
+补齐来源导入的最小非文件入口：用户可以在资料库页直接录入文本笔记，让会议记录、临时想法或网页摘录进入当前项目空间，并参与后续检索和问答。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 新增 | `webapp/source_import.py` | 封装文本笔记导入规则，生成稳定 `note:` 虚拟来源和 `notes/*.txt` 相对路径 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/import/note`，校验项目、标题、正文和大小后返回当前文档列表 |
+| 更新 | `webapp/storage.py`、`webapp/ingestion.py`、`webapp/upload_import.py` | 目录同步和浏览器文件夹导入保留 `note:` 虚拟来源，避免误删手写笔记 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/projects.js`、`webapp/static/js/app.js` | 资料库页新增文本笔记导入表单和前端调用 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖笔记创建、同标题更新、校验失败、虚拟来源保留、前端接线和文档契约 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步文本笔记导入能力和边界 |
+
+### 关键行为
+
+- `/api/import/note` 使用 `project_id/title/content`，正文沿用单文件 1MB 上限。
+- 同一项目空间内相同标题生成相同 `note:` 来源，后续导入更新原记录，不创建重复文档。
+- `note:` 虚拟来源不对应磁盘文件；目录同步和浏览器文件夹导入不会删除这些笔记记录，也不会用同相对路径真实文件覆盖笔记。
+
+## 2026-05-22 | B-76 — Web RAG 检索调试与 PDF 可选解析第一片
+
+### 目标
+
+先补齐 RAG 可信度第一片：让工作台能展示检索命中、分数、临时参数和来源质量，同时让 Web MVP 在安装可选 PDF 解析器时能抽取 PDF 正文。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/search.py` | 检索支持临时关闭关键词/向量召回，并标记 `retrieval` 来源 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/search/debug`，`/api/answer` 返回 `source_quality` |
+| 更新 | `webapp/document_processing.py` | PDF 通过可选 `pymupdf` 抽取正文；缺少解析器、无文本或无效 PDF 均返回明确跳过原因 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 工作台新增检索调试面板，展示命中 chunk、分数、来源质量和上下文预览 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_document_processing.py`、`tests/test_webapp/test_frontend_static.py` | 覆盖调试接口、来源质量、PDF 可选解析和前端接线 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步检索调试、来源质量和 PDF 可选解析边界 |
+
+### 关键行为
+
+- `/api/search/debug` 仅用于本机调试，不持久化 RAG 参数。
+- `source_quality` 只提示来源充分度，不代表事实正确性评分。
+- `pymupdf` 是可选依赖；未安装时 PDF 仍按既有跳过原因处理。
+
+## 2026-05-22 | B-75 — Web 工具来源回填问答上下文
+
+### 目标
+
+让用户运行 `search_sources` 后，可以把该工具命中的来源片段显式带入下一轮问答，形成“检索工具 -> 问答上下文”的最小闭环，同时避免自动 Agent 编排和跨项目来源污染。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/storage.py` | 新增按 ID 读取 `agent_tool_runs` 的方法 |
+| 更新 | `webapp/api.py` | `/api/answer` 支持可选 `tool_run_id`，校验同项目成功 `search_sources` 后合并来源并返回 `tool_context` |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 前端保存最近 `search_sources` 运行 ID，下一轮提问携带并显示工具来源提示 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 覆盖工具来源回填、跨项目拒绝、前端接线和文档契约 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`CHANGELOG.md`、`docs/BACKLOG.md` | 同步工具来源回填边界 |
+
+### 关键行为
+
+- `/api/answer` 只接受同项目、成功状态、工具名为 `search_sources` 的 `tool_run_id`。
+- 工具来源片段会合并进本轮回答和 `sources`，并通过 `tool_context` 返回使用了哪个工具运行。
+- 前端只在用户运行来源检索工具后携带该上下文，不自动执行工具。
+
 ## 2026-05-22 | B-74 — Web Agent 工具运行历史
 
 ### 目标
@@ -1562,3 +2262,67 @@ src.desktop.views.main_window            ✅
 | B-31 | 新功能待补充专项测试 |
 
 <!-- 新条目追加在下方 -->
+
+## 2026-05-23 | B-106 — Web 回答质量反馈入口
+
+### 目标
+
+在回答下方提供“有用 / 无用 / 来源不准 / 需要更多上下文”反馈按钮，把反馈保存到本地用于后续人工复盘；不调用外部服务，不自动调整检索或模型参数。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/models.py`、`webapp/storage.py` | 新增 `AnswerFeedback` 模型和 `answer_feedback` SQLite 表 |
+| 更新 | `webapp/api.py` | 新增 `POST /api/answer/feedback`，校验项目、消息归属和 rating 枚举 |
+| 更新 | `webapp/static/index.html`、`webapp/static/js/qa.js`、`webapp/static/js/app.js`、`webapp/static/js/state.js`、`webapp/static/js/ui.js` | 回答区新增 4 个反馈按钮，提问成功后可保存本地反馈 |
+| 更新 | `tests/test_webapp/test_api.py`、`tests/test_webapp/test_frontend_static.py`、`tests/test_webapp/test_docs_contract.py` | 先补失败测试，再覆盖 API、前端接线和文档契约 |
+| 更新 | `docs/design/api-spec.md`、`docs/design/database-design.md`、`README.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步接口、数据库和用户可见行为 |
+
+### 关键行为
+
+- `rating` 只允许 `useful / not_useful / source_wrong / need_more_context`。
+- 项目或消息不存在返回 404；消息必须属于当前项目，跨项目消息按未找到处理。
+- 反馈只写入本地 SQLite，不调用外部服务，不替代检索复盘或自动调参。
+
+## 2026-05-23 | B-102 — Web 备份导出第一片
+
+### 目标
+
+提供当前项目空间的只读备份导出响应，先覆盖项目信息、文档元数据、聊天记录和模型配置摘要；不写文件、不新增数据库表、不导出 API Key。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/api.py` | 新增 `GET /api/export/project?project_id=...`，校验项目并组装导出响应 |
+| 更新 | `tests/test_webapp/test_api.py` | 补充成功导出、缺少项目 ID 和项目不存在测试 |
+| 更新 | `tests/test_webapp/test_docs_contract.py` | 补充导出接口文档契约 |
+| 更新 | `docs/design/api-spec.md`、`README.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步接口边界、用户可见行为和 backlog 状态 |
+
+### 关键行为
+
+- 成功响应为 `{"export":{"version":1,...}}`。
+- `documents` 只导出 `id`、`relative_path`、`source_path`、`checksum`、`updated_at`，不导出正文 `content`。
+- `settings_summary` 只包含 `provider`、`api_base`、`model`、`key_configured`，不包含 API Key 明文、掩码或来源字段。
+
+## 2026-05-23 | B-99 — Web 单文件上传导入第一片
+
+### 目标
+
+在浏览器文件夹导入之外，允许用户从资料库页直接选择一个或多个临时文件上传入库，适合 PDF、DOCX、Markdown 和少量文本资料；继续复用现有 `/api/import/upload`。
+
+### 变更文件
+
+| 操作 | 路径 | 内容 |
+|------|------|------|
+| 更新 | `webapp/static/index.html` | 资料库导入操作区新增“选择文件上传导入”按钮和非 `webkitdirectory` 文件输入 |
+| 更新 | `webapp/static/js/projects.js`、`webapp/static/js/app.js` | 新增单文件/多文件上传接线；有当前项目时带 `project_id`，无项目时创建 `browser-upload` 项目 |
+| 更新 | `tests/test_webapp/test_frontend_static.py` | 补充 B-99 前端静态契约测试 |
+| 更新 | `README.md`、`docs/design/api-spec.md`、`docs/BACKLOG.md`、`CHANGELOG.md`、`docs/DEVLOG.md` | 同步用户可见行为、接口用途说明和 backlog 状态 |
+
+### 关键行为
+
+- 单文件没有 `webkitRelativePath` 时，相对路径保留为文件名。
+- 文件上传复用现有文本、DOCX、PDF 读取逻辑和 `/api/import/upload`，不新增后端接口。
+- 现有“选择本机文件夹导入”入口和 `webkitdirectory` input 保持不变。
