@@ -5,7 +5,39 @@ from pathlib import Path
 from webapp.document_processing import process_local_file
 from webapp.import_rules import IGNORED_DIR_NAMES, TEXT_SUFFIXES
 from webapp.models import ImportResult
+from webapp.source_import import VIRTUAL_SOURCE_PREFIXES, virtual_source_relative_paths
 from webapp.storage import KnowledgeStore
+
+
+def preview_import_directory(store: KnowledgeStore, project_id: str, root_path: Path) -> dict[str, object]:
+    root = Path(root_path)
+    importable = 0
+    skipped = 0
+    skipped_details: list[dict[str, str]] = []
+    protected_relative_paths = virtual_source_relative_paths(store, project_id)
+
+    for path in sorted(root.rglob("*")):
+        if _is_in_ignored_dir(path, root):
+            continue
+        if not path.is_file():
+            continue
+        relative_path = _safe_relative_path(path, root)
+        if path.suffix.lower() not in TEXT_SUFFIXES:
+            skipped += 1
+            skipped_details.append({"path": relative_path, "reason": "unsupported file type"})
+            continue
+        if relative_path in protected_relative_paths:
+            skipped += 1
+            skipped_details.append({"path": relative_path, "reason": "reserved note path"})
+            continue
+        importable += 1
+
+    return {
+        "project_id": project_id,
+        "importable": importable,
+        "skipped": skipped,
+        "skipped_details": skipped_details,
+    }
 
 
 def import_directory(store: KnowledgeStore, project_id: str, root_path: Path) -> ImportResult:
@@ -18,9 +50,15 @@ def import_directory(store: KnowledgeStore, project_id: str, root_path: Path) ->
     errors: list[str] = []
     skipped_details: list[dict[str, str]] = []
     seen_paths: set[str] = set()
+    protected_relative_paths = virtual_source_relative_paths(store, project_id)
 
     for path in _iter_importable_files(root):
         if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+            continue
+        relative_path = _safe_relative_path(path, root)
+        if relative_path in protected_relative_paths:
+            skipped += 1
+            skipped_details.append({"path": relative_path, "reason": "reserved note path"})
             continue
         try:
             processed = process_local_file(path, root)
@@ -48,7 +86,11 @@ def import_directory(store: KnowledgeStore, project_id: str, root_path: Path) ->
             errors.append(f"{relative_path}: {exc}")
             skipped_details.append({"path": relative_path, "reason": str(exc)})
 
-    deleted = store.delete_documents_not_in(project_id, seen_paths)
+    deleted = store.delete_documents_not_in(
+        project_id,
+        seen_paths,
+        preserve_source_prefixes=VIRTUAL_SOURCE_PREFIXES,
+    )
     return ImportResult(
         imported=imported,
         skipped=skipped,

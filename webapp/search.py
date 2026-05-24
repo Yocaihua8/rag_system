@@ -14,22 +14,31 @@ def search_documents(
     query: str,
     limit: int = 5,
     embedding_client: EmbeddingClient | None = None,
+    use_keyword: bool = True,
+    use_vector: bool = True,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
-    query_vectors, _, _ = embed_with_fallback(
-        embedding_client or get_default_embedding_client(),
-        [query],
-    )
-    query_vector = query_vectors[0] if query_vectors else {}
+    query_vector = {}
+    if use_vector:
+        query_vectors, _, _ = embed_with_fallback(
+            embedding_client or get_default_embedding_client(),
+            [query],
+        )
+        query_vector = query_vectors[0] if query_vectors else {}
     vector_records = {
         str(record["chunk_id"]): record
         for record in store.list_chunk_vector_records(project_id)
     }
+    retrieval = _retrieval_label(use_keyword, use_vector)
     hits: list[SearchHit] = []
     for chunk in store.list_chunks(project_id):
-        keyword_score = _score(chunk.content, tokens, query)
+        keyword_score = _score(chunk.content, tokens, query) if use_keyword else 0.0
         vector_record = vector_records.get(chunk.id, {})
-        vector_score = cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
+        vector_score = (
+            cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
+            if use_vector
+            else 0.0
+        )
         score = keyword_score + vector_score
         hits.append(
             SearchHit(
@@ -39,7 +48,7 @@ def search_documents(
                 chunk=chunk,
                 keyword_score=keyword_score,
                 vector_score=vector_score,
-                retrieval="hybrid",
+                retrieval=retrieval,
                 vector_provider=str(vector_record.get("provider", "local")),
                 vector_model=str(vector_record.get("model", "hashing-96")),
             )
@@ -82,6 +91,16 @@ def _snippet(content: str, tokens: list[str], radius: int = 80) -> str:
 
 def _is_cjk(text: str) -> bool:
     return any("\u4e00" <= char <= "\u9fff" for char in text)
+
+
+def _retrieval_label(use_keyword: bool, use_vector: bool) -> str:
+    if use_keyword and use_vector:
+        return "hybrid"
+    if use_vector:
+        return "vector"
+    if use_keyword:
+        return "keyword"
+    return "disabled"
 
 
 def _chunk_index(hit: SearchHit) -> int:

@@ -6,7 +6,7 @@ from typing import Callable
 from urllib.request import Request, urlopen
 
 from src.config.settings import AppSettings, load_settings
-from webapp.models import ChatMessage, SearchHit
+from webapp.models import ChatMessage, PromptPreset, SearchHit
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,7 @@ class OpenAICompatibleChatClient:
         question: str,
         hits: list[SearchHit],
         history_messages: list[ChatMessage] | None = None,
+        prompt_preset: PromptPreset | None = None,
     ) -> str:
         if not self.is_configured():
             raise RuntimeError("LLM provider is not configured")
@@ -58,14 +59,11 @@ class OpenAICompatibleChatClient:
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "你是知识岛的本地项目资料助手。只基于用户提供的来源片段回答；"
-                        "如果来源不足，要明确说明缺口，不要编造。"
-                    ),
+                    "content": _build_system_prompt(prompt_preset),
                 },
                 {
                     "role": "user",
-                    "content": _build_user_prompt(question, hits, history_messages or []),
+                    "content": _build_user_prompt(question, hits, history_messages or [], prompt_preset),
                 },
             ],
             "temperature": self._config.temperature,
@@ -112,10 +110,25 @@ def _chat_completions_url(api_base: str) -> str:
     return f"{api_base.rstrip('/')}/chat/completions"
 
 
+def _build_system_prompt(prompt_preset: PromptPreset | None = None) -> str:
+    fixed_boundary = (
+        "你是知识岛的本地项目资料助手。只基于用户提供的来源片段回答；"
+        "如果来源不足，要明确说明缺口，不要编造。"
+    )
+    if not prompt_preset:
+        return fixed_boundary
+    return (
+        fixed_boundary
+        + "\n\n当前项目 Prompt 预设：\n"
+        + prompt_preset.system_prompt.strip()
+    )
+
+
 def _build_user_prompt(
     question: str,
     hits: list[SearchHit],
     history_messages: list[ChatMessage] | None = None,
+    prompt_preset: PromptPreset | None = None,
 ) -> str:
     history_messages = history_messages or []
     history_lines = []
@@ -133,11 +146,15 @@ def _build_user_prompt(
     history_section = ""
     if history_lines:
         history_section = "最近对话：\n" + "\n\n".join(history_lines) + "\n\n"
+    answer_format_section = ""
+    if prompt_preset and prompt_preset.answer_format.strip():
+        answer_format_section = f"\n\n回答格式要求：\n{prompt_preset.answer_format.strip()}"
     return (
         history_section
         + "当前问题：\n"
         f"{question.strip()}\n\n"
         "来源片段：\n"
         + "\n\n".join(sources)
+        + answer_format_section
         + "\n\n请用中文回答，并在答案里点明依据来自哪些文件。"
     )

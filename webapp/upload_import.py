@@ -6,6 +6,7 @@ from typing import Any
 from webapp.document_processing import process_uploaded_file
 from webapp.import_rules import IGNORED_DIR_NAMES
 from webapp.models import ImportResult, Project
+from webapp.source_import import VIRTUAL_SOURCE_PREFIXES, virtual_source_relative_paths
 from webapp.storage import KnowledgeStore
 
 
@@ -25,6 +26,7 @@ def import_uploaded_files(
     errors: list[str] = []
     skipped_details: list[dict[str, str]] = []
     seen_paths: set[str] = set()
+    protected_relative_paths = virtual_source_relative_paths(store, project.id)
 
     for entry in files:
         raw_path = str(entry.get("relative_path", ""))
@@ -36,6 +38,10 @@ def import_uploaded_files(
         if _is_in_ignored_dir(clean_path):
             skipped += 1
             skipped_details.append({"path": clean_path, "reason": "ignored directory"})
+            continue
+        if clean_path in protected_relative_paths:
+            skipped += 1
+            skipped_details.append({"path": clean_path, "reason": "reserved note path"})
             continue
         processed = process_uploaded_file(clean_path, entry)
         if not processed.is_importable:
@@ -54,7 +60,11 @@ def import_uploaded_files(
             unchanged += 1
         imported += 1
 
-    deleted = store.delete_documents_not_in(project.id, seen_paths)
+    deleted = store.delete_documents_not_in(
+        project.id,
+        seen_paths,
+        preserve_source_prefixes=VIRTUAL_SOURCE_PREFIXES,
+    )
     return ImportResult(
         imported=imported,
         skipped=skipped,

@@ -1,8 +1,11 @@
 import base64
+import sys
+import types
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from webapp.api import dispatch
+from webapp.document_processing import process_bytes
 from webapp.storage import KnowledgeStore
 
 
@@ -51,7 +54,8 @@ def test_upload_import_accepts_docx_base64_payload(tmp_path: Path):
     assert "二进制文档内容" in preview.body["document"]["content"]
 
 
-def test_pdf_import_is_skipped_with_explicit_reason(tmp_path: Path):
+def test_pdf_import_is_skipped_with_explicit_reason_when_parser_is_missing(tmp_path: Path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "pymupdf", None)
     project_dir = tmp_path / "project"
     project_dir.mkdir()
     (project_dir / "manual.pdf").write_bytes(b"%PDF-1.4\n% minimal placeholder")
@@ -66,6 +70,86 @@ def test_pdf_import_is_skipped_with_explicit_reason(tmp_path: Path):
     assert response.body["result"]["skipped_details"] == [
         {"path": "manual.pdf", "reason": "pdf extraction requires optional parser"}
     ]
+
+
+def test_pdf_bytes_extract_text_when_pymupdf_is_available(monkeypatch):
+    class FakePage:
+        def __init__(self, text: str):
+            self.text = text
+
+        def get_text(self, _kind: str, sort: bool = False) -> str:
+            assert sort is True
+            return self.text
+
+    class FakeDocument:
+        def __enter__(self):
+            return [FakePage("第一页内容"), FakePage("第二页内容")]
+
+        def __exit__(self, *_args):
+            return None
+
+    fake_pymupdf = types.SimpleNamespace(open=lambda *args, **kwargs: FakeDocument())
+    monkeypatch.setitem(sys.modules, "pymupdf", fake_pymupdf)
+
+    processed = process_bytes("manual.pdf", b"%PDF-1.4")
+
+    assert processed.is_importable
+    assert processed.content == "第一页内容\n\n第二页内容"
+
+
+def test_directory_import_persists_pdf_text_when_pymupdf_is_available(tmp_path: Path, monkeypatch):
+    _install_fake_pymupdf(monkeypatch, ["PDF 项目背景", "PDF 正文片段"])
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    (project_dir / "manual.pdf").write_bytes(b"%PDF-1.4")
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+
+    response = dispatch(store, "POST", "/api/import", {"project_id": project.id})
+    documents = store.list_documents(project.id)
+
+    assert response.status == 200
+    assert response.body["result"]["imported"] == 1
+    assert documents[0].relative_path == "manual.pdf"
+    assert "PDF 正文片段" in documents[0].content
+
+
+def test_pdf_bytes_skip_when_parser_returns_no_text(monkeypatch):
+    _install_fake_pymupdf(monkeypatch, ["", "   "])
+
+    processed = process_bytes("manual.pdf", b"%PDF-1.4")
+
+    assert not processed.is_importable
+    assert processed.skipped_reason == "no extractable text"
+
+
+def test_pdf_bytes_keep_explicit_skip_reason_when_pymupdf_is_missing(monkeypatch):
+    monkeypatch.setitem(sys.modules, "pymupdf", None)
+
+    processed = process_bytes("manual.pdf", b"%PDF-1.4")
+
+    assert not processed.is_importable
+    assert processed.skipped_reason == "pdf extraction requires optional parser"
+
+
+def _install_fake_pymupdf(monkeypatch, page_texts: list[str]) -> None:
+    class FakePage:
+        def __init__(self, text: str):
+            self.text = text
+
+        def get_text(self, _kind: str, sort: bool = False) -> str:
+            assert sort is True
+            return self.text
+
+    class FakeDocument:
+        def __enter__(self):
+            return [FakePage(text) for text in page_texts]
+
+        def __exit__(self, *_args):
+            return None
+
+    fake_pymupdf = types.SimpleNamespace(open=lambda *args, **kwargs: FakeDocument())
+    monkeypatch.setitem(sys.modules, "pymupdf", fake_pymupdf)
 
 
 def _write_docx(path: Path, paragraphs: list[str]) -> None:

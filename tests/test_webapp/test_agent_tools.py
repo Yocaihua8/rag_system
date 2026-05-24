@@ -17,6 +17,31 @@ def test_agent_tools_api_lists_readonly_tools(tmp_path: Path):
     assert all(tool["read_only"] is True for tool in response.body["tools"])
 
 
+def test_agent_tools_api_returns_tool_metadata_for_readonly_whitelist(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch(store, "GET", "/api/agent/tools")
+
+    assert response.status == 200
+    tools = {tool["name"]: tool for tool in response.body["tools"]}
+    assert set(tools) == {"project_overview", "search_sources"}
+    for tool in tools.values():
+        assert tool["label"]
+        assert tool["description"]
+        assert isinstance(tool["parameters_schema"], dict)
+        assert tool["parameters_schema"]["type"] == "object"
+        assert tool["result_summary"]
+        assert tool["use_cases"]
+        assert "shell" not in tool["use_cases"]
+        assert "文件写入" not in tool["use_cases"]
+        assert "网络抓取" not in tool["use_cases"]
+
+    assert tools["project_overview"]["parameters_schema"]["properties"] == {}
+    assert tools["project_overview"]["parameters_schema"]["additionalProperties"] is False
+    assert tools["search_sources"]["parameters_schema"]["required"] == ["query"]
+    assert tools["search_sources"]["parameters_schema"]["properties"]["query"]["type"] == "string"
+
+
 def test_agent_project_overview_tool_returns_counts_and_records_audit(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()

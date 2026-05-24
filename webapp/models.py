@@ -38,7 +38,7 @@ class Document:
         data = {
             "id": self.id,
             "project_id": self.project_id,
-            "source_path": str(self.source_path),
+            "source_path": self.source_path.as_posix(),
             "relative_path": self.relative_path,
             "checksum": self.checksum,
             "updated_at": self.updated_at,
@@ -110,6 +110,48 @@ class AnswerResult:
 
 
 @dataclass(frozen=True)
+class ChatSession:
+    id: str
+    project_id: str
+    title: str
+    created_at: str
+    updated_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "title": self.title,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass(frozen=True)
+class PromptPreset:
+    id: str
+    project_id: str
+    name: str
+    description: str
+    system_prompt: str
+    answer_format: str
+    created_at: str
+    updated_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "name": self.name,
+            "description": self.description,
+            "system_prompt": self.system_prompt,
+            "answer_format": self.answer_format,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass(frozen=True)
 class ChatMessage:
     id: str
     project_id: str
@@ -120,6 +162,7 @@ class ChatMessage:
     warning: str
     sources: list[dict[str, Any]]
     created_at: str
+    session_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -131,6 +174,27 @@ class ChatMessage:
             "provider": self.provider,
             "warning": self.warning,
             "sources": self.sources,
+            "created_at": self.created_at,
+            "session_id": self.session_id,
+        }
+
+
+@dataclass(frozen=True)
+class AnswerFeedback:
+    id: str
+    project_id: str
+    message_id: str
+    rating: str
+    note: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "message_id": self.message_id,
+            "rating": self.rating,
+            "note": self.note,
             "created_at": self.created_at,
         }
 
@@ -155,6 +219,31 @@ class AgentToolRun:
             "result": self.result,
             "status": self.status,
             "error": self.error,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
+class RetrievalReview:
+    id: str
+    project_id: str
+    query: str
+    parameters: dict[str, Any]
+    hits: list[dict[str, Any]]
+    source_quality: dict[str, Any]
+    note: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "query": self.query,
+            "parameters": self.parameters,
+            "hits": self.hits,
+            "hit_count": len(self.hits),
+            "source_quality": self.source_quality,
+            "note": self.note,
             "created_at": self.created_at,
         }
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from webapp.llm import get_default_llm_client
-from webapp.models import AnswerResult, ChatMessage, SearchHit
+from webapp.models import AnswerResult, ChatMessage, PromptPreset, SearchHit
 
 
 class LlmAnswerClient(Protocol):
@@ -14,6 +14,7 @@ class LlmAnswerClient(Protocol):
         question: str,
         hits: list[SearchHit],
         history_messages: list[ChatMessage] | None = None,
+        prompt_preset: PromptPreset | None = None,
     ) -> str:
         ...
 
@@ -23,6 +24,7 @@ def compose_answer(
     hits: list[SearchHit],
     llm_client: LlmAnswerClient | None = None,
     history_messages: list[ChatMessage] | None = None,
+    prompt_preset: PromptPreset | None = None,
 ) -> AnswerResult:
     useful_hits = [hit for hit in hits if hit.score > 0]
     if not useful_hits:
@@ -36,7 +38,15 @@ def compose_answer(
     if client is not None:
         provider = getattr(client, "provider", "api")
         try:
-            answer = client.generate_answer(question, useful_hits[:5], history_messages or [])
+            if prompt_preset is not None:
+                answer = client.generate_answer(
+                    question,
+                    useful_hits[:5],
+                    history_messages or [],
+                    prompt_preset=prompt_preset,
+                )
+            else:
+                answer = client.generate_answer(question, useful_hits[:5], history_messages or [])
             if answer.strip():
                 return AnswerResult(answer=answer.strip(), mode="api", provider=provider)
         except Exception as exc:

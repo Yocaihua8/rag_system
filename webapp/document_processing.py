@@ -77,10 +77,31 @@ def process_uploaded_file(relative_path: str, entry: dict) -> ProcessedDocument:
 def process_bytes(relative_path: str, data: bytes) -> ProcessedDocument:
     suffix = PurePosixPath(relative_path).suffix.lower()
     if suffix == ".pdf":
-        return ProcessedDocument(relative_path, skipped_reason=PDF_SKIP_REASON)
+        return _process_pdf_bytes(relative_path, data)
     if suffix == ".docx":
         return _process_docx_bytes(relative_path, data)
     content = data.decode("utf-8", errors="ignore")
+    return ProcessedDocument(relative_path, content=content)
+
+
+def _process_pdf_bytes(relative_path: str, data: bytes) -> ProcessedDocument:
+    try:
+        import pymupdf
+    except ImportError:
+        return ProcessedDocument(relative_path, skipped_reason=PDF_SKIP_REASON)
+
+    try:
+        with pymupdf.open(stream=data, filetype="pdf") as document:
+            pages = [
+                page.get_text("text", sort=True).strip()
+                for page in document
+            ]
+    except Exception:
+        return ProcessedDocument(relative_path, skipped_reason=INVALID_BINARY_CONTENT_REASON)
+
+    content = "\n\n".join(page for page in pages if page).strip()
+    if not content:
+        return ProcessedDocument(relative_path, skipped_reason=EMPTY_TEXT_REASON)
     return ProcessedDocument(relative_path, content=content)
 
 
