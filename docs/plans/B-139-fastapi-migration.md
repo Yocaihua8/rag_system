@@ -27,7 +27,7 @@
 - [x] 新增 FastAPI + Uvicorn 依赖，并把 `webapp/server.py` 迁移为 FastAPI app + 兼容 dispatch 入口
 - [x] 将 `app.py` 启动入口改为 Uvicorn，并保持 `python app.py` 本地启动方式
 - [x] 同步正式文档：架构、API、setup/testing、CHANGELOG/devlog 中与 B-139 直接相关的说明
-- [ ] 运行 Web MVP 与 legacy 回归验证，修复仅由 B-139 引入的回归
+- [x] 运行 Web MVP 与 legacy 回归验证，修复仅由 B-139 引入的回归
 - [ ] 完成回流清单，删除本 plan，并将 B-139 状态改为 `done`
 
 ## 4. 影响范围
@@ -69,13 +69,13 @@
 
 全部勾选后方可删除本 plan 文件：
 
-- [ ] `python app.py` 能通过 Uvicorn 启动本地 Web 服务
-- [ ] `/api/health` 返回 `{"status":"ok"}`
-- [ ] `/api/answer/stream` 继续返回 `text/event-stream`，事件名保持 `token/done/answer_error`
-- [ ] `webapp/static/` 在 B-141 前继续可访问
-- [ ] `storage.py` 和数据库 schema 未因 B-139 修改
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）
-- [ ] 相关文档已同步（见下方"回流清单"）
+- [x] `python app.py` 能通过 Uvicorn 启动本地 Web 服务
+- [x] `/api/health` 返回 `{"status":"ok"}`
+- [x] `/api/answer/stream` 继续返回 `text/event-stream`，事件名保持 `token/done/answer_error`
+- [x] `webapp/static/` 在 B-141 前继续可访问
+- [x] `storage.py` 和数据库 schema 未因 B-139 修改
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）
+- [x] 相关文档已同步（见下方"回流清单"）
 - [ ] BACKLOG 条目 `B-139` 状态已更新为 `done`
 
 ## 7. 回流清单
@@ -100,12 +100,13 @@
 - 2026-05-26：新增 `tests/test_webapp/test_app_entrypoint.py` 后先红灯失败于根入口未导出 ASGI `app`，再让 `app.py` 暴露 `webapp.server.app` 并保留 `python app.py`。
 - 2026-05-26：Dockerfile 约束测试先红灯失败于缺少 FastAPI 运行依赖，再补充 Docker 镜像内安装 `fastapi` 与 `uvicorn[standard]`。
 - 2026-05-26：同步 AGENTS、README、architecture、api-spec、setup、testing、CHANGELOG 和 devlog 中与 B-139 直接冲突的技术栈说明。
+- 2026-05-26：验证通过 Web MVP 全量、legacy 回归、Docker Compose config、空白检查和本地 Uvicorn 启动健康检查。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 15:17
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`d08390b` — fix: 补充 Docker FastAPI 运行依赖
+- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`9966235` — docs: 同步 FastAPI 运行时说明
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-139 将只追加相关变更
-- **下一步**：运行 Web MVP 与 legacy 回归验证，修复仅由 B-139 引入的回归
+- **下一步**：完成回流清单，删除本 plan，并将 B-139 状态改为 `done`
 - **续任务须知**：B-139 不包含认证中间件和 Vue 前端工程化；不要修改 `src/` legacy 代码或数据库 schema
