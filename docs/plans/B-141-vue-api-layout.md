@@ -38,7 +38,7 @@
 - [x] 拆分 `AppShell`、基础 views，并让 `App.vue` 使用 Vue 状态完成四视图切换和健康检查
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141B 说明
 - [x] 运行 npm 构建、前端工程测试、Web MVP 全量、legacy 回归和空白检查
-- [ ] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141C 页面迁移
+- [x] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141C 页面迁移
 
 ## 4. 影响范围
 
@@ -73,12 +73,12 @@
 
 ## 6. 完成标准
 
-- [ ] Vue 前端存在 API helper，错误提示与 legacy 前端保持同类恢复提示。
-- [ ] Vue 前端存在共享状态模型，包含当前项目、会话、文档、评估、工具、检索等后续迁移所需字段。
-- [ ] Vue 前端基础布局包含工作台、资料库、评估、设置四个视图和导航切换。
-- [ ] B-141B 不实现完整业务流程，不删除 legacy `webapp/static/`。
-- [ ] `npm run build` 通过。
-- [ ] 相关测试与文档同步完成。
+- [x] Vue 前端存在 API helper，错误提示与 legacy 前端保持同类恢复提示。
+- [x] Vue 前端存在共享状态模型，包含当前项目、会话、文档、评估、工具、检索等后续迁移所需字段。
+- [x] Vue 前端基础布局包含工作台、资料库、评估、设置四个视图和导航切换。
+- [x] B-141B 不实现完整业务流程，不删除 legacy `webapp/static/`。
+- [x] `npm run build` 通过。
+- [x] 相关测试与文档同步完成。
 
 ## 7. 回流清单
 
@@ -103,12 +103,13 @@
 - 2026-05-26：新增 `AppShell` 和四个基础 view，`App.vue` 使用共享状态完成导航切换并通过 Vue source 测试与 `npm run build`。
 - 2026-05-26：同步功能文档、架构、测试指南、CHANGELOG 和 devlog 中的 B-141B API/state/layout 说明。
 - 2026-05-26：验证通过：`npm run build`、Vue 前端工程测试、Web MVP 全量、legacy 回归、docs contract、`git diff --check`；Chrome headless dump DOM 确认 Vue 构建页非空并包含四个主视图导航。
+- 2026-05-26：B-141B 已完成；BACKLOG B-141 保持 `doing`，下一步进入 B-141C 页面级业务迁移。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-26 16:58
-- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`a06d1df` — docs: 同步 B-141B Vue 基础说明
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141B 将只追加 Vue API/state/layout 相关变更
-- **下一步**：更新 plan 完成快照，保留 BACKLOG B-141 为 `doing`，下一步指向 B-141C 页面迁移
-- **续任务须知**：不删除 `webapp/static/`，不迁移完整业务流程，不修改数据库 schema，不新增 Pinia/Vue Router
+- **最后更新**：2026-05-26 16:59
+- **进度**：已完成 8 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`75a8654` — docs: 记录 B-141B 验证结果
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141B 相关变更已完成
+- **下一步**：B-141C：选择第一个业务页面或流程迁移到 Vue，开始前重新确认影响范围并创建/更新对应 plan
+- **续任务须知**：B-141C 仍不得删除 `webapp/static/`，不得迁移无关业务流程，不修改数据库 schema，不新增 Pinia/Vue Router
