@@ -129,6 +129,57 @@ select {
   line-height: 1.7;
 }
 
+.section-title-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+}
+
+.project-space-panel {
+  border-top: 1px solid #d9e2ec;
+  display: grid;
+  gap: 18px;
+  padding-top: 24px;
+}
+
+.project-space-panel h2 {
+  font-size: 20px;
+}
+
+.project-form,
+.field-block {
+  display: grid;
+  gap: 8px;
+}
+
+.project-form {
+  border-top: 1px solid #edf2f7;
+  margin-top: 6px;
+  padding-top: 20px;
+}
+
+.project-form label {
+  color: #52616f;
+  display: grid;
+  gap: 8px;
+}
+
+input,
+select {
+  border: 1px solid #c8d5df;
+  border-radius: 6px;
+  color: #17202a;
+  min-height: 42px;
+  padding: 9px 11px;
+}
+
+input:focus,
+select:focus {
+  border-color: #0e7c70;
+  outline: 3px solid rgba(14, 124, 112, 0.16);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -155,6 +206,16 @@ button:focus-visible {
 
 .status {
   color: #52616f;
+}
+
+.status-line,
+.muted-line {
+  color: #52616f;
+  margin: 0;
+}
+
+.status-line.error {
+  color: #b42318;
 }
 
 @media (max-width: 760px) {

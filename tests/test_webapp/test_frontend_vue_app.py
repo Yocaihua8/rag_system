@@ -70,7 +70,6 @@ def test_vue_layout_components_define_four_primary_views():
 def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     view_files = {
         "frontend/src/views/WorkbenchView.vue": ["项目问答", "后续迁移问答、来源、Agent 工具和检索调试"],
-        "frontend/src/views/LibraryView.vue": ["资料库", "后续迁移项目空间、文件导入、文档集合和批次历史"],
         "frontend/src/views/AssessmentView.vue": ["评估", "后续迁移出题、作答、结果概览和待复测列表"],
         "frontend/src/views/SettingsView.vue": ["设置", "后续迁移模型设置、模型 Profile 和 Prompt 预设"],
     }
@@ -80,6 +79,11 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
         for marker in markers:
             assert marker in view_text
         assert "B-141B" in view_text
+
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+    assert "资料库" in library_vue
+    assert "ProjectSpacePanel" in library_vue
+    assert "B-141C" in library_vue
 
 
 def test_vue_project_api_helper_preserves_project_selection_contract():
