@@ -109,7 +109,7 @@
 
 - **最后更新**：2026-05-26 17:09
 - **进度**：已完成 3 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`a8a3f25` — docs: 更新 B-141C 红灯测试快照
+- **最新 commit**：`f112f9b` — feat: 新增 Vue 项目空间 API
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141C 将只追加 Vue 项目空间相关变更
 - **下一步**：新增 `ProjectSpacePanel` 并接入 `LibraryView`，展示项目列表、当前目录状态、错误/空状态和新建项目表单
 - **续任务须知**：不删除 `webapp/static/`，不迁移导入/问答/评估/设置完整流程，不修改数据库 schema，不新增 Pinia/Vue Router
