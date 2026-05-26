@@ -65,7 +65,7 @@
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 里程碑 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|--------|----------|------|
 | B-139 | tech-debt | FastAPI 替代 stdlib HTTP | done | P1 | L | v1.0.0 | RAG 团队 | docs/adr/ADR-001-fastapi-migration.md | 已完成：路由层迁移至 FastAPI + Uvicorn；storage.py 不变；SSE 改为 StreamingResponse；见 ADR-001 |
-| B-140 | feature | 认证中间件（JWT / API Key） | doing | P1 | M | v1.0.0 | RAG 团队 | docs/adr/ADR-005-remote-auth.md | 多客户端远程访问前置安全依赖；API Key + 短期 JWT；不改数据库 schema；plan: docs/plans/B-140-auth-middleware.md |
+| B-140 | feature | 认证中间件（JWT / API Key） | done | P1 | M | v1.0.0 | RAG 团队 | docs/adr/ADR-005-remote-auth.md | 已完成：可选启用 API Key + 短期 JWT；保护 `/api/*`、`/docs`、`/redoc`、`/openapi.json`；不改数据库 schema |
 | B-141 | feature | Vue 3 + Vite 前端工程化 | todo | P1 | XL | v1.0.0 | RAG 团队 | docs/design/architecture-overview.md | 前后端分离：新建 frontend/ 目录，迁移 webapp/static/；B-139 完成后开始；ADR-006 代码实施 |
 | B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
 | B-125 | feature | Reranker 重排序接入 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/architecture-overview.md | 向量检索 top_k 候选后增加 Cross-Encoder reranker；优先对接 Cohere Rerank API（可选依赖），本地 cross-encoder 作为后备；预估 5 天 |
