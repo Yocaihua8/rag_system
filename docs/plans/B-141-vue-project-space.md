@@ -111,7 +111,7 @@
 
 - **最后更新**：2026-05-26 17:13
 - **进度**：已完成 5 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`52d25a7` — docs: 更新 B-141C 面板快照
+- **最新 commit**：`6dd376f` — feat: 接入 Vue 项目空间加载
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141C 将只追加 Vue 项目空间相关变更
 - **下一步**：同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141C 说明
 - **续任务须知**：不删除 `webapp/static/`，不迁移导入/问答/评估/设置完整流程，不修改数据库 schema，不新增 Pinia/Vue Router
