@@ -353,7 +353,7 @@ def test_vue_document_import_panel_renders_note_and_url_forms():
         "网页正文或摘要",
         "导入 URL 摘录",
         "未选择项目空间",
-        'defineEmits(["import-note", "import-url", "import-files", "import-folder"])',
+        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory"])',
     ]:
         assert marker in panel_vue
 
@@ -554,7 +554,7 @@ def test_vue_document_import_panel_renders_browser_folder_picker_separately_from
         'ref="folderInput"',
         "webkitdirectory",
         '@change="submitFolder"',
-        'defineEmits(["import-note", "import-url", "import-files", "import-folder"])',
+        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory"])',
     ]:
         assert marker in panel_vue
 
@@ -578,4 +578,42 @@ def test_vue_app_handles_browser_folder_upload_response_and_refreshes_library():
     assert "appState.documents = data.documents || []" in app_vue
     assert "浏览器文件夹导入完成" in app_vue
     assert "await loadProjectSpaces()" in app_vue
+    assert "await loadImportBatches()" in app_vue
+
+
+def test_vue_import_api_helper_uses_existing_directory_sync_contract():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    assert "export async function syncProjectDirectory({ projectId })" in imports_js
+    assert 'throw new Error("请先创建或选择项目空间")' in imports_js
+    assert 'apiPost("/api/import", {' in imports_js
+    assert "project_id: projectId" in imports_js
+
+
+def test_vue_document_import_panel_renders_directory_sync_button_for_selected_project():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "同步当前项目目录",
+        "sync-directory",
+        ":disabled=\"importSubmitting || !selectedProjectId\"",
+        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory"])',
+    ]:
+        assert marker in panel_vue
+
+    assert "@sync-directory" in library_vue
+
+
+def test_vue_app_handles_directory_sync_response_and_refreshes_library():
+    app_vue = _read("frontend/src/App.vue")
+
+    assert "syncProjectDirectory" in app_vue
+    assert "handleSyncDirectory" in app_vue
+    assert "@sync-directory=\"handleSyncDirectory\"" in app_vue
+    assert "syncProjectDirectory({" in app_vue
+    assert "projectId: appState.selectedProjectId" in app_vue
+    assert "appState.documents = data.documents || []" in app_vue
+    assert "同步当前项目目录完成" in app_vue
+    assert "await loadLibraryDocuments()" in app_vue
     assert "await loadImportBatches()" in app_vue
