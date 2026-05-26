@@ -40,7 +40,7 @@
 - [x] 扩展 `frontend/src/api/imports.js`，复用既有导入批次历史接口并处理未选择项目空间、未选择批次
 - [x] 新增 `ImportBatchHistoryPanel`，展示批次列表、详情、空态、加载态、错误态和只读边界
 - [x] 更新 `LibraryView.vue` 与 `App.vue`，在项目切换和导入成功后刷新批次历史，点击批次读取详情
-- [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141G 说明
+- [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141G 说明
 - [ ] 完成验证、提交 B-141G，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
@@ -106,12 +106,12 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141G 导入批次历史迁移边界 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue import batch helper 和资料库批次组件边界 | `docs/design/architecture-overview.md` | [ ] |
-| B-141G Vue source/static contract 测试命令 | `docs/guides/testing.md` | [ ] |
-| 对外变更摘要 | `CHANGELOG.md` | [ ] |
-| 实施记录 | `docs/devlog/2026-05-26.md` | [ ] |
-| B-141 仍处于 doing，等待后续页面迁移 | `docs/BACKLOG.md` | [ ] |
+| B-141G 导入批次历史迁移边界 | `docs/features/frontend-engineering.md` | [x] |
+| Vue import batch helper 和资料库批次组件边界 | `docs/design/architecture-overview.md` | [x] |
+| B-141G Vue source/static contract 测试命令 | `docs/guides/testing.md` | [x] |
+| 对外变更摘要 | `CHANGELOG.md` | [x] |
+| 实施记录 | `docs/devlog/2026-05-26.md` | [x] |
+| B-141 仍处于 doing，等待后续页面迁移 | `docs/BACKLOG.md` | [x] |
 
 ## 8. 执行记录
 
@@ -121,12 +121,13 @@
 - 2026-05-26：创建 `docs/plans/B-141-vue-import-batch-history.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-26：确认 B-141G 红灯为 3 failed / 16 passed，失败点集中在缺少 import batch API helper、ImportBatchHistoryPanel 和 App 批次状态接入。
 - 2026-05-26：新增 Vue 导入批次历史 helper、只读面板和 App/Library 接入，聚焦测试 19 passed。
+- 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141G 边界。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`13ed879` — `test: 覆盖 Vue 导入批次历史入口`
+- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`a1ac76e` — `feat: 接入 Vue 导入批次历史入口`
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库导入批次历史相关变更
-- **下一步**：同步 B-141G 功能文档、架构说明、测试指南、CHANGELOG 和 devlog
+- **下一步**：完成 B-141G 完整验证并提交收尾快照
 - **续任务须知**：B-141G 不删除 `webapp/static/`，不迁移目录同步/文件上传/预检/回滚/删除/重试/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

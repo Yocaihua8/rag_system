@@ -15,6 +15,7 @@
 - **Vue 工作台问答薄片**：工作台视图新增非流式问题输入、回答展示、来源列表和来源质量摘要，复用既有 `/api/answer` 契约
 - **Vue 资料库文档浏览薄片**：资料库视图新增当前项目文档列表和单文档正文预览，复用既有 `/api/documents` 与 `/api/document` 契约
 - **Vue 资料库轻量导入薄片**：资料库视图新增文本笔记导入和 URL 摘录导入，复用既有 `/api/import/note` 与 `/api/import/url` 契约
+- **Vue 资料库导入批次历史薄片**：资料库视图新增导入批次列表和只读详情，复用既有 `/api/import/batches` 与 `/api/import/batches/detail` 契约
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
 - **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
