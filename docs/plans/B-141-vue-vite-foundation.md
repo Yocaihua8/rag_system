@@ -37,7 +37,7 @@
 - [x] 新建 `frontend/` Vue 3 + Vite 最小工程与根 `package.json` / `package-lock.json`
 - [x] 修改 `webapp/server.py`，优先服务 `webapp/static_dist/`，缺失时回退 `webapp/static/`
 - [x] 同步架构、setup、testing、CHANGELOG、devlog 中的 B-141A 说明
-- [ ] 运行 npm 构建、Web MVP 聚焦测试、legacy 回归和空白检查
+- [x] 运行 npm 构建、Web MVP 聚焦测试、legacy 回归和空白检查
 - [ ] 更新 plan 状态快照，保留 B-141 为 `doing`，下一步指向 B-141B
 
 ## 4. 影响范围
@@ -103,12 +103,13 @@
 - 2026-05-26：新增 `frontend/` 最小 Vue 应用、根 `package.json`、`package-lock.json` 和 Vite 配置；`npm run build` 可生成 `webapp/static_dist/`，构建产物按 `.gitignore` 不入库。
 - 2026-05-26：`webapp/server.py` 改为优先服务 `webapp/static_dist/`，构建产物缺失时回退 `webapp/static/`；前端工程与 FastAPI/auth 聚焦测试通过。
 - 2026-05-26：同步 AGENTS、架构、setup、testing、CHANGELOG 和 devlog 中的 Vue/Vite 骨架与静态服务策略说明。
+- 2026-05-26：`npm run build` 成功；Web MVP 全量 271 passed，legacy 回归 179 passed，文档契约 22 passed；`git diff --check` 退出码 0（仅既有 CRLF 提示）。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 16:17
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`60abe1f` — feat: 支持服务 Vite 构建产物
+- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`30b540f` — docs: 同步 B-141A 前端工程化说明
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141A 将只追加前端工程化相关变更
-- **下一步**：运行 npm 构建、Web MVP 聚焦测试、legacy 回归和空白检查
+- **下一步**：更新 plan 状态快照，保留 B-141 为 `doing`，下一步指向 B-141B
 - **续任务须知**：B-141A 不删除 `webapp/static/`，不迁移完整业务 UI，不修改数据库 schema
