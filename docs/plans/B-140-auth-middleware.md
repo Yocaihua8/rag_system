@@ -32,7 +32,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 补 ADR-005、认证功能文档、B-140 plan，并将 BACKLOG 状态更新为 `doing`
-- [ ] 先写 `webapp/auth.py` 红灯测试，覆盖认证配置、API Key 校验、JWT 签发与验证
+- [x] 先写 `webapp/auth.py` 红灯测试，覆盖认证配置、API Key 校验、JWT 签发与验证
 - [ ] 实现 `webapp/auth.py` 的最小认证工具函数并通过聚焦测试
 - [ ] 先写 FastAPI 中间件红灯测试，覆盖默认关闭、启用后 401、API Key 放行、JWT 放行、docs 保护
 - [ ] 在 `webapp/server.py` 接入认证中间件和 `POST /api/auth/token`
@@ -105,12 +105,13 @@
 
 - 2026-05-26 15:45：用户确认 B-140 采用“可选启用的单用户认证：API Key + 短期 JWT，不改数据库 schema，不做登录页”。
 - 2026-05-26 15:45：冲突扫描发现 `docs/superpowers/plans/` 下存在历史计划文件，但核心影响范围与 B-140 不重叠；按分区处理。
+- 2026-05-26：新增 `tests/test_webapp/test_auth.py` 后红灯失败于缺少 `webapp.auth`，覆盖配置、API Key 和 JWT 目标 API。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 15:45
-- **进度**：已完成 1 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`ca242ba` — B-140 开始前基线
+- **进度**：已完成 2 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`d8235c3` — docs: 创建 B-140 认证实施计划
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-140 将只追加相关变更
-- **下一步**：先写 `webapp/auth.py` 红灯测试，覆盖认证配置、API Key 校验、JWT 签发与验证
+- **下一步**：实现 `webapp/auth.py` 的最小认证工具函数并通过聚焦测试
 - **续任务须知**：B-140 不新增登录页、不修改数据库 schema、不实现多用户或 RBAC
