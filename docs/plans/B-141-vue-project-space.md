@@ -34,7 +34,7 @@
 
 - [x] 创建 B-141C plan，并将 BACKLOG 说明列追加本 plan 路径
 - [x] 先写 Vue 项目空间红灯测试，覆盖项目 API helper、状态持久化、资料库项目空间组件和 App 启动加载
-- [ ] 新增 `frontend/src/api/projects.js`，封装 `listProjects/createProject/selectProject/restoreSelectedProjectId`
+- [x] 新增 `frontend/src/api/projects.js`，封装 `listProjects/createProject/selectProject/restoreSelectedProjectId`
 - [ ] 新增 `ProjectSpacePanel` 并接入 `LibraryView`，展示项目列表、当前目录状态、错误/空状态和新建项目表单
 - [ ] 更新 `App.vue` 启动时加载项目空间，并把项目状态传给资料库视图
 - [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141C 说明
@@ -103,12 +103,13 @@
 - 2026-05-26：冲突扫描发现 B-141A/B plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-26：创建 `docs/plans/B-141-vue-project-space.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-26：新增 B-141C Vue source 红灯测试；失败于缺少 `frontend/src/api/projects.js`、`ProjectSpacePanel.vue` 和 App 项目空间加载逻辑。
+- 2026-05-26：新增 `frontend/src/api/projects.js`，封装项目列表、创建、选择和最近项目恢复；Vue source 测试剩余失败收敛到组件和 App 接入。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-26 17:07
-- **进度**：已完成 2 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`d468237` — test: 补充 Vue 项目空间红灯测试
+- **最后更新**：2026-05-26 17:09
+- **进度**：已完成 3 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`a8a3f25` — docs: 更新 B-141C 红灯测试快照
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141C 将只追加 Vue 项目空间相关变更
-- **下一步**：新增 `frontend/src/api/projects.js`，封装 `listProjects/createProject/selectProject/restoreSelectedProjectId`
+- **下一步**：新增 `ProjectSpacePanel` 并接入 `LibraryView`，展示项目列表、当前目录状态、错误/空状态和新建项目表单
 - **续任务须知**：不删除 `webapp/static/`，不迁移导入/问答/评估/设置完整流程，不修改数据库 schema，不新增 Pinia/Vue Router
