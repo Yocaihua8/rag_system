@@ -39,5 +39,6 @@
 
 ## 现有功能文档
 
+- `authentication.md`：B-140 API Key + JWT 认证中间件
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
