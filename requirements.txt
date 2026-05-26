@@ -1,6 +1,10 @@
 # RAG 知识库助手 — 核心依赖
 # 安装：pip install -r requirements.txt
 
+# ── Web API 运行时 ──
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
 # ── Qt 桌面 UI ──
 PySide6>=6.5.0
 

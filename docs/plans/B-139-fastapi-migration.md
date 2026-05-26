@@ -24,7 +24,7 @@
 
 - [x] 创建 B-139 plan、补充运行时规格文档，并将 BACKLOG 状态更新为 `doing`
 - [x] 先写 FastAPI 服务层失败测试，覆盖健康检查、静态首页、未知 API、SSE Content-Type
-- [ ] 新增 FastAPI + Uvicorn 依赖，并把 `webapp/server.py` 迁移为 FastAPI app + 兼容 dispatch 入口
+- [x] 新增 FastAPI + Uvicorn 依赖，并把 `webapp/server.py` 迁移为 FastAPI app + 兼容 dispatch 入口
 - [ ] 将 `app.py` 启动入口改为 Uvicorn，并保持 `python app.py` 本地启动方式
 - [ ] 同步正式文档：架构、API、setup/testing、CHANGELOG/devlog 中与 B-139 直接相关的说明
 - [ ] 运行 Web MVP 与 legacy 回归验证，修复仅由 B-139 引入的回归
@@ -93,12 +93,13 @@
 
 - 2026-05-26 15:17：用户确认开始 B-139，并允许 plan/BACKLOG 修改与小步提交。
 - 2026-05-26 15:17：冲突扫描发现 `docs/superpowers/plans/` 下存在历史计划文件，但无明确 `状态：Active/Interrupted` 头部，且核心影响范围与 B-139 不重叠；按分区处理。
+- 2026-05-26：新增 `tests/test_webapp/test_fastapi_server.py` 后先红灯失败于缺少 `webapp.server.create_app`，再迁移 `server.py` 为 FastAPI app factory，聚焦测试通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 15:17
-- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`682fe2d` — docs: 创建 B-139 FastAPI 迁移计划
+- **进度**：已完成 3 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`63ff0f9` — test: 补充 FastAPI 服务层迁移测试
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-139 将只追加相关变更
-- **下一步**：新增 FastAPI + Uvicorn 依赖，并把 `webapp/server.py` 迁移为 FastAPI app + 兼容 dispatch 入口
+- **下一步**：将 `app.py` 启动入口改为 Uvicorn，并保持 `python app.py` 本地启动方式
 - **续任务须知**：B-139 不包含认证中间件和 Vue 前端工程化；不要修改 `src/` legacy 代码或数据库 schema
