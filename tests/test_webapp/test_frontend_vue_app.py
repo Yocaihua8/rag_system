@@ -506,7 +506,6 @@ def test_vue_document_import_panel_renders_file_upload_without_directory_picker(
         "multiple",
         'ref="fileInput"',
         '@change="submitFiles"',
-        'defineEmits(["import-note", "import-url", "import-files"])',
     ]:
         assert marker in panel_vue
 
@@ -527,5 +526,56 @@ def test_vue_app_handles_browser_file_upload_response_and_refreshes_library():
     assert "selectProject(data.project.id)" in app_vue
     assert "appState.documents = data.documents || []" in app_vue
     assert "文件上传导入完成" in app_vue
+    assert "await loadProjectSpaces()" in app_vue
+    assert "await loadImportBatches()" in app_vue
+
+
+def test_vue_import_api_helper_uses_existing_browser_folder_upload_contract():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    assert "export async function importBrowserFolder({ files })" in imports_js
+    assert 'throw new Error("请选择一个本地项目文件夹")' in imports_js
+    assert 'source_type: "browser_folder_upload"' in imports_js
+    assert "payload.project_name = projectName" in imports_js
+    assert "file.webkitRelativePath || file.name" in imports_js
+    assert 'rawPath.replace(/\\\\/g, "/")' in imports_js
+    assert "parts.slice(1).join" in imports_js
+    assert "relative_path: entry.relativePath" in imports_js
+    assert 'apiPost("/api/import/upload", payload)' in imports_js
+
+
+def test_vue_document_import_panel_renders_browser_folder_picker_separately_from_file_upload():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "浏览器文件夹",
+        "选择本机文件夹导入",
+        'ref="folderInput"',
+        "webkitdirectory",
+        '@change="submitFolder"',
+        'defineEmits(["import-note", "import-url", "import-files", "import-folder"])',
+    ]:
+        assert marker in panel_vue
+
+    file_input_block = panel_vue.split('ref="fileInput"', 1)[1].split("/>", 1)[0]
+    assert "webkitdirectory" not in file_input_block
+    folder_input_block = panel_vue.split('ref="folderInput"', 1)[1].split("/>", 1)[0]
+    assert "webkitdirectory" in folder_input_block
+    assert "multiple" in folder_input_block
+    assert "@import-folder" in library_vue
+
+
+def test_vue_app_handles_browser_folder_upload_response_and_refreshes_library():
+    app_vue = _read("frontend/src/App.vue")
+
+    assert "importBrowserFolder" in app_vue
+    assert "handleImportFolder" in app_vue
+    assert "@import-folder=\"handleImportFolder\"" in app_vue
+    assert "importBrowserFolder({" in app_vue
+    assert "files" in app_vue
+    assert "selectProject(data.project.id)" in app_vue
+    assert "appState.documents = data.documents || []" in app_vue
+    assert "浏览器文件夹导入完成" in app_vue
     assert "await loadProjectSpaces()" in app_vue
     assert "await loadImportBatches()" in app_vue
