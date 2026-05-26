@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-05-26
 > Scope：B-139 FastAPI + Uvicorn 运行时迁移边界
-> Related：docs/adr/ADR-001-fastapi-migration.md, docs/design/architecture-overview.md, docs/design/api-spec.md, docs/plans/B-139-fastapi-migration.md
+> Related：docs/adr/ADR-001-fastapi-migration.md, docs/design/architecture-overview.md, docs/design/api-spec.md, docs/BACKLOG.md
 
 ## 1. 功能定位
 
