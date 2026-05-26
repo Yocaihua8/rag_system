@@ -25,6 +25,13 @@
       :selected-document="appState.selectedDocument"
       :document-preview-loading="appState.documentPreviewLoading"
       :document-preview-error="appState.documentPreviewError"
+      :import-batches="appState.importBatches"
+      :import-batches-loading="appState.importBatchesLoading"
+      :import-batches-load-error="appState.importBatchesLoadError"
+      :selected-import-batch="appState.selectedImportBatch"
+      :selected-import-batch-items="appState.selectedImportBatchItems"
+      :import-batch-detail-loading="appState.importBatchDetailLoading"
+      :import-batch-detail-error="appState.importBatchDetailError"
       @check-health="checkHealth"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
@@ -34,6 +41,8 @@
       @select-document="handleSelectDocument"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
+      @refresh-batches="loadImportBatches"
+      @select-batch="handleSelectImportBatch"
     />
   </AppShell>
 </template>
@@ -44,7 +53,12 @@ import { computed, onMounted, ref } from "vue";
 import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
 import { getDocument, listDocuments } from "./api/documents.js";
-import { importPlainTextNote, importUrlExcerpt } from "./api/imports.js";
+import {
+  getImportBatchDetail,
+  importPlainTextNote,
+  importUrlExcerpt,
+  listImportBatches,
+} from "./api/imports.js";
 import {
   createProject,
   loadProjects,
@@ -107,6 +121,7 @@ async function loadProjectSpaces() {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
     await loadLibraryDocuments();
+    await loadImportBatches();
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
@@ -118,6 +133,7 @@ async function handleSelectProject(projectId) {
   selectProject(projectId);
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadLibraryDocuments();
+  await loadImportBatches();
 }
 
 async function handleCreateProject(payload) {
@@ -128,6 +144,7 @@ async function handleCreateProject(payload) {
     const project = await createProject(payload);
     projectFormStatus.value = `已创建项目空间：${project.name}`;
     await loadLibraryDocuments();
+    await loadImportBatches();
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -160,6 +177,7 @@ async function submitLibraryImport(successMessage, action) {
     await action();
     appState.importStatus = successMessage;
     await loadLibraryDocuments();
+    await loadImportBatches();
   } catch (error) {
     appState.importError = error.message || "资料导入失败";
   } finally {
@@ -205,6 +223,47 @@ async function loadLibraryDocuments() {
     appState.documentsLoadError = error.message || "文档列表读取失败";
   } finally {
     appState.documentsLoading = false;
+  }
+}
+
+async function loadImportBatches() {
+  appState.importBatches = [];
+  appState.importBatchesLoadError = "";
+  appState.selectedImportBatch = null;
+  appState.selectedImportBatchItems = [];
+  appState.importBatchDetailError = "";
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.importBatchesLoading = true;
+  try {
+    const batches = await listImportBatches(appState.selectedProjectId);
+    appState.importBatches = batches;
+  } catch (error) {
+    appState.importBatchesLoadError = error.message || "导入批次历史读取失败";
+  } finally {
+    appState.importBatchesLoading = false;
+  }
+}
+
+async function handleSelectImportBatch(batchId) {
+  appState.selectedImportBatch = null;
+  appState.selectedImportBatchItems = [];
+  appState.importBatchDetailError = "";
+  if (!batchId) {
+    return;
+  }
+
+  appState.importBatchDetailLoading = true;
+  try {
+    const data = await getImportBatchDetail(batchId);
+    appState.selectedImportBatch = data.batch;
+    appState.selectedImportBatchItems = data.items || [];
+  } catch (error) {
+    appState.importBatchDetailError = error.message || "导入批次详情读取失败";
+  } finally {
+    appState.importBatchDetailLoading = false;
   }
 }
 

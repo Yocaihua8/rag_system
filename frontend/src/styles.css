@@ -173,6 +173,10 @@ select {
   grid-column: 1 / -1;
 }
 
+.library-grid .import-batch-panel {
+  grid-column: 1 / -1;
+}
+
 .document-import-panel {
   border-top: 1px solid #d9e2ec;
   display: grid;
@@ -210,7 +214,8 @@ select {
 }
 
 .document-list-panel,
-.document-preview-panel {
+.document-preview-panel,
+.import-batch-panel {
   border-top: 1px solid #d9e2ec;
   display: grid;
   gap: 18px;
@@ -219,7 +224,8 @@ select {
 }
 
 .document-list-panel h2,
-.document-preview-panel h2 {
+.document-preview-panel h2,
+.import-batch-panel h2 {
   font-size: 20px;
 }
 
@@ -258,6 +264,68 @@ select {
 
 .document-list-item small {
   color: #52616f;
+}
+
+.import-batch-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.import-batch-item {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #c8d5df;
+  color: #17202a;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-height: 72px;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.import-batch-item.active {
+  background: #e7f5f2;
+  border-color: #0e7c70;
+}
+
+.import-batch-item span,
+.import-batch-item small,
+.import-batch-item strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.import-batch-item small {
+  color: #52616f;
+}
+
+.import-batch-detail {
+  border-top: 1px solid #edf2f7;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding-top: 16px;
+}
+
+.import-batch-detail h3 {
+  margin: 0;
+}
+
+.batch-detail-body {
+  display: grid;
+  gap: 10px;
+}
+
+.batch-detail-body ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
 }
 
 .document-preview {

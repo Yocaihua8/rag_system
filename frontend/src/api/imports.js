@@ -1,4 +1,4 @@
-import { apiPost } from "./client.js";
+import { apiGet, apiPost } from "./client.js";
 
 export async function importPlainTextNote({ projectId, title, content }) {
   if (!projectId) {
@@ -41,4 +41,20 @@ export async function importUrlExcerpt({ projectId, url, title, content }) {
     title: cleanTitle,
     content: cleanContent,
   });
+}
+
+export async function listImportBatches(projectId) {
+  if (!projectId) {
+    return [];
+  }
+  const params = new URLSearchParams({ project_id: projectId });
+  const data = await apiGet(`/api/import/batches?${params.toString()}`);
+  return data.batches || [];
+}
+
+export async function getImportBatchDetail(batchId) {
+  if (!batchId) {
+    throw new Error("请选择导入批次");
+  }
+  return apiGet(`/api/import/batches/detail?batch_id=${encodeURIComponent(batchId)}`);
 }

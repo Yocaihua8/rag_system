@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">资料库</p>
         <h2>资料库</h2>
-        <p>B-141C 已迁移项目空间基础，B-141E 已迁移文档列表与单文档预览，B-141F 已迁移文本笔记和 URL 摘录导入；文件上传、文档集合和批次历史后续迁移。</p>
+        <p>B-141C 已迁移项目空间基础，B-141E 已迁移文档列表与单文档预览，B-141F 已迁移文本笔记和 URL 摘录导入，B-141G 已迁移导入批次历史；文件上传和文档集合后续迁移。</p>
       </div>
     </header>
 
@@ -45,6 +45,18 @@
         :loading="documentPreviewLoading"
         :error="documentPreviewError"
       />
+      <ImportBatchHistoryPanel
+        :selected-project-id="selectedProjectId"
+        :import-batches="importBatches"
+        :selected-import-batch="selectedImportBatch"
+        :selected-import-batch-items="selectedImportBatchItems"
+        :loading="importBatchesLoading"
+        :load-error="importBatchesLoadError"
+        :detail-loading="importBatchDetailLoading"
+        :detail-error="importBatchDetailError"
+        @refresh-batches="$emit('refresh-batches')"
+        @select-batch="(batchId) => $emit('select-batch', batchId)"
+      />
     </div>
   </section>
 </template>
@@ -53,6 +65,7 @@
 import DocumentImportPanel from "../components/DocumentImportPanel.vue";
 import DocumentListPanel from "../components/DocumentListPanel.vue";
 import DocumentPreviewPanel from "../components/DocumentPreviewPanel.vue";
+import ImportBatchHistoryPanel from "../components/ImportBatchHistoryPanel.vue";
 import ProjectSpacePanel from "../components/ProjectSpacePanel.vue";
 
 defineProps({
@@ -128,6 +141,34 @@ defineProps({
     type: String,
     default: "",
   },
+  importBatches: {
+    type: Array,
+    default: () => [],
+  },
+  importBatchesLoading: {
+    type: Boolean,
+    default: false,
+  },
+  importBatchesLoadError: {
+    type: String,
+    default: "",
+  },
+  selectedImportBatch: {
+    type: Object,
+    default: null,
+  },
+  selectedImportBatchItems: {
+    type: Array,
+    default: () => [],
+  },
+  importBatchDetailLoading: {
+    type: Boolean,
+    default: false,
+  },
+  importBatchDetailError: {
+    type: String,
+    default: "",
+  },
 });
 
 defineEmits([
@@ -138,5 +179,7 @@ defineEmits([
   "select-document",
   "import-note",
   "import-url",
+  "refresh-batches",
+  "select-batch",
 ]);
 </script>
