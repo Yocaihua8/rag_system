@@ -37,7 +37,7 @@
 - [x] 新增 `frontend/src/state/app-state.js`，定义当前 Vue 迁移期共享状态和视图切换 helper
 - [x] 拆分 `AppShell`、基础 views，并让 `App.vue` 使用 Vue 状态完成四视图切换和健康检查
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141B 说明
-- [ ] 运行 npm 构建、前端工程测试、Web MVP 全量、legacy 回归和空白检查
+- [x] 运行 npm 构建、前端工程测试、Web MVP 全量、legacy 回归和空白检查
 - [ ] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141C 页面迁移
 
 ## 4. 影响范围
@@ -102,12 +102,13 @@
 - 2026-05-26：新增 `frontend/src/state/app-state.js`，对齐 legacy 关键状态字段并提供 `showView()` 视图切换 helper；聚焦状态测试与 `npm run build` 通过。
 - 2026-05-26：新增 `AppShell` 和四个基础 view，`App.vue` 使用共享状态完成导航切换并通过 Vue source 测试与 `npm run build`。
 - 2026-05-26：同步功能文档、架构、测试指南、CHANGELOG 和 devlog 中的 B-141B API/state/layout 说明。
+- 2026-05-26：验证通过：`npm run build`、Vue 前端工程测试、Web MVP 全量、legacy 回归、docs contract、`git diff --check`；Chrome headless dump DOM 确认 Vue 构建页非空并包含四个主视图导航。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-26 16:17
-- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`7c3e00f` — feat: 搭建 Vue 基础布局
+- **最后更新**：2026-05-26 16:58
+- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`a06d1df` — docs: 同步 B-141B Vue 基础说明
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141B 将只追加 Vue API/state/layout 相关变更
-- **下一步**：运行 npm 构建、前端工程测试、Web MVP 全量、legacy 回归和空白检查
+- **下一步**：更新 plan 完成快照，保留 BACKLOG B-141 为 `doing`，下一步指向 B-141C 页面迁移
 - **续任务须知**：不删除 `webapp/static/`，不迁移完整业务流程，不修改数据库 schema，不新增 Pinia/Vue Router
