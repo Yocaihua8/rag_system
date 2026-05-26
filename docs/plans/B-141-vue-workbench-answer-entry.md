@@ -109,9 +109,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-26 17:30
+- **最后更新**：2026-05-26 17:31
 - **进度**：已完成 1 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`aee4f31` — docs: 完成 B-141C 计划快照
+- **最新 commit**：`e1bae3c` — docs: 创建 B-141D 问答入口计划
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141D 将只追加 Vue 工作台问答入口相关变更
-- **下一步**：提交 B-141D plan 与 BACKLOG 关联
+- **下一步**：先写 Vue 工作台问答入口红灯测试，覆盖 answer API helper、QuestionPanel、AnswerPanel、Workbench/App 接入和状态字段
 - **续任务须知**：不删除 `webapp/static/`，不迁移 SSE/取消/聊天历史/反馈/Agent/检索调试，不修改数据库 schema，不新增 Pinia/Vue Router
