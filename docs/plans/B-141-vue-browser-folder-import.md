@@ -43,7 +43,7 @@
 - [x] 更新 `DocumentImportPanel`，新增浏览器文件夹导入按钮和隐藏 `webkitdirectory multiple` input，并保持普通文件上传 input 不设置 `webkitdirectory`
 - [x] 更新 `App.vue`，处理浏览器文件夹导入响应，成功后选择后端返回项目并刷新项目空间、文档列表和导入批次历史
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141I 说明
-- [ ] 完成验证、提交 B-141I，并更新本 plan 快照；B-141 保持 `doing`
+- [x] 完成验证、提交 B-141I，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
 
@@ -95,15 +95,15 @@
 
 ## 6. 验收标准
 
-- [ ] Vue 资料库页提供“选择本机文件夹导入”按钮和单独的 `webkitdirectory multiple` file input。
-- [ ] 普通文件上传 input 仍不设置 `webkitdirectory`。
-- [ ] 浏览器文件夹导入请求包含 `source_type=browser_folder_upload`。
-- [ ] `webkitRelativePath` 的首段作为 `project_name`，发送给后端；文档 `relative_path` 去掉首段根目录。
-- [ ] DOCX/PDF 文件以 `content_base64 + size` 上传，普通文本文件以 `content` 上传。
-- [ ] 导入成功后选择后端返回项目，并刷新项目空间、当前项目、文档列表和导入批次历史。
-- [ ] B-141I 不迁移同步当前项目目录、导入预检、文档集合、删除文档或数据库 schema。
-- [ ] `webapp/static/` 仍保留为迁移期 fallback。
-- [ ] 相关测试与文档同步完成。
+- [x] Vue 资料库页提供“选择本机文件夹导入”按钮和单独的 `webkitdirectory multiple` file input。
+- [x] 普通文件上传 input 仍不设置 `webkitdirectory`。
+- [x] 浏览器文件夹导入请求包含 `source_type=browser_folder_upload`。
+- [x] `webkitRelativePath` 的首段作为 `project_name`，发送给后端；文档 `relative_path` 去掉首段根目录。
+- [x] DOCX/PDF 文件以 `content_base64 + size` 上传，普通文本文件以 `content` 上传。
+- [x] 导入成功后选择后端返回项目，并刷新项目空间、当前项目、文档列表和导入批次历史。
+- [x] B-141I 不迁移同步当前项目目录、导入预检、文档集合、删除文档或数据库 schema。
+- [x] `webapp/static/` 仍保留为迁移期 fallback。
+- [x] 相关测试与文档同步完成。
 
 ## 7. 回流清单
 
@@ -127,12 +127,13 @@
 - 2026-05-26：确认 B-141I 红灯为 3 failed / 22 passed，失败点集中在缺少 `importBrowserFolder`、文件夹上传面板入口和 App 文件夹上传响应接入。
 - 2026-05-26：新增 Vue 浏览器文件夹上传导入 helper、面板入口和 App 响应接入，聚焦测试 25 passed。
 - 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141I 边界。
+- 2026-05-26：完整验证通过：`npm run build`、`tests/test_webapp` 296 passed、legacy 回归 179 passed、B-141I touched-file `git diff --check` 退出码 0；浏览器资料库页烟测通过，1 个 `webkitdirectory multiple` 文件夹 input 与 1 个普通 `multiple` 文件 input 分离，控制台错误数为 0。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`0c63878` — `feat: 接入 Vue 浏览器文件夹导入`
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库浏览器文件夹上传导入相关变更
-- **下一步**：完成 B-141I 完整验证并提交收尾快照
+- **进度**：已完成 7 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`147536b` — `docs: 同步 B-141I 文件夹导入说明`
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；B-141I 浏览器文件夹上传导入薄片已完成；存在大量既有未提交改动，未纳入本轮提交
+- **下一步**：继续 B-141J 页面级业务迁移，可在目录同步、Workbench SSE 会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：B-141I 不删除 `webapp/static/`，不迁移目录同步/预检/删除/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
