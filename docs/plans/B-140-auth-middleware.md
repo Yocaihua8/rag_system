@@ -36,7 +36,7 @@
 - [x] 实现 `webapp/auth.py` 的最小认证工具函数并通过聚焦测试
 - [x] 先写 FastAPI 中间件红灯测试，覆盖默认关闭、启用后 401、API Key 放行、JWT 放行、docs 保护
 - [x] 在 `webapp/server.py` 接入认证中间件和 `POST /api/auth/token`
-- [ ] 同步权限矩阵、API 契约、setup/testing、CHANGELOG/devlog
+- [x] 同步权限矩阵、API 契约、setup/testing、CHANGELOG/devlog
 - [ ] 运行 Web MVP 与 legacy 回归验证，修复仅由 B-140 引入的回归
 - [ ] 完成回流清单，删除本 plan，并将 B-140 状态改为 `done`
 
@@ -94,12 +94,12 @@
 |------|----------|----------|
 | 认证决策与回滚方式 | `docs/adr/ADR-005-remote-auth.md` | [x] |
 | 认证功能边界和非目标 | `docs/features/authentication.md` | [x] |
-| 认证启用后的权限矩阵 | `docs/design/permission-matrix.md` | [ ] |
-| 认证接口、错误格式、请求头 | `docs/design/api-spec.md` | [ ] |
-| 启用认证的环境变量 | `docs/guides/setup.md` | [ ] |
-| B-140 验证命令 | `docs/guides/testing.md` | [ ] |
-| 对外变更摘要 | `CHANGELOG.md` | [ ] |
-| 实施记录 | `docs/devlog/2026-05-26.md` | [ ] |
+| 认证启用后的权限矩阵 | `docs/design/permission-matrix.md` | [x] |
+| 认证接口、错误格式、请求头 | `docs/design/api-spec.md` | [x] |
+| 启用认证的环境变量 | `docs/guides/setup.md` | [x] |
+| B-140 验证命令 | `docs/guides/testing.md` | [x] |
+| 对外变更摘要 | `CHANGELOG.md` | [x] |
+| 实施记录 | `docs/devlog/2026-05-26.md` | [x] |
 
 ## 8. 执行记录
 
@@ -109,12 +109,13 @@
 - 2026-05-26：新增 `webapp/auth.py`，使用标准库实现认证配置、API Key 常量时间比较和 HMAC-SHA256 JWT。
 - 2026-05-26：新增 `tests/test_webapp/test_auth_middleware.py` 后红灯失败于 `create_app()` 尚未支持 `auth_settings`，覆盖认证中间件和 token 路由预期行为。
 - 2026-05-26：在 `webapp/server.py` 接入认证中间件与 `POST /api/auth/token`，聚焦认证测试 13 个用例通过。
+- 2026-05-26：同步权限矩阵、API 契约、启动与测试指南、CHANGELOG 和 devlog 中的 B-140 认证说明。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 15:45
-- **进度**：已完成 5 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`3a4e3fe` — test: 补充认证中间件红灯测试
+- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`a0ed0e3` — feat: 接入可选认证中间件
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-140 将只追加相关变更
-- **下一步**：同步权限矩阵、API 契约、setup/testing、CHANGELOG/devlog
+- **下一步**：运行 Web MVP 与 legacy 回归验证，修复仅由 B-140 引入的回归
 - **续任务须知**：B-140 不新增登录页、不修改数据库 schema、不实现多用户或 RBAC

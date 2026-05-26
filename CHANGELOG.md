@@ -9,6 +9,7 @@
 ## [Unreleased]
 
 ### Added
+- **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
 - **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
 - **评估题模型与存储**：Web MVP 新增 `assessment_questions`、`assessment_answers`、`assessment_results`，开始评估会保存题目，提交回答会保存回答和评估结果
@@ -28,6 +29,9 @@
 
 ### Fixed
 -
+
+### Security
+- 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥
 
 ---
 

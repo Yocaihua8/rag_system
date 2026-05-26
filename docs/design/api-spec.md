@@ -9,9 +9,12 @@
 
 当前默认入口为本地 Web MVP：`app.py` -> `webapp.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，仅用于本机浏览器访问，不作为远程多用户 API 承诺。FastAPI 自动文档可在本地 `/docs` 查看，但正式契约仍以本文档为准。
 
+B-140 起支持可选认证层。默认认证关闭，现有本地访问方式不变；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token`、`/` 与静态资源外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。
+
 端点速览：
 
 - `GET /api/health`
+- `POST /api/auth/token`
 - `GET /api/projects`
 - `GET /api/projects/summary`
 - `POST /api/projects`
@@ -79,6 +82,14 @@
 | 方法 | 路径 | 用途 | 成功响应 |
 |------|------|------|----------|
 | GET | `/api/health` | 确认本地服务可访问 | `{"status":"ok"}` |
+
+### 1.1.1 认证 Token
+
+| 方法 | 路径 | 请求 | 成功响应 | 错误 |
+|------|------|------|----------|------|
+| POST | `/api/auth/token` | Header `X-API-Key: <key>` | `{"access_token":"...","token_type":"bearer","expires_in":3600}` | `401 authentication required`、`401 invalid credentials` |
+
+`/api/auth/token` 仅在认证启用时有实际用途。客户端提交正确 `X-API-Key` 后，服务端用 `RAG_AUTH_JWT_SECRET` 签发 HMAC-SHA256 Bearer JWT；默认有效期 3600 秒，可通过 `RAG_AUTH_JWT_TTL_SECONDS` 调整，最小 60 秒。响应不包含 `RAG_AUTH_API_KEY` 或 `RAG_AUTH_JWT_SECRET`。JWT 不写入数据库，也不提供服务端撤销列表。
 
 ### 1.2 项目空间
 
