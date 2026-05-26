@@ -42,7 +42,7 @@
 - [x] 扩展 `frontend/src/api/imports.js`，复用既有 `/api/import/upload`，读取 `webkitRelativePath`，根目录作为 `project_name`，相对路径去掉根目录
 - [x] 更新 `DocumentImportPanel`，新增浏览器文件夹导入按钮和隐藏 `webkitdirectory multiple` input，并保持普通文件上传 input 不设置 `webkitdirectory`
 - [x] 更新 `App.vue`，处理浏览器文件夹导入响应，成功后选择后端返回项目并刷新项目空间、文档列表和导入批次历史
-- [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141I 说明
+- [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141I 说明
 - [ ] 完成验证、提交 B-141I，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
@@ -111,11 +111,11 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141I 浏览器文件夹上传导入迁移边界 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue browser folder helper 和资料库导入组件边界 | `docs/design/architecture-overview.md` | [ ] |
-| B-141I Vue source/static contract 测试命令 | `docs/guides/testing.md` | [ ] |
-| 对外变更摘要 | `CHANGELOG.md` | [ ] |
-| 实施记录 | `docs/devlog/2026-05-26.md` | [ ] |
+| B-141I 浏览器文件夹上传导入迁移边界 | `docs/features/frontend-engineering.md` | [x] |
+| Vue browser folder helper 和资料库导入组件边界 | `docs/design/architecture-overview.md` | [x] |
+| B-141I Vue source/static contract 测试命令 | `docs/guides/testing.md` | [x] |
+| 对外变更摘要 | `CHANGELOG.md` | [x] |
+| 实施记录 | `docs/devlog/2026-05-26.md` | [x] |
 | B-141 仍处于 doing，等待后续页面迁移 | `docs/BACKLOG.md` | [x] |
 
 ## 8. 执行记录
@@ -126,12 +126,13 @@
 - 2026-05-26：创建 `docs/plans/B-141-vue-browser-folder-import.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-26：确认 B-141I 红灯为 3 failed / 22 passed，失败点集中在缺少 `importBrowserFolder`、文件夹上传面板入口和 App 文件夹上传响应接入。
 - 2026-05-26：新增 Vue 浏览器文件夹上传导入 helper、面板入口和 App 响应接入，聚焦测试 25 passed。
+- 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141I 边界。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`7364f4a` — `test: 覆盖 Vue 文件夹导入入口`
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮开始 B-141I 浏览器文件夹上传导入相关变更
-- **下一步**：同步 B-141I 功能文档、架构说明、测试指南、CHANGELOG 和 devlog
+- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`0c63878` — `feat: 接入 Vue 浏览器文件夹导入`
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库浏览器文件夹上传导入相关变更
+- **下一步**：完成 B-141I 完整验证并提交收尾快照
 - **续任务须知**：B-141I 不删除 `webapp/static/`，不迁移目录同步/预检/删除/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
