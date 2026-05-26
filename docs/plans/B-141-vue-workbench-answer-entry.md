@@ -34,13 +34,13 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-141D plan，并将 BACKLOG 说明列追加本 plan 路径
-- [ ] 先写 Vue 工作台问答入口红灯测试，覆盖 answer API helper、QuestionPanel、AnswerPanel、Workbench/App 接入和状态字段
-- [ ] 新增 `frontend/src/api/answer.js`，封装非流式 `askQuestion({ projectId, question })`
-- [ ] 新增 `QuestionPanel` 和 `AnswerPanel`，展示输入、提交状态、回答、来源和来源质量
-- [ ] 更新 `WorkbenchView.vue` 与 `App.vue`，处理非流式提问并写入共享状态
-- [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141D 说明
-- [ ] 运行 npm 构建、Vue 前端工程测试、Web MVP 全量、legacy 回归和页面非空检查
-- [ ] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141E 页面迁移
+- [x] 先写 Vue 工作台问答入口红灯测试，覆盖 answer API helper、QuestionPanel、AnswerPanel、Workbench/App 接入和状态字段
+- [x] 新增 `frontend/src/api/answer.js`，封装非流式 `askQuestion({ projectId, question })`
+- [x] 新增 `QuestionPanel` 和 `AnswerPanel`，展示输入、提交状态、回答、来源和来源质量
+- [x] 更新 `WorkbenchView.vue` 与 `App.vue`，处理非流式提问并写入共享状态
+- [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141D 说明
+- [x] 运行 npm 构建、Vue 前端工程测试、Web MVP 全量、legacy 回归和页面非空检查
+- [x] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141E 页面迁移
 
 ## 4. 影响范围
 
@@ -82,12 +82,12 @@
 
 ## 6. 完成标准
 
-- [ ] Vue 工作台能显示问题输入框、提交按钮、项目选择提示和提交状态。
-- [ ] Vue 工作台调用既有 `POST /api/answer`，请求体包含 `project_id` 和 `question`。
-- [ ] Vue 工作台能展示回答文本、来源列表、模型模式和来源质量摘要。
-- [ ] B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
-- [ ] `npm run build` 通过。
-- [ ] 相关测试与文档同步完成。
+- [x] Vue 工作台能显示问题输入框、提交按钮、项目选择提示和提交状态。
+- [x] Vue 工作台调用既有 `POST /api/answer`，请求体包含 `project_id` 和 `question`。
+- [x] Vue 工作台能展示回答文本、来源列表、模型模式和来源质量摘要。
+- [x] B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
+- [x] `npm run build` 通过。
+- [x] 相关测试与文档同步完成。
 
 ## 7. 回流清单
 
@@ -95,23 +95,27 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141D 工作台问答入口迁移边界 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue answer helper/组件架构说明 | `docs/design/architecture-overview.md` | [ ] |
-| Vue 问答入口 source 测试要求 | `docs/guides/testing.md` | [ ] |
-| 对外变更摘要 | `CHANGELOG.md` | [ ] |
-| 实施记录 | `docs/devlog/2026-05-26.md` | [ ] |
+| B-141D 工作台问答入口迁移边界 | `docs/features/frontend-engineering.md` | [x] |
+| Vue answer helper/组件架构说明 | `docs/design/architecture-overview.md` | [x] |
+| Vue 问答入口 source 测试要求 | `docs/guides/testing.md` | [x] |
+| 对外变更摘要 | `CHANGELOG.md` | [x] |
+| 实施记录 | `docs/devlog/2026-05-26.md` | [x] |
 
 ## 8. 执行记录
 
 - 2026-05-26：用户确认 B-141D 选择“工作台问答入口”；采用非流式 `/api/answer` 最小薄片，不迁移 SSE/取消/聊天历史/反馈/Agent/检索调试。
 - 2026-05-26：冲突扫描发现 B-141A/B/C plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-26：创建 `docs/plans/B-141-vue-workbench-answer-entry.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
+- 2026-05-26：确认 B-141D 红灯为 3 failed / 7 passed，失败点集中在缺少 answer helper、QuestionPanel、AnswerPanel 和 App 问答状态接入。
+- 2026-05-26：新增 Vue 非流式问答入口、组件和状态接入，聚焦测试 10 passed，`npm run build` 成功。
+- 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141D 边界。
+- 2026-05-26：完整验证通过：`npm run build`、`tests/test_webapp` 281 passed、legacy 回归 179 passed、B-141D touched-file `git diff --check` 退出码 0；浏览器页面非空检查通过且控制台错误数为 0。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-26 17:31
-- **进度**：已完成 1 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`e1bae3c` — docs: 创建 B-141D 问答入口计划
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141D 将只追加 Vue 工作台问答入口相关变更
-- **下一步**：先写 Vue 工作台问答入口红灯测试，覆盖 answer API helper、QuestionPanel、AnswerPanel、Workbench/App 接入和状态字段
+- **最后更新**：2026-05-26 23:05
+- **进度**：已完成 8 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：待提交本轮 B-141D 代码、文档与验证快照
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 工作台问答入口相关变更
+- **下一步**：B-141E 继续选择下一个 Vue 页面级业务切片，建议在资料库导入/文档列表、工作台 SSE/会话或设置页模型配置之间择一
 - **续任务须知**：不删除 `webapp/static/`，不迁移 SSE/取消/聊天历史/反馈/Agent/检索调试，不修改数据库 schema，不新增 Pinia/Vue Router

@@ -68,17 +68,21 @@ def test_vue_layout_components_define_four_primary_views():
 
 
 def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
-    view_files = {
-        "frontend/src/views/WorkbenchView.vue": ["项目问答", "后续迁移问答、来源、Agent 工具和检索调试"],
+    b141b_view_files = {
         "frontend/src/views/AssessmentView.vue": ["评估", "后续迁移出题、作答、结果概览和待复测列表"],
         "frontend/src/views/SettingsView.vue": ["设置", "后续迁移模型设置、模型 Profile 和 Prompt 预设"],
     }
 
-    for path, markers in view_files.items():
+    for path, markers in b141b_view_files.items():
         view_text = _read(path)
         for marker in markers:
             assert marker in view_text
         assert "B-141B" in view_text
+
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+    assert "项目问答" in workbench_vue
+    assert "B-141D 已迁移非流式问答入口" in workbench_vue
+    assert "SSE、Agent 工具和检索调试后续迁移" in workbench_vue
 
     library_vue = _read("frontend/src/views/LibraryView.vue")
     assert "资料库" in library_vue
@@ -153,5 +157,69 @@ def test_vue_app_loads_project_spaces_on_startup_and_handles_panel_events():
         "projectLoadError",
         "projectFormSubmitting",
         "projectFormError",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_answer_api_helper_uses_existing_non_streaming_answer_contract():
+    answer_js = _read("frontend/src/api/answer.js")
+
+    assert "export async function askQuestion({ projectId, question })" in answer_js
+    assert 'apiPost("/api/answer"' in answer_js
+    assert "project_id: projectId" in answer_js
+    assert "question" in answer_js
+    assert "请先创建或选择项目空间" in answer_js
+    assert "请输入问题" in answer_js
+
+
+def test_vue_workbench_question_and_answer_panels_render_entrypoint():
+    question_panel_vue = _read("frontend/src/components/QuestionPanel.vue")
+    answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "输入问题",
+        "例如：这个项目的默认入口是什么？",
+        "提问",
+        "未选择项目空间",
+        "defineEmits([\"submit-question\", \"check-health\"])",
+    ]:
+        assert marker in question_panel_vue
+
+    for marker in [
+        "回答",
+        "来源",
+        "来源质量",
+        "暂无来源",
+        "mode",
+        "provider",
+    ]:
+        assert marker in answer_panel_vue
+
+    assert "QuestionPanel" in workbench_vue
+    assert "AnswerPanel" in workbench_vue
+    assert "@submit-question" in workbench_vue
+    assert ":answer-result=\"answerResult\"" in workbench_vue
+
+
+def test_vue_app_handles_non_streaming_workbench_question_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    assert "askQuestion" in app_vue
+    assert "handleSubmitQuestion" in app_vue
+    assert "@submit-question=\"handleSubmitQuestion\"" in app_vue
+    assert ":answer-result=\"appState.answerResult\"" in app_vue
+    assert ":answer-loading=\"appState.answerLoading\"" in app_vue
+    assert ":answer-error=\"appState.answerError\"" in app_vue
+    assert "appState.selectedProjectId" in app_vue
+    assert "appState.answerResult = data" in app_vue
+
+    for state_field in [
+        "currentQuestion",
+        "answerResult",
+        "answerLoading",
+        "answerError",
+        "answerStatus",
     ]:
         assert f"{state_field}:" in state_js

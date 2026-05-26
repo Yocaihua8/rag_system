@@ -11,10 +11,15 @@
       :project-form-error="appState.projectFormError"
       :project-form-status="projectFormStatus"
       :project-status-message="projectStatusMessage"
+      :answer-result="appState.answerResult"
+      :answer-loading="appState.answerLoading"
+      :answer-error="appState.answerError"
+      :answer-status="appState.answerStatus"
       @check-health="checkHealth"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
       @create-project="handleCreateProject"
+      @submit-question="handleSubmitQuestion"
     />
   </AppShell>
 </template>
@@ -22,6 +27,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 
+import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
 import {
   createProject,
@@ -107,6 +113,26 @@ async function handleCreateProject(payload) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
     appState.projectFormSubmitting = false;
+  }
+}
+
+async function handleSubmitQuestion(question) {
+  appState.currentQuestion = question;
+  appState.answerLoading = true;
+  appState.answerError = "";
+  appState.answerStatus = "正在生成回答...";
+  try {
+    const data = await askQuestion({
+      projectId: appState.selectedProjectId,
+      question,
+    });
+    appState.answerResult = data;
+    appState.answerStatus = "回答已生成";
+  } catch (error) {
+    appState.answerError = error.message || "回答生成失败";
+    appState.answerStatus = "回答生成失败";
+  } finally {
+    appState.answerLoading = false;
   }
 }
 </script>

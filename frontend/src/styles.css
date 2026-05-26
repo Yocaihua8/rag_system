@@ -166,6 +166,7 @@ select {
 }
 
 input,
+textarea,
 select {
   border: 1px solid #c8d5df;
   border-radius: 6px;
@@ -175,9 +176,15 @@ select {
 }
 
 input:focus,
+textarea:focus,
 select:focus {
   border-color: #0e7c70;
   outline: 3px solid rgba(14, 124, 112, 0.16);
+}
+
+textarea {
+  line-height: 1.6;
+  resize: vertical;
 }
 
 .actions {
@@ -218,6 +225,67 @@ button:focus-visible {
   color: #b42318;
 }
 
+.workbench-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.question-panel,
+.answer-panel {
+  border-top: 1px solid #d9e2ec;
+  display: grid;
+  gap: 18px;
+  padding-top: 24px;
+}
+
+.question-panel h2,
+.answer-panel h2 {
+  font-size: 20px;
+}
+
+.question-form {
+  display: grid;
+  gap: 12px;
+}
+
+.question-form label {
+  color: #52616f;
+  display: grid;
+  gap: 8px;
+}
+
+.answer-meta {
+  color: #52616f;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.answer-meta span {
+  border: 1px solid #c8d5df;
+  border-radius: 999px;
+  padding: 5px 10px;
+}
+
+.answer-body,
+.source-quality,
+.source-list {
+  border-top: 1px solid #edf2f7;
+  padding-top: 16px;
+}
+
+.source-list ol {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.source-list li p {
+  margin-top: 6px;
+}
+
 @media (max-width: 760px) {
   .workspace-shell {
     grid-template-columns: 1fr;
@@ -234,5 +302,9 @@ button:focus-visible {
 
   .topbar {
     display: block;
+  }
+
+  .workbench-grid {
+    grid-template-columns: 1fr;
   }
 }
