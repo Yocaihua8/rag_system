@@ -10,17 +10,35 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from webapp.api import answer_stream_events, dispatch
+from webapp.auth import AuthSettings, issue_jwt, load_auth_settings, validate_api_key, validate_jwt
 from webapp.config import DEFAULT_HOST, DEFAULT_PORT, default_db_path
 from webapp.storage import KnowledgeStore
 
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+AUTHENTICATION_REQUIRED = {"error": "authentication required"}
+INVALID_CREDENTIALS = {"error": "invalid credentials"}
 
 
-def create_app(db_path: Path | None = None, store: KnowledgeStore | None = None) -> FastAPI:
+def create_app(
+    db_path: Path | None = None,
+    store: KnowledgeStore | None = None,
+    auth_settings: AuthSettings | None = None,
+) -> FastAPI:
     knowledge_store = store or KnowledgeStore(db_path or default_db_path())
+    auth_config = auth_settings or load_auth_settings()
     app = FastAPI(title="Knowledge Island", docs_url="/docs", redoc_url="/redoc")
     app.state.knowledge_store = knowledge_store
+    app.state.auth_settings = auth_config
+
+    @app.middleware("http")
+    async def require_auth(request: Request, call_next):
+        auth_error = _auth_error(auth_config, request)
+        if auth_error == "missing":
+            return _auth_error_response(AUTHENTICATION_REQUIRED)
+        if auth_error == "invalid":
+            return _auth_error_response(INVALID_CREDENTIALS)
+        return await call_next(request)
 
     @app.get("/api/answer/stream")
     async def answer_stream(request: Request) -> StreamingResponse:
@@ -28,6 +46,23 @@ def create_app(db_path: Path | None = None, store: KnowledgeStore | None = None)
             _answer_stream_bytes(knowledge_store, _raw_path(request)),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        )
+
+    @app.post("/api/auth/token")
+    async def auth_token(request: Request) -> JSONResponse:
+        if not auth_config.enabled:
+            return JSONResponse(status_code=404, content={"error": "not found"})
+        api_key = request.headers.get("x-api-key", "")
+        if not api_key:
+            return _auth_error_response(AUTHENTICATION_REQUIRED)
+        if not validate_api_key(auth_config, api_key):
+            return _auth_error_response(INVALID_CREDENTIALS)
+        return JSONResponse(
+            content={
+                "access_token": issue_jwt(auth_config),
+                "token_type": "bearer",
+                "expires_in": auth_config.jwt_ttl_seconds,
+            }
         )
 
     @app.api_route("/api/{path:path}", methods=["GET", "POST"])
@@ -56,6 +91,43 @@ def run_server(
     print(f"Knowledge Island Web is running at http://{host}:{port}")
     uvicorn.run(target_app, host=host, port=port)
     return 0
+
+
+def _auth_error(settings: AuthSettings, request: Request) -> str | None:
+    if not _requires_auth(settings, request.url.path):
+        return None
+    api_key = request.headers.get("x-api-key", "")
+    if api_key:
+        return None if validate_api_key(settings, api_key) else "invalid"
+    authorization = request.headers.get("authorization", "")
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not token.strip():
+            return "invalid"
+        return None if validate_jwt(settings, token.strip()) is not None else "invalid"
+    return "missing"
+
+
+def _requires_auth(settings: AuthSettings, path: str) -> bool:
+    if not settings.enabled:
+        return False
+    if path in {"/api/health", "/api/auth/token"}:
+        return False
+    if path == "/docs" or path.startswith("/docs/"):
+        return True
+    if path == "/redoc" or path.startswith("/redoc/"):
+        return True
+    if path == "/openapi.json":
+        return True
+    return path.startswith("/api/")
+
+
+def _auth_error_response(content: dict[str, str]) -> JSONResponse:
+    return JSONResponse(
+        status_code=401,
+        content=content,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 async def _json_payload(request: Request) -> dict[str, Any]:
