@@ -37,7 +37,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-141H plan，并将 BACKLOG 说明列追加本 plan 路径
-- [ ] 先写 Vue 普通文件上传导入红灯测试，覆盖 imports API helper、DocumentImportPanel 文件入口、App 接入和状态刷新
+- [x] 先写 Vue 普通文件上传导入红灯测试，覆盖 imports API helper、DocumentImportPanel 文件入口、App 接入和状态刷新
 - [ ] 扩展 `frontend/src/api/imports.js`，复用既有 `/api/import/upload`，读取普通文件名为 `relative_path`，DOCX/PDF 走 `content_base64 + size`，其他文件走 `content`
 - [ ] 更新 `DocumentImportPanel`，新增普通文件上传按钮和隐藏 `multiple` file input，不设置 `webkitdirectory`
 - [ ] 更新 `App.vue`，处理文件上传导入响应，成功后刷新项目空间、文档列表和导入批次历史
@@ -121,12 +121,13 @@
 - 2026-05-26：B-141H 选择“资料库普通文件上传导入”薄片，不迁移浏览器文件夹导入、同步当前项目目录、预检、删除、集合或数据库 schema。
 - 2026-05-26：冲突扫描发现 B-141A/B/C/D/E/F/G plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-26：创建 `docs/plans/B-141-vue-file-upload-import.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
+- 2026-05-26：确认 B-141H 红灯为 3 failed / 19 passed，失败点集中在缺少 `importBrowserFiles`、文件上传面板入口和 App 上传响应接入。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 1 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：待提交
+- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`0eaca26` — `docs: 创建 B-141H 文件上传计划`
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库普通文件上传导入相关变更
-- **下一步**：提交 B-141H plan，然后编写普通文件上传导入红灯测试
+- **下一步**：实现 B-141H 普通文件上传导入最小 Vue 薄片
 - **续任务须知**：B-141H 不删除 `webapp/static/`，不迁移浏览器文件夹导入/目录同步/预检/删除/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

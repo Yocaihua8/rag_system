@@ -475,3 +475,57 @@ def test_vue_app_loads_import_batches_and_refreshes_after_imports():
         "importBatchDetailError",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_import_api_helper_uses_existing_file_upload_contract():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    assert "export async function importBrowserFiles({ projectId, files })" in imports_js
+    assert 'throw new Error("请选择一个或多个本地文件")' in imports_js
+    assert 'source_type: "file_upload"' in imports_js
+    assert "payload.project_id = projectId" in imports_js
+    assert 'payload.project_name = "browser-upload"' in imports_js
+    assert 'apiPost("/api/import/upload", payload)' in imports_js
+    assert "relative_path: file.name" in imports_js
+    assert "content_base64" in imports_js
+    assert "size: file.size" in imports_js
+    assert "await file.text()" in imports_js
+    assert "await file.arrayBuffer()" in imports_js
+    assert "btoa(binary)" in imports_js
+    assert 'new Set([".docx", ".pdf"])' in imports_js
+
+
+def test_vue_document_import_panel_renders_file_upload_without_directory_picker():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "文件上传",
+        "选择文件上传导入",
+        'type="file"',
+        "multiple",
+        'ref="fileInput"',
+        '@change="submitFiles"',
+        'defineEmits(["import-note", "import-url", "import-files"])',
+    ]:
+        assert marker in panel_vue
+
+    file_input_block = panel_vue.split('type="file"', 1)[1].split("/>", 1)[0]
+    assert "webkitdirectory" not in file_input_block
+    assert "@import-files" in library_vue
+
+
+def test_vue_app_handles_browser_file_upload_response_and_refreshes_library():
+    app_vue = _read("frontend/src/App.vue")
+
+    assert "importBrowserFiles" in app_vue
+    assert "handleImportFiles" in app_vue
+    assert "@import-files=\"handleImportFiles\"" in app_vue
+    assert "importBrowserFiles({" in app_vue
+    assert "projectId: appState.selectedProjectId" in app_vue
+    assert "files" in app_vue
+    assert "selectProject(data.project.id)" in app_vue
+    assert "appState.documents = data.documents || []" in app_vue
+    assert "文件上传导入完成" in app_vue
+    assert "await loadProjectSpaces()" in app_vue
+    assert "await loadImportBatches()" in app_vue
