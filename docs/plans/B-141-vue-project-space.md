@@ -108,7 +108,7 @@
 
 - **最后更新**：2026-05-26 17:07
 - **进度**：已完成 2 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`f527e24` — docs: 更新 B-141C 计划快照
+- **最新 commit**：`d468237` — test: 补充 Vue 项目空间红灯测试
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141C 将只追加 Vue 项目空间相关变更
 - **下一步**：新增 `frontend/src/api/projects.js`，封装 `listProjects/createProject/selectProject/restoreSelectedProjectId`
 - **续任务须知**：不删除 `webapp/static/`，不迁移导入/问答/评估/设置完整流程，不修改数据库 schema，不新增 Pinia/Vue Router
