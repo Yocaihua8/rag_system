@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">资料库</p>
         <h2>资料库</h2>
-        <p>B-141C 已迁移项目空间基础，B-141E 已迁移文档列表与单文档预览，B-141F 已迁移文本笔记和 URL 摘录导入，B-141G 已迁移导入批次历史；文件上传和文档集合后续迁移。</p>
+        <p>B-141C 已迁移项目空间基础，B-141E 已迁移文档列表与单文档预览，B-141F 已迁移文本笔记和 URL 摘录导入，B-141G 已迁移导入批次历史；文件上传、文件夹导入和文档集合继续分片迁移。</p>
       </div>
     </header>
 
@@ -30,6 +30,7 @@
         @import-note="(payload) => $emit('import-note', payload)"
         @import-url="(payload) => $emit('import-url', payload)"
         @import-files="(files) => $emit('import-files', files)"
+        @import-folder="(files) => $emit('import-folder', files)"
       />
       <DocumentListPanel
         :documents="documents"
@@ -181,6 +182,7 @@ defineEmits([
   "import-note",
   "import-url",
   "import-files",
+  "import-folder",
   "refresh-batches",
   "select-batch",
 ]);

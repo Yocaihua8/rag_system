@@ -13,6 +13,18 @@
 
     <div class="import-grid">
       <section class="import-form">
+        <p class="section-kicker">浏览器文件夹</p>
+        <h3>选择本机文件夹导入</h3>
+        <p class="muted-line">通过浏览器授权读取文件夹内文本资料；会创建浏览器导入项目空间。</p>
+        <input ref="folderInput" type="file" webkitdirectory multiple hidden @change="submitFolder" />
+        <div class="actions">
+          <button type="button" :disabled="importSubmitting" @click="openFolderPicker">
+            {{ importSubmitting ? "导入中..." : "选择本机文件夹导入" }}
+          </button>
+        </div>
+      </section>
+
+      <section class="import-form">
         <p class="section-kicker">文件上传</p>
         <h3>选择文件上传导入</h3>
         <p class="muted-line">一次选择一个或多个临时文件；有当前项目空间时导入当前项目。</p>
@@ -99,9 +111,10 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["import-note", "import-url", "import-files"]);
+const emit = defineEmits(["import-note", "import-url", "import-files", "import-folder"]);
 
 const fileInput = ref(null);
+const folderInput = ref(null);
 
 const noteForm = reactive({
   title: "",
@@ -133,8 +146,17 @@ function openFilePicker() {
   fileInput.value?.click();
 }
 
+function openFolderPicker() {
+  folderInput.value?.click();
+}
+
 function submitFiles(event) {
   emit("import-files", event.target.files);
+  event.target.value = "";
+}
+
+function submitFolder(event) {
+  emit("import-folder", event.target.files);
   event.target.value = "";
 }
 </script>

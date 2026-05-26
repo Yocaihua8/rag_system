@@ -39,9 +39,9 @@
 
 - [x] 创建 B-141I plan，并将 BACKLOG 说明列追加本 plan 路径
 - [x] 先写 Vue 浏览器文件夹导入红灯测试，覆盖 imports API helper、DocumentImportPanel 文件夹入口、App 接入和状态刷新
-- [ ] 扩展 `frontend/src/api/imports.js`，复用既有 `/api/import/upload`，读取 `webkitRelativePath`，根目录作为 `project_name`，相对路径去掉根目录
-- [ ] 更新 `DocumentImportPanel`，新增浏览器文件夹导入按钮和隐藏 `webkitdirectory multiple` input，并保持普通文件上传 input 不设置 `webkitdirectory`
-- [ ] 更新 `App.vue`，处理浏览器文件夹导入响应，成功后选择后端返回项目并刷新项目空间、文档列表和导入批次历史
+- [x] 扩展 `frontend/src/api/imports.js`，复用既有 `/api/import/upload`，读取 `webkitRelativePath`，根目录作为 `project_name`，相对路径去掉根目录
+- [x] 更新 `DocumentImportPanel`，新增浏览器文件夹导入按钮和隐藏 `webkitdirectory multiple` input，并保持普通文件上传 input 不设置 `webkitdirectory`
+- [x] 更新 `App.vue`，处理浏览器文件夹导入响应，成功后选择后端返回项目并刷新项目空间、文档列表和导入批次历史
 - [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141I 说明
 - [ ] 完成验证、提交 B-141I，并更新本 plan 快照；B-141 保持 `doing`
 
@@ -125,12 +125,13 @@
 - 2026-05-26：冲突扫描发现 B-141A/B/C/D/E/F/G/H plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-26：创建 `docs/plans/B-141-vue-browser-folder-import.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-26：确认 B-141I 红灯为 3 failed / 22 passed，失败点集中在缺少 `importBrowserFolder`、文件夹上传面板入口和 App 文件夹上传响应接入。
+- 2026-05-26：新增 Vue 浏览器文件夹上传导入 helper、面板入口和 App 响应接入，聚焦测试 25 passed。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`f4d8b51` — `docs: 创建 B-141I 文件夹导入计划`
+- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`7364f4a` — `test: 覆盖 Vue 文件夹导入入口`
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮开始 B-141I 浏览器文件夹上传导入相关变更
-- **下一步**：实现 B-141I Vue browser folder helper、组件入口和 App 接线
+- **下一步**：同步 B-141I 功能文档、架构说明、测试指南、CHANGELOG 和 devlog
 - **续任务须知**：B-141I 不删除 `webapp/static/`，不迁移目录同步/预检/删除/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

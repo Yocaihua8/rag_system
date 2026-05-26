@@ -353,7 +353,7 @@ def test_vue_document_import_panel_renders_note_and_url_forms():
         "网页正文或摘要",
         "导入 URL 摘录",
         "未选择项目空间",
-        'defineEmits(["import-note", "import-url", "import-files"])',
+        'defineEmits(["import-note", "import-url", "import-files", "import-folder"])',
     ]:
         assert marker in panel_vue
 
@@ -509,7 +509,7 @@ def test_vue_document_import_panel_renders_file_upload_without_directory_picker(
     ]:
         assert marker in panel_vue
 
-    file_input_block = panel_vue.split('type="file"', 1)[1].split("/>", 1)[0]
+    file_input_block = panel_vue.split('ref="fileInput"', 1)[1].split("/>", 1)[0]
     assert "webkitdirectory" not in file_input_block
     assert "@import-files" in library_vue
 

@@ -42,6 +42,7 @@
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
+      @import-folder="handleImportFolder"
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
     />
@@ -56,6 +57,7 @@ import { apiGet } from "./api/client.js";
 import { getDocument, listDocuments } from "./api/documents.js";
 import {
   getImportBatchDetail,
+  importBrowserFolder,
   importBrowserFiles,
   importPlainTextNote,
   importUrlExcerpt,
@@ -189,6 +191,26 @@ async function handleImportFiles(files) {
     await loadImportBatches();
   } catch (error) {
     appState.importError = error.message || "文件上传导入失败";
+  } finally {
+    appState.importSubmitting = false;
+  }
+}
+
+async function handleImportFolder(files) {
+  appState.importSubmitting = true;
+  appState.importError = "";
+  appState.importStatus = "";
+  try {
+    const data = await importBrowserFolder({ files });
+    if (data.project?.id) {
+      selectProject(data.project.id);
+    }
+    appState.documents = data.documents || [];
+    appState.importStatus = formatImportResult("浏览器文件夹导入完成", data.result);
+    await loadProjectSpaces();
+    await loadImportBatches();
+  } catch (error) {
+    appState.importError = error.message || "浏览器文件夹导入失败";
   } finally {
     appState.importSubmitting = false;
   }

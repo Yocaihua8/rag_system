@@ -57,6 +57,18 @@ export async function importBrowserFiles({ projectId, files }) {
   return apiPost("/api/import/upload", payload);
 }
 
+export async function importBrowserFolder({ files }) {
+  const normalizedFiles = buildBrowserFolderEntries(files);
+  const uploadFiles = await Promise.all(normalizedFiles.map(readFolderUploadFile));
+  const projectName = normalizedFiles.find((entry) => entry.projectName)?.projectName || "浏览器导入项目";
+  const payload = {
+    source_type: "browser_folder_upload",
+    files: uploadFiles,
+  };
+  payload.project_name = projectName;
+  return apiPost("/api/import/upload", payload);
+}
+
 export async function listImportBatches(projectId) {
   if (!projectId) {
     return [];
@@ -93,6 +105,37 @@ async function readUploadFile(file) {
   return {
     relative_path: file.name,
     content: await file.text(),
+  };
+}
+
+function buildBrowserFolderEntries(fileList) {
+  const selectedFiles = Array.from(fileList || []);
+  if (selectedFiles.length === 0) {
+    throw new Error("请选择一个本地项目文件夹");
+  }
+  return selectedFiles.map(normalizeBrowserFolderFile);
+}
+
+function normalizeBrowserFolderFile(file) {
+  const rawPath = file.webkitRelativePath || file.name;
+  const parts = rawPath.replace(/\\/g, "/").split("/").filter(Boolean);
+  const projectName = parts.length > 1 ? parts[0] : "浏览器导入项目";
+  const relativePath = parts.length > 1 ? parts.slice(1).join("/") : parts.join("/");
+  return { file, rawPath, projectName, relativePath };
+}
+
+async function readFolderUploadFile(entry) {
+  const suffix = fileSuffix(entry.relativePath);
+  if (BINARY_UPLOAD_SUFFIXES.has(suffix)) {
+    return {
+      relative_path: entry.relativePath,
+      content_base64: await fileToBase64(entry.file),
+      size: entry.file.size,
+    };
+  }
+  return {
+    relative_path: entry.relativePath,
+    content: await entry.file.text(),
   };
 }
 
