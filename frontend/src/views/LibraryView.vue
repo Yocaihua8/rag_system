@@ -29,6 +29,7 @@
         :import-status="importStatus"
         @import-note="(payload) => $emit('import-note', payload)"
         @import-url="(payload) => $emit('import-url', payload)"
+        @import-files="(files) => $emit('import-files', files)"
       />
       <DocumentListPanel
         :documents="documents"
@@ -179,6 +180,7 @@ defineEmits([
   "select-document",
   "import-note",
   "import-url",
+  "import-files",
   "refresh-batches",
   "select-batch",
 ]);

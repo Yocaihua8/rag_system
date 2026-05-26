@@ -12,6 +12,18 @@
     <p v-else-if="importStatus" class="status-line">{{ importStatus }}</p>
 
     <div class="import-grid">
+      <section class="import-form">
+        <p class="section-kicker">文件上传</p>
+        <h3>选择文件上传导入</h3>
+        <p class="muted-line">一次选择一个或多个临时文件；有当前项目空间时导入当前项目。</p>
+        <input ref="fileInput" type="file" multiple hidden @change="submitFiles" />
+        <div class="actions">
+          <button type="button" :disabled="importSubmitting" @click="openFilePicker">
+            {{ importSubmitting ? "导入中..." : "选择文件上传导入" }}
+          </button>
+        </div>
+      </section>
+
       <form class="import-form" @submit.prevent="submitNote">
         <p class="section-kicker">文本笔记</p>
         <h3>导入文本笔记</h3>
@@ -66,7 +78,7 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 
 defineProps({
   selectedProjectId: {
@@ -87,7 +99,9 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["import-note", "import-url"]);
+const emit = defineEmits(["import-note", "import-url", "import-files"]);
+
+const fileInput = ref(null);
 
 const noteForm = reactive({
   title: "",
@@ -113,5 +127,14 @@ function submitUrl() {
     title: urlForm.title,
     content: urlForm.content,
   });
+}
+
+function openFilePicker() {
+  fileInput.value?.click();
+}
+
+function submitFiles(event) {
+  emit("import-files", event.target.files);
+  event.target.value = "";
 }
 </script>

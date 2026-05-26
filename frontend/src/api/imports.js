@@ -43,6 +43,20 @@ export async function importUrlExcerpt({ projectId, url, title, content }) {
   });
 }
 
+export async function importBrowserFiles({ projectId, files }) {
+  const uploadFiles = await buildUploadFiles(files);
+  const payload = {
+    source_type: "file_upload",
+    files: uploadFiles,
+  };
+  if (projectId) {
+    payload.project_id = projectId;
+  } else {
+    payload.project_name = "browser-upload";
+  }
+  return apiPost("/api/import/upload", payload);
+}
+
 export async function listImportBatches(projectId) {
   if (!projectId) {
     return [];
@@ -58,3 +72,43 @@ export async function getImportBatchDetail(batchId) {
   }
   return apiGet(`/api/import/batches/detail?batch_id=${encodeURIComponent(batchId)}`);
 }
+
+async function buildUploadFiles(fileList) {
+  const selectedFiles = Array.from(fileList || []);
+  if (selectedFiles.length === 0) {
+    throw new Error("请选择一个或多个本地文件");
+  }
+  return Promise.all(selectedFiles.map(readUploadFile));
+}
+
+async function readUploadFile(file) {
+  const suffix = fileSuffix(file.name);
+  if (BINARY_UPLOAD_SUFFIXES.has(suffix)) {
+    return {
+      relative_path: file.name,
+      content_base64: await fileToBase64(file),
+      size: file.size,
+    };
+  }
+  return {
+    relative_path: file.name,
+    content: await file.text(),
+  };
+}
+
+async function fileToBase64(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function fileSuffix(path) {
+  const index = path.lastIndexOf(".");
+  return index === -1 ? "" : path.slice(index).toLowerCase();
+}
+
+const BINARY_UPLOAD_SUFFIXES = new Set([".docx", ".pdf"]);

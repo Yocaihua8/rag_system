@@ -353,7 +353,7 @@ def test_vue_document_import_panel_renders_note_and_url_forms():
         "网页正文或摘要",
         "导入 URL 摘录",
         "未选择项目空间",
-        'defineEmits(["import-note", "import-url"])',
+        'defineEmits(["import-note", "import-url", "import-files"])',
     ]:
         assert marker in panel_vue
 

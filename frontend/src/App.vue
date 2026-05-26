@@ -41,6 +41,7 @@
       @select-document="handleSelectDocument"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
+      @import-files="handleImportFiles"
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
     />
@@ -55,6 +56,7 @@ import { apiGet } from "./api/client.js";
 import { getDocument, listDocuments } from "./api/documents.js";
 import {
   getImportBatchDetail,
+  importBrowserFiles,
   importPlainTextNote,
   importUrlExcerpt,
   listImportBatches,
@@ -169,6 +171,29 @@ async function handleImportUrl(payload) {
   }));
 }
 
+async function handleImportFiles(files) {
+  appState.importSubmitting = true;
+  appState.importError = "";
+  appState.importStatus = "";
+  try {
+    const data = await importBrowserFiles({
+      projectId: appState.selectedProjectId,
+      files,
+    });
+    if (data.project?.id) {
+      selectProject(data.project.id);
+    }
+    appState.documents = data.documents || [];
+    appState.importStatus = formatImportResult("文件上传导入完成", data.result);
+    await loadProjectSpaces();
+    await loadImportBatches();
+  } catch (error) {
+    appState.importError = error.message || "文件上传导入失败";
+  } finally {
+    appState.importSubmitting = false;
+  }
+}
+
 async function submitLibraryImport(successMessage, action) {
   appState.importSubmitting = true;
   appState.importError = "";
@@ -183,6 +208,10 @@ async function submitLibraryImport(successMessage, action) {
   } finally {
     appState.importSubmitting = false;
   }
+}
+
+function formatImportResult(label, result = {}) {
+  return `${label}：新增 ${result.created ?? 0}，更新 ${result.updated ?? 0}，未变更 ${result.unchanged ?? 0}，删除 ${result.deleted ?? 0}，跳过 ${result.skipped ?? 0}`;
 }
 
 async function handleSubmitQuestion(question) {
