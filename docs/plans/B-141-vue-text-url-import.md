@@ -40,7 +40,7 @@
 - [x] 新增 `DocumentImportPanel`，展示文本笔记和 URL 摘录两个导入表单、未选项目提示、提交状态、错误和成功提示
 - [x] 更新 `LibraryView.vue` 与 `App.vue`，处理导入事件，成功后刷新文档列表
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141F 说明
-- [ ] 完成验证、提交 B-141F，并更新本 plan 快照；B-141 保持 `doing`
+- [x] 完成验证、提交 B-141F，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
 
@@ -119,12 +119,13 @@
 - 2026-05-26：新增 Vue 资料库文本笔记/URL 摘录导入薄片、组件和状态接入，聚焦测试 16 passed，`npm run build` 成功。
 - 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141F 边界。
 - 2026-05-26：完整验证通过：`npm run build`、`tests/test_webapp` 287 passed、legacy 回归 179 passed、B-141F touched-file `git diff --check` 退出码 0；浏览器资料库页烟测通过且控制台错误数为 0。
+- 2026-05-26：提交 `47daf4f`，B-141F 资料库轻量导入薄片完成；BACKLOG B-141 保持 `doing`，后续继续 B-141G。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：待提交
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库文本/URL 导入相关变更
-- **下一步**：提交 B-141F，并更新本 plan 快照；之后继续 B-141G 页面级业务迁移
+- **进度**：已完成 7 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`47daf4f` — `feat: 接入 Vue 资料库轻量导入入口`
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；B-141F 资料库文本/URL 导入薄片已完成；存在大量既有未提交改动，未纳入本轮提交
+- **下一步**：继续 B-141G 页面级业务迁移，可在文件上传/目录同步、Workbench SSE 会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：B-141F 不删除 `webapp/static/`，不迁移目录同步/文件上传/删除/集合/批次，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
