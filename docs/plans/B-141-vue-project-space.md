@@ -38,7 +38,7 @@
 - [x] 新增 `ProjectSpacePanel` 并接入 `LibraryView`，展示项目列表、当前目录状态、错误/空状态和新建项目表单
 - [x] 更新 `App.vue` 启动时加载项目空间，并把项目状态传给资料库视图
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141C 说明
-- [ ] 运行 npm 构建、Vue 前端工程测试、Web MVP 全量、legacy 回归和页面非空检查
+- [x] 运行 npm 构建、Vue 前端工程测试、Web MVP 全量、legacy 回归和页面非空检查
 - [ ] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141D 页面迁移
 
 ## 4. 影响范围
@@ -107,12 +107,13 @@
 - 2026-05-26：新增 `ProjectSpacePanel` 并接入 `LibraryView`；Vue source 测试剩余失败收敛到 App 启动加载和事件处理。
 - 2026-05-26：更新 `App.vue` 和共享状态，启动时加载项目空间并处理刷新、选择、创建事件；Vue source 测试和 `npm run build` 通过。
 - 2026-05-26：同步功能文档、架构、测试指南、CHANGELOG 和 devlog 中的 B-141C 项目空间说明。
+- 2026-05-26：验证通过：`npm run build`、Vue 前端工程测试、Web MVP 全量、legacy 回归、docs contract、`git diff --check`；Chrome CDP 点击资料库后确认项目空间面板非空。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-26 17:17
-- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`b4be827` — docs: 同步 B-141C 项目空间说明
+- **最后更新**：2026-05-26 17:23
+- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`e849a05` — docs: 更新 B-141C 文档快照
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141C 将只追加 Vue 项目空间相关变更
-- **下一步**：运行 npm 构建、Vue 前端工程测试、Web MVP 全量、legacy 回归和页面非空检查
+- **下一步**：更新 plan 完成快照，保留 B-141 为 `doing`，下一步指向 B-141D 页面迁移
 - **续任务须知**：不删除 `webapp/static/`，不迁移导入/问答/评估/设置完整流程，不修改数据库 schema，不新增 Pinia/Vue Router
