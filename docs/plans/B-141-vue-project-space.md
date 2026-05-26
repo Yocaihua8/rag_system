@@ -112,7 +112,7 @@
 
 - **最后更新**：2026-05-26 17:17
 - **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`bb71e34` — docs: 更新 B-141C 加载快照
+- **最新 commit**：`b4be827` — docs: 同步 B-141C 项目空间说明
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141C 将只追加 Vue 项目空间相关变更
 - **下一步**：运行 npm 构建、Vue 前端工程测试、Web MVP 全量、legacy 回归和页面非空检查
 - **续任务须知**：不删除 `webapp/static/`，不迁移导入/问答/评估/设置完整流程，不修改数据库 schema，不新增 Pinia/Vue Router
