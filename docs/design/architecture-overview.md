@@ -2,75 +2,150 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-22
-> Scope：应用结构与端口适配边界
-> Related：`requirements/functional-modules.md`、`design/system-design-overview.md`
+> Last Updated：2026-05-26
+> Scope：Knowledge Island Web MVP 架构层职责与技术栈
+> Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/design/api-route-split-blueprint.md
 
 ## 1. 架构结论
 
-当前默认交付形态是本地 Web MVP，运行链路为 `app.py` -> `webapp.server.run_server()` -> `webapp.api.dispatch()` -> `webapp/*` 业务模块。旧 PySide6 桌面端仍保留六边形思路下的分层约束，作为 legacy 参考和后续迁移来源。
+Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，Vanilla JS SPA 承担展示层。所有处理在本机单进程内完成，无消息队列和微服务。
 
-新任务默认优先维护 Web MVP；除非任务明确要求迁移 legacy，否则不要在同一轮里同时改 `webapp/` 和 `src/desktop/`。
+| 字段 | 值 |
+|------|----|
+| 架构模式 | 本地单体（Local Monolith）|
+| 核心边界 | 127.0.0.1:8765，不对外暴露 |
+| 主要入口 | `app.py` → `webapp/server.py:create_app()` / `run_server()` |
+| 数据持久化 | SQLite（`runtime/docker/knowledge.db`）|
+| 外部依赖 | 可选 LLM API / Embedding API（均有本地 fallback）|
 
-### Web MVP 当前结构
+legacy PySide6 桌面端（`src/desktop/`）保留六边形分层约束，作为历史参考，不是当前默认入口。
 
-| 层 | 作用 | 当前路径 |
-|----|------|----------|
-| 服务入口 | 启动本机 HTTP 服务与静态文件服务 | `app.py`、`webapp/server.py` |
-| API 层 | 路由分发、请求校验、响应组装 | `webapp/api.py` |
-| 存储层 | SQLite schema 与读写 | `webapp/storage.py` |
-| 入库处理 | 本地目录、浏览器上传、文本笔记、文档处理 | `webapp/ingestion.py`、`webapp/upload_import.py`、`webapp/source_import.py`、`webapp/document_processing.py` |
-| 检索与回答 | keyword + vector 混合召回、来源质量、本地回答 | `webapp/search.py`、`webapp/answers.py` |
-| 工具与设置 | Agent 只读工具、LLM/Embedding 设置 | `webapp/agent_tools.py`、`webapp/config.py` |
-| Web UI | 原生 HTML/CSS/JavaScript 交互 | `webapp/static/` |
+B-20 后，legacy `QueryKnowledgeBaseUseCase` 会按 `QueryRequest.session_id` 读取同一 workspace、同一 legacy 会话最近 3 轮 `ConversationRecord`，并将其作为“最近对话”注入 prompt。未传 `session_id` 时继续使用默认会话，不影响 Web MVP 的 `chat_sessions` / `chat_messages`。
 
-### legacy 分层结构
+## 2. 架构图（文字版）
 
-| 层 | 作用 | 当前路径 |
-|----|------|----------|
-| 表现层 | 交互、参数组织、状态更新 | `src/desktop` |
-| 应用层 | 流程编排、事务边界 | `src/application` |
-| 端口层 | 能力契约（检索、嵌入、LLM、存储） | `src/ports` |
-| 适配器层 | 技术实现（SQLite、Ollama、Chroma 等） | `src/adapters` |
-| 领域层 | 不可变模型与核心约束 | `src/domain` |
-| 配置层 | 配置优先级与默认值 | `src/config` |
+```text
+┌──────────────────────────────────────────────────────────────┐
+│               浏览器（Vanilla JS SPA）                        │
+│   app.js / projects.js / ui.js / state.js / settings.js     │
+└──────────────────────────┬───────────────────────────────────┘
+                           │ HTTP REST（127.0.0.1:8765）
+┌──────────────────────────▼───────────────────────────────────┐
+│           webapp/server.py（FastAPI + Uvicorn）                │
+│        静态文件服务 + /api/* JSON + SSE                        │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+┌──────────────────────────▼───────────────────────────────────┐
+│       webapp/api.py + webapp/routes/*（API Handler）          │
+│      兼容入口 / 领域路由 / 参数校验 / JSON 响应               │
+├──────────┬───────────────┬──────────────┬────────────────────┤
+│ingestion │    search     │   answers    │   agent_tools      │
+│.py 等    │    .py        │   .py        │   .py              │
+│文件处理  │  混合检索     │  LLM/fallback│  只读工具白名单    │
+│分块向量化│  关键词+向量  │  上下文组装  │  工具审计记录      │
+├──────────┴───────────────┴──────────────┴────────────────────┤
+│               webapp/storage.py（SQLite）                     │
+│         KnowledgeStore — Schema 初始化 + 所有 CRUD            │
+├──────────────────────────────────────────────────────────────┤
+│  embeddings.py         llm.py          model_profiles.py     │
+│  向量化（API/hash）    LLM Chat        Profile CRUD+Key引用  │
+└──────────────────────────┬───────────────────────────────────┘
+                           │ 可选网络调用
+┌──────────────────────────▼───────────────────────────────────┐
+│                      外部可选服务                             │
+│   DeepSeek API / OpenAI-compatible API / Ollama（本地）      │
+└──────────────────────────────────────────────────────────────┘
+```
 
-## 2. 端口与适配器映射
+## 3. 技术栈
 
-### Web MVP 模块映射
+| 层级 | 技术 | 用途 | 选择原因 |
+|------|------|------|----------|
+| 展示层 | Vanilla HTML/CSS/JS | 单页应用 UI | B-141 前无需前端构建，`python app.py` 即可服务 |
+| 接口层 | FastAPI + Uvicorn | HTTP 路由、SSE、OpenAPI | ADR-001；标准化中间件与流式响应 |
+| 业务层 | Python 3.11 | 核心逻辑 | 生态丰富，AI 库支持完善 |
+| 数据层 | SQLite 3（标准库）| 全部持久化 | 零依赖单文件数据库，本地优先最合适 |
+| 向量化 | OpenAI-compatible Embedding API / 本地 hash | chunk 向量化 | API 质量高；hash fallback 保证无网络可用 |
+| LLM | DeepSeek / OpenAI-compatible / Ollama | 回答生成 | 兼容最广泛的模型格式 |
+| 关键词检索 | 内置 BM25 + regex / 中文 bigram 分词 | chunk 关键词评分 | 无新增运行时依赖 |
+| PDF 解析 | pymupdf（可选）| PDF 文本提取 | 性能优秀；未安装时明确跳过 |
+| 容器化 | Docker + Docker Compose | 非技术用户一键启动 | 消除 Python 环境依赖 |
+
+## 4. 分层职责
+
+### 4.1 展示层（webapp/static/）
+
+- 接收用户操作，通过 `fetch` 调用后端 REST API
+- 管理客户端 UI 状态（当前项目、会话、文档列表）
+- 渲染回答、来源、检索结果、工具输出
+- 必须：所有业务规则不在前端实现，前端只做展示和 API 调用
+
+### 4.2 接口层（webapp/server.py + webapp/api.py + webapp/routes/*）
+
+- `webapp.server.create_app()` 创建 FastAPI app，`run_server()` 通过 Uvicorn 启动本地服务
+- `webapp.api.dispatch()` 保持兼容入口，解析 `raw_path` 后交给 `webapp.routes.dispatch_to_routes()`
+- `/api/answer/stream` 由 FastAPI `StreamingResponse` 输出既有 SSE 事件
+- `webapp/routes/*` 按领域承载 REST 路由分支，提取 URL 参数和请求体
+- 参数合法性校验（必填字段、类型、取值范围）
+- 调用业务模块，封装统一 JSON 响应格式
+- 错误分类与 HTTP 状态码映射
+- 必须：不承载复杂业务规则，不直接操作 SQLite
+
+### 4.3 业务层（ingestion / search / answers / agent_tools）
+
+- 实现核心知识处理逻辑（分块、向量化、检索、回答生成）
+- 编排多个存储操作构成完整用例
+- 管理可选依赖的降级逻辑（API 失败时 fallback）
+- 必须：不引入 HTTP 概念（无 request/response），不格式化最终 JSON
+
+### 4.4 数据层（webapp/storage.py）
+
+- 初始化 SQLite schema（建表、兼容迁移）
+- 提供 CRUD 方法（`KnowledgeStore` 类统一封装）
+- 管理连接复用与事务
+- 必须：不承载业务规则，不被前端 JS 直接调用
+
+## 5. 端口与适配器映射
 
 | 能力 | 实现 | 调用方 |
 |------|------|--------|
-| HTTP 服务 | `webapp.server.run_server` | `app.py` |
-| API 分发 | `webapp.api.dispatch` | `webapp.server` |
-| SQLite 存储 | `KnowledgeStore` | `webapp.api`、导入/检索/工具模块 |
+| HTTP 服务 | `webapp.server.create_app` / `webapp.server.run_server` | `app.py` / Uvicorn |
+| API 分发 | `webapp.api.dispatch` + `webapp.routes.dispatch_to_routes` | `webapp.server` |
+| SQLite 存储 | `KnowledgeStore` | `webapp.routes/*`、导入/检索/工具模块 |
 | 本地目录导入 | `import_project_documents` | `POST /api/import` |
 | 浏览器上传导入 | `import_uploaded_files` | `POST /api/import/upload` |
 | 文本笔记导入 | `build_note_document` | `POST /api/import/note` |
-| 检索 | `search_documents`、`build_source_quality` | `/api/search`、`/api/search/debug`、`/api/answer`、只读工具 |
-| 回答生成 | `build_local_answer`、OpenAI-compatible Chat Completions 调用 | `POST /api/answer` |
+| 检索 | `search_documents` / `build_source_quality` | `/api/search*` / `/api/answer` / 只读工具 |
+| 回答生成 | `build_local_answer` / OpenAI-compatible Chat | `POST /api/answer` |
 | Agent 只读工具 | `run_agent_tool` | `POST /api/agent/tools/run` |
 
-### legacy 端口映射
+## 6. 外部依赖
 
-| 端口 | 实现 | 调用方 |
-|------|------|--------|
-| `IWorkspaceStore` | `SqliteWorkspaceStore` | `workspace_usecases`, `query` 与 `ingest` 用例 |
-| `IDocumentStore` | `SqliteDocumentStore` | `ingestion_usecases`, `project_...` 用例 |
-| `IChunkStore` | `SqliteChunkStore` | `query_usecases`, `knowledge_mastery_usecases` |
-| `IRetriever` | `VectorRetriever` / `KeywordRetriever` | `query_usecases` |
-| `IEmbedder` | `OllamaEmbedder` / `DummyEmbedder` | `application` 及 `vector store` |
-| `IVectorStore` | `ChromaVectorStore` / `NumpyVectorStore` | `VectorRetriever` |
-| `ILLMClient` | `OllamaAdapter` / `OpenAICompatAdapter` | `generation_usecases`, `query_usecases` |
+| 依赖项 | 类型 | 用途 | 降级策略 |
+|--------|------|------|----------|
+| DeepSeek / OpenAI API | 可选外部 | LLM 回答生成 | 降级为本地 chunk 聚合 fallback |
+| OpenAI-compatible Embedding API | 可选外部 | chunk 向量化 | 降级为本地 hash 向量 |
+| Ollama | 可选本地 | 本地 LLM 推理 | 需用户自行安装并启动服务 |
+| FastAPI / Uvicorn | 必需 Python 包 | 本地 HTTP API、静态文件与 SSE | 无降级；B-139 后为 Web MVP 运行时 |
+| pymupdf | 可选 Python 包 | PDF 文本提取 | 未安装时 PDF 跳过，有明确说明 |
+| Docker | 可选 | 容器化一键启动 | 非必需；`python app.py` 是主要入口 |
 
-## 3. 依赖规则
+## 7. 关键设计约束
 
-- Web MVP：`api.py` 负责路由分发，不直接写 SQLite；SQLite 读写集中在 `storage.py`；导入、检索、回答和工具逻辑分别放在独立模块。
-- Web MVP 不通过 `src/ports` 组装运行，避免把 legacy 六边形约束误套到当前轻量 Web 入口；需要迁移时另开任务。
-- legacy：依赖方向为配置 -> 领域 -> 端口 -> 适配器 -> 应用 -> 表现；应用层不直接 import adapter，统一在 `AppContainer` 组装；`desktop` 不包含数据库模型拼装逻辑。
+- **单进程**：所有处理在 `app.py` 进程内，无后台 worker 或消息队列
+- **本地优先**：所有核心功能在无网络时可用（LLM 降级本地片段，Embedding 降级 hash）
+- **可选依赖隔离**：`pymupdf` 等可选能力通过隔离入口引入，失败不影响主流程
+- **API Key 安全**：Profile 只保存引用 token，不持久化明文 Key
+- **只读 Agent**：工具白名单硬编码，拒绝任意命令执行
 
-## 4. 当前偏差说明
+## 8. 备选方案与取舍
 
-- 兼容层 `Workspace` 与新语义 `Project` 并存，legacy 数据库层保留双套关系，避免一次性破坏。
-- 文档内容仍保留 legacy 字段（如 `content/domain/tags`）用于过渡。
-- Web MVP 使用独立轻量表承载当前交付能力，包括 `projects`、`documents`、`document_chunks`、`chunk_vectors`、`chat_messages`、`agent_tool_runs` 和 `retrieval_reviews`。
+| 方案 | 是否采用 | 原因 |
+|------|----------|------|
+| FastAPI 替代 `http.server` | 已采用（B-139）| ADR-001；保留 `webapp.api.dispatch()` 兼容入口，先迁移 HTTP 外壳，B-140/B-141 串行推进 |
+| React / Vue 替代 Vanilla JS | 否（待评估）| MVP 快速迭代阶段构建工具成本高；中期可考虑 Alpine.js |
+| ChromaDB / Qdrant 替代 SQLite 向量 | 待实施（B-134）| SQLite 全扫描在 > 5000 chunks 时性能下降 |
+| PostgreSQL 替代 SQLite | 否 | 本地单用户场景 SQLite 足够；多用户时再迁移 |
+| LangChain / LlamaIndex 替代自研 | 否 | 引入大型框架与本地极简原则冲突，增加不透明性 |
+| BM25 替代 regex 关键词检索 | 已采用（B-127）| `webapp/search.py` 使用内置 BM25 计算 `keyword_score`，不新增必需依赖 |
+| `api.py` 按领域拆分 | 已完成（B-138）| 61 个 REST 端点已迁入 `webapp/routes/*`；`webapp/api.py` 仅保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口，保持 `webapp.api.dispatch` 兼容入口 |
