@@ -35,7 +35,7 @@
 - [x] 先写 Vue API/state/layout 红灯测试，覆盖 API helper、状态字段、四个基础视图和 App 组装
 - [x] 新增 `frontend/src/api/client.js`，迁移 legacy API 错误归一化和 `apiGet/apiPost`
 - [x] 新增 `frontend/src/state/app-state.js`，定义当前 Vue 迁移期共享状态和视图切换 helper
-- [ ] 拆分 `AppShell`、基础 views，并让 `App.vue` 使用 Vue 状态完成四视图切换和健康检查
+- [x] 拆分 `AppShell`、基础 views，并让 `App.vue` 使用 Vue 状态完成四视图切换和健康检查
 - [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141B 说明
 - [ ] 运行 npm 构建、前端工程测试、Web MVP 全量、legacy 回归和空白检查
 - [ ] 更新 plan 快照，保留 B-141 为 `doing`，下一步指向 B-141C 页面迁移
@@ -100,12 +100,13 @@
 - 2026-05-26：新增 `tests/test_webapp/test_frontend_vue_app.py` 后红灯失败于缺少 Vue API client、state、AppShell 和基础 views。
 - 2026-05-26：新增 `frontend/src/api/client.js`，复用 legacy API 错误归一化语义；聚焦 API client 测试与 `npm run build` 通过。
 - 2026-05-26：新增 `frontend/src/state/app-state.js`，对齐 legacy 关键状态字段并提供 `showView()` 视图切换 helper；聚焦状态测试与 `npm run build` 通过。
+- 2026-05-26：新增 `AppShell` 和四个基础 view，`App.vue` 使用共享状态完成导航切换并通过 Vue source 测试与 `npm run build`。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 16:17
-- **进度**：已完成 4 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`681619b` — feat: 新增 Vue API 客户端
+- **进度**：已完成 5 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`0fb2245` — feat: 新增 Vue 共享状态模型
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141B 将只追加 Vue API/state/layout 相关变更
-- **下一步**：拆分 `AppShell`、基础 views，并让 `App.vue` 使用 Vue 状态完成四视图切换和健康检查
+- **下一步**：同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141B 说明
 - **续任务须知**：不删除 `webapp/static/`，不迁移完整业务流程，不修改数据库 schema，不新增 Pinia/Vue Router

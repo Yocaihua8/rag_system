@@ -1,29 +1,41 @@
 <template>
-  <main class="app-shell">
-    <section class="hero-panel">
-      <p class="eyebrow">B-141A Vue + Vite foundation</p>
-      <h1>知识岛</h1>
-      <p class="lead">
-        当前是前端工程化骨架阶段。完整业务界面仍由 legacy 静态前端提供，后续将按页面逐步迁移到 Vue 组件。
-      </p>
-      <div class="actions">
-        <button type="button" @click="checkHealth">检查本地服务</button>
-        <span class="status">{{ statusMessage }}</span>
-      </div>
-    </section>
-  </main>
+  <AppShell :current-view="appState.currentView" @change-view="showView">
+    <component
+      :is="currentViewComponent"
+      :status-message="statusMessage"
+      @check-health="checkHealth"
+    />
+  </AppShell>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
+
+import { apiGet } from "./api/client.js";
+import AppShell from "./components/AppShell.vue";
+import { appState, showView } from "./state/app-state.js";
+import AssessmentView from "./views/AssessmentView.vue";
+import LibraryView from "./views/LibraryView.vue";
+import SettingsView from "./views/SettingsView.vue";
+import WorkbenchView from "./views/WorkbenchView.vue";
+
+const viewComponents = {
+  workbench: WorkbenchView,
+  library: LibraryView,
+  assessment: AssessmentView,
+  settings: SettingsView,
+};
 
 const statusMessage = ref("等待检查");
+
+const currentViewComponent = computed(() => {
+  return viewComponents[appState.currentView] || WorkbenchView;
+});
 
 async function checkHealth() {
   statusMessage.value = "检查中...";
   try {
-    const response = await fetch("/api/health");
-    const data = await response.json();
+    const data = await apiGet("/api/health");
     statusMessage.value = data.status === "ok" ? "本地服务正常" : "服务状态异常";
   } catch (error) {
     statusMessage.value = "本地服务暂时不可用";
