@@ -15,7 +15,10 @@ from webapp.config import DEFAULT_HOST, DEFAULT_PORT, default_db_path
 from webapp.storage import KnowledgeStore
 
 
-STATIC_DIR = Path(__file__).resolve().parent / "static"
+WEBAPP_DIR = Path(__file__).resolve().parent
+STATIC_LEGACY_DIR = WEBAPP_DIR / "static"
+STATIC_DIST_DIR = WEBAPP_DIR / "static_dist"
+STATIC_DIR = STATIC_LEGACY_DIR
 AUTHENTICATION_REQUIRED = {"error": "authentication required"}
 INVALID_CREDENTIALS = {"error": "invalid credentials"}
 
@@ -75,11 +78,8 @@ def create_app(
         )
         return JSONResponse(status_code=response.status, content=response.body)
 
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+    app.mount("/", StaticFiles(directory=_frontend_static_dir(), html=True), name="static")
     return app
-
-
-app = create_app()
 
 
 def run_server(
@@ -128,6 +128,15 @@ def _auth_error_response(content: dict[str, str]) -> JSONResponse:
         content=content,
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+
+def _frontend_static_dir() -> Path:
+    if (STATIC_DIST_DIR / "index.html").exists():
+        return STATIC_DIST_DIR
+    return STATIC_LEGACY_DIR
+
+
+app = create_app()
 
 
 async def _json_payload(request: Request) -> dict[str, Any]:
