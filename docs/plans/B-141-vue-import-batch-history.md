@@ -36,7 +36,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-141G plan，并将 BACKLOG 说明列追加本 plan 路径
-- [ ] 先写 Vue 导入批次历史红灯测试，覆盖 imports API helper、ImportBatchHistoryPanel、LibraryView/App 接入和状态字段
+- [x] 先写 Vue 导入批次历史红灯测试，覆盖 imports API helper、ImportBatchHistoryPanel、LibraryView/App 接入和状态字段
 - [ ] 扩展 `frontend/src/api/imports.js`，复用既有导入批次历史接口并处理未选择项目空间、未选择批次
 - [ ] 新增 `ImportBatchHistoryPanel`，展示批次列表、详情、空态、加载态、错误态和只读边界
 - [ ] 更新 `LibraryView.vue` 与 `App.vue`，在项目切换和导入成功后刷新批次历史，点击批次读取详情
@@ -119,12 +119,13 @@
 - 2026-05-26：B-141G 选择“资料库导入批次历史”薄片，不迁移目录同步、文件上传、预检、回滚、删除、重试、集合或数据库 schema。
 - 2026-05-26：冲突扫描发现 B-141A/B/C/D/E/F plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-26：创建 `docs/plans/B-141-vue-import-batch-history.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
+- 2026-05-26：确认 B-141G 红灯为 3 failed / 16 passed，失败点集中在缺少 import batch API helper、ImportBatchHistoryPanel 和 App 批次状态接入。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 1 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：待提交
+- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`f387cd3` — `docs: 创建 B-141G 导入批次历史计划`
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库导入批次历史相关变更
-- **下一步**：提交 B-141G plan，然后编写导入批次历史红灯测试
+- **下一步**：实现 B-141G 导入批次历史最小 Vue 薄片
 - **续任务须知**：B-141G 不删除 `webapp/static/`，不迁移目录同步/文件上传/预检/回滚/删除/重试/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

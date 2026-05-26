@@ -394,3 +394,84 @@ def test_vue_app_handles_library_note_and_url_import_state():
         "importStatus",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_import_api_helper_uses_existing_import_batch_contracts():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    assert "apiGet" in imports_js
+    assert "export async function listImportBatches(projectId)" in imports_js
+    assert 'apiGet(`/api/import/batches?${params.toString()}`)' in imports_js
+    assert "project_id" in imports_js
+    assert "data.batches || []" in imports_js
+    assert "export async function getImportBatchDetail(batchId)" in imports_js
+    assert 'apiGet(`/api/import/batches/detail?batch_id=${encodeURIComponent(batchId)}`)' in imports_js
+    assert "请选择导入批次" in imports_js
+
+
+def test_vue_import_batch_history_panel_renders_read_only_batch_states():
+    panel_path = Path("frontend/src/components/ImportBatchHistoryPanel.vue")
+    assert panel_path.exists(), "B-141G should add ImportBatchHistoryPanel"
+
+    panel_vue = _read(str(panel_path))
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "导入批次历史",
+        "正在读取导入批次...",
+        "暂无导入批次历史",
+        "未选择项目空间",
+        "查看详情",
+        "批次详情",
+        "请选择一条导入批次查看详情",
+        "跳过 / 错误明细",
+        "本批次没有跳过或错误明细",
+        'defineEmits(["refresh-batches", "select-batch"])',
+    ]:
+        assert marker in panel_vue
+
+    for forbidden_action in ["回滚", "删除批次", "重试"]:
+        assert forbidden_action not in panel_vue
+
+    assert "formatImportSourceType" in panel_vue
+    assert "formatImportBatchStatus" in panel_vue
+    assert "formatImportBatchItemKind" in panel_vue
+    assert "ImportBatchHistoryPanel" in library_vue
+    assert "@refresh-batches" in library_vue
+    assert "@select-batch" in library_vue
+    assert ":import-batches=\"importBatches\"" in library_vue
+    assert ":selected-import-batch=\"selectedImportBatch\"" in library_vue
+
+
+def test_vue_app_loads_import_batches_and_refreshes_after_imports():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "listImportBatches",
+        "getImportBatchDetail",
+    ]:
+        assert imported_name in app_vue
+
+    assert "loadImportBatches" in app_vue
+    assert "handleSelectImportBatch" in app_vue
+    assert "appState.importBatches = batches" in app_vue
+    assert "appState.selectedImportBatch = data.batch" in app_vue
+    assert "appState.selectedImportBatchItems = data.items || []" in app_vue
+    assert "@refresh-batches=\"loadImportBatches\"" in app_vue
+    assert "@select-batch=\"handleSelectImportBatch\"" in app_vue
+    assert ":import-batches=\"appState.importBatches\"" in app_vue
+    assert ":import-batches-loading=\"appState.importBatchesLoading\"" in app_vue
+    assert ":import-batch-detail-loading=\"appState.importBatchDetailLoading\"" in app_vue
+    assert "await loadImportBatches()" in app_vue
+
+    for state_field in [
+        "importBatches",
+        "importBatchesLoading",
+        "importBatchesLoadError",
+        "selectedImportBatch",
+        "selectedImportBatchItems",
+        "importBatchDetailLoading",
+        "importBatchDetailError",
+    ]:
+        assert f"{state_field}:" in state_js
