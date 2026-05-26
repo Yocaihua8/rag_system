@@ -80,3 +80,74 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
         for marker in markers:
             assert marker in view_text
         assert "B-141B" in view_text
+
+
+def test_vue_project_api_helper_preserves_project_selection_contract():
+    projects_js = _read("frontend/src/api/projects.js")
+
+    assert 'PROJECT_SELECTION_STORAGE_KEY = "knowledge-island:selected-project-id"' in projects_js
+    assert 'apiGet("/api/projects")' in projects_js
+    assert 'apiPost("/api/projects", payload)' in projects_js
+    assert "export async function loadProjects()" in projects_js
+    assert "export async function createProject(payload)" in projects_js
+    assert "export function selectProject(projectId)" in projects_js
+    assert "export function restoreSelectedProjectId(projects)" in projects_js
+    assert "localStorage.getItem(PROJECT_SELECTION_STORAGE_KEY)" in projects_js
+    assert "localStorage.setItem(PROJECT_SELECTION_STORAGE_KEY, projectId)" in projects_js
+    assert "localStorage.removeItem(PROJECT_SELECTION_STORAGE_KEY)" in projects_js
+    assert "appState.projects" in projects_js
+    assert "appState.selectedProjectId" in projects_js
+
+
+def test_vue_project_space_panel_renders_project_selection_and_creation_form():
+    panel_vue = _read("frontend/src/components/ProjectSpacePanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "当前项目",
+        "项目空间",
+        "未选择项目空间",
+        "项目目录不存在",
+        "新建项目空间",
+        "项目名称",
+        "本地目录",
+        "创建项目空间",
+    ]:
+        assert marker in panel_vue
+
+    assert 'v-for="project in projects"' in panel_vue
+    assert ':value="project.id"' in panel_vue
+    assert "@change=" in panel_vue
+    assert '@submit.prevent="submitProject"' in panel_vue
+    assert 'defineEmits(["refresh-projects", "select-project", "create-project"])' in panel_vue
+    assert "ProjectSpacePanel" in library_vue
+
+
+def test_vue_app_loads_project_spaces_on_startup_and_handles_panel_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "loadProjects",
+        "createProject",
+        "selectProject",
+        "restoreSelectedProjectId",
+    ]:
+        assert imported_name in app_vue
+
+    assert "onMounted" in app_vue
+    assert "loadProjectSpaces" in app_vue
+    assert "handleCreateProject" in app_vue
+    assert "handleSelectProject" in app_vue
+    assert "projectStatusMessage" in app_vue
+    assert "projectFormStatus" in app_vue
+    assert ":projects=\"appState.projects\"" in app_vue
+    assert "@create-project=\"handleCreateProject\"" in app_vue
+
+    for state_field in [
+        "projectsLoading",
+        "projectLoadError",
+        "projectFormSubmitting",
+        "projectFormError",
+    ]:
+        assert f"{state_field}:" in state_js
