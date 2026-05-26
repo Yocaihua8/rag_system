@@ -34,7 +34,7 @@
 
 - [x] 创建 ADR-006、前端工程化功能文档、B-141 plan，并将 BACKLOG 状态更新为 `doing`
 - [x] 先写前端工程骨架红灯测试，覆盖 `frontend/package.json`、Vite 配置、构建输出目录和后端静态 fallback 预期
-- [ ] 新建 `frontend/` Vue 3 + Vite 最小工程与根 `package.json` / `package-lock.json`
+- [x] 新建 `frontend/` Vue 3 + Vite 最小工程与根 `package.json` / `package-lock.json`
 - [ ] 修改 `webapp/server.py`，优先服务 `webapp/static_dist/`，缺失时回退 `webapp/static/`
 - [ ] 同步架构、setup、testing、CHANGELOG、devlog 中的 B-141A 说明
 - [ ] 运行 npm 构建、Web MVP 聚焦测试、legacy 回归和空白检查
@@ -100,12 +100,13 @@
 - 2026-05-26 16:17：冲突扫描发现 `docs/plans/` 无进行中计划；`docs/superpowers/plans/` 只有历史计划文件且未标记 Active/Interrupted，按分区处理。
 - 2026-05-26 16:17：创建 ADR-006、`docs/features/frontend-engineering.md` 和 `docs/plans/B-141-vue-vite-foundation.md`，并将 BACKLOG B-141 状态切为 `doing`。
 - 2026-05-26：新增 `tests/test_webapp/test_frontend_build.py` 后红灯失败于缺少 `package.json`、缺少 Vite 配置、FastAPI 尚未优先服务 `static_dist`。
+- 2026-05-26：新增 `frontend/` 最小 Vue 应用、根 `package.json`、`package-lock.json` 和 Vite 配置；`npm run build` 可生成 `webapp/static_dist/`，构建产物按 `.gitignore` 不入库。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 16:17
-- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`de577c9` — docs: 更新 B-141 计划快照
+- **进度**：已完成 3 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`55ae389` — test: 补充前端工程化红灯测试
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141A 将只追加前端工程化相关变更
-- **下一步**：新建 `frontend/` Vue 3 + Vite 最小工程与根 `package.json` / `package-lock.json`
+- **下一步**：修改 `webapp/server.py`，优先服务 `webapp/static_dist/`，缺失时回退 `webapp/static/`
 - **续任务须知**：B-141A 不删除 `webapp/static/`，不迁移完整业务 UI，不修改数据库 schema
