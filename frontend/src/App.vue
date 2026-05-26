@@ -11,6 +11,9 @@
       :project-form-error="appState.projectFormError"
       :project-form-status="projectFormStatus"
       :project-status-message="projectStatusMessage"
+      :import-submitting="appState.importSubmitting"
+      :import-error="appState.importError"
+      :import-status="appState.importStatus"
       :answer-result="appState.answerResult"
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
@@ -29,6 +32,8 @@
       @submit-question="handleSubmitQuestion"
       @refresh-documents="loadLibraryDocuments"
       @select-document="handleSelectDocument"
+      @import-note="handleImportNote"
+      @import-url="handleImportUrl"
     />
   </AppShell>
 </template>
@@ -39,6 +44,7 @@ import { computed, onMounted, ref } from "vue";
 import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
 import { getDocument, listDocuments } from "./api/documents.js";
+import { importPlainTextNote, importUrlExcerpt } from "./api/imports.js";
 import {
   createProject,
   loadProjects,
@@ -126,6 +132,38 @@ async function handleCreateProject(payload) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
     appState.projectFormSubmitting = false;
+  }
+}
+
+async function handleImportNote(payload) {
+  await submitLibraryImport("文本笔记已导入", () => importPlainTextNote({
+    projectId: appState.selectedProjectId,
+    title: payload.title,
+    content: payload.content,
+  }));
+}
+
+async function handleImportUrl(payload) {
+  await submitLibraryImport("URL 摘录已导入", () => importUrlExcerpt({
+    projectId: appState.selectedProjectId,
+    url: payload.url,
+    title: payload.title,
+    content: payload.content,
+  }));
+}
+
+async function submitLibraryImport(successMessage, action) {
+  appState.importSubmitting = true;
+  appState.importError = "";
+  appState.importStatus = "";
+  try {
+    await action();
+    appState.importStatus = successMessage;
+    await loadLibraryDocuments();
+  } catch (error) {
+    appState.importError = error.message || "资料导入失败";
+  } finally {
+    appState.importSubmitting = false;
   }
 }
 

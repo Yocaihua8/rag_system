@@ -310,3 +310,87 @@ def test_vue_app_loads_library_documents_and_preview_state():
         "documentPreviewError",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_import_api_helper_uses_existing_note_and_url_contracts():
+    imports_path = Path("frontend/src/api/imports.js")
+    assert imports_path.exists(), "B-141F should add a Vue imports API helper"
+    imports_js = _read(str(imports_path))
+
+    assert "export async function importPlainTextNote({ projectId, title, content })" in imports_js
+    assert 'apiPost("/api/import/note"' in imports_js
+    assert "project_id: projectId" in imports_js
+    assert "title" in imports_js
+    assert "content" in imports_js
+    assert "请先创建或选择项目空间" in imports_js
+    assert "请输入笔记标题" in imports_js
+    assert "请输入笔记正文" in imports_js
+    assert "export async function importUrlExcerpt({ projectId, url, title, content })" in imports_js
+    assert 'apiPost("/api/import/url"' in imports_js
+    assert "url" in imports_js
+    assert "请输入 URL" in imports_js
+    assert "请输入网页标题" in imports_js
+    assert "请输入网页正文或摘要" in imports_js
+
+
+def test_vue_document_import_panel_renders_note_and_url_forms():
+    panel_path = Path("frontend/src/components/DocumentImportPanel.vue")
+    assert panel_path.exists(), "B-141F should add DocumentImportPanel"
+
+    panel_vue = _read(str(panel_path))
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "导入资料",
+        "文本笔记",
+        "导入文本笔记",
+        "笔记标题",
+        "笔记正文",
+        "URL 摘录",
+        "保存网页来源",
+        "网页地址",
+        "网页标题",
+        "网页正文或摘要",
+        "导入 URL 摘录",
+        "未选择项目空间",
+        'defineEmits(["import-note", "import-url"])',
+    ]:
+        assert marker in panel_vue
+
+    assert "@submit.prevent=\"submitNote\"" in panel_vue
+    assert "@submit.prevent=\"submitUrl\"" in panel_vue
+    assert "DocumentImportPanel" in library_vue
+    assert "@import-note" in library_vue
+    assert "@import-url" in library_vue
+    assert ":import-submitting=\"importSubmitting\"" in library_vue
+    assert ":import-status=\"importStatus\"" in library_vue
+
+
+def test_vue_app_handles_library_note_and_url_import_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "importPlainTextNote",
+        "importUrlExcerpt",
+    ]:
+        assert imported_name in app_vue
+
+    assert "handleImportNote" in app_vue
+    assert "handleImportUrl" in app_vue
+    assert "@import-note=\"handleImportNote\"" in app_vue
+    assert "@import-url=\"handleImportUrl\"" in app_vue
+    assert ":import-submitting=\"appState.importSubmitting\"" in app_vue
+    assert ":import-error=\"appState.importError\"" in app_vue
+    assert ":import-status=\"appState.importStatus\"" in app_vue
+    assert "appState.selectedProjectId" in app_vue
+    assert "await loadLibraryDocuments()" in app_vue
+    assert "文本笔记已导入" in app_vue
+    assert "URL 摘录已导入" in app_vue
+
+    for state_field in [
+        "importSubmitting",
+        "importError",
+        "importStatus",
+    ]:
+        assert f"{state_field}:" in state_js
