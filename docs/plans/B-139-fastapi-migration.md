@@ -23,7 +23,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-139 plan、补充运行时规格文档，并将 BACKLOG 状态更新为 `doing`
-- [ ] 先写 FastAPI 服务层失败测试，覆盖健康检查、静态首页、未知 API、SSE Content-Type
+- [x] 先写 FastAPI 服务层失败测试，覆盖健康检查、静态首页、未知 API、SSE Content-Type
 - [ ] 新增 FastAPI + Uvicorn 依赖，并把 `webapp/server.py` 迁移为 FastAPI app + 兼容 dispatch 入口
 - [ ] 将 `app.py` 启动入口改为 Uvicorn，并保持 `python app.py` 本地启动方式
 - [ ] 同步正式文档：架构、API、setup/testing、CHANGELOG/devlog 中与 B-139 直接相关的说明
@@ -97,8 +97,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 15:17
-- **进度**：已完成 1 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`6e9b2d7` — 当前任务开始前基线
+- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`682fe2d` — docs: 创建 B-139 FastAPI 迁移计划
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-139 将只追加相关变更
-- **下一步**：先写 FastAPI 服务层失败测试，覆盖健康检查、静态首页、未知 API、SSE Content-Type
+- **下一步**：新增 FastAPI + Uvicorn 依赖，并把 `webapp/server.py` 迁移为 FastAPI app + 兼容 dispatch 入口
 - **续任务须知**：B-139 不包含认证中间件和 Vue 前端工程化；不要修改 `src/` legacy 代码或数据库 schema
