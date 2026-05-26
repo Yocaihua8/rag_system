@@ -7,6 +7,7 @@
 ## 1. 环境要求
 
 - Python 3.10+（仓库默认以 3.11 为主）
+- Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；当前本机验证为 Node 24 + npm 11）
 - Web MVP 默认不需要 Ollama 或 API Key；配置 DeepSeek Key 后可启用真实 LLM 回答
 - 可选：Ollama 本地服务（legacy PySide6 / 后续 RAG 能力）
 - 可选：API Key（DeepSeek/OpenAI/兼容端点）
@@ -18,6 +19,7 @@
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
+npm install
 cp .env.example .env
 cp .env .env.local # 按需
 ```
@@ -35,6 +37,14 @@ http://127.0.0.1:8765
 ```
 
 当前默认入口使用 FastAPI + Uvicorn、SQLite 和原生前端；`pip install -r requirements.txt` 会安装必需 Web 运行时。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码仍保留在 `src/desktop/`，后续按功能迁移。
+
+B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
+
+```powershell
+npm run build
+```
+
+构建产物输出到 `webapp/static_dist/`，该目录不入库。`python app.py` 会优先服务 `webapp/static_dist/`；未构建或构建产物缺失时，自动回退到 legacy `webapp/static/`。
 
 启用 API Key + JWT 认证（可选）：
 
