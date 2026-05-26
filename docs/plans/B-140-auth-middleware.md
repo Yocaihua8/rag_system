@@ -37,7 +37,7 @@
 - [x] 先写 FastAPI 中间件红灯测试，覆盖默认关闭、启用后 401、API Key 放行、JWT 放行、docs 保护
 - [x] 在 `webapp/server.py` 接入认证中间件和 `POST /api/auth/token`
 - [x] 同步权限矩阵、API 契约、setup/testing、CHANGELOG/devlog
-- [ ] 运行 Web MVP 与 legacy 回归验证，修复仅由 B-140 引入的回归
+- [x] 运行 Web MVP 与 legacy 回归验证，修复仅由 B-140 引入的回归
 - [ ] 完成回流清单，删除本 plan，并将 B-140 状态改为 `done`
 
 ## 4. 影响范围
@@ -110,12 +110,13 @@
 - 2026-05-26：新增 `tests/test_webapp/test_auth_middleware.py` 后红灯失败于 `create_app()` 尚未支持 `auth_settings`，覆盖认证中间件和 token 路由预期行为。
 - 2026-05-26：在 `webapp/server.py` 接入认证中间件与 `POST /api/auth/token`，聚焦认证测试 13 个用例通过。
 - 2026-05-26：同步权限矩阵、API 契约、启动与测试指南、CHANGELOG 和 devlog 中的 B-140 认证说明。
+- 2026-05-26：Web MVP 全量 267 passed，legacy 回归 179 passed，文档契约 22 passed，`git diff --check` 退出码 0（仅既有 CRLF 提示）。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-26 15:45
-- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`a0ed0e3` — feat: 接入可选认证中间件
+- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`7875a8b` — docs: 同步 B-140 认证说明
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-140 将只追加相关变更
-- **下一步**：运行 Web MVP 与 legacy 回归验证，修复仅由 B-140 引入的回归
+- **下一步**：完成回流清单，删除本 plan，并将 B-140 状态改为 `done`
 - **续任务须知**：B-140 不新增登录页、不修改数据库 schema、不实现多用户或 RBAC
