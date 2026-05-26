@@ -8,6 +8,8 @@ def test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies():
     assert "EXPOSE 8765" in dockerfile
     assert "webapp.server" in dockerfile
     assert "0.0.0.0" in dockerfile
+    assert "fastapi" in dockerfile
+    assert "uvicorn[standard]" in dockerfile
     assert "pip install -r requirements.txt" not in dockerfile
 
 
