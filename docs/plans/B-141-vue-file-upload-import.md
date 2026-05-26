@@ -42,7 +42,7 @@
 - [x] 更新 `DocumentImportPanel`，新增普通文件上传按钮和隐藏 `multiple` file input，不设置 `webkitdirectory`
 - [x] 更新 `App.vue`，处理文件上传导入响应，成功后刷新项目空间、文档列表和导入批次历史
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141H 说明
-- [ ] 完成验证、提交 B-141H，并更新本 plan 快照；B-141 保持 `doing`
+- [x] 完成验证、提交 B-141H，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
 
@@ -92,15 +92,15 @@
 
 ## 6. 验收标准
 
-- [ ] Vue 资料库页提供“选择文件上传导入”按钮和普通 `multiple` file input。
-- [ ] 普通 file input 不设置 `webkitdirectory`。
-- [ ] 有当前项目空间时，上传请求包含 `project_id` 和 `source_type=file_upload`。
-- [ ] 没有当前项目空间时，上传请求包含 `project_name=browser-upload` 和 `source_type=file_upload`，允许后端创建上传项目。
-- [ ] DOCX/PDF 文件以 `content_base64 + size` 上传，普通文本文件以 `content` 上传，`relative_path` 使用文件名。
-- [ ] 导入成功后刷新项目空间、当前项目、文档列表和导入批次历史。
-- [ ] B-141H 不迁移浏览器文件夹导入、同步当前项目目录、导入预检、文档集合、删除文档或数据库 schema。
-- [ ] `webapp/static/` 仍保留为迁移期 fallback。
-- [ ] 相关测试与文档同步完成。
+- [x] Vue 资料库页提供“选择文件上传导入”按钮和普通 `multiple` file input。
+- [x] 普通 file input 不设置 `webkitdirectory`。
+- [x] 有当前项目空间时，上传请求包含 `project_id` 和 `source_type=file_upload`。
+- [x] 没有当前项目空间时，上传请求包含 `project_name=browser-upload` 和 `source_type=file_upload`，允许后端创建上传项目。
+- [x] DOCX/PDF 文件以 `content_base64 + size` 上传，普通文本文件以 `content` 上传，`relative_path` 使用文件名。
+- [x] 导入成功后刷新项目空间、当前项目、文档列表和导入批次历史。
+- [x] B-141H 不迁移浏览器文件夹导入、同步当前项目目录、导入预检、文档集合、删除文档或数据库 schema。
+- [x] `webapp/static/` 仍保留为迁移期 fallback。
+- [x] 相关测试与文档同步完成。
 
 ## 7. 回流清单
 
@@ -124,12 +124,13 @@
 - 2026-05-26：确认 B-141H 红灯为 3 failed / 19 passed，失败点集中在缺少 `importBrowserFiles`、文件上传面板入口和 App 上传响应接入。
 - 2026-05-26：新增 Vue 普通文件上传导入 helper、面板入口和 App 响应接入，聚焦测试 22 passed。
 - 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141H 边界。
+- 2026-05-26：完整验证通过：`npm run build`、`tests/test_webapp` 293 passed、legacy 回归 179 passed、B-141H touched-file `git diff --check` 退出码 0；浏览器资料库页烟测通过，普通 `multiple` file input 未设置 `webkitdirectory`，控制台错误数为 0。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`05c9481` — `feat: 接入 Vue 普通文件上传导入`
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库普通文件上传导入相关变更
-- **下一步**：完成 B-141H 完整验证并提交收尾快照
+- **进度**：已完成 7 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`b91cdbc` — `docs: 同步 B-141H 文件上传说明`
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；B-141H 普通文件上传导入薄片已完成；存在大量既有未提交改动，未纳入本轮提交
+- **下一步**：继续 B-141I 页面级业务迁移，可在浏览器文件夹导入/目录同步、Workbench SSE 会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：B-141H 不删除 `webapp/static/`，不迁移浏览器文件夹导入/目录同步/预检/删除/集合，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
