@@ -15,11 +15,20 @@
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
       :answer-status="appState.answerStatus"
+      :documents="appState.documents"
+      :documents-loading="appState.documentsLoading"
+      :documents-load-error="appState.documentsLoadError"
+      :selected-document-id="appState.selectedDocumentId"
+      :selected-document="appState.selectedDocument"
+      :document-preview-loading="appState.documentPreviewLoading"
+      :document-preview-error="appState.documentPreviewError"
       @check-health="checkHealth"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
       @create-project="handleCreateProject"
       @submit-question="handleSubmitQuestion"
+      @refresh-documents="loadLibraryDocuments"
+      @select-document="handleSelectDocument"
     />
   </AppShell>
 </template>
@@ -29,6 +38,7 @@ import { computed, onMounted, ref } from "vue";
 
 import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
+import { getDocument, listDocuments } from "./api/documents.js";
 import {
   createProject,
   loadProjects,
@@ -90,6 +100,7 @@ async function loadProjectSpaces() {
   try {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
+    await loadLibraryDocuments();
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
@@ -97,9 +108,10 @@ async function loadProjectSpaces() {
   }
 }
 
-function handleSelectProject(projectId) {
+async function handleSelectProject(projectId) {
   selectProject(projectId);
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
+  await loadLibraryDocuments();
 }
 
 async function handleCreateProject(payload) {
@@ -109,6 +121,7 @@ async function handleCreateProject(payload) {
   try {
     const project = await createProject(payload);
     projectFormStatus.value = `已创建项目空间：${project.name}`;
+    await loadLibraryDocuments();
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -133,6 +146,46 @@ async function handleSubmitQuestion(question) {
     appState.answerStatus = "回答生成失败";
   } finally {
     appState.answerLoading = false;
+  }
+}
+
+async function loadLibraryDocuments() {
+  appState.documents = [];
+  appState.documentsLoadError = "";
+  appState.selectedDocumentId = "";
+  appState.selectedDocument = null;
+  appState.documentPreviewError = "";
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.documentsLoading = true;
+  try {
+    const documents = await listDocuments(appState.selectedProjectId, appState.selectedDocumentCollectionId);
+    appState.documents = documents;
+  } catch (error) {
+    appState.documentsLoadError = error.message || "文档列表读取失败";
+  } finally {
+    appState.documentsLoading = false;
+  }
+}
+
+async function handleSelectDocument(documentId) {
+  appState.selectedDocumentId = documentId;
+  appState.selectedDocument = null;
+  appState.documentPreviewError = "";
+  if (!documentId) {
+    return;
+  }
+
+  appState.documentPreviewLoading = true;
+  try {
+    const document = await getDocument(documentId);
+    appState.selectedDocument = document;
+  } catch (error) {
+    appState.documentPreviewError = error.message || "文档预览读取失败";
+  } finally {
+    appState.documentPreviewLoading = false;
   }
 }
 </script>

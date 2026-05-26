@@ -159,6 +159,94 @@ select {
   padding-top: 20px;
 }
 
+.library-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(320px, 1.1fr);
+}
+
+.library-grid .project-space-panel {
+  grid-column: 1 / -1;
+}
+
+.document-list-panel,
+.document-preview-panel {
+  border-top: 1px solid #d9e2ec;
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  padding-top: 24px;
+}
+
+.document-list-panel h2,
+.document-preview-panel h2 {
+  font-size: 20px;
+}
+
+.document-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.document-list-item {
+  align-items: flex-start;
+  background: #ffffff;
+  border: 1px solid #c8d5df;
+  color: #17202a;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.document-list-item.active {
+  background: #e7f5f2;
+  border-color: #0e7c70;
+}
+
+.document-list-item span,
+.document-list-item small {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.document-list-item small {
+  color: #52616f;
+}
+
+.document-preview {
+  border-top: 1px solid #edf2f7;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding-top: 16px;
+}
+
+.document-preview h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.document-preview pre {
+  background: #f8fafc;
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  color: #17202a;
+  line-height: 1.6;
+  margin: 0;
+  max-height: 520px;
+  overflow: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .project-form label {
   color: #52616f;
   display: grid;
@@ -305,6 +393,10 @@ button:focus-visible {
   }
 
   .workbench-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .library-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -223,3 +223,90 @@ def test_vue_app_handles_non_streaming_workbench_question_state():
         "answerStatus",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_document_api_helper_uses_existing_read_only_document_contract():
+    documents_path = Path("frontend/src/api/documents.js")
+    assert documents_path.exists(), "B-141E should add a Vue documents API helper"
+    documents_js = _read(str(documents_path))
+
+    assert "export async function listDocuments(projectId" in documents_js
+    assert 'apiGet(`/api/documents?${params.toString()}`)' in documents_js
+    assert "project_id" in documents_js
+    assert "collection_id" in documents_js
+    assert "data.documents || []" in documents_js
+    assert "export async function getDocument(documentId)" in documents_js
+    assert 'apiGet(`/api/document?document_id=${encodeURIComponent(documentId)}`)' in documents_js
+    assert "data.document || null" in documents_js
+    assert "请选择要预览的文档" in documents_js
+
+
+def test_vue_library_document_panels_render_list_and_preview_states():
+    list_path = Path("frontend/src/components/DocumentListPanel.vue")
+    preview_path = Path("frontend/src/components/DocumentPreviewPanel.vue")
+    assert list_path.exists(), "B-141E should add DocumentListPanel"
+    assert preview_path.exists(), "B-141E should add DocumentPreviewPanel"
+
+    list_panel_vue = _read(str(list_path))
+    preview_panel_vue = _read(str(preview_path))
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "文档列表",
+        "正在读取文档...",
+        "暂无文档",
+        "未选择项目空间",
+        'v-for="document in documents"',
+        '@click="$emit(\'select-document\', document.id)"',
+        'defineEmits(["refresh-documents", "select-document"])',
+    ]:
+        assert marker in list_panel_vue
+
+    for marker in [
+        "文档预览",
+        "请选择文档查看正文",
+        "正在读取正文...",
+        "正文预览",
+        "relative_path",
+        "content",
+    ]:
+        assert marker in preview_panel_vue
+
+    assert "DocumentListPanel" in library_vue
+    assert "DocumentPreviewPanel" in library_vue
+    assert "@refresh-documents" in library_vue
+    assert "@select-document" in library_vue
+    assert ":selected-document-id=\"selectedDocumentId\"" in library_vue
+
+
+def test_vue_app_loads_library_documents_and_preview_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "listDocuments",
+        "getDocument",
+    ]:
+        assert imported_name in app_vue
+
+    assert "loadLibraryDocuments" in app_vue
+    assert "handleSelectDocument" in app_vue
+    assert "appState.selectedProjectId" in app_vue
+    assert "appState.documents = documents" in app_vue
+    assert "appState.selectedDocument = document" in app_vue
+    assert "@refresh-documents=\"loadLibraryDocuments\"" in app_vue
+    assert "@select-document=\"handleSelectDocument\"" in app_vue
+    assert ":documents=\"appState.documents\"" in app_vue
+    assert ":selected-document=\"appState.selectedDocument\"" in app_vue
+    assert ":documents-loading=\"appState.documentsLoading\"" in app_vue
+    assert ":document-preview-loading=\"appState.documentPreviewLoading\"" in app_vue
+
+    for state_field in [
+        "documentsLoading",
+        "documentsLoadError",
+        "selectedDocumentId",
+        "selectedDocument",
+        "documentPreviewLoading",
+        "documentPreviewError",
+    ]:
+        assert f"{state_field}:" in state_js
