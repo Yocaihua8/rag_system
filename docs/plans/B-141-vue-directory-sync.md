@@ -40,7 +40,7 @@
 - [x] 扩展 `frontend/src/api/imports.js`，新增 `syncProjectDirectory({ projectId })`，校验项目后调用既有 `POST /api/import`
 - [x] 更新 `DocumentImportPanel`，新增“同步当前项目目录”按钮，未选项目时禁用
 - [x] 更新 `App.vue`，处理目录同步响应，成功后刷新文档列表和导入批次历史
-- [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141J 说明
+- [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141J 说明
 - [ ] 完成验证、提交 B-141J，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
@@ -100,11 +100,11 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141J 目录同步迁移边界 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue directory sync helper 和资料库导入组件边界 | `docs/design/architecture-overview.md` | [ ] |
-| B-141J Vue source/static contract 测试命令 | `docs/guides/testing.md` | [ ] |
-| 对外变更摘要 | `CHANGELOG.md` | [ ] |
-| 实施记录 | `docs/devlog/2026-05-26.md` | [ ] |
+| B-141J 目录同步迁移边界 | `docs/features/frontend-engineering.md` | [x] |
+| Vue directory sync helper 和资料库导入组件边界 | `docs/design/architecture-overview.md` | [x] |
+| B-141J Vue source/static contract 测试命令 | `docs/guides/testing.md` | [x] |
+| 对外变更摘要 | `CHANGELOG.md` | [x] |
+| 实施记录 | `docs/devlog/2026-05-26.md` | [x] |
 | B-141 仍处于 doing，等待后续页面迁移 | `docs/BACKLOG.md` | [x] |
 
 ## 8. 执行记录
@@ -115,12 +115,13 @@
 - 2026-05-26：创建 `docs/plans/B-141-vue-directory-sync.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-26：确认 B-141J 红灯为 5 failed / 23 passed，失败点集中在缺少 `syncProjectDirectory`、导入面板同步入口和 App 目录同步响应接入。
 - 2026-05-26：新增 Vue 目录同步 helper、面板按钮和 App 响应接入，聚焦测试 28 passed。
+- 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141J 边界。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`3d9dbf5` — `test: 覆盖 Vue 目录同步入口`
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮开始 B-141J 目录同步相关变更
-- **下一步**：同步 B-141J 功能文档、架构说明、测试指南、CHANGELOG 和 devlog
+- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`75a104e` — `feat: 接入 Vue 当前目录同步`
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库当前目录同步相关变更
+- **下一步**：完成 B-141J 完整验证并提交收尾快照
 - **续任务须知**：B-141J 不删除 `webapp/static/`，不迁移预检/删除/集合/项目改名删除，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

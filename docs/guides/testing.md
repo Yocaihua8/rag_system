@@ -30,9 +30,10 @@ docker compose config
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/test_webapp`。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置、`webapp/static_dist/` 服务策略或 legacy 静态 fallback 时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
-- 变更 Vue API helper、项目空间 helper、问答 helper、文档浏览 helper、导入 helper、共享状态、基础布局组件、项目空间组件、工作台问答组件、资料库文档列表/预览组件、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
+- 变更 Vue API helper、项目空间 helper、问答 helper、文档浏览 helper、导入 helper、共享状态、基础布局组件、项目空间组件、工作台问答组件、资料库文档列表/预览组件、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
+- 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
 - 变更浏览器文件夹导入时，必须覆盖 `/api/import/upload`、前端 `webkitdirectory` 入口、`webkitRelativePath` 到 `project_name/relative_path` 的转换和导入规则跳过行为。
 - 变更普通文件上传导入时，必须覆盖 `/api/import/upload`、前端普通 `multiple` file input、无 `webkitdirectory`、当前项目上传、无项目时创建 `browser-upload` 项目、DOCX/PDF `content_base64` 和文本文件 `content` 请求体。
 - 变更文本笔记或 URL 摘录导入时，必须覆盖 `/api/import/note`、`/api/import/url`、同标题或同 URL 更新、空标题/空正文/超大正文/非字符串输入拒绝、前端资料库入口，以及目录同步和浏览器文件夹导入不会删除或覆盖 `note:` / `url:` 虚拟来源。
@@ -82,4 +83,4 @@ docker compose config
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；构建产物存在时 FastAPI 首页来自 `static_dist`，缺失时回退 `webapp/static/`
-- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建薄片、文档列表/单文档预览薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片和浏览器文件夹上传薄片，工作台已迁移非流式问答入口；完整业务流程未迁移前仍由 legacy 静态前端承担
+- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建薄片、文档列表/单文档预览薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片和当前目录同步薄片，工作台已迁移非流式问答入口；完整业务流程未迁移前仍由 legacy 静态前端承担

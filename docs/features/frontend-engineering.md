@@ -23,6 +23,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141G 在 Vue 资料库视图中提供导入批次历史和批次详情只读展示，复用既有 `GET /api/import/batches` 与 `GET /api/import/batches/detail` 契约。
 - B-141H 在 Vue 资料库视图中提供普通文件上传导入，复用既有 `POST /api/import/upload` 契约；有当前项目空间时导入当前项目，没有项目空间时由后端创建 `browser-upload` 项目。
 - B-141I 在 Vue 资料库视图中提供浏览器文件夹上传导入，复用既有 `POST /api/import/upload` 契约；前端用 `webkitRelativePath` 推导项目名和文档相对路径，并发送 `source_type=browser_folder_upload`。
+- B-141J 在 Vue 资料库视图中提供当前项目目录同步入口，复用既有 `POST /api/import` 契约；后端继续负责项目根目录校验、导入规则和 `directory_sync` 批次记录。
 - 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
 
 ## 3. 工程目录
@@ -44,7 +45,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 
 ## 4. 非目标
 
-- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I 迁移完整业务页面。
+- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J 迁移完整业务页面。
 - B-141C 不迁移导入、重命名、删除、文档列表、问答、评估或设置完整流程。
 - B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
 - B-141E 不迁移文件导入、目录同步、上传、笔记、URL 摘录、删除文档、文档集合增删改或导入批次历史。
@@ -52,6 +53,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141G 不迁移目录同步、浏览器文件夹上传、普通文件上传、导入预检、批次回滚、批次删除、批次重试、删除文档或文档集合增删改。
 - B-141H 不迁移浏览器文件夹上传、同步当前项目目录、导入预检、删除文档、文档集合增删改或数据库 schema。
 - B-141I 不迁移同步当前项目目录、导入预检、删除文档、文档集合增删改或数据库 schema。
+- B-141J 不迁移导入预检、删除文档、文档集合增删改、项目改名/删除或数据库 schema。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -77,16 +79,19 @@ B-141H 起，Vue 资料库继续迁移普通文件上传导入薄片：`imports.
 
 B-141I 起，Vue 资料库继续迁移浏览器文件夹上传导入薄片：`imports.js` 扩展 `POST /api/import/upload` helper，文件夹入口读取 `webkitRelativePath`，首段作为 `project_name`，其余路径作为文档 `relative_path`，并发送 `source_type=browser_folder_upload`。`DocumentImportPanel` 增加单独的 `webkitdirectory multiple` file input；普通文件上传 input 仍不设置 `webkitdirectory`。`App.vue` 在成功后选择后端返回项目，并刷新项目空间、文档列表和导入批次历史。后端 API、SQLite schema、同步当前项目目录、导入预检、删除和集合管理不在本片调整。
 
+B-141J 起，Vue 资料库继续迁移当前项目目录同步薄片：`imports.js` 扩展 `POST /api/import` helper，`DocumentImportPanel` 增加“同步当前项目目录”按钮，未选择项目空间时禁用。`App.vue` 在成功后刷新文档列表和导入批次历史，并复用导入结果计数展示。后端 API、SQLite schema、导入预检、删除、集合管理和项目改名/删除不在本片调整。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建薄片、资料库文档列表/预览薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片，以及工作台非流式问答入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建薄片、资料库文档列表/预览薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片，以及工作台非流式问答入口。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
 - Vue 资料库可在已选择项目空间时读取导入批次历史，点击批次后查看只读详情、汇总计数和跳过/读取失败明细。
 - Vue 资料库可选择一个或多个普通文件上传；有当前项目空间时导入当前项目，没有项目空间时由后端创建 `browser-upload` 项目。
 - Vue 资料库可通过浏览器文件夹选择导入本机文件夹；前端不读取原始宿主机绝对路径，只上传授权文件内容和相对路径。
+- Vue 资料库可在已选择项目空间时同步当前项目目录；未选择项目空间时同步入口禁用。
 - `npm run build` 可生成 `webapp/static_dist/`。
 - FastAPI 优先服务 `webapp/static_dist/`；构建产物不存在时回退 `webapp/static/`。
 - Web MVP 后端测试保持通过。
