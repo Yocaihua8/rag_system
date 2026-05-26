@@ -40,7 +40,7 @@
 - [x] 新增 `DocumentListPanel` 和 `DocumentPreviewPanel`，展示文档列表、空态、加载态、错误态和正文预览
 - [x] 更新 `LibraryView.vue` 与 `App.vue`，在项目切换后加载文档并处理文档选择/预览状态
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141E 说明
-- [ ] 完成验证、提交 B-141E，并更新本 plan 快照；B-141 保持 `doing`
+- [x] 完成验证、提交 B-141E，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
 
@@ -118,12 +118,13 @@
 - 2026-05-26：新增 Vue 资料库文档列表/预览薄片、组件和状态接入，聚焦测试 13 passed，`npm run build` 成功。
 - 2026-05-26：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog 中的 B-141E 边界。
 - 2026-05-26：完整验证通过：`npm run build`、`tests/test_webapp` 284 passed、legacy 回归 179 passed、B-141E touched-file `git diff --check` 退出码 0；浏览器资料库页烟测通过且控制台错误数为 0。
+- 2026-05-26：提交 `bcf2551`，B-141E 只读文档浏览薄片完成；BACKLOG B-141 保持 `doing`，后续继续 B-141F。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：待提交
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮只追加 Vue 资料库文档列表/预览相关变更
-- **下一步**：提交 B-141E，并更新本 plan 快照；之后继续 B-141F 页面级业务迁移
+- **进度**：已完成 7 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`bcf2551` — feat: 接入 Vue 资料库文档浏览薄片
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141E 相关变更已完成
+- **下一步**：B-141F 继续选择下一个 Vue 页面级业务切片，建议在资料库导入、工作台 SSE/会话或设置页模型配置之间择一
 - **续任务须知**：B-141E 不删除 `webapp/static/`，不迁移导入/删除/集合/批次，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
