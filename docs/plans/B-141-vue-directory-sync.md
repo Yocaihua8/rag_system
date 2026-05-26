@@ -37,9 +37,9 @@
 
 - [x] 创建 B-141J plan，并将 BACKLOG 说明列追加本 plan 路径
 - [x] 先写 Vue 目录同步红灯测试，覆盖 imports API helper、DocumentImportPanel 同步入口、App 接入和状态刷新
-- [ ] 扩展 `frontend/src/api/imports.js`，新增 `syncProjectDirectory({ projectId })`，校验项目后调用既有 `POST /api/import`
-- [ ] 更新 `DocumentImportPanel`，新增“同步当前项目目录”按钮，未选项目时禁用
-- [ ] 更新 `App.vue`，处理目录同步响应，成功后刷新文档列表和导入批次历史
+- [x] 扩展 `frontend/src/api/imports.js`，新增 `syncProjectDirectory({ projectId })`，校验项目后调用既有 `POST /api/import`
+- [x] 更新 `DocumentImportPanel`，新增“同步当前项目目录”按钮，未选项目时禁用
+- [x] 更新 `App.vue`，处理目录同步响应，成功后刷新文档列表和导入批次历史
 - [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141J 说明
 - [ ] 完成验证、提交 B-141J，并更新本 plan 快照；B-141 保持 `doing`
 
@@ -114,12 +114,13 @@
 - 2026-05-26：冲突扫描发现 B-141A/B/C/D/E/F/G/H/I plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-26：创建 `docs/plans/B-141-vue-directory-sync.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-26：确认 B-141J 红灯为 5 failed / 23 passed，失败点集中在缺少 `syncProjectDirectory`、导入面板同步入口和 App 目录同步响应接入。
+- 2026-05-26：新增 Vue 目录同步 helper、面板按钮和 App 响应接入，聚焦测试 28 passed。
 
 ## 9. 状态快照
 
 - **最后更新时间**：2026-05-26
-- **进度**：已完成 2 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`d86b866` — `docs: 创建 B-141J 目录同步计划`
+- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`3d9dbf5` — `test: 覆盖 Vue 目录同步入口`
 - **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；本轮开始 B-141J 目录同步相关变更
-- **下一步**：实现 B-141J Vue directory sync helper、组件入口和 App 接线
+- **下一步**：同步 B-141J 功能文档、架构说明、测试指南、CHANGELOG 和 devlog
 - **续任务须知**：B-141J 不删除 `webapp/static/`，不迁移预检/删除/集合/项目改名删除，不修改数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

@@ -31,6 +31,7 @@
         @import-url="(payload) => $emit('import-url', payload)"
         @import-files="(files) => $emit('import-files', files)"
         @import-folder="(files) => $emit('import-folder', files)"
+        @sync-directory="$emit('sync-directory')"
       />
       <DocumentListPanel
         :documents="documents"
@@ -183,6 +184,7 @@ defineEmits([
   "import-url",
   "import-files",
   "import-folder",
+  "sync-directory",
   "refresh-batches",
   "select-batch",
 ]);

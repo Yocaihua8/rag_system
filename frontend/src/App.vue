@@ -43,6 +43,7 @@
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
       @import-folder="handleImportFolder"
+      @sync-directory="handleSyncDirectory"
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
     />
@@ -62,6 +63,7 @@ import {
   importPlainTextNote,
   importUrlExcerpt,
   listImportBatches,
+  syncProjectDirectory,
 } from "./api/imports.js";
 import {
   createProject,
@@ -211,6 +213,25 @@ async function handleImportFolder(files) {
     await loadImportBatches();
   } catch (error) {
     appState.importError = error.message || "浏览器文件夹导入失败";
+  } finally {
+    appState.importSubmitting = false;
+  }
+}
+
+async function handleSyncDirectory() {
+  appState.importSubmitting = true;
+  appState.importError = "";
+  appState.importStatus = "";
+  try {
+    const data = await syncProjectDirectory({
+      projectId: appState.selectedProjectId,
+    });
+    appState.documents = data.documents || [];
+    appState.importStatus = formatImportResult("同步当前项目目录完成", data.result);
+    await loadLibraryDocuments();
+    await loadImportBatches();
+  } catch (error) {
+    appState.importError = error.message || "同步当前项目目录失败";
   } finally {
     appState.importSubmitting = false;
   }

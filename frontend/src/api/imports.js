@@ -43,6 +43,15 @@ export async function importUrlExcerpt({ projectId, url, title, content }) {
   });
 }
 
+export async function syncProjectDirectory({ projectId }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  return apiPost("/api/import", {
+    project_id: projectId,
+  });
+}
+
 export async function importBrowserFiles({ projectId, files }) {
   const uploadFiles = await buildUploadFiles(files);
   const payload = {

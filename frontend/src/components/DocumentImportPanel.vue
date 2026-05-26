@@ -13,6 +13,21 @@
 
     <div class="import-grid">
       <section class="import-form">
+        <p class="section-kicker">本地目录</p>
+        <h3>同步当前项目目录</h3>
+        <p class="muted-line">读取当前项目空间绑定的本机目录，适合继续同步已有项目。</p>
+        <div class="actions">
+          <button
+            type="button"
+            :disabled="importSubmitting || !selectedProjectId"
+            @click="$emit('sync-directory')"
+          >
+            {{ importSubmitting ? "同步中..." : "同步当前项目目录" }}
+          </button>
+        </div>
+      </section>
+
+      <section class="import-form">
         <p class="section-kicker">浏览器文件夹</p>
         <h3>选择本机文件夹导入</h3>
         <p class="muted-line">通过浏览器授权读取文件夹内文本资料；会创建浏览器导入项目空间。</p>
@@ -111,7 +126,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["import-note", "import-url", "import-files", "import-folder"]);
+const emit = defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory"]);
 
 const fileInput = ref(null);
 const folderInput = ref(null);
