@@ -31,6 +31,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141O 在 Vue 资料库文档列表中提供单文档加入集合和从当前集合移出入口，复用既有 `POST /api/document-collections/items/add` 与 `POST /api/document-collections/items/remove` 契约；当前不迁移批量选择、拖拽或删除文档。
 - B-141P 在 Vue 资料库文档列表中提供单文档删除入口，复用既有 `POST /api/documents/delete` 契约；删除前提示源文件不会被删除，成功后刷新文档列表和文档集合列表。
 - B-141Q 在 Vue 资料库项目空间面板中提供当前项目改名和删除入口，复用既有 `POST /api/projects/rename` 与 `POST /api/projects/delete` 契约；删除前提示项目内文档记录也会被删除，成功后清空当前项目相关状态。
+- B-141R 在 Vue 设置视图中提供基础 LLM 设置读取/保存/测试，以及模型 Profile 列表、新建/编辑、删除、默认选择和连接测试入口；复用既有 `GET/POST /api/settings/llm`、`POST /api/settings/llm/test` 与 `/api/model-profiles*` 契约，Profile 只保存 Key 引用，不回显 API Key 明文。
 - 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
 
 ## 3. 工程目录
@@ -45,6 +46,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/api/documents.js` | Vue 资料库文档 API helper，调用既有 `/api/documents`、`/api/document` 和 `/api/documents/delete` |
 | `frontend/src/api/document-collections.js` | Vue 资料库文档集合 API helper，调用既有 `/api/document-collections` 列表/新建契约、`/api/document-collections/update` 重命名契约、`/api/document-collections/delete` 删除契约和 `/api/document-collections/items/*` 文档关联契约 |
 | `frontend/src/api/imports.js` | Vue 资料库导入 API helper，调用既有 `/api/import/preview`、`/api/import`、`/api/import/note`、`/api/import/url`、`/api/import/upload`、`/api/import/batches` 和 `/api/import/batches/detail` |
+| `frontend/src/api/settings.js` | Vue 设置页模型配置 API helper，调用既有 `/api/settings/llm`、`/api/settings/llm/test` 和 `/api/model-profiles*` 契约 |
 | `frontend/src/state/app-state.js` | Vue 迁移期共享状态模型和基础视图切换 |
 | `frontend/src/components/` | 迁移期布局组件，例如 `AppShell.vue`、`ProjectSpacePanel.vue`、`QuestionPanel.vue`、`AnswerPanel.vue`、`DocumentListPanel.vue`、`DocumentPreviewPanel.vue`、`DocumentImportPanel.vue`、`DocumentCollectionPanel.vue`、`ImportBatchHistoryPanel.vue` |
 | `frontend/src/views/` | 工作台、资料库、评估、设置等页面组件 |
@@ -53,7 +55,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 
 ## 4. 非目标
 
-- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P/B-141Q 迁移完整业务页面。
+- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P/B-141Q/B-141R 迁移完整业务页面。
 - B-141C 不迁移导入、重命名、删除、文档列表、问答、评估或设置完整流程。
 - B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
 - B-141E 不迁移文件导入、目录同步、上传、笔记、URL 摘录、删除文档、文档集合增删改或导入批次历史。
@@ -69,6 +71,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141O 不迁移批量选择、拖拽排序、删除文档、项目改名/删除、问答按集合过滤或数据库 schema。
 - B-141P 不迁移批量删除、删除源文件、项目改名/删除、问答按集合过滤或数据库 schema。
 - B-141Q 不迁移项目根目录修改、批量项目管理、备份恢复、Workbench SSE/会话、设置页模型配置或数据库 schema。
+- B-141R 不迁移 Prompt 预设、Workbench SSE/会话、项目根目录修改、批量项目管理、模型配置导入导出、模型测速/价格统计或数据库 schema。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -110,10 +113,12 @@ B-141P 起，Vue 资料库继续迁移单文档删除薄片：`documents.js` 扩
 
 B-141Q 起，Vue 资料库继续迁移项目空间改名与删除薄片：`projects.js` 扩展 `POST /api/projects/rename` 与 `POST /api/projects/delete` helper，`ProjectSpacePanel` 在当前项目区域提供重命名表单和删除按钮，`App.vue` 在删除前弹出确认并提示项目内文档记录也会被删除，成功后清空当前项目选择、文档列表、预览、集合和导入批次状态。后端 API、SQLite schema、项目根目录修改、批量项目管理、Workbench SSE/会话和设置页模型配置不在本片调整。
 
+B-141R 起，Vue 设置页继续迁移模型配置薄片：`settings.js` 封装既有 `/api/settings/llm`、`/api/settings/llm/test` 和 `/api/model-profiles*` helper，`SettingsView` 提供基础模型设置表单、连接测试、模型 Profile 列表、编辑表单、删除、默认选择和 Profile 测试入口。`App.vue` 保存模型设置/Profile 读取、提交、测试、删除和默认切换状态。Profile 只保存 Key 引用，基础模型设置的 API Key 输入留空时不覆盖既有 Key，页面只展示 Key 状态、不回显明文。后端 API、SQLite schema、Prompt 预设、Workbench SSE/会话和模型配置导入导出不在本片调整。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片，以及工作台非流式问答入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片、设置页模型设置/Profile 薄片，以及工作台非流式问答入口。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
@@ -129,6 +134,8 @@ B-141Q 起，Vue 资料库继续迁移项目空间改名与删除薄片：`proje
 - Vue 资料库可在文档列表中删除单个文档记录；删除前提示源文件不会被删除，成功后刷新文档列表和文档集合列表。
 - Vue 资料库可在项目空间面板中改名当前项目空间，成功后刷新项目列表并保持当前项目选中。
 - Vue 资料库可在项目空间面板中删除当前项目空间；删除前提示项目内文档记录也会被删除，成功后清空当前项目相关状态。
+- Vue 设置页可读取、保存和测试基础模型设置；API Key 输入留空不覆盖既有 Key，页面不回显明文 Key。
+- Vue 设置页可读取模型 Profile 列表，新增或编辑 Profile，删除 Profile，设置或清空默认 Profile，并测试单个 Profile。
 - `npm run build` 可生成 `webapp/static_dist/`。
 - FastAPI 优先服务 `webapp/static_dist/`；构建产物不存在时回退 `webapp/static/`。
 - Web MVP 后端测试保持通过。

@@ -26,6 +26,7 @@
 - **Vue 资料库文档集合重命名薄片**：资料库视图新增文档集合重命名入口，复用既有 `/api/document-collections/update` 契约
 - **Vue 资料库文档集合归组薄片**：资料库文档列表新增单文档加入集合和从当前集合移出入口，复用既有 `/api/document-collections/items/add` 与 `/api/document-collections/items/remove` 契约
 - **Vue 资料库文档删除薄片**：资料库文档列表新增单文档删除入口，复用既有 `/api/documents/delete` 契约；删除前提示源文件不会被删除
+- **Vue 设置页模型配置薄片**：设置视图新增基础模型设置读取/保存/测试和模型 Profile 新增/编辑/删除/默认/测试入口，复用既有 `/api/settings/llm` 与 `/api/model-profiles*` 契约，API Key 不回显明文
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
 - **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
