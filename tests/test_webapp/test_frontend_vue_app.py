@@ -68,15 +68,9 @@ def test_vue_layout_components_define_four_primary_views():
 
 
 def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
-    b141b_view_files = {
-        "frontend/src/views/AssessmentView.vue": ["评估", "后续迁移出题、作答、结果概览和待复测列表"],
-    }
-
-    for path, markers in b141b_view_files.items():
-        view_text = _read(path)
-        for marker in markers:
-            assert marker in view_text
-        assert "B-141B" in view_text
+    assessment_vue = _read("frontend/src/views/AssessmentView.vue")
+    assert "评估" in assessment_vue
+    assert "B-141T 已迁移评估最小闭环" in assessment_vue
 
     settings_vue = _read("frontend/src/views/SettingsView.vue")
     assert "设置" in settings_vue
@@ -92,6 +86,116 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     assert "ProjectSpacePanel" in library_vue
     assert "B-141C" in library_vue
     assert "B-141C 至 B-141Q" in library_vue
+
+
+def test_vue_assessment_api_helper_uses_existing_assessment_contracts():
+    assessment_path = Path("frontend/src/api/assessment.js")
+    assert assessment_path.exists(), "B-141T should add a Vue assessment API helper"
+    assessment_js = _read(str(assessment_path))
+
+    for marker in [
+        'import { apiPost } from "./client.js";',
+        "export async function startAssessmentSession(projectId)",
+        'throw new Error("请先创建或选择项目空间")',
+        'apiPost("/api/assessment/start"',
+        "project_id: projectId",
+        "export async function submitAssessmentAnswer({ projectId, question, answer })",
+        'throw new Error("请先开始评估")',
+        'throw new Error("请输入评估回答")',
+        'apiPost("/api/assessment/answer"',
+        "question",
+        "answer: cleanAnswer",
+    ]:
+        assert marker in assessment_js
+
+
+def test_vue_assessment_view_renders_assessment_flow_controls():
+    assessment_vue = _read("frontend/src/views/AssessmentView.vue")
+
+    for marker in [
+        "掌握评估",
+        "开始评估",
+        "重新开始",
+        "当前题目",
+        "题型",
+        "知识点",
+        "来源",
+        "提交回答",
+        "下一题",
+        "完成评估",
+        "结果概览",
+        "匹配要点",
+        "缺失要点",
+        "答题记录",
+        "待复测列表",
+        "assessmentAnswer",
+        "currentQuestionNumber",
+        "scorePercent",
+        "statusClass",
+        'defineEmits(["start-assessment", "submit-assessment-answer", "next-assessment-question", "reset-assessment"])',
+    ]:
+        assert marker in assessment_vue
+
+    for prop_name in [
+        "selectedProjectId",
+        "assessmentSession",
+        "assessmentQuestion",
+        "assessmentQuestionIndex",
+        "assessmentResults",
+        "assessmentMissedQuestions",
+        "assessmentAnsweredCurrent",
+        "assessmentLoading",
+        "assessmentSubmitting",
+        "assessmentError",
+        "assessmentStatus",
+    ]:
+        assert f"{prop_name}:" in assessment_vue
+
+
+def test_vue_app_handles_assessment_flow_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "startAssessmentSession",
+        "submitAssessmentAnswer",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":assessment-session=\"appState.assessmentSession\"",
+        ":assessment-question=\"appState.assessmentQuestion\"",
+        ":assessment-question-index=\"appState.assessmentQuestionIndex\"",
+        ":assessment-results=\"appState.assessmentResults\"",
+        ":assessment-missed-questions=\"appState.assessmentMissedQuestions\"",
+        ":assessment-answered-current=\"appState.assessmentAnsweredCurrent\"",
+        ":assessment-loading=\"appState.assessmentLoading\"",
+        ":assessment-submitting=\"appState.assessmentSubmitting\"",
+        ":assessment-error=\"appState.assessmentError\"",
+        ":assessment-status=\"appState.assessmentStatus\"",
+        "@start-assessment=\"handleStartAssessment\"",
+        "@submit-assessment-answer=\"handleSubmitAssessmentAnswer\"",
+        "@next-assessment-question=\"handleNextAssessmentQuestion\"",
+        "@reset-assessment=\"resetAssessmentState\"",
+        "handleStartAssessment",
+        "handleSubmitAssessmentAnswer",
+        "handleNextAssessmentQuestion",
+        "resetAssessmentState",
+        "currentAssessmentQuestion",
+        "hasNextAssessmentQuestion",
+        "appState.assessmentStatus = \"评估题已生成\"",
+        "appState.assessmentStatus = \"评估反馈已生成\"",
+        "appState.assessmentStatus = \"本轮评估已完成\"",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "assessmentLoading",
+        "assessmentSubmitting",
+        "assessmentError",
+        "assessmentStatus",
+    ]:
+        assert f"{state_field}:" in state_js
 
 
 def test_vue_project_api_helper_preserves_project_selection_contract():
