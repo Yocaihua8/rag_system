@@ -26,7 +26,7 @@
 - [x] 创建 B-141S plan，并将 BACKLOG 说明列追加本 plan 路径。
 - [x] 增加 Vue 源码契约红灯测试，覆盖 Prompt 预设 API helper、设置页 UI 和 App 状态流。
 - [x] 实现 `frontend/src/api/settings.js`、`SettingsView.vue`、`App.vue` 和共享状态的 Prompt 预设串联。
-- [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
+- [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
 - [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
@@ -89,12 +89,13 @@
 - 2026-05-28：创建 B-141S plan；冲突扫描显示 B-141A 至 B-141R 为已完成但未删除的迁移记录，本片按设置页 Prompt 预设分区继续。
 - 2026-05-28：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 4 failed / 45 passed，失败点为缺少 Prompt 预设 helper、设置页 UI、App 状态流和 B-141S 文案。
 - 2026-05-28：实现 Vue 设置页 Prompt 预设 helper、列表/模板/表单和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 49 passed。
+- 2026-05-28：完成前端验证：Vue 源码测试 49 passed，`npm run build` 成功；构建产物未进入待提交范围。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 00:19
-- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — feat: 接入 Vue 设置页 Prompt 预设
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 更新 B-141S 前端验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141S 相关文件
-- **下一步**：运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过
+- **下一步**：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog
 - **续任务须知**：不修改后端 `/api/prompt-presets*` 契约、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
