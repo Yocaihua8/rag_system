@@ -49,9 +49,9 @@
     <section class="workspace-main">
       <header class="topbar">
         <div>
-          <p class="eyebrow">B-141B Vue API / State / Layout</p>
+          <p class="eyebrow">B-141 Vue Migration</p>
           <h2>{{ activeTitle }}</h2>
-          <p>当前只迁移前端基础架构，完整业务流程仍由 legacy 静态前端承载。</p>
+          <p>B-141 已按薄片迁移项目问答、资料库、设置和评估基础闭环；SSE、Agent 工具和检索调试后续迁移。</p>
         </div>
         <div class="status-pills" aria-label="服务状态">
           <span>FastAPI</span>

@@ -65,6 +65,8 @@ def test_vue_layout_components_define_four_primary_views():
     assert "AppShell" in app_vue
     assert "currentViewComponent" in app_vue
     assert "computed" in app_vue
+    assert "B-141 已按薄片迁移" in shell_vue
+    assert "完整业务流程仍由 legacy 静态前端承载" not in shell_vue
 
 
 def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
