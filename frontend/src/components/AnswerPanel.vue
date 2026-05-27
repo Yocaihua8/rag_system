@@ -164,7 +164,7 @@ const sources = computed(() => {
 });
 
 const toolSuggestion = computed(() => {
-  return props.toolSuggestion || props.answerResult?.tool_suggestion || null;
+  return props.toolSuggestion || null;
 });
 
 const usedToolContext = computed(() => {

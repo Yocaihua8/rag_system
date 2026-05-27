@@ -99,12 +99,13 @@
 - 2026-05-28：新增 Vue 工具建议与来源上下文源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 60 passed，失败点为缺少 `toolRunId` 请求参数、回答区工具建议/上下文控件和 App 状态流。
 - 2026-05-28：实现 Vue 工具建议与来源上下文状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 63 passed，`npm run build` 成功。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141X 明确不迁移 Workbench SSE/取消、聊天会话/历史、Agent 自动编排、工具白名单权限逻辑、检索复盘、后端 API 或数据库 schema。
+- 2026-05-28：冒烟前修正建议工具状态来源，避免运行建议工具并清理 `currentToolSuggestion` 后又从旧 `answerResult.tool_suggestion` 重新显示建议按钮；复跑 `tests/test_webapp/test_frontend_vue_app.py` 为 63 passed，`npm run build` 成功。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 03:05
+- **最后更新**：2026-05-28 03:12
 - **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — docs: 同步 B-141X 工具建议迁移说明
+- **最新 commit**：待提交 — fix: 修复 Vue 建议工具按钮清理状态
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141X 相关文件
 - **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
 - **续任务须知**：不修改后端 `/api/answer`、`/api/agent/tools*` 契约，不改变工具白名单权限，不做自动工具编排，不接入 SSE/取消，不迁移聊天会话/历史，不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
