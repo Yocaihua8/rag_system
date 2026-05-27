@@ -1091,3 +1091,162 @@ def test_vue_app_handles_project_rename_and_delete_state_refresh():
         "projectMutationStatus",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_settings_api_helper_uses_existing_llm_and_profile_contracts():
+    settings_path = Path("frontend/src/api/settings.js")
+    assert settings_path.exists(), "B-141R should add a Vue settings API helper"
+    settings_js = _read(str(settings_path))
+
+    assert 'import { apiGet, apiPost } from "./client.js";' in settings_js
+    assert "export async function loadLlmSettings()" in settings_js
+    assert 'apiGet("/api/settings/llm")' in settings_js
+    assert "export async function saveLlmSettings({ provider, apiBase, model, apiKey })" in settings_js
+    assert 'apiPost("/api/settings/llm"' in settings_js
+    assert "api_base: apiBase" in settings_js
+    assert "api_key: apiKey" in settings_js
+    assert "export async function testLlmSettings()" in settings_js
+    assert 'apiPost("/api/settings/llm/test", {})' in settings_js
+
+    for marker in [
+        "export async function listModelProfiles()",
+        'apiGet("/api/model-profiles")',
+        "export async function saveModelProfile(profile)",
+        'apiPost(path, payload)',
+        '\"/api/model-profiles/update\"',
+        '\"/api/model-profiles\"',
+        "profile_id: profile.id || profile.profile_id || \"\"",
+        "api_key_ref: profile.apiKeyRef",
+        "export async function deleteModelProfile(profileId)",
+        'apiPost("/api/model-profiles/delete", { profile_id: profileId })',
+        "export async function setDefaultModelProfile(profileId)",
+        'apiPost("/api/model-profiles/default", { profile_id: profileId || "" })',
+        "export async function testModelProfile(profileId)",
+        'apiPost("/api/model-profiles/test", { profile_id: profileId })',
+    ]:
+        assert marker in settings_js
+
+
+def test_vue_settings_view_renders_llm_settings_and_model_profile_controls():
+    settings_vue = _read("frontend/src/views/SettingsView.vue")
+
+    for marker in [
+        "模型设置",
+        "模型提供商",
+        "API 地址",
+        "模型名称",
+        "API Key",
+        "留空不覆盖已有 Key",
+        "不回显明文",
+        "保存模型设置",
+        "测试连接",
+        "模型 Profile",
+        "当前默认",
+        "清空默认",
+        "保存 Profile",
+        "取消编辑",
+        "测试 Profile",
+        "设为默认",
+        "删除 Profile",
+        "只保存 Key 引用",
+        "env:RAG_LLM_API_KEY",
+        "env:DEEPSEEK_API_KEY",
+        "saved:RAG_LLM_API_KEY",
+        "profileForm",
+        "editProfile",
+        'v-for="profile in modelProfiles"',
+        'defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile"])',
+    ]:
+        assert marker in settings_vue
+
+    for prop_name in [
+        "llmSettings",
+        "llmSettingsLoading",
+        "llmSettingsSubmitting",
+        "llmSettingsTesting",
+        "llmSettingsError",
+        "llmSettingsStatus",
+        "modelProfiles",
+        "defaultModelProfileId",
+        "modelProfilesLoading",
+        "modelProfileSubmitting",
+        "modelProfileTestingId",
+        "modelProfileDeletingId",
+        "modelProfileDefaultSubmitting",
+        "modelProfileMutationError",
+        "modelProfileStatus",
+    ]:
+        assert f"{prop_name}:" in settings_vue
+
+
+def test_vue_app_handles_settings_model_config_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "loadLlmSettings",
+        "saveLlmSettings",
+        "testLlmSettings",
+        "listModelProfiles",
+        "saveModelProfile",
+        "deleteModelProfile",
+        "setDefaultModelProfile",
+        "testModelProfile",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":llm-settings=\"appState.llmSettings\"",
+        ":llm-settings-loading=\"appState.llmSettingsLoading\"",
+        ":llm-settings-submitting=\"appState.llmSettingsSubmitting\"",
+        ":llm-settings-testing=\"appState.llmSettingsTesting\"",
+        ":llm-settings-error=\"appState.llmSettingsError\"",
+        ":llm-settings-status=\"appState.llmSettingsStatus\"",
+        ":model-profiles=\"appState.modelProfiles\"",
+        ":default-model-profile-id=\"appState.defaultModelProfileId\"",
+        ":model-profiles-loading=\"appState.modelProfilesLoading\"",
+        ":model-profile-submitting=\"appState.modelProfileSubmitting\"",
+        ":model-profile-testing-id=\"appState.modelProfileTestingId\"",
+        ":model-profile-deleting-id=\"appState.modelProfileDeletingId\"",
+        ":model-profile-default-submitting=\"appState.modelProfileDefaultSubmitting\"",
+        ":model-profile-mutation-error=\"appState.modelProfileMutationError\"",
+        ":model-profile-status=\"appState.modelProfileStatus\"",
+        "@load-settings=\"loadSettingsPage\"",
+        "@save-llm-settings=\"handleSaveLlmSettings\"",
+        "@test-llm-settings=\"handleTestLlmSettings\"",
+        "@load-model-profiles=\"loadModelProfiles\"",
+        "@save-model-profile=\"handleSaveModelProfile\"",
+        "@delete-model-profile=\"handleDeleteModelProfile\"",
+        "@set-default-model-profile=\"handleSetDefaultModelProfile\"",
+        "@test-model-profile=\"handleTestModelProfile\"",
+        "loadSettingsPage",
+        "handleSaveLlmSettings",
+        "handleTestLlmSettings",
+        "handleSaveModelProfile",
+        "handleDeleteModelProfile",
+        "handleSetDefaultModelProfile",
+        "handleTestModelProfile",
+        "appState.llmSettingsStatus = \"模型设置已保存\"",
+        "appState.modelProfileStatus = \"模型 Profile 已保存\"",
+        "appState.modelProfileStatus = \"默认模型 Profile 已更新\"",
+        "appState.modelProfileStatus = \"模型 Profile 已删除\"",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "llmSettings",
+        "llmSettingsLoading",
+        "llmSettingsSubmitting",
+        "llmSettingsTesting",
+        "llmSettingsError",
+        "llmSettingsStatus",
+        "modelProfilesLoading",
+        "modelProfileLoadError",
+        "modelProfileSubmitting",
+        "modelProfileTestingId",
+        "modelProfileDeletingId",
+        "modelProfileDefaultSubmitting",
+        "modelProfileMutationError",
+        "modelProfileStatus",
+    ]:
+        assert f"{state_field}:" in state_js
