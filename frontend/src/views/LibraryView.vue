@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">资料库</p>
         <h2>资料库</h2>
-        <p>B-141C 已迁移项目空间基础，B-141E 已迁移文档列表与单文档预览，B-141F 已迁移文本笔记和 URL 摘录导入，B-141G 已迁移导入批次历史；文件上传、文件夹导入和文档集合继续分片迁移。</p>
+        <p>B-141C 已迁移项目空间基础，B-141E 已迁移文档列表与单文档预览，B-141F 已迁移文本笔记和 URL 摘录导入，B-141G 已迁移导入批次历史；文件上传、文件夹导入、目录同步、导入预检和文档集合继续分片迁移。</p>
       </div>
     </header>
 
@@ -27,11 +27,15 @@
         :import-submitting="importSubmitting"
         :import-error="importError"
         :import-status="importStatus"
+        :import-preview="importPreview"
+        :import-preview-loading="importPreviewLoading"
+        :import-preview-error="importPreviewError"
         @import-note="(payload) => $emit('import-note', payload)"
         @import-url="(payload) => $emit('import-url', payload)"
         @import-files="(files) => $emit('import-files', files)"
         @import-folder="(files) => $emit('import-folder', files)"
         @sync-directory="$emit('sync-directory')"
+        @preview-import="$emit('preview-import')"
       />
       <DocumentListPanel
         :documents="documents"
@@ -116,6 +120,18 @@ defineProps({
     type: String,
     default: "",
   },
+  importPreview: {
+    type: Object,
+    default: null,
+  },
+  importPreviewLoading: {
+    type: Boolean,
+    default: false,
+  },
+  importPreviewError: {
+    type: String,
+    default: "",
+  },
   documents: {
     type: Array,
     default: () => [],
@@ -185,6 +201,7 @@ defineEmits([
   "import-files",
   "import-folder",
   "sync-directory",
+  "preview-import",
   "refresh-batches",
   "select-batch",
 ]);

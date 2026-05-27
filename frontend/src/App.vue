@@ -14,6 +14,9 @@
       :import-submitting="appState.importSubmitting"
       :import-error="appState.importError"
       :import-status="appState.importStatus"
+      :import-preview="appState.importPreview"
+      :import-preview-loading="appState.importPreviewLoading"
+      :import-preview-error="appState.importPreviewError"
       :answer-result="appState.answerResult"
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
@@ -44,6 +47,7 @@
       @import-files="handleImportFiles"
       @import-folder="handleImportFolder"
       @sync-directory="handleSyncDirectory"
+      @preview-import="handlePreviewImport"
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
     />
@@ -63,6 +67,7 @@ import {
   importPlainTextNote,
   importUrlExcerpt,
   listImportBatches,
+  previewProjectImport,
   syncProjectDirectory,
 } from "./api/imports.js";
 import {
@@ -137,6 +142,7 @@ async function loadProjectSpaces() {
 
 async function handleSelectProject(projectId) {
   selectProject(projectId);
+  clearImportPreview();
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadLibraryDocuments();
   await loadImportBatches();
@@ -179,6 +185,7 @@ async function handleImportFiles(files) {
   appState.importSubmitting = true;
   appState.importError = "";
   appState.importStatus = "";
+  clearImportPreview();
   try {
     const data = await importBrowserFiles({
       projectId: appState.selectedProjectId,
@@ -202,6 +209,7 @@ async function handleImportFolder(files) {
   appState.importSubmitting = true;
   appState.importError = "";
   appState.importStatus = "";
+  clearImportPreview();
   try {
     const data = await importBrowserFolder({ files });
     if (data.project?.id) {
@@ -222,6 +230,7 @@ async function handleSyncDirectory() {
   appState.importSubmitting = true;
   appState.importError = "";
   appState.importStatus = "";
+  clearImportPreview();
   try {
     const data = await syncProjectDirectory({
       projectId: appState.selectedProjectId,
@@ -237,10 +246,29 @@ async function handleSyncDirectory() {
   }
 }
 
+async function handlePreviewImport() {
+  appState.importPreviewLoading = true;
+  appState.importPreviewError = "";
+  appState.importError = "";
+  appState.importStatus = "";
+  try {
+    const preview = await previewProjectImport({
+      projectId: appState.selectedProjectId,
+    });
+    appState.importPreview = preview;
+    appState.importStatus = formatImportPreview(preview);
+  } catch (error) {
+    appState.importPreviewError = error.message || "导入预检失败";
+  } finally {
+    appState.importPreviewLoading = false;
+  }
+}
+
 async function submitLibraryImport(successMessage, action) {
   appState.importSubmitting = true;
   appState.importError = "";
   appState.importStatus = "";
+  clearImportPreview();
   try {
     await action();
     appState.importStatus = successMessage;
@@ -255,6 +283,15 @@ async function submitLibraryImport(successMessage, action) {
 
 function formatImportResult(label, result = {}) {
   return `${label}：新增 ${result.created ?? 0}，更新 ${result.updated ?? 0}，未变更 ${result.unchanged ?? 0}，删除 ${result.deleted ?? 0}，跳过 ${result.skipped ?? 0}`;
+}
+
+function formatImportPreview(preview = {}) {
+  return `导入预检完成：可导入 ${preview?.importable ?? 0}，跳过 ${preview?.skipped ?? 0}`;
+}
+
+function clearImportPreview() {
+  appState.importPreview = null;
+  appState.importPreviewError = "";
 }
 
 async function handleSubmitQuestion(question) {

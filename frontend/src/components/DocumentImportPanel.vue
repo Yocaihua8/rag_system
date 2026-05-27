@@ -9,14 +9,22 @@
 
     <p v-if="!selectedProjectId" class="status-line">未选择项目空间</p>
     <p v-if="importError" class="status-line error">{{ importError }}</p>
+    <p v-if="importPreviewError" class="status-line error">{{ importPreviewError }}</p>
     <p v-else-if="importStatus" class="status-line">{{ importStatus }}</p>
 
     <div class="import-grid">
       <section class="import-form">
         <p class="section-kicker">本地目录</p>
         <h3>同步当前项目目录</h3>
-        <p class="muted-line">读取当前项目空间绑定的本机目录，适合继续同步已有项目。</p>
+        <p class="muted-line">读取当前项目空间绑定的本机目录，可先导入预检，再同步已有项目。</p>
         <div class="actions">
+          <button
+            type="button"
+            :disabled="importSubmitting || importPreviewLoading || !selectedProjectId"
+            @click="$emit('preview-import')"
+          >
+            {{ importPreviewLoading ? "预检中..." : "预检当前项目目录" }}
+          </button>
           <button
             type="button"
             :disabled="importSubmitting || !selectedProjectId"
@@ -24,6 +32,16 @@
           >
             {{ importSubmitting ? "同步中..." : "同步当前项目目录" }}
           </button>
+        </div>
+        <div v-if="importPreview" class="import-preview" aria-label="预检结果">
+          <h4>导入预检结果</h4>
+          <p>可导入 {{ importPreview.importable ?? 0 }}，跳过 {{ importPreview.skipped ?? 0 }}</p>
+          <ul v-if="importPreview.skipped_details?.length" class="skipped-details">
+            <li v-for="item in importPreview.skipped_details" :key="`${item.path}-${item.reason}`">
+              <strong>{{ item.path }}</strong>
+              <span>{{ item.reason }}</span>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -124,9 +142,21 @@ defineProps({
     type: String,
     default: "",
   },
+  importPreview: {
+    type: Object,
+    default: null,
+  },
+  importPreviewLoading: {
+    type: Boolean,
+    default: false,
+  },
+  importPreviewError: {
+    type: String,
+    default: "",
+  },
 });
 
-const emit = defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory"]);
+const emit = defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"]);
 
 const fileInput = ref(null);
 const folderInput = ref(null);
