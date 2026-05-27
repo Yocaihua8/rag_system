@@ -34,6 +34,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141R 在 Vue 设置视图中提供基础 LLM 设置读取/保存/测试，以及模型 Profile 列表、新建/编辑、删除、默认选择和连接测试入口；复用既有 `GET/POST /api/settings/llm`、`POST /api/settings/llm/test` 与 `/api/model-profiles*` 契约，Profile 只保存 Key 引用，不回显 API Key 明文。
 - B-141S 在 Vue 设置视图中提供当前项目 Prompt 预设列表、内置模板复制、新建/编辑、删除、设置默认和清空默认入口；复用既有 `/api/prompt-presets*` 契约，预设只保存回答风格与格式，不保存 API Key。
 - B-141T 在 Vue 评估视图中提供掌握评估最小闭环：开始评估、查看当前题目、提交回答、进入下一题/完成评估、查看结果概览、答题记录和待复测列表；复用既有 `/api/assessment/start` 与 `/api/assessment/answer` 契约。
+- B-141U 在 Vue 工作台回答返回后提供回答反馈入口，支持“有用 / 无用 / 来源不准 / 需要更多上下文”四类反馈；复用既有 `POST /api/answer/feedback` 契约。
 - 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
 
 ## 3. 工程目录
@@ -44,7 +45,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/` | Vue 入口、组件、前端 API 客户端和样式 |
 | `frontend/src/api/client.js` | Vue 前端 API helper，封装 `apiGet` / `apiPost` 与错误归一化 |
 | `frontend/src/api/projects.js` | Vue 项目空间 API helper，封装项目列表、创建、选择、最近项目恢复、改名和删除 |
-| `frontend/src/api/answer.js` | Vue 工作台非流式问答 API helper，调用既有 `/api/answer` |
+| `frontend/src/api/answer.js` | Vue 工作台非流式问答和回答反馈 API helper，调用既有 `/api/answer` 与 `/api/answer/feedback` |
 | `frontend/src/api/documents.js` | Vue 资料库文档 API helper，调用既有 `/api/documents`、`/api/document` 和 `/api/documents/delete` |
 | `frontend/src/api/document-collections.js` | Vue 资料库文档集合 API helper，调用既有 `/api/document-collections` 列表/新建契约、`/api/document-collections/update` 重命名契约、`/api/document-collections/delete` 删除契约和 `/api/document-collections/items/*` 文档关联契约 |
 | `frontend/src/api/imports.js` | Vue 资料库导入 API helper，调用既有 `/api/import/preview`、`/api/import`、`/api/import/note`、`/api/import/url`、`/api/import/upload`、`/api/import/batches` 和 `/api/import/batches/detail` |
@@ -58,7 +59,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 
 ## 4. 非目标
 
-- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P/B-141Q/B-141R/B-141S/B-141T 迁移完整业务页面。
+- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P/B-141Q/B-141R/B-141S/B-141T/B-141U 迁移完整业务页面。
 - B-141C 不迁移导入、重命名、删除、文档列表、问答、评估或设置完整流程。
 - B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
 - B-141E 不迁移文件导入、目录同步、上传、笔记、URL 摘录、删除文档、文档集合增删改或导入批次历史。
@@ -77,6 +78,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141R 不迁移 Prompt 预设、Workbench SSE/会话、项目根目录修改、批量项目管理、模型配置导入导出、模型测速/价格统计或数据库 schema。
 - B-141S 不迁移 Workbench SSE/会话、评估页、真实 LLM prompt 注入逻辑、项目根目录修改、批量项目管理、模型配置导入导出或数据库 schema。
 - B-141T 不迁移评估题库管理、历史评估列表、回答反馈、知识点画像、Workbench SSE/会话或数据库 schema。
+- B-141U 不迁移回答反馈备注输入、Workbench SSE/取消、聊天会话/历史、Agent 工具、检索调试或数据库 schema。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -124,11 +126,14 @@ B-141S 起，Vue 设置页继续迁移项目级 Prompt 预设薄片：`settings.
 
 B-141T 起，Vue 评估页迁移掌握评估最小闭环：`assessment.js` 封装既有 `/api/assessment/start` 和 `/api/assessment/answer` helper，`AssessmentView` 提供开始/重置评估、当前题目、作答提交、下一题/完成、结果概览、答题记录和待复测列表。`App.vue` 保存评估会话、当前题目、题目序号、答题结果、待复测项、加载/提交状态和项目切换清理逻辑。后端 API、SQLite schema、评估题库管理、回答反馈和 Workbench SSE/会话不在本片调整。
 
+B-141U 起，Vue 工作台迁移回答反馈薄片：`answer.js` 扩展 `POST /api/answer/feedback` helper，`AnswerPanel` 在回答返回且存在 `message.id` 时展示四类反馈按钮，`App.vue` 保存最后回答消息 ID、反馈提交状态、错误和保存提示。后端 API、SQLite schema、反馈备注输入、Workbench SSE/取消、聊天会话/历史、Agent 工具和检索调试不在本片调整。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片、设置页模型设置/Profile/Prompt 预设薄片、评估页最小闭环，以及工作台非流式问答入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片、设置页模型设置/Profile/Prompt 预设薄片、评估页最小闭环，以及工作台非流式问答和回答反馈入口。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
+- Vue 工作台可在回答返回后提交“有用 / 无用 / 来源不准 / 需要更多上下文”四类本地反馈。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
 - Vue 资料库可在已选择项目空间时读取导入批次历史，点击批次后查看只读详情、汇总计数和跳过/读取失败明细。

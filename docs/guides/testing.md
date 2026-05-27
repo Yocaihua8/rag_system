@@ -30,7 +30,7 @@ docker compose config
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/test_webapp`。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置、`webapp/static_dist/` 服务策略或 legacy 静态 fallback 时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
-- 变更 Vue API helper、项目空间 helper、问答 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
+- 变更 Vue API helper、项目空间 helper、问答 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
@@ -54,6 +54,7 @@ docker compose config
 - 变更 Prompt 预设时，必须覆盖 `/api/prompt-presets`、`/api/prompt-presets/update`、`/api/prompt-presets/delete`、`/api/prompt-presets/default`、项目隔离、默认预设注入 `/api/answer`、固定来源约束优先级和前端设置入口。
 - 变更掌握评估存储、自动出题、回答评估或前端闭环时，必须覆盖 `/api/assessment/start` 生成并持久化题目、题型 `concept / flow / code_location`、轻量知识点标签、`/api/assessment/answer` 使用服务端持久化题目要点评分、四档状态 `已掌握 / 基本理解 / 需要补充 / 暂未掌握`、持久化回答和结果、项目隔离、空项目拒绝、空回答拒绝、前端进度/下一题/答题记录/待复测列表。
 - 变更 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 评估状态流、开始评估、提交回答、下一题/完成、结果概览、答题记录和待复测列表，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
+- 变更 Vue 工作台回答反馈时，必须覆盖 `frontend/src/api/answer.js`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 反馈状态流、`/api/answer/feedback` helper、四类反馈按钮、保存中/成功/失败状态，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Agent 工具能力时，必须覆盖 `/api/agent/tools`、`/api/agent/tools/run`、`/api/agent/tools/runs`、只读工具白名单、未知工具拒绝和 `agent_tool_runs` 审计记录。
 - 变更回答工具建议时，必须覆盖 `/api/answer` 的 `tool_suggestion`、前端建议工具展示、用户手动运行按钮，并确认不会自动写入 `agent_tool_runs`。
 - 变更工具来源回填时，必须覆盖 `/api/answer` 的 `tool_run_id/tool_context`、同项目校验、跨项目拒绝和前端上下文提示。
@@ -92,4 +93,4 @@ docker compose config
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；构建产物存在时 FastAPI 首页来自 `static_dist`，缺失时回退 `webapp/static/`
-- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建/改名/删除薄片、文档列表/单文档预览/删除薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片、当前目录同步薄片、导入预检薄片和文档集合筛选/新建/删除/重命名/加入/移出薄片，设置页已迁移模型设置/Profile/Prompt 预设薄片，评估页已迁移最小闭环，工作台已迁移非流式问答入口；完整业务流程未迁移前仍由 legacy 静态前端承担
+- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建/改名/删除薄片、文档列表/单文档预览/删除薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片、当前目录同步薄片、导入预检薄片和文档集合筛选/新建/删除/重命名/加入/移出薄片，设置页已迁移模型设置/Profile/Prompt 预设薄片，评估页已迁移最小闭环，工作台已迁移非流式问答和回答反馈入口；完整业务流程未迁移前仍由 legacy 静态前端承担
