@@ -31,7 +31,7 @@
 - [x] 新增 Vue source/static contract 红灯测试，覆盖导入预检 API helper、面板入口和 App 状态接入
 - [x] 实现 `previewProjectImport`、预检 UI、状态流和错误提示
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141K 说明
-- [ ] 完成验证、提交 B-141K，并更新本 plan 快照；B-141 保持 `doing`
+- [x] 完成验证、提交 B-141K，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
 
@@ -71,12 +71,12 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141K 业务边界。
-- [ ] `GET /api/import/preview` 仍为只读；Vue 预检不创建导入批次、不刷新文档列表为导入完成状态。
-- [ ] 未选择项目空间时预检入口禁用，并沿用“请先创建或选择项目空间”校验。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方“回流清单”）。
-- [ ] B-141 保持 `doing`，等待后续 Vue 页面迁移；不推送。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141K 业务边界。
+- [x] `GET /api/import/preview` 仍为只读；Vue 预检不创建导入批次、不刷新文档列表为导入完成状态。
+- [x] 未选择项目空间时预检入口禁用，并沿用“请先创建或选择项目空间”校验。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方“回流清单”）。
+- [x] B-141 保持 `doing`，等待后续 Vue 页面迁移；不推送。
 
 ## 7. 回流清单
 
@@ -100,12 +100,13 @@
 - 2026-05-27：确认 B-141K 红灯为 3 failed / 28 passed，失败点集中在缺少 `previewProjectImport`、导入面板预检入口和 App 预检状态接入。
 - 2026-05-27：实现 Vue 导入预检 helper、导入面板入口、只读结果摘要和 App 状态接入；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 31 passed，`npm run build` 成功。
 - 2026-05-27：同步 `frontend-engineering`、架构说明、测试指南、CHANGELOG 和当日 devlog；`api-spec` 未改，因为后端 `GET /api/import/preview` 契约没有变化。
+- 2026-05-27：完整验证通过：`tests/test_webapp` 302 passed、legacy 回归 179 passed、`npm run build` 成功、B-141K touched-file `git diff --check` 退出码 0；浏览器资料库页烟测确认“预检当前项目目录”入口可见且控制台 error 数为 0。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-27 13:55
-- **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`3dfb50d` — feat: 接入 Vue 导入预检
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141K 文档同步已完成待提交
-- **下一步**：完成验证、提交 B-141K，并更新本 plan 快照；B-141 保持 `doing`
+- **最后更新**：2026-05-27 14:06
+- **进度**：已完成 5 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`84017cb` — docs: 同步 B-141K 导入预检说明
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；B-141K 导入预检薄片已完成；存在大量既有未提交改动，未纳入本轮提交
+- **下一步**：继续 B-141L 页面级业务迁移，可在文档集合、Workbench SSE/会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：B-141K 不删除 `webapp/static/`，不迁移删除/集合/项目改名/删除，不修改后端 API 或数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
