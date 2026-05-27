@@ -27,8 +27,8 @@
 - [x] 增加 Vue 源码契约红灯测试，覆盖集合 items API helper、文档列表加入/移出入口、LibraryView/App 事件与状态刷新。
 - [x] 实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联。
 - [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
-- [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
-- [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
+- [x] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
+- [x] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
 ## 4. 影响范围
 
@@ -66,18 +66,18 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/document-collections-design.md` 的业务规则。
-- [ ] Vue 资料库文档列表在存在集合时可把单个文档加入指定集合。
-- [ ] Vue 资料库筛选到指定集合时可把单个文档从当前集合移出。
-- [ ] 加入/移出成功后刷新文档集合列表和当前文档列表，并清理当前预览。
-- [ ] 未选择项目、未选择集合、未选择文档时有明确错误提示或禁用态。
-- [ ] B-141O 不迁移批量选择、拖拽、删除文档、项目改名/删除、问答按集合过滤或数据库 schema。
-- [ ] Vue 源码契约测试通过。
-- [ ] `npm run build` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
-- [ ] 浏览器冒烟确认资料库页集合加入/移出入口可见且无控制台错误。
-- [ ] 相关文档已同步（见下方“回流清单”）。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/document-collections-design.md` 的业务规则。
+- [x] Vue 资料库文档列表在存在集合时可把单个文档加入指定集合。
+- [x] Vue 资料库筛选到指定集合时可把单个文档从当前集合移出。
+- [x] 加入/移出成功后刷新文档集合列表和当前文档列表，并清理当前预览。
+- [x] 未选择项目、未选择集合、未选择文档时有明确错误提示或禁用态。
+- [x] B-141O 不迁移批量选择、拖拽、删除文档、项目改名/删除、问答按集合过滤或数据库 schema。
+- [x] Vue 源码契约测试通过。
+- [x] `npm run build` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
+- [x] 浏览器冒烟确认资料库页集合加入/移出入口可见且无控制台错误。
+- [x] 相关文档已同步（见下方“回流清单”）。
 
 ## 7. 回流清单
 
@@ -96,12 +96,13 @@
 - 2026-05-27：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 4 failed / 33 passed，失败点为缺少 add/remove helper、文档列表操作入口和 App 处理函数。
 - 2026-05-27：实现 Vue 集合 items add/remove helper、文档列表单文档加入/移出入口、LibraryView 透传和 App 刷新流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 37 passed，`npm run build` 成功。
 - 2026-05-27：同步 B-141O 功能文档、架构文档、测试指南、devlog、CHANGELOG 和资料库页迁移文案。
+- 2026-05-27：完成 B-141O 验证：Vue 源码 37 passed，`npm run build` 成功，Web MVP 308 passed，legacy 179 passed，docs contract 22 passed；浏览器烟测验证加入/移出集合并清理临时项目，控制台 error 数 0。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-27 00:00
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`1cc85a9` — docs: 同步 B-141O 文档集合归组说明
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 更新 B-141O 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141O 相关文件
-- **下一步**：运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟
+- **下一步**：继续 B-141P 页面级业务迁移，可在删除文档、项目改名/删除、Workbench SSE/会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
