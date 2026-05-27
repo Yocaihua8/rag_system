@@ -56,6 +56,7 @@ docker compose config
 - 变更 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 评估状态流、开始评估、提交回答、下一题/完成、结果概览、答题记录和待复测列表，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台回答反馈时，必须覆盖 `frontend/src/api/answer.js`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 反馈状态流、`/api/answer/feedback` helper、四类反馈按钮、保存中/成功/失败状态，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台检索调试时，必须覆盖 `frontend/src/api/search.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索诊断状态流、`/api/search/debug` helper、`top_k/min_score/use_keyword/use_vector` 临时参数、来源质量/分块/向量状态/命中片段展示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
+- 变更 Vue 工作台 Agent 只读工具时，必须覆盖 `frontend/src/api/agent.js`、`AgentToolsPanel.vue`、`WorkbenchView.vue`、`App.vue` 工具元数据读取、`project_overview/search_sources` 手动运行、运行结果、运行历史和详情状态流，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Agent 工具能力时，必须覆盖 `/api/agent/tools`、`/api/agent/tools/run`、`/api/agent/tools/runs`、只读工具白名单、未知工具拒绝和 `agent_tool_runs` 审计记录。
 - 变更回答工具建议时，必须覆盖 `/api/answer` 的 `tool_suggestion`、前端建议工具展示、用户手动运行按钮，并确认不会自动写入 `agent_tool_runs`。
 - 变更工具来源回填时，必须覆盖 `/api/answer` 的 `tool_run_id/tool_context`、同项目校验、跨项目拒绝和前端上下文提示。
@@ -94,4 +95,4 @@ docker compose config
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；构建产物存在时 FastAPI 首页来自 `static_dist`，缺失时回退 `webapp/static/`
-- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建/改名/删除薄片、文档列表/单文档预览/删除薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片、当前目录同步薄片、导入预检薄片和文档集合筛选/新建/删除/重命名/加入/移出薄片，设置页已迁移模型设置/Profile/Prompt 预设薄片，评估页已迁移最小闭环，工作台已迁移非流式问答、回答反馈和检索调试入口；完整业务流程未迁移前仍由 legacy 静态前端承担
+- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建/改名/删除薄片、文档列表/单文档预览/删除薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片、当前目录同步薄片、导入预检薄片和文档集合筛选/新建/删除/重命名/加入/移出薄片，设置页已迁移模型设置/Profile/Prompt 预设薄片，评估页已迁移最小闭环，工作台已迁移非流式问答、回答反馈、检索调试和 Agent 只读工具入口；完整业务流程未迁移前仍由 legacy 静态前端承担

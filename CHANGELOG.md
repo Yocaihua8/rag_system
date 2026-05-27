@@ -31,6 +31,7 @@
 - **Vue 评估页最小闭环薄片**：评估视图新增开始评估、当前题作答、下一题/完成、结果概览、答题记录和待复测列表，复用既有 `/api/assessment/start` 与 `/api/assessment/answer` 契约
 - **Vue 工作台回答反馈薄片**：工作台视图在回答返回后新增“有用 / 无用 / 来源不准 / 需要更多上下文”反馈入口，复用既有 `/api/answer/feedback` 契约
 - **Vue 工作台检索调试薄片**：工作台视图新增检索诊断查询、`top_k` / `min_score` / 关键词 / 向量临时参数和命中片段展示，复用既有 `/api/search/debug` 契约
+- **Vue 工作台 Agent 只读工具薄片**：工作台视图新增只读工具元数据、`project_overview` / `search_sources` 手动运行、工具结果、运行历史和详情展示，复用既有 `/api/agent/tools*` 契约
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
 - **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
