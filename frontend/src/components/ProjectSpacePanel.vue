@@ -27,6 +27,35 @@
       {{ selectedProjectStatus }}
     </p>
 
+    <form class="project-mutation-form" @submit.prevent="submitRenameProject">
+      <p class="section-kicker">重命名项目空间</p>
+      <label>
+        新的项目名称
+        <input
+          v-model.trim="renameForm.name"
+          name="project-name"
+          placeholder="输入新的项目名称"
+          :disabled="!selectedProjectId || projectRenameSubmitting"
+        />
+      </label>
+      <div class="actions">
+        <button type="submit" :disabled="!selectedProjectId || projectRenameSubmitting">
+          {{ projectRenameSubmitting ? "保存中..." : "保存项目名称" }}
+        </button>
+        <button
+          class="danger-link"
+          type="button"
+          :disabled="!selectedProjectId || projectDeleteSubmitting"
+          @click="submitDeleteProject"
+        >
+          {{ projectDeleteSubmitting ? "删除中..." : "删除项目空间" }}
+        </button>
+        <span class="status">{{ projectMutationStatus }}</span>
+      </div>
+      <p class="muted-line">删除项目前会二次确认，项目内文档记录也会被删除。</p>
+      <p v-if="projectMutationError" class="status-line error">{{ projectMutationError }}</p>
+    </form>
+
     <form class="project-form" @submit.prevent="submitProject">
       <p class="section-kicker">新建项目空间</p>
       <label>
@@ -49,7 +78,7 @@
 </template>
 
 <script setup>
-import { computed, reactive } from "vue";
+import { computed, reactive, watch } from "vue";
 
 const props = defineProps({
   projects: {
@@ -80,22 +109,50 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  projectRenameSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  projectDeleteSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  projectMutationError: {
+    type: String,
+    default: "",
+  },
+  projectMutationStatus: {
+    type: String,
+    default: "",
+  },
   statusMessage: {
     type: String,
     default: "",
   },
 });
 
-const emit = defineEmits(["refresh-projects", "select-project", "create-project"]);
+const emit = defineEmits(["refresh-projects", "select-project", "create-project", "rename-project", "delete-project"]);
 
 const form = reactive({
   name: "",
   path: "",
 });
 
+const renameForm = reactive({
+  name: "",
+});
+
 const selectedProject = computed(() => {
   return props.projects.find((project) => project.id === props.selectedProjectId) || null;
 });
+
+watch(
+  selectedProject,
+  (project) => {
+    renameForm.name = project?.name || "";
+  },
+  { immediate: true },
+);
 
 const selectedProjectStatus = computed(() => {
   if (!selectedProject.value) {
@@ -116,5 +173,13 @@ function submitProject() {
     name: form.name,
     path: form.path,
   });
+}
+
+function submitRenameProject() {
+  emit("rename-project", renameForm.name);
+}
+
+function submitDeleteProject() {
+  emit("delete-project");
 }
 </script>

@@ -23,10 +23,10 @@
 ## 3. 任务拆解
 
 - [x] 创建 B-141Q plan，并将 BACKLOG 说明列追加本 plan 路径。
-- [ ] 增加 Vue 源码契约红灯测试，覆盖项目改名/删除 API helper、项目空间面板入口、LibraryView/App 事件与状态刷新。
-- [ ] 实现 `projects.js`、`ProjectSpacePanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小改名/删除串联。
-- [ ] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
-- [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
+- [x] 增加 Vue 源码契约红灯测试，覆盖项目改名/删除 API helper、项目空间面板入口、LibraryView/App 事件与状态刷新。
+- [x] 实现 `projects.js`、`ProjectSpacePanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小改名/删除串联。
+- [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
+- [x] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
 - [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
 ## 4. 影响范围
@@ -63,41 +63,45 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/api-spec.md` 的业务规则。
-- [ ] Vue 资料库项目空间面板可对当前项目触发改名。
-- [ ] 改名成功后刷新项目列表，并保持当前项目选中。
-- [ ] Vue 资料库项目空间面板可对当前项目触发删除确认。
-- [ ] 删除确认文案明确会删除该项目空间内的文档记录。
-- [ ] 删除成功后清空当前项目选择、文档列表、预览、集合、导入批次和相关操作状态。
-- [ ] 未选择项目时项目改名/删除入口禁用或有明确提示。
-- [ ] B-141Q 不迁移项目根目录修改、批量项目管理、备份恢复、Workbench SSE/会话、设置页模型配置或数据库 schema。
-- [ ] Vue 源码契约测试通过。
-- [ ] `npm run build` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
-- [ ] 浏览器冒烟确认资料库页项目改名/删除入口可见且无控制台错误。
-- [ ] 相关文档已同步（见下方“回流清单”）。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/api-spec.md` 的业务规则。
+- [x] Vue 资料库项目空间面板可对当前项目触发改名。
+- [x] 改名成功后刷新项目列表，并保持当前项目选中。
+- [x] Vue 资料库项目空间面板可对当前项目触发删除确认。
+- [x] 删除确认文案明确会删除该项目空间内的文档记录。
+- [x] 删除成功后清空当前项目选择、文档列表、预览、集合、导入批次和相关操作状态。
+- [x] 未选择项目时项目改名/删除入口禁用或有明确提示。
+- [x] B-141Q 不迁移项目根目录修改、批量项目管理、备份恢复、Workbench SSE/会话、设置页模型配置或数据库 schema。
+- [x] Vue 源码契约测试通过。
+- [x] `npm run build` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
+- [x] 浏览器冒烟确认资料库页项目改名/删除入口可见且无控制台错误。
+- [x] 相关文档已同步（见下方“回流清单”）。
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141Q 用户可见行为、工程目录和非目标 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue 表现层迁移状态 | `docs/design/architecture-overview.md` | [ ] |
-| Vue 源码契约测试覆盖范围 | `docs/guides/testing.md` | [ ] |
-| 本次执行记录 | `docs/devlog/2026-05-27.md` | [ ] |
-| 对外变更摘要 | `CHANGELOG.md` | [ ] |
+| B-141Q 用户可见行为、工程目录和非目标 | `docs/features/frontend-engineering.md` | [x] |
+| Vue 表现层迁移状态 | `docs/design/architecture-overview.md` | [x] |
+| Vue 源码契约测试覆盖范围 | `docs/guides/testing.md` | [x] |
+| 本次执行记录 | `docs/devlog/2026-05-27.md` | [x] |
+| 对外变更摘要 | `CHANGELOG.md` | [x] |
 | B-141 关联 plan 路径和状态 | `docs/BACKLOG.md` | [x] |
 
 ## 8. 执行记录
 
 - 2026-05-27：创建 B-141Q plan；冲突扫描显示 B-141C/P 涉及相同项目与资料库状态文件但任务均已完成，本片按项目改名/删除分区继续。
+- 2026-05-27：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 40 passed，失败点为缺少项目 rename/delete helper、项目空间面板入口和 App 状态流。
+- 2026-05-27：实现项目空间改名/删除 helper、面板入口和 App 处理流；聚焦测试为 43 passed。
+- 2026-05-27：同步功能文档、架构文档、测试指南、devlog 和 CHANGELOG。
+- 2026-05-27：完成 B-141Q 验证：Vue 源码 43 passed，`npm run build` 成功，Web MVP 314 passed，legacy 179 passed，浏览器烟测确认资料库页项目改名/删除入口可见且控制台 error 数 0。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-27
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`TBD` — 尚未提交
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`TBD` — 本片实现与验证待提交
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141Q 相关文件
-- **下一步**：新增 Vue 项目改名/删除源码契约红灯测试并确认失败
+- **下一步**：提交本片实现与验证快照，并回写最新 commit
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。

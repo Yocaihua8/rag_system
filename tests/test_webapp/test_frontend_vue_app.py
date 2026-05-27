@@ -88,7 +88,7 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     assert "资料库" in library_vue
     assert "ProjectSpacePanel" in library_vue
     assert "B-141C" in library_vue
-    assert "B-141C 至 B-141P" in library_vue
+    assert "B-141C 至 B-141Q" in library_vue
 
 
 def test_vue_project_api_helper_preserves_project_selection_contract():
@@ -128,7 +128,7 @@ def test_vue_project_space_panel_renders_project_selection_and_creation_form():
     assert ':value="project.id"' in panel_vue
     assert "@change=" in panel_vue
     assert '@submit.prevent="submitProject"' in panel_vue
-    assert 'defineEmits(["refresh-projects", "select-project", "create-project"])' in panel_vue
+    assert 'defineEmits(["refresh-projects", "select-project", "create-project", "rename-project", "delete-project"])' in panel_vue
     assert "ProjectSpacePanel" in library_vue
 
 
@@ -988,5 +988,106 @@ def test_vue_app_handles_document_delete_state_and_refresh():
         "deletingDocumentId",
         "documentDeleteError",
         "documentDeleteStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_project_api_helper_uses_existing_rename_and_delete_contracts():
+    projects_js = _read("frontend/src/api/projects.js")
+
+    assert "export async function renameProject({ projectId, name })" in projects_js
+    assert 'throw new Error("请选择项目空间")' in projects_js
+    assert 'throw new Error("请输入项目空间名称")' in projects_js
+    assert 'apiPost("/api/projects/rename"' in projects_js
+    assert "project_id: projectId" in projects_js
+    assert "name: cleanName" in projects_js
+    assert "export async function deleteProject(projectId)" in projects_js
+    assert 'apiPost("/api/projects/delete", { project_id: projectId })' in projects_js
+
+
+def test_vue_project_space_panel_renders_project_rename_and_delete_controls():
+    panel_vue = _read("frontend/src/components/ProjectSpacePanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "重命名项目空间",
+        "新的项目名称",
+        "保存项目名称",
+        "删除项目空间",
+        "项目内文档记录也会被删除",
+        "projectRenameSubmitting",
+        "projectDeleteSubmitting",
+        "projectMutationError",
+        "projectMutationStatus",
+        'defineEmits(["refresh-projects", "select-project", "create-project", "rename-project", "delete-project"])',
+    ]:
+        assert marker in panel_vue
+
+    assert "@rename-project" in library_vue
+    assert "@delete-project" in library_vue
+    assert ":project-rename-submitting=\"projectRenameSubmitting\"" in library_vue
+    assert ":project-delete-submitting=\"projectDeleteSubmitting\"" in library_vue
+    assert ":project-mutation-error=\"projectMutationError\"" in library_vue
+    assert ":project-mutation-status=\"projectMutationStatus\"" in library_vue
+
+
+def test_vue_app_handles_project_rename_and_delete_state_refresh():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "renameProject",
+        "deleteProject",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":project-rename-submitting=\"appState.projectRenameSubmitting\"",
+        ":project-delete-submitting=\"appState.projectDeleteSubmitting\"",
+        ":project-mutation-error=\"appState.projectMutationError\"",
+        ":project-mutation-status=\"appState.projectMutationStatus\"",
+        "@rename-project=\"handleRenameProject\"",
+        "@delete-project=\"handleDeleteProject\"",
+        "handleRenameProject",
+        "handleDeleteProject",
+        "clearProjectMutationStatus",
+        "resetLibraryStateAfterProjectDelete",
+        "appState.projectMutationStatus = \"项目空间已重命名\"",
+        "appState.projectMutationStatus = \"项目空间已删除\"",
+    ]:
+        assert marker in app_vue
+
+    rename_block = app_vue.split("async function handleRenameProject(name)", 1)[1].split("\nasync function", 1)[0]
+    assert "renameProject({" in rename_block
+    assert "projectId: appState.selectedProjectId" in rename_block
+    assert "name" in rename_block
+    assert "await loadProjectSpaces()" in rename_block
+
+    delete_block = app_vue.split("async function handleDeleteProject()", 1)[1].split("\nfunction reset", 1)[0]
+    assert "window.confirm" in delete_block
+    assert "项目内文档记录也会被删除" in delete_block
+    assert "deleteProject(appState.selectedProjectId)" in delete_block
+    assert "selectProject(\"\")" in delete_block
+    assert "resetLibraryStateAfterProjectDelete()" in delete_block
+    assert "await loadProjectSpaces()" in delete_block
+
+    reset_block = app_vue.split("function resetLibraryStateAfterProjectDelete()", 1)[1].split("\nfunction clear", 1)[0]
+    for marker in [
+        "appState.documents = []",
+        "appState.selectedDocumentId = \"\"",
+        "appState.selectedDocument = null",
+        "appState.documentCollections = []",
+        "appState.selectedDocumentCollectionId = \"\"",
+        "appState.importBatches = []",
+        "appState.selectedImportBatch = null",
+        "appState.selectedImportBatchItems = []",
+    ]:
+        assert marker in reset_block
+
+    for state_field in [
+        "projectRenameSubmitting",
+        "projectDeleteSubmitting",
+        "projectMutationError",
+        "projectMutationStatus",
     ]:
         assert f"{state_field}:" in state_js

@@ -12,6 +12,7 @@
 - **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `webapp/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
 - **Vue 项目空间薄片**：资料库视图新增项目空间列表、选择、最近项目恢复和新建项目空间表单，复用既有 `/api/projects` 契约
+- **Vue 项目空间改名/删除薄片**：资料库视图新增当前项目改名和删除入口，复用既有 `/api/projects/rename` 与 `/api/projects/delete` 契约；删除前提示项目内文档记录也会被删除
 - **Vue 工作台问答薄片**：工作台视图新增非流式问题输入、回答展示、来源列表和来源质量摘要，复用既有 `/api/answer` 契约
 - **Vue 资料库文档浏览薄片**：资料库视图新增当前项目文档列表和单文档正文预览，复用既有 `/api/documents` 与 `/api/document` 契约
 - **Vue 资料库轻量导入薄片**：资料库视图新增文本笔记导入和 URL 摘录导入，复用既有 `/api/import/note` 与 `/api/import/url` 契约

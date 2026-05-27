@@ -10,6 +10,10 @@
       :project-form-submitting="appState.projectFormSubmitting"
       :project-form-error="appState.projectFormError"
       :project-form-status="projectFormStatus"
+      :project-rename-submitting="appState.projectRenameSubmitting"
+      :project-delete-submitting="appState.projectDeleteSubmitting"
+      :project-mutation-error="appState.projectMutationError"
+      :project-mutation-status="appState.projectMutationStatus"
       :project-status-message="projectStatusMessage"
       :import-submitting="appState.importSubmitting"
       :import-error="appState.importError"
@@ -56,6 +60,8 @@
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
       @create-project="handleCreateProject"
+      @rename-project="handleRenameProject"
+      @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
       @refresh-documents="loadLibraryDocuments"
       @select-document="handleSelectDocument"
@@ -105,7 +111,9 @@ import {
 } from "./api/imports.js";
 import {
   createProject,
+  deleteProject,
   loadProjects,
+  renameProject,
   restoreSelectedProjectId,
   selectProject,
 } from "./api/projects.js";
@@ -178,6 +186,7 @@ async function handleSelectProject(projectId) {
   selectProject(projectId);
   clearImportPreview();
   clearCollectionFormStatus();
+  clearProjectMutationStatus();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
   clearDocumentDeleteStatus();
@@ -195,6 +204,7 @@ async function handleCreateProject(payload) {
     const project = await createProject(payload);
     projectFormStatus.value = `已创建项目空间：${project.name}`;
     clearCollectionFormStatus();
+    clearProjectMutationStatus();
     clearCollectionItemStatus();
     clearDocumentDeleteStatus();
     appState.selectedDocumentCollectionId = "";
@@ -206,6 +216,68 @@ async function handleCreateProject(payload) {
   } finally {
     appState.projectFormSubmitting = false;
   }
+}
+
+async function handleRenameProject(name) {
+  appState.projectRenameSubmitting = true;
+  appState.projectMutationError = "";
+  appState.projectMutationStatus = "";
+  try {
+    const project = await renameProject({
+      projectId: appState.selectedProjectId,
+      name,
+    });
+    selectProject(project.id);
+    await loadProjectSpaces();
+    appState.projectMutationStatus = "项目空间已重命名";
+  } catch (error) {
+    appState.projectMutationError = error.message || "项目空间重命名失败";
+  } finally {
+    appState.projectRenameSubmitting = false;
+  }
+}
+
+async function handleDeleteProject() {
+  if (!window.confirm("确认删除这个项目空间？项目内文档记录也会被删除。")) {
+    return;
+  }
+  appState.projectDeleteSubmitting = true;
+  appState.projectMutationError = "";
+  appState.projectMutationStatus = "";
+  try {
+    await deleteProject(appState.selectedProjectId);
+    selectProject("");
+    resetLibraryStateAfterProjectDelete();
+    await loadProjectSpaces();
+    selectProject("");
+    resetLibraryStateAfterProjectDelete();
+    appState.projectMutationStatus = "项目空间已删除";
+  } catch (error) {
+    appState.projectMutationError = error.message || "项目空间删除失败";
+  } finally {
+    appState.projectDeleteSubmitting = false;
+  }
+}
+
+function resetLibraryStateAfterProjectDelete() {
+  appState.documents = [];
+  appState.documentsLoadError = "";
+  appState.selectedDocumentId = "";
+  appState.selectedDocument = null;
+  appState.documentPreviewError = "";
+  appState.documentCollections = [];
+  appState.documentCollectionsLoadError = "";
+  appState.selectedDocumentCollectionId = "";
+  appState.importBatches = [];
+  appState.importBatchesLoadError = "";
+  appState.selectedImportBatch = null;
+  appState.selectedImportBatchItems = [];
+  appState.importBatchDetailError = "";
+  clearImportPreview();
+  clearCollectionFormStatus();
+  clearCollectionRenameStatus();
+  clearCollectionItemStatus();
+  clearDocumentDeleteStatus();
 }
 
 async function handleImportNote(payload) {
@@ -551,6 +623,11 @@ async function handleDeleteDocument(documentId) {
 function clearCollectionFormStatus() {
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
+}
+
+function clearProjectMutationStatus() {
+  appState.projectMutationError = "";
+  appState.projectMutationStatus = "";
 }
 
 function clearCollectionRenameStatus() {

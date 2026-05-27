@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">资料库</p>
         <h2>资料库</h2>
-        <p>B-141C 至 B-141P 已迁移项目空间、文档浏览、导入入口、导入批次历史、目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出和删除文档；项目改名/删除等能力继续分片迁移。</p>
+        <p>B-141C 至 B-141Q 已迁移项目空间选择/创建/改名/删除、文档浏览、导入入口、导入批次历史、目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出和删除文档；其余能力继续分片迁移。</p>
       </div>
     </header>
 
@@ -17,10 +17,16 @@
         :form-submitting="projectFormSubmitting"
         :form-error="projectFormError"
         :form-status="projectFormStatus"
+        :project-rename-submitting="projectRenameSubmitting"
+        :project-delete-submitting="projectDeleteSubmitting"
+        :project-mutation-error="projectMutationError"
+        :project-mutation-status="projectMutationStatus"
         :status-message="projectStatusMessage"
         @refresh-projects="$emit('refresh-projects')"
         @select-project="(projectId) => $emit('select-project', projectId)"
         @create-project="(payload) => $emit('create-project', payload)"
+        @rename-project="(name) => $emit('rename-project', name)"
+        @delete-project="$emit('delete-project')"
       />
       <DocumentImportPanel
         :selected-project-id="selectedProjectId"
@@ -132,6 +138,22 @@ defineProps({
     default: "",
   },
   projectFormStatus: {
+    type: String,
+    default: "",
+  },
+  projectRenameSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  projectDeleteSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  projectMutationError: {
+    type: String,
+    default: "",
+  },
+  projectMutationStatus: {
     type: String,
     default: "",
   },
@@ -293,6 +315,8 @@ defineEmits([
   "refresh-projects",
   "select-project",
   "create-project",
+  "rename-project",
+  "delete-project",
   "refresh-documents",
   "select-document",
   "refresh-collections",

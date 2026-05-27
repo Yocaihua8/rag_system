@@ -153,7 +153,8 @@ select {
   gap: 8px;
 }
 
-.project-form {
+.project-form,
+.project-mutation-form {
   border-top: 1px solid #edf2f7;
   margin-top: 6px;
   padding-top: 20px;
@@ -498,7 +499,8 @@ select {
   word-break: break-word;
 }
 
-.project-form label {
+.project-form label,
+.project-mutation-form label {
   color: #52616f;
   display: grid;
   gap: 8px;

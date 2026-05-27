@@ -28,6 +28,35 @@ export async function createProject(payload) {
   return project;
 }
 
+export async function renameProject({ projectId, name }) {
+  if (!projectId) {
+    throw new Error("请选择项目空间");
+  }
+  const cleanName = (name || "").trim();
+  if (!cleanName) {
+    throw new Error("请输入项目空间名称");
+  }
+  const response = await apiPost("/api/projects/rename", {
+    project_id: projectId,
+    name: cleanName,
+  });
+  const project = response.project;
+  appState.projects = appState.projects.map((item) => (item.id === project.id ? project : item));
+  return project;
+}
+
+export async function deleteProject(projectId) {
+  if (!projectId) {
+    throw new Error("请选择项目空间");
+  }
+  const response = await apiPost("/api/projects/delete", { project_id: projectId });
+  appState.projects = appState.projects.filter((project) => project.id !== projectId);
+  if (appState.selectedProjectId === projectId) {
+    selectProject("");
+  }
+  return response;
+}
+
 export function selectProject(projectId) {
   appState.selectedProjectId = projectId || "";
   persistSelectedProjectId(appState.selectedProjectId);
