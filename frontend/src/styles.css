@@ -346,6 +346,11 @@ select {
   gap: 6px;
 }
 
+.document-item-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .import-batch-list {
   display: grid;
   gap: 10px;

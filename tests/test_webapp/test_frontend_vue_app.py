@@ -268,7 +268,7 @@ def test_vue_library_document_panels_render_list_and_preview_states():
         "未选择项目空间",
         'v-for="document in documents"',
         '@click="$emit(\'select-document\', document.id)"',
-        'defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection"])',
+        'defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection", "delete-document"])',
     ]:
         assert marker in list_panel_vue
 

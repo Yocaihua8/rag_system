@@ -38,6 +38,9 @@
       :collection-item-submitting-id="appState.collectionItemSubmittingId"
       :collection-item-error="appState.collectionItemError"
       :collection-item-status="appState.collectionItemStatus"
+      :deleting-document-id="appState.deletingDocumentId"
+      :document-delete-error="appState.documentDeleteError"
+      :document-delete-status="appState.documentDeleteStatus"
       :selected-document-id="appState.selectedDocumentId"
       :selected-document="appState.selectedDocument"
       :document-preview-loading="appState.documentPreviewLoading"
@@ -63,6 +66,7 @@
       @update-collection="handleUpdateDocumentCollection"
       @add-document-to-collection="handleAddDocumentToCollection"
       @remove-document-from-collection="handleRemoveDocumentFromCollection"
+      @delete-document="handleDeleteDocument"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
@@ -88,7 +92,7 @@ import {
   removeDocumentFromCollection,
   updateDocumentCollection,
 } from "./api/document-collections.js";
-import { getDocument, listDocuments } from "./api/documents.js";
+import { deleteDocument, getDocument, listDocuments } from "./api/documents.js";
 import {
   getImportBatchDetail,
   importBrowserFolder,
@@ -176,6 +180,7 @@ async function handleSelectProject(projectId) {
   clearCollectionFormStatus();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
+  clearDocumentDeleteStatus();
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadDocumentCollections();
   await loadLibraryDocuments();
@@ -191,6 +196,7 @@ async function handleCreateProject(payload) {
     projectFormStatus.value = `已创建项目空间：${project.name}`;
     clearCollectionFormStatus();
     clearCollectionItemStatus();
+    clearDocumentDeleteStatus();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadLibraryDocuments();
@@ -402,6 +408,7 @@ async function loadDocumentCollections() {
 async function handleSelectDocumentCollection(collectionId) {
   appState.selectedDocumentCollectionId = collectionId;
   clearCollectionItemStatus();
+  clearDocumentDeleteStatus();
   await loadLibraryDocuments();
 }
 
@@ -453,6 +460,7 @@ async function handleDeleteDocumentCollection(collectionId) {
   appState.collectionFormStatus = "";
   clearCollectionRenameStatus();
   clearCollectionItemStatus();
+  clearDocumentDeleteStatus();
   appState.deletingCollectionId = collectionId;
   try {
     await deleteDocumentCollection(collectionId);
@@ -475,6 +483,7 @@ async function handleAddDocumentToCollection(payload) {
   appState.collectionItemStatus = "";
   clearCollectionFormStatus();
   clearCollectionRenameStatus();
+  clearDocumentDeleteStatus();
   try {
     await addDocumentToCollection({
       collectionId: payload.collectionId,
@@ -496,6 +505,7 @@ async function handleRemoveDocumentFromCollection(payload) {
   appState.collectionItemStatus = "";
   clearCollectionFormStatus();
   clearCollectionRenameStatus();
+  clearDocumentDeleteStatus();
   try {
     await removeDocumentFromCollection({
       collectionId: payload.collectionId,
@@ -508,6 +518,33 @@ async function handleRemoveDocumentFromCollection(payload) {
     appState.collectionItemError = error.message || "文档移出集合失败";
   } finally {
     appState.collectionItemSubmittingId = "";
+  }
+}
+
+async function handleDeleteDocument(documentId) {
+  if (!window.confirm("确认从当前项目空间移除这个文档记录？源文件不会被删除。")) {
+    return;
+  }
+  appState.deletingDocumentId = documentId;
+  appState.documentDeleteError = "";
+  appState.documentDeleteStatus = "";
+  clearCollectionFormStatus();
+  clearCollectionRenameStatus();
+  clearCollectionItemStatus();
+  try {
+    await deleteDocument(documentId);
+    if (appState.selectedDocumentId === documentId) {
+      appState.selectedDocumentId = "";
+      appState.selectedDocument = null;
+      appState.documentPreviewError = "";
+    }
+    appState.documentDeleteStatus = "文档已删除";
+    await loadDocumentCollections();
+    await loadLibraryDocuments();
+  } catch (error) {
+    appState.documentDeleteError = error.message || "文档删除失败";
+  } finally {
+    appState.deletingDocumentId = "";
   }
 }
 
@@ -524,6 +561,11 @@ function clearCollectionRenameStatus() {
 function clearCollectionItemStatus() {
   appState.collectionItemError = "";
   appState.collectionItemStatus = "";
+}
+
+function clearDocumentDeleteStatus() {
+  appState.documentDeleteError = "";
+  appState.documentDeleteStatus = "";
 }
 
 async function loadImportBatches() {

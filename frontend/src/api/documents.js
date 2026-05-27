@@ -1,4 +1,4 @@
-import { apiGet } from "./client.js";
+import { apiGet, apiPost } from "./client.js";
 
 export async function listDocuments(projectId, collectionId = "") {
   if (!projectId) {
@@ -18,4 +18,11 @@ export async function getDocument(documentId) {
   }
   const data = await apiGet(`/api/document?document_id=${encodeURIComponent(documentId)}`);
   return data.document || null;
+}
+
+export async function deleteDocument(documentId) {
+  if (!documentId) {
+    throw new Error("请选择要删除的文档");
+  }
+  return apiPost("/api/documents/delete", { document_id: documentId });
 }

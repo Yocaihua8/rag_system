@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">资料库</p>
         <h2>资料库</h2>
-        <p>B-141C 至 B-141O 已迁移项目空间、文档浏览、导入入口、导入批次历史、目录同步、导入预检和文档集合筛选/新建/删除/重命名/加入/移出；删除文档等能力继续分片迁移。</p>
+        <p>B-141C 至 B-141P 已迁移项目空间、文档浏览、导入入口、导入批次历史、目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出和删除文档；项目改名/删除等能力继续分片迁移。</p>
       </div>
     </header>
 
@@ -67,10 +67,14 @@
         :collection-item-submitting-id="collectionItemSubmittingId"
         :collection-item-error="collectionItemError"
         :collection-item-status="collectionItemStatus"
+        :deleting-document-id="deletingDocumentId"
+        :document-delete-error="documentDeleteError"
+        :document-delete-status="documentDeleteStatus"
         @refresh-documents="$emit('refresh-documents')"
         @select-document="(documentId) => $emit('select-document', documentId)"
         @add-document-to-collection="(payload) => $emit('add-document-to-collection', payload)"
         @remove-document-from-collection="(payload) => $emit('remove-document-from-collection', payload)"
+        @delete-document="(documentId) => $emit('delete-document', documentId)"
       />
       <DocumentPreviewPanel
         :selected-document="selectedDocument"
@@ -227,6 +231,18 @@ defineProps({
     type: String,
     default: "",
   },
+  deletingDocumentId: {
+    type: String,
+    default: "",
+  },
+  documentDeleteError: {
+    type: String,
+    default: "",
+  },
+  documentDeleteStatus: {
+    type: String,
+    default: "",
+  },
   selectedDocumentId: {
     type: String,
     default: "",
@@ -286,6 +302,7 @@ defineEmits([
   "update-collection",
   "add-document-to-collection",
   "remove-document-from-collection",
+  "delete-document",
   "import-note",
   "import-url",
   "import-files",

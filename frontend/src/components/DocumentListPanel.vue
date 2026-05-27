@@ -60,10 +60,22 @@
             移出集合
           </button>
         </div>
+        <div class="document-item-actions">
+          <button
+            type="button"
+            class="danger-link"
+            :disabled="deletingDocumentId !== ''"
+            @click="$emit('delete-document', document.id)"
+          >
+            {{ deletingDocumentId === document.id ? "删除中..." : "删除文档" }}
+          </button>
+        </div>
       </li>
     </ul>
     <p v-if="collectionItemError" class="status-line error">{{ collectionItemError }}</p>
     <p v-else-if="collectionItemStatus" class="status-line">{{ collectionItemStatus }}</p>
+    <p v-if="documentDeleteError" class="status-line error">{{ documentDeleteError }}</p>
+    <p v-else-if="documentDeleteStatus" class="status-line">{{ documentDeleteStatus }}</p>
   </section>
 </template>
 
@@ -111,9 +123,21 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  deletingDocumentId: {
+    type: String,
+    default: "",
+  },
+  documentDeleteError: {
+    type: String,
+    default: "",
+  },
+  documentDeleteStatus: {
+    type: String,
+    default: "",
+  },
 });
 
-const emit = defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection"]);
+const emit = defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection", "delete-document"]);
 
 const collectionSelections = reactive({});
 
