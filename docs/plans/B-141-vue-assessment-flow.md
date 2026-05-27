@@ -27,7 +27,7 @@
 - [x] 增加 Vue 源码契约红灯测试，覆盖评估 API helper、评估页 UI 和 App 状态流。
 - [x] 实现 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 和共享状态的评估闭环串联。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
-- [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
+- [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
 - [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
@@ -79,11 +79,11 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141T 用户可见行为、非目标和验收标准 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue 评估页 helper、状态和组件职责 | `docs/design/architecture-overview.md` | [ ] |
-| Vue 评估页测试要求和回归检查 | `docs/guides/testing.md` | [ ] |
-| 未发布变更记录 | `CHANGELOG.md` | [ ] |
-| 当日执行记录和验证结果 | `docs/devlog/2026-05-28.md` | [ ] |
+| B-141T 用户可见行为、非目标和验收标准 | `docs/features/frontend-engineering.md` | [x] |
+| Vue 评估页 helper、状态和组件职责 | `docs/design/architecture-overview.md` | [x] |
+| Vue 评估页测试要求和回归检查 | `docs/guides/testing.md` | [x] |
+| 未发布变更记录 | `CHANGELOG.md` | [x] |
+| 当日执行记录和验证结果 | `docs/devlog/2026-05-28.md` | [x] |
 | B-141 关联 plan 路径和状态 | `docs/BACKLOG.md` | [x] |
 
 ## 8. 执行记录
@@ -92,12 +92,13 @@
 - 2026-05-28：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 4 failed / 48 passed，失败点为缺少评估 helper、评估页 UI、App 状态流和 B-141T 文案。
 - 2026-05-28：实现 Vue 评估 API helper、评估页最小闭环 UI 和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 52 passed。
 - 2026-05-28：完成前端验证：Vue 源码测试 52 passed，`npm run build` 成功；构建产物未进入待提交范围。
+- 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141T 明确不迁移评估题库管理、历史评估列表、回答反馈、知识点画像、Workbench SSE/会话或数据库 schema。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 00:40
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 更新 B-141T 前端验证快照
+- **最后更新**：2026-05-28 00:49
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 同步 B-141T 评估页迁移说明
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141T 相关文件
-- **下一步**：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog
+- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
 - **续任务须知**：不修改后端 `/api/assessment*` 契约、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
