@@ -29,7 +29,7 @@
 - [x] 实现 `answer.js` 可选 `toolRunId`、`AnswerPanel.vue` 建议工具/上下文 UI、`App.vue` 状态处理和手动运行建议工具逻辑。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
-- [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
+- [x] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
 
@@ -71,15 +71,15 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141X 业务规则。
-- [ ] Vue `askQuestion` 可选发送 `tool_run_id`，未设置上下文时不改变原请求体。
-- [ ] Vue 回答区展示 `tool_suggestion`，并提供手动运行建议 `search_sources` 的按钮。
-- [ ] 建议工具运行成功后展示可用工具结果，并允许用户标记为下一问上下文。
-- [ ] 下一次提问会携带 `tool_run_id`，回答完成后显示 `tool_context` 并自动消耗当前工具上下文。
-- [ ] 项目切换、项目删除和新建项目时清理工具建议、可用工具结果和上下文状态。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方"回流清单"）。
-- [ ] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141X 业务规则。
+- [x] Vue `askQuestion` 可选发送 `tool_run_id`，未设置上下文时不改变原请求体。
+- [x] Vue 回答区展示 `tool_suggestion`，并提供手动运行建议 `search_sources` 的按钮。
+- [x] 建议工具运行成功后展示可用工具结果，并允许用户标记为下一问上下文。
+- [x] 下一次提问会携带 `tool_run_id`，回答完成后显示 `tool_context` 并自动消耗当前工具上下文。
+- [x] 项目切换、项目删除和新建项目时清理工具建议、可用工具结果和上下文状态。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方"回流清单"）。
+- [x] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
 
 ## 7. 回流清单
 
@@ -100,12 +100,14 @@
 - 2026-05-28：实现 Vue 工具建议与来源上下文状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 63 passed，`npm run build` 成功。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141X 明确不迁移 Workbench SSE/取消、聊天会话/历史、Agent 自动编排、工具白名单权限逻辑、检索复盘、后端 API 或数据库 schema。
 - 2026-05-28：冒烟前修正建议工具状态来源，避免运行建议工具并清理 `currentToolSuggestion` 后又从旧 `answerResult.tool_suggestion` 重新显示建议按钮；复跑 `tests/test_webapp/test_frontend_vue_app.py` 为 63 passed，`npm run build` 成功。
+- 2026-05-28：补跑 Web MVP 全量 `.venv\Scripts\python.exe -m pytest tests\test_webapp -q` 为 334 passed；legacy 回归 `.venv\Scripts\python.exe -m pytest tests\test_application tests\test_domain tests\test_adapters -q` 为 179 passed；最终 `npm run build` 成功。
+- 2026-05-28：使用 headless Chrome 完成 B-141X 浏览器烟测：空项目首次提问显示 `tool_suggestion`，导入 `api.md` 后运行建议 `search_sources` 命中来源，把工具结果标记为下一问上下文，第二次提问显示 `tool_context` 并消耗上下文；业务 console/runtime/network error 为 0，忽略既有 `favicon.ico` 404；截图保存到 `runtime/b141x-tool-context-smoke.png`，烟测后已删除临时项目并停止本地服务。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 03:12
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — fix: 修复 Vue 建议工具按钮清理状态
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — docs: 更新 B-141X 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141X 相关文件
-- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
+- **下一步**：B-141 后续可继续 Workbench SSE/会话、检索复盘/默认值或评估题库/历史列表迁移
 - **续任务须知**：不修改后端 `/api/answer`、`/api/agent/tools*` 契约，不改变工具白名单权限，不做自动工具编排，不接入 SSE/取消，不迁移聊天会话/历史，不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
