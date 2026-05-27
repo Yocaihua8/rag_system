@@ -611,7 +611,8 @@ button:focus-visible {
 
 .answer-body,
 .source-quality,
-.source-list {
+.source-list,
+.answer-feedback {
   border-top: 1px solid #edf2f7;
   padding-top: 16px;
 }
@@ -625,6 +626,18 @@ button:focus-visible {
 
 .source-list li p {
   margin-top: 6px;
+}
+
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.feedback-actions button {
+  background: #f8fafc;
+  border: 1px solid #c8d5df;
+  color: #17202a;
 }
 
 .assessment-grid {

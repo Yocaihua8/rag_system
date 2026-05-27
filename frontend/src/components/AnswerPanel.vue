@@ -34,6 +34,47 @@
         </li>
       </ol>
     </div>
+
+    <div v-if="answerResult" class="answer-feedback">
+      <p class="section-kicker">回答反馈</p>
+      <p v-if="!lastAnswerMessageId" class="muted-line">当前回答暂不可反馈。</p>
+      <div v-else class="feedback-actions">
+        <button
+          type="button"
+          data-feedback-rating="useful"
+          :disabled="answerFeedbackSubmitting"
+          @click="submitAnswerFeedback('useful')"
+        >
+          有用
+        </button>
+        <button
+          type="button"
+          data-feedback-rating="not_useful"
+          :disabled="answerFeedbackSubmitting"
+          @click="submitAnswerFeedback('not_useful')"
+        >
+          无用
+        </button>
+        <button
+          type="button"
+          data-feedback-rating="source_wrong"
+          :disabled="answerFeedbackSubmitting"
+          @click="submitAnswerFeedback('source_wrong')"
+        >
+          来源不准
+        </button>
+        <button
+          type="button"
+          data-feedback-rating="need_more_context"
+          :disabled="answerFeedbackSubmitting"
+          @click="submitAnswerFeedback('need_more_context')"
+        >
+          需要更多上下文
+        </button>
+      </div>
+      <p v-if="answerFeedbackStatus" class="status-line">{{ answerFeedbackStatus }}</p>
+      <p v-if="answerFeedbackError" class="status-line error">{{ answerFeedbackError }}</p>
+    </div>
   </section>
 </template>
 
@@ -45,6 +86,22 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  lastAnswerMessageId: {
+    type: String,
+    default: "",
+  },
+  answerFeedbackSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  answerFeedbackStatus: {
+    type: String,
+    default: "",
+  },
+  answerFeedbackError: {
+    type: String,
+    default: "",
+  },
   loading: {
     type: Boolean,
     default: false,
@@ -54,6 +111,8 @@ const props = defineProps({
     default: "",
   },
 });
+
+const emit = defineEmits(["submit-answer-feedback"]);
 
 const sources = computed(() => {
   return props.answerResult?.sources || [];
@@ -66,4 +125,8 @@ const sourceQualityText = computed(() => {
   }
   return sourceQuality.label || sourceQuality.reason || `来源质量：${sourceQuality.level || "unknown"}`;
 });
+
+function submitAnswerFeedback(rating) {
+  emit("submit-answer-feedback", rating);
+}
 </script>

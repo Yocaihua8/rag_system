@@ -25,6 +25,10 @@
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
       :answer-status="appState.answerStatus"
+      :last-answer-message-id="appState.lastAnswerMessageId"
+      :answer-feedback-submitting="appState.answerFeedbackSubmitting"
+      :answer-feedback-status="appState.answerFeedbackStatus"
+      :answer-feedback-error="appState.answerFeedbackError"
       :documents="appState.documents"
       :documents-loading="appState.documentsLoading"
       :documents-load-error="appState.documentsLoadError"
@@ -99,6 +103,7 @@
       @rename-project="handleRenameProject"
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
+      @submit-answer-feedback="handleSubmitAnswerFeedback"
       @refresh-documents="loadLibraryDocuments"
       @select-document="handleSelectDocument"
       @refresh-collections="loadDocumentCollections"
@@ -140,7 +145,7 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 
-import { askQuestion } from "./api/answer.js";
+import { askQuestion, submitAnswerFeedback } from "./api/answer.js";
 import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
 import {
@@ -544,6 +549,7 @@ async function handleSelectProject(projectId) {
   clearCollectionFormStatus();
   clearProjectMutationStatus();
   clearPromptPresetState();
+  clearAnswerFeedbackState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
@@ -567,6 +573,7 @@ async function handleCreateProject(payload) {
     clearCollectionItemStatus();
     clearDocumentDeleteStatus();
     clearPromptPresetState();
+    clearAnswerFeedbackState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
@@ -636,6 +643,7 @@ function resetLibraryStateAfterProjectDelete() {
   appState.selectedImportBatchItems = [];
   appState.importBatchDetailError = "";
   clearPromptPresetState();
+  clearAnswerFeedbackState();
   resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
@@ -774,24 +782,66 @@ function clearImportPreview() {
   appState.importPreviewError = "";
 }
 
+function clearAnswerFeedbackState() {
+  appState.lastAnswerMessageId = "";
+  appState.answerFeedbackSubmitting = false;
+  appState.answerFeedbackError = "";
+  appState.answerFeedbackStatus = "";
+}
+
 async function handleSubmitQuestion(question) {
   appState.currentQuestion = question;
   appState.answerLoading = true;
   appState.answerError = "";
   appState.answerStatus = "正在生成回答...";
+  clearAnswerFeedbackState();
   try {
     const data = await askQuestion({
       projectId: appState.selectedProjectId,
       question,
     });
     appState.answerResult = data;
+    appState.lastAnswerMessageId = data.message?.id || "";
     appState.answerStatus = "回答已生成";
   } catch (error) {
     appState.answerError = error.message || "回答生成失败";
     appState.answerStatus = "回答生成失败";
+    appState.lastAnswerMessageId = "";
   } finally {
     appState.answerLoading = false;
   }
+}
+
+async function handleSubmitAnswerFeedback(rating) {
+  appState.answerFeedbackSubmitting = true;
+  appState.answerFeedbackError = "";
+  appState.answerFeedbackStatus = "正在保存回答反馈...";
+  try {
+    const data = await submitAnswerFeedback({
+      projectId: appState.selectedProjectId,
+      messageId: appState.lastAnswerMessageId,
+      rating,
+    });
+    const label = formatAnswerFeedbackRating(data.feedback?.rating || rating);
+    appState.answerFeedbackStatus = "回答反馈已保存";
+    if (label) {
+      appState.answerFeedbackStatus = `回答反馈已保存：${label}`;
+    }
+  } catch (error) {
+    appState.answerFeedbackError = error.message || "回答反馈保存失败";
+    appState.answerFeedbackStatus = "回答反馈保存失败";
+  } finally {
+    appState.answerFeedbackSubmitting = false;
+  }
+}
+
+function formatAnswerFeedbackRating(rating) {
+  return {
+    useful: "有用",
+    not_useful: "无用",
+    source_wrong: "来源不准",
+    need_more_context: "需要更多上下文",
+  }[rating] || rating;
 }
 
 async function loadLibraryDocuments() {

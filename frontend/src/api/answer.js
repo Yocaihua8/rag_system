@@ -13,3 +13,21 @@ export async function askQuestion({ projectId, question }) {
     question: trimmedQuestion,
   });
 }
+
+export async function submitAnswerFeedback({ projectId, messageId, rating, note = "" }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  if (!messageId) {
+    throw new Error("请先完成一次提问");
+  }
+  if (!rating) {
+    throw new Error("请选择反馈类型");
+  }
+  return apiPost("/api/answer/feedback", {
+    project_id: projectId,
+    message_id: messageId,
+    rating,
+    note,
+  });
+}

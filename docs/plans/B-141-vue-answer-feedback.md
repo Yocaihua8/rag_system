@@ -25,8 +25,8 @@
 
 - [x] 创建 B-141U plan，并将 BACKLOG 说明列追加本 plan 路径。
 - [x] 增加 Vue 源码契约红灯测试，覆盖反馈 helper、AnswerPanel 反馈按钮、Workbench/App 事件和状态流。
-- [ ] 实现 `frontend/src/api/answer.js` 回答反馈 helper、`AnswerPanel.vue` 反馈入口、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
-- [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
+- [x] 实现 `frontend/src/api/answer.js` 回答反馈 helper、`AnswerPanel.vue` 反馈入口、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
+- [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
 - [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
@@ -94,12 +94,13 @@
 - 2026-05-28：创建 B-141U plan；选择 Vue 工作台回答反馈作为下一薄片，原因是只复用既有 `/api/answer/feedback`，范围小于 SSE/会话、Agent 工具或检索调试。
 - 2026-05-28：将 `docs/plans/B-141-vue-answer-feedback.md` 追加到 BACKLOG B-141 说明列；顺手修正 B-141T plan 快照的最终提交号为 `4ef41eb`。
 - 2026-05-28：新增 Vue 回答反馈源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 52 passed，失败点为缺少反馈 helper、AnswerPanel 反馈控件和 App 状态流。
+- 2026-05-28：实现 Vue 回答反馈 helper、显式四类反馈按钮和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 55 passed，`npm run build` 成功。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 01:20
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — test: 增加 B-141U 回答反馈红灯用例
+- **最后更新**：2026-05-28 01:25
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — feat: 接入 Vue 工作台回答反馈
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141U 相关文件
-- **下一步**：实现 Vue 回答反馈 helper、控件和 App 状态流
+- **下一步**：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog
 - **续任务须知**：不修改后端 `/api/answer/feedback` 契约、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件

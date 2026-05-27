@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">工作台</p>
         <h2>项目问答</h2>
-        <p>B-141D 已迁移非流式问答入口；SSE、Agent 工具和检索调试后续迁移。</p>
+        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈；SSE、Agent 工具和检索调试后续迁移。</p>
       </div>
     </header>
 
@@ -21,6 +21,11 @@
         :answer-result="answerResult"
         :loading="answerLoading"
         :error="answerError"
+        :last-answer-message-id="lastAnswerMessageId"
+        :answer-feedback-submitting="answerFeedbackSubmitting"
+        :answer-feedback-status="answerFeedbackStatus"
+        :answer-feedback-error="answerFeedbackError"
+        @submit-answer-feedback="(rating) => $emit('submit-answer-feedback', rating)"
       />
     </div>
   </section>
@@ -55,7 +60,23 @@ defineProps({
     type: String,
     default: "",
   },
+  lastAnswerMessageId: {
+    type: String,
+    default: "",
+  },
+  answerFeedbackSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  answerFeedbackStatus: {
+    type: String,
+    default: "",
+  },
+  answerFeedbackError: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["check-health", "submit-question"]);
+defineEmits(["check-health", "submit-question", "submit-answer-feedback"]);
 </script>
