@@ -88,7 +88,7 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     assert "资料库" in library_vue
     assert "ProjectSpacePanel" in library_vue
     assert "B-141C" in library_vue
-    assert "B-141C 至 B-141O" in library_vue
+    assert "B-141C 至 B-141P" in library_vue
 
 
 def test_vue_project_api_helper_preserves_project_selection_contract():
@@ -240,6 +240,15 @@ def test_vue_document_api_helper_uses_existing_read_only_document_contract():
     assert 'apiGet(`/api/document?document_id=${encodeURIComponent(documentId)}`)' in documents_js
     assert "data.document || null" in documents_js
     assert "请选择要预览的文档" in documents_js
+
+
+def test_vue_document_api_helper_uses_existing_delete_contract():
+    documents_js = _read("frontend/src/api/documents.js")
+
+    assert 'import { apiGet, apiPost } from "./client.js";' in documents_js
+    assert "export async function deleteDocument(documentId)" in documents_js
+    assert 'throw new Error("请选择要删除的文档")' in documents_js
+    assert 'apiPost("/api/documents/delete", { document_id: documentId })' in documents_js
 
 
 def test_vue_library_document_panels_render_list_and_preview_states():
@@ -810,6 +819,26 @@ def test_vue_document_list_panel_renders_collection_item_controls():
     assert "@remove-document-from-collection" in library_vue
 
 
+def test_vue_document_list_panel_renders_document_delete_control():
+    list_panel_vue = _read("frontend/src/components/DocumentListPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "删除文档",
+        "deletingDocumentId",
+        "documentDeleteError",
+        "documentDeleteStatus",
+        "delete-document",
+        'defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection", "delete-document"])',
+    ]:
+        assert marker in list_panel_vue
+
+    assert ":deleting-document-id=\"deletingDocumentId\"" in library_vue
+    assert ":document-delete-error=\"documentDeleteError\"" in library_vue
+    assert ":document-delete-status=\"documentDeleteStatus\"" in library_vue
+    assert "@delete-document" in library_vue
+
+
 def test_vue_app_loads_document_collections_and_filters_document_list():
     app_vue = _read("frontend/src/App.vue")
     state_js = _read("frontend/src/state/app-state.js")
@@ -924,5 +953,40 @@ def test_vue_app_handles_document_collection_item_add_and_remove():
         "collectionItemSubmittingId",
         "collectionItemError",
         "collectionItemStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_handles_document_delete_state_and_refresh():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    assert "deleteDocument" in app_vue
+
+    for marker in [
+        ":deleting-document-id=\"appState.deletingDocumentId\"",
+        ":document-delete-error=\"appState.documentDeleteError\"",
+        ":document-delete-status=\"appState.documentDeleteStatus\"",
+        "@delete-document=\"handleDeleteDocument\"",
+        "handleDeleteDocument",
+        "clearDocumentDeleteStatus",
+        "appState.documentDeleteStatus = \"文档已删除\"",
+    ]:
+        assert marker in app_vue
+
+    delete_block = app_vue.split("async function handleDeleteDocument(documentId)", 1)[1].split("\nfunction clear", 1)[0]
+    assert "window.confirm" in delete_block
+    assert "源文件不会被删除" in delete_block
+    assert "deleteDocument(documentId)" in delete_block
+    assert "appState.deletingDocumentId = documentId" in delete_block
+    assert "appState.selectedDocumentId = \"\"" in delete_block
+    assert "appState.selectedDocument = null" in delete_block
+    assert "await loadDocumentCollections()" in delete_block
+    assert "await loadLibraryDocuments()" in delete_block
+
+    for state_field in [
+        "deletingDocumentId",
+        "documentDeleteError",
+        "documentDeleteStatus",
     ]:
         assert f"{state_field}:" in state_js
