@@ -15,6 +15,8 @@
     <p v-else-if="loadError" class="status-line error">{{ loadError }}</p>
     <p v-if="collectionFormError" class="status-line error">{{ collectionFormError }}</p>
     <p v-else-if="collectionFormStatus" class="status-line">{{ collectionFormStatus }}</p>
+    <p v-if="collectionRenameError" class="status-line error">{{ collectionRenameError }}</p>
+    <p v-else-if="collectionRenameStatus" class="status-line">{{ collectionRenameStatus }}</p>
 
     <form class="collection-form" @submit.prevent="submitCreateCollection">
       <label>
@@ -72,13 +74,38 @@
         >
           {{ deletingCollectionId === collection.id ? "删除中..." : "删除集合" }}
         </button>
+        <form
+          v-if="editingCollectionId === collection.id"
+          class="collection-rename-form"
+          @submit.prevent="submitRenameCollection(collection.id)"
+        >
+          <input
+            v-model.trim="renameForm.name"
+            :disabled="collectionRenameSubmitting"
+            placeholder="新的集合名称"
+          />
+          <button type="submit" :disabled="collectionRenameSubmitting">
+            {{ collectionRenameSubmitting ? "保存中..." : "保存名称" }}
+          </button>
+          <button type="button" :disabled="collectionRenameSubmitting" @click="cancelRenameCollection">
+            取消
+          </button>
+        </form>
+        <button
+          v-else
+          type="button"
+          :disabled="collectionRenameSubmitting"
+          @click.stop="startRenameCollection(collection)"
+        >
+          重命名集合
+        </button>
       </li>
     </ul>
   </section>
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref } from "vue";
 
 defineProps({
   documentCollections: {
@@ -113,22 +140,60 @@ defineProps({
     type: String,
     default: "",
   },
+  collectionRenameSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  collectionRenameError: {
+    type: String,
+    default: "",
+  },
+  collectionRenameStatus: {
+    type: String,
+    default: "",
+  },
   deletingCollectionId: {
     type: String,
     default: "",
   },
 });
 
-const emit = defineEmits(["refresh-collections", "select-collection", "create-collection", "delete-collection"]);
+const emit = defineEmits(["refresh-collections", "select-collection", "create-collection", "delete-collection", "update-collection"]);
 
 const collectionForm = reactive({
   name: "",
 });
 
+const renameForm = reactive({
+  name: "",
+});
+
+const editingCollectionId = ref("");
+
 function submitCreateCollection() {
   emit("create-collection", collectionForm.name);
   if (collectionForm.name.trim()) {
     collectionForm.name = "";
+  }
+}
+
+function startRenameCollection(collection) {
+  editingCollectionId.value = collection.id;
+  renameForm.name = collection.name || "";
+}
+
+function cancelRenameCollection() {
+  editingCollectionId.value = "";
+  renameForm.name = "";
+}
+
+function submitRenameCollection(collectionId) {
+  emit("update-collection", {
+    collectionId,
+    name: renameForm.name,
+  });
+  if (renameForm.name.trim()) {
+    cancelRenameCollection();
   }
 }
 </script>

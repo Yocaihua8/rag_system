@@ -46,11 +46,15 @@
         :collection-form-submitting="collectionFormSubmitting"
         :collection-form-error="collectionFormError"
         :collection-form-status="collectionFormStatus"
+        :collection-rename-submitting="collectionRenameSubmitting"
+        :collection-rename-error="collectionRenameError"
+        :collection-rename-status="collectionRenameStatus"
         :deleting-collection-id="deletingCollectionId"
         @refresh-collections="$emit('refresh-collections')"
         @select-collection="(collectionId) => $emit('select-collection', collectionId)"
         @create-collection="(name) => $emit('create-collection', name)"
         @delete-collection="(collectionId) => $emit('delete-collection', collectionId)"
+        @update-collection="(payload) => $emit('update-collection', payload)"
       />
       <DocumentListPanel
         :documents="documents"
@@ -188,6 +192,18 @@ defineProps({
     type: String,
     default: "",
   },
+  collectionRenameSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  collectionRenameError: {
+    type: String,
+    default: "",
+  },
+  collectionRenameStatus: {
+    type: String,
+    default: "",
+  },
   deletingCollectionId: {
     type: String,
     default: "",
@@ -248,6 +264,7 @@ defineEmits([
   "select-collection",
   "create-collection",
   "delete-collection",
+  "update-collection",
   "import-note",
   "import-url",
   "import-files",

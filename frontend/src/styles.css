@@ -348,7 +348,7 @@ select {
   align-items: stretch;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .document-collection-item {
@@ -385,6 +385,13 @@ select {
   background: transparent;
   border-color: #c2410c;
   color: #9a3412;
+}
+
+.collection-rename-form {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(160px, 1fr) auto auto;
 }
 
 .import-batch-item {

@@ -29,3 +29,17 @@ export async function deleteDocumentCollection(collectionId) {
   }
   return apiPost("/api/document-collections/delete", { collection_id: collectionId });
 }
+
+export async function updateDocumentCollection({ collectionId, name }) {
+  if (!collectionId) {
+    throw new Error("请选择文档集合");
+  }
+  const cleanName = name.trim();
+  if (!cleanName) {
+    throw new Error("请输入文档集合名称");
+  }
+  return apiPost("/api/document-collections/update", {
+    collection_id: collectionId,
+    name: cleanName,
+  });
+}

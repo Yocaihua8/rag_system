@@ -31,6 +31,9 @@
       :collection-form-submitting="appState.collectionFormSubmitting"
       :collection-form-error="appState.collectionFormError"
       :collection-form-status="appState.collectionFormStatus"
+      :collection-rename-submitting="appState.collectionRenameSubmitting"
+      :collection-rename-error="appState.collectionRenameError"
+      :collection-rename-status="appState.collectionRenameStatus"
       :deleting-collection-id="appState.deletingCollectionId"
       :selected-document-id="appState.selectedDocumentId"
       :selected-document="appState.selectedDocument"
@@ -54,6 +57,7 @@
       @select-collection="handleSelectDocumentCollection"
       @create-collection="handleCreateDocumentCollection"
       @delete-collection="handleDeleteDocumentCollection"
+      @update-collection="handleUpdateDocumentCollection"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
@@ -75,6 +79,7 @@ import {
   createDocumentCollection,
   deleteDocumentCollection,
   listDocumentCollections,
+  updateDocumentCollection,
 } from "./api/document-collections.js";
 import { getDocument, listDocuments } from "./api/documents.js";
 import {
@@ -394,6 +399,7 @@ async function handleCreateDocumentCollection(name) {
   appState.collectionFormSubmitting = true;
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
+  clearCollectionRenameStatus();
   try {
     await createDocumentCollection({
       projectId: appState.selectedProjectId,
@@ -408,12 +414,32 @@ async function handleCreateDocumentCollection(name) {
   }
 }
 
+async function handleUpdateDocumentCollection(payload) {
+  appState.collectionRenameSubmitting = true;
+  appState.collectionRenameError = "";
+  appState.collectionRenameStatus = "";
+  clearCollectionFormStatus();
+  try {
+    await updateDocumentCollection({
+      collectionId: payload.collectionId,
+      name: payload.name,
+    });
+    appState.collectionRenameStatus = "文档集合已重命名";
+    await loadDocumentCollections();
+  } catch (error) {
+    appState.collectionRenameError = error.message || "文档集合重命名失败";
+  } finally {
+    appState.collectionRenameSubmitting = false;
+  }
+}
+
 async function handleDeleteDocumentCollection(collectionId) {
   if (!window.confirm("确认删除这个文档集合？集合内文档不会被删除。")) {
     return;
   }
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
+  clearCollectionRenameStatus();
   appState.deletingCollectionId = collectionId;
   try {
     await deleteDocumentCollection(collectionId);
@@ -433,6 +459,11 @@ async function handleDeleteDocumentCollection(collectionId) {
 function clearCollectionFormStatus() {
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
+}
+
+function clearCollectionRenameStatus() {
+  appState.collectionRenameError = "";
+  appState.collectionRenameStatus = "";
 }
 
 async function loadImportBatches() {
