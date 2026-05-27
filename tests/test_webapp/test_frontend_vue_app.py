@@ -88,7 +88,7 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     assert "资料库" in library_vue
     assert "ProjectSpacePanel" in library_vue
     assert "B-141C" in library_vue
-    assert "B-141C 至 B-141M" in library_vue
+    assert "B-141C 至 B-141N" in library_vue
 
 
 def test_vue_project_api_helper_preserves_project_selection_contract():

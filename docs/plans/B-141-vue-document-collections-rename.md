@@ -27,7 +27,7 @@
 
 - [x] 增加 Vue 源码契约测试，覆盖集合重命名 helper、面板编辑入口和 App 状态刷新。
 - [x] 实现 `document-collections.js`、`DocumentCollectionPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小重命名串联。
-- [ ] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
+- [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
 - [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
 - [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
@@ -101,9 +101,9 @@
 > 目的：无论因额度耗尽、开发者中断还是主动结束，下一个 session 都能从此处冷启动。
 > 正常完成后随 plan 一起删除。
 
-- **最后更新**：2026-05-27 15:45
-- **进度**：已完成 2 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`fd3f8d3` — `test: 覆盖 Vue 文档集合重命名入口`
+- **最后更新**：2026-05-27 15:55
+- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`65bd564` — `feat: 接入 Vue 文档集合重命名`
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在大量非本片既有未提交改动，本片仅选择性暂存自身文件
-- **下一步**：同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog
+- **下一步**：运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟
 - **续任务须知**：不要清理 unrelated dirty files；本片不得修改后端 schema 或 legacy `webapp/static/`
