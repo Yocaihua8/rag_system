@@ -38,6 +38,8 @@ export function createInitialState() {
     editingPromptPresetId: "",
     documentCollections: [],
     selectedDocumentCollectionId: "",
+    documentCollectionsLoading: false,
+    documentCollectionsLoadError: "",
     importBatches: [],
     importBatchesLoading: false,
     importBatchesLoadError: "",

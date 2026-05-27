@@ -24,6 +24,10 @@
       :documents="appState.documents"
       :documents-loading="appState.documentsLoading"
       :documents-load-error="appState.documentsLoadError"
+      :document-collections="appState.documentCollections"
+      :selected-document-collection-id="appState.selectedDocumentCollectionId"
+      :document-collections-loading="appState.documentCollectionsLoading"
+      :document-collections-load-error="appState.documentCollectionsLoadError"
       :selected-document-id="appState.selectedDocumentId"
       :selected-document="appState.selectedDocument"
       :document-preview-loading="appState.documentPreviewLoading"
@@ -42,6 +46,8 @@
       @submit-question="handleSubmitQuestion"
       @refresh-documents="loadLibraryDocuments"
       @select-document="handleSelectDocument"
+      @refresh-collections="loadDocumentCollections"
+      @select-collection="handleSelectDocumentCollection"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
@@ -59,6 +65,7 @@ import { computed, onMounted, ref } from "vue";
 
 import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
+import { listDocumentCollections } from "./api/document-collections.js";
 import { getDocument, listDocuments } from "./api/documents.js";
 import {
   getImportBatchDetail,
@@ -131,6 +138,7 @@ async function loadProjectSpaces() {
   try {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
+    await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
   } catch (error) {
@@ -143,7 +151,9 @@ async function loadProjectSpaces() {
 async function handleSelectProject(projectId) {
   selectProject(projectId);
   clearImportPreview();
+  appState.selectedDocumentCollectionId = "";
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
+  await loadDocumentCollections();
   await loadLibraryDocuments();
   await loadImportBatches();
 }
@@ -155,6 +165,8 @@ async function handleCreateProject(payload) {
   try {
     const project = await createProject(payload);
     projectFormStatus.value = `已创建项目空间：${project.name}`;
+    appState.selectedDocumentCollectionId = "";
+    await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
   } catch (error) {
@@ -333,6 +345,37 @@ async function loadLibraryDocuments() {
   } finally {
     appState.documentsLoading = false;
   }
+}
+
+async function loadDocumentCollections() {
+  appState.documentCollections = [];
+  appState.documentCollectionsLoadError = "";
+  if (!appState.selectedProjectId) {
+    appState.selectedDocumentCollectionId = "";
+    return;
+  }
+
+  appState.documentCollectionsLoading = true;
+  try {
+    const collections = await listDocumentCollections(appState.selectedProjectId);
+    appState.documentCollections = collections;
+    if (
+      appState.selectedDocumentCollectionId
+      && appState.selectedDocumentCollectionId !== "unassigned"
+      && !collections.some((collection) => collection.id === appState.selectedDocumentCollectionId)
+    ) {
+      appState.selectedDocumentCollectionId = "";
+    }
+  } catch (error) {
+    appState.documentCollectionsLoadError = error.message || "文档集合读取失败";
+  } finally {
+    appState.documentCollectionsLoading = false;
+  }
+}
+
+async function handleSelectDocumentCollection(collectionId) {
+  appState.selectedDocumentCollectionId = collectionId;
+  await loadLibraryDocuments();
 }
 
 async function loadImportBatches() {

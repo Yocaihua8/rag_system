@@ -26,7 +26,7 @@
 
 - [x] 创建 B-141L plan，并将 BACKLOG 说明列追加本 plan 路径
 - [x] 新增 Vue source/static contract 红灯测试，覆盖集合 API helper、集合筛选面板和 App 状态接入
-- [ ] 实现集合列表读取、筛选 UI 和文档列表过滤状态流
+- [x] 实现集合列表读取、筛选 UI 和文档列表过滤状态流
 - [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141L 说明
 - [ ] 完成验证、提交 B-141L，并更新本 plan 快照；B-141 保持 `doing`
 
@@ -96,12 +96,13 @@
 - 2026-05-27：冲突扫描发现 B-141A/K 相关 plan 已完成但保留，其他 superpowers 历史计划未标记 Active/Interrupted；按分区处理。
 - 2026-05-27：创建 `docs/plans/B-141-vue-document-collections-filter.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-27：确认 B-141L 红灯为 3 failed / 31 passed，失败点集中在缺少 `document-collections.js`、`DocumentCollectionPanel.vue` 和 App 集合状态接入。
+- 2026-05-27：实现 Vue 文档集合只读 helper、集合筛选面板和 App 筛选状态；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 34 passed，`npm run build` 成功。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-27 13:56
-- **进度**：已完成 2 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`a3acd5f` — docs: 创建 B-141L 文档集合筛选计划
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141L 红灯测试已新增待提交
-- **下一步**：实现集合列表读取、筛选 UI 和文档列表过滤状态流
+- **最后更新**：2026-05-27 14:03
+- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`cb947f0` — test: 覆盖 Vue 文档集合筛选入口
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141L 文档集合筛选实现已完成待提交
+- **下一步**：同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141L 说明
 - **续任务须知**：B-141L 不删除 `webapp/static/`，不迁移集合 CRUD 或加入/移出文档，不修改后端 API 或数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送

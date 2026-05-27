@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">资料库</p>
         <h2>资料库</h2>
-        <p>B-141C 至 B-141K 已迁移项目空间、文档浏览、导入入口、导入批次历史、目录同步和导入预检；文档集合等资料库管理能力继续分片迁移。</p>
+        <p>B-141C 至 B-141L 已迁移项目空间、文档浏览、导入入口、导入批次历史、目录同步、导入预检和文档集合筛选；集合编辑等资料库管理能力继续分片迁移。</p>
       </div>
     </header>
 
@@ -36,6 +36,15 @@
         @import-folder="(files) => $emit('import-folder', files)"
         @sync-directory="$emit('sync-directory')"
         @preview-import="$emit('preview-import')"
+      />
+      <DocumentCollectionPanel
+        :document-collections="documentCollections"
+        :selected-project-id="selectedProjectId"
+        :selected-document-collection-id="selectedDocumentCollectionId"
+        :document-collections-loading="documentCollectionsLoading"
+        :document-collections-load-error="documentCollectionsLoadError"
+        @refresh-collections="$emit('refresh-collections')"
+        @select-collection="(collectionId) => $emit('select-collection', collectionId)"
       />
       <DocumentListPanel
         :documents="documents"
@@ -69,6 +78,7 @@
 </template>
 
 <script setup>
+import DocumentCollectionPanel from "../components/DocumentCollectionPanel.vue";
 import DocumentImportPanel from "../components/DocumentImportPanel.vue";
 import DocumentListPanel from "../components/DocumentListPanel.vue";
 import DocumentPreviewPanel from "../components/DocumentPreviewPanel.vue";
@@ -144,6 +154,22 @@ defineProps({
     type: String,
     default: "",
   },
+  documentCollections: {
+    type: Array,
+    default: () => [],
+  },
+  selectedDocumentCollectionId: {
+    type: String,
+    default: "",
+  },
+  documentCollectionsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  documentCollectionsLoadError: {
+    type: String,
+    default: "",
+  },
   selectedDocumentId: {
     type: String,
     default: "",
@@ -196,6 +222,8 @@ defineEmits([
   "create-project",
   "refresh-documents",
   "select-document",
+  "refresh-collections",
+  "select-collection",
   "import-note",
   "import-url",
   "import-files",
