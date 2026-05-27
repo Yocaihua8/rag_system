@@ -29,6 +29,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141M 在 Vue 资料库视图中提供文档集合新建和删除入口，复用既有 `POST /api/document-collections` 与 `POST /api/document-collections/delete` 契约；删除集合不删除文档，当前不迁移集合重命名或加入/移出文档。
 - B-141N 在 Vue 资料库视图中提供文档集合重命名入口，复用既有 `POST /api/document-collections/update` 契约；当前不迁移加入/移出文档。
 - B-141O 在 Vue 资料库文档列表中提供单文档加入集合和从当前集合移出入口，复用既有 `POST /api/document-collections/items/add` 与 `POST /api/document-collections/items/remove` 契约；当前不迁移批量选择、拖拽或删除文档。
+- B-141P 在 Vue 资料库文档列表中提供单文档删除入口，复用既有 `POST /api/documents/delete` 契约；删除前提示源文件不会被删除，成功后刷新文档列表和文档集合列表。
 - 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
 
 ## 3. 工程目录
@@ -40,7 +41,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/api/client.js` | Vue 前端 API helper，封装 `apiGet` / `apiPost` 与错误归一化 |
 | `frontend/src/api/projects.js` | Vue 项目空间 API helper，封装项目列表、创建、选择和最近项目恢复 |
 | `frontend/src/api/answer.js` | Vue 工作台非流式问答 API helper，调用既有 `/api/answer` |
-| `frontend/src/api/documents.js` | Vue 资料库文档 API helper，调用既有 `/api/documents` 和 `/api/document` |
+| `frontend/src/api/documents.js` | Vue 资料库文档 API helper，调用既有 `/api/documents`、`/api/document` 和 `/api/documents/delete` |
 | `frontend/src/api/document-collections.js` | Vue 资料库文档集合 API helper，调用既有 `/api/document-collections` 列表/新建契约、`/api/document-collections/update` 重命名契约、`/api/document-collections/delete` 删除契约和 `/api/document-collections/items/*` 文档关联契约 |
 | `frontend/src/api/imports.js` | Vue 资料库导入 API helper，调用既有 `/api/import/preview`、`/api/import`、`/api/import/note`、`/api/import/url`、`/api/import/upload`、`/api/import/batches` 和 `/api/import/batches/detail` |
 | `frontend/src/state/app-state.js` | Vue 迁移期共享状态模型和基础视图切换 |
@@ -51,7 +52,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 
 ## 4. 非目标
 
-- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O 迁移完整业务页面。
+- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P 迁移完整业务页面。
 - B-141C 不迁移导入、重命名、删除、文档列表、问答、评估或设置完整流程。
 - B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
 - B-141E 不迁移文件导入、目录同步、上传、笔记、URL 摘录、删除文档、文档集合增删改或导入批次历史。
@@ -65,6 +66,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141M 不迁移文档集合重命名、加入文档、移出文档、删除文档、项目改名/删除或数据库 schema。
 - B-141N 不迁移文档加入集合、移出集合、删除文档、项目改名/删除或数据库 schema。
 - B-141O 不迁移批量选择、拖拽排序、删除文档、项目改名/删除、问答按集合过滤或数据库 schema。
+- B-141P 不迁移批量删除、删除源文件、项目改名/删除、问答按集合过滤或数据库 schema。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -102,10 +104,12 @@ B-141N 起，Vue 资料库继续迁移文档集合重命名薄片：`document-co
 
 B-141O 起，Vue 资料库继续迁移文档集合文档归组薄片：`document-collections.js` 扩展 `POST /api/document-collections/items/add` 与 `POST /api/document-collections/items/remove` helper，`DocumentListPanel` 在每个文档项下提供加入集合选择和当前集合移出按钮，`App.vue` 在成功后刷新集合列表和当前文档列表。后端 API、SQLite schema、批量选择、拖拽、删除文档和问答按集合过滤不在本片调整。
 
+B-141P 起，Vue 资料库继续迁移单文档删除薄片：`documents.js` 扩展 `POST /api/documents/delete` helper，`DocumentListPanel` 在每个文档项下提供“删除文档”按钮，`App.vue` 在删除前弹出确认并提示源文件不会被删除，成功后清空当前预览、刷新文档列表和文档集合列表。后端 API、SQLite schema、批量删除、源文件删除、项目改名/删除和问答按集合过滤不在本片调整。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建薄片、资料库文档列表/预览薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片，以及工作台非流式问答入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片，以及工作台非流式问答入口。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
@@ -118,6 +122,7 @@ B-141O 起，Vue 资料库继续迁移文档集合文档归组薄片：`document
 - Vue 资料库可在已选择项目空间时新建或删除文档集合；删除集合会提示“集合内文档不会被删除”，并在删除当前筛选集合后回到全部文档。
 - Vue 资料库可在已选择项目空间时重命名已有文档集合，并在成功后刷新集合列表。
 - Vue 资料库可在文档列表中将单个文档加入指定集合，并在筛选到指定集合时把单个文档从当前集合移出；成功后刷新集合列表和当前文档列表。
+- Vue 资料库可在文档列表中删除单个文档记录；删除前提示源文件不会被删除，成功后刷新文档列表和文档集合列表。
 - `npm run build` 可生成 `webapp/static_dist/`。
 - FastAPI 优先服务 `webapp/static_dist/`；构建产物不存在时回退 `webapp/static/`。
 - Web MVP 后端测试保持通过。
