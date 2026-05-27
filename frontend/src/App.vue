@@ -56,6 +56,22 @@
       :selected-import-batch-items="appState.selectedImportBatchItems"
       :import-batch-detail-loading="appState.importBatchDetailLoading"
       :import-batch-detail-error="appState.importBatchDetailError"
+      :llm-settings="appState.llmSettings"
+      :llm-settings-loading="appState.llmSettingsLoading"
+      :llm-settings-submitting="appState.llmSettingsSubmitting"
+      :llm-settings-testing="appState.llmSettingsTesting"
+      :llm-settings-error="appState.llmSettingsError"
+      :llm-settings-status="appState.llmSettingsStatus"
+      :model-profiles="appState.modelProfiles"
+      :default-model-profile-id="appState.defaultModelProfileId"
+      :model-profiles-loading="appState.modelProfilesLoading"
+      :model-profile-load-error="appState.modelProfileLoadError"
+      :model-profile-submitting="appState.modelProfileSubmitting"
+      :model-profile-testing-id="appState.modelProfileTestingId"
+      :model-profile-deleting-id="appState.modelProfileDeletingId"
+      :model-profile-default-submitting="appState.modelProfileDefaultSubmitting"
+      :model-profile-mutation-error="appState.modelProfileMutationError"
+      :model-profile-status="appState.modelProfileStatus"
       @check-health="checkHealth"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
@@ -81,6 +97,14 @@
       @preview-import="handlePreviewImport"
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
+      @load-settings="loadSettingsPage"
+      @save-llm-settings="handleSaveLlmSettings"
+      @test-llm-settings="handleTestLlmSettings"
+      @load-model-profiles="loadModelProfiles"
+      @save-model-profile="handleSaveModelProfile"
+      @delete-model-profile="handleDeleteModelProfile"
+      @set-default-model-profile="handleSetDefaultModelProfile"
+      @test-model-profile="handleTestModelProfile"
     />
   </AppShell>
 </template>
@@ -117,6 +141,16 @@ import {
   restoreSelectedProjectId,
   selectProject,
 } from "./api/projects.js";
+import {
+  deleteModelProfile,
+  listModelProfiles,
+  loadLlmSettings,
+  saveLlmSettings,
+  saveModelProfile,
+  setDefaultModelProfile,
+  testLlmSettings,
+  testModelProfile,
+} from "./api/settings.js";
 import AppShell from "./components/AppShell.vue";
 import { appState, showView } from "./state/app-state.js";
 import AssessmentView from "./views/AssessmentView.vue";
@@ -154,6 +188,7 @@ const projectStatusMessage = computed(() => {
 
 onMounted(() => {
   loadProjectSpaces();
+  loadSettingsPage();
 });
 
 async function checkHealth() {
@@ -164,6 +199,135 @@ async function checkHealth() {
   } catch (error) {
     statusMessage.value = "本地服务暂时不可用";
   }
+}
+
+async function loadSettingsPage() {
+  await Promise.all([loadModelSettings(), loadModelProfiles()]);
+}
+
+async function loadModelSettings() {
+  appState.llmSettingsLoading = true;
+  appState.llmSettingsError = "";
+  try {
+    appState.llmSettings = await loadLlmSettings();
+    appState.llmSettingsStatus = formatLlmSettingsStatus(appState.llmSettings);
+  } catch (error) {
+    appState.llmSettingsError = error.message || "模型设置读取失败";
+  } finally {
+    appState.llmSettingsLoading = false;
+  }
+}
+
+async function handleSaveLlmSettings(payload) {
+  appState.llmSettingsSubmitting = true;
+  appState.llmSettingsError = "";
+  appState.llmSettingsStatus = "";
+  try {
+    appState.llmSettings = await saveLlmSettings(payload);
+    appState.llmSettingsStatus = "模型设置已保存";
+  } catch (error) {
+    appState.llmSettingsError = error.message || "模型设置保存失败";
+  } finally {
+    appState.llmSettingsSubmitting = false;
+  }
+}
+
+async function handleTestLlmSettings() {
+  appState.llmSettingsTesting = true;
+  appState.llmSettingsError = "";
+  appState.llmSettingsStatus = "";
+  try {
+    const data = await testLlmSettings();
+    appState.llmSettingsStatus = data.message || "模型连接测试通过";
+  } catch (error) {
+    appState.llmSettingsError = error.message || "模型连接测试失败";
+  } finally {
+    appState.llmSettingsTesting = false;
+  }
+}
+
+async function loadModelProfiles() {
+  appState.modelProfilesLoading = true;
+  appState.modelProfileLoadError = "";
+  try {
+    const data = await listModelProfiles();
+    appState.modelProfiles = data.profiles || [];
+    appState.defaultModelProfileId = data.default_profile_id || "";
+  } catch (error) {
+    appState.modelProfileLoadError = error.message || "模型 Profile 读取失败";
+  } finally {
+    appState.modelProfilesLoading = false;
+  }
+}
+
+async function handleSaveModelProfile(payload) {
+  appState.modelProfileSubmitting = true;
+  appState.modelProfileMutationError = "";
+  appState.modelProfileStatus = "";
+  try {
+    await saveModelProfile(payload);
+    appState.modelProfileStatus = "模型 Profile 已保存";
+    await loadModelProfiles();
+  } catch (error) {
+    appState.modelProfileMutationError = error.message || "模型 Profile 保存失败";
+  } finally {
+    appState.modelProfileSubmitting = false;
+  }
+}
+
+async function handleDeleteModelProfile(profileId) {
+  if (!window.confirm("确认删除这个模型 Profile？不会删除 API Key。")) {
+    return;
+  }
+  appState.modelProfileDeletingId = profileId;
+  appState.modelProfileMutationError = "";
+  appState.modelProfileStatus = "";
+  try {
+    await deleteModelProfile(profileId);
+    appState.modelProfileStatus = "模型 Profile 已删除";
+    await loadModelProfiles();
+  } catch (error) {
+    appState.modelProfileMutationError = error.message || "模型 Profile 删除失败";
+  } finally {
+    appState.modelProfileDeletingId = "";
+  }
+}
+
+async function handleSetDefaultModelProfile(profileId) {
+  appState.modelProfileDefaultSubmitting = true;
+  appState.modelProfileMutationError = "";
+  appState.modelProfileStatus = "";
+  try {
+    const data = await setDefaultModelProfile(profileId);
+    appState.defaultModelProfileId = data.default_profile_id || "";
+    appState.modelProfileStatus = "默认模型 Profile 已更新";
+  } catch (error) {
+    appState.modelProfileMutationError = error.message || "默认模型 Profile 更新失败";
+  } finally {
+    appState.modelProfileDefaultSubmitting = false;
+  }
+}
+
+async function handleTestModelProfile(profileId) {
+  appState.modelProfileTestingId = profileId;
+  appState.modelProfileMutationError = "";
+  appState.modelProfileStatus = "";
+  try {
+    const data = await testModelProfile(profileId);
+    appState.modelProfileStatus = data.message || "模型 Profile 测试通过";
+  } catch (error) {
+    appState.modelProfileMutationError = error.message || "模型 Profile 测试失败";
+  } finally {
+    appState.modelProfileTestingId = "";
+  }
+}
+
+function formatLlmSettingsStatus(settings = {}) {
+  if (!settings.provider && !settings.model) {
+    return "模型设置已读取";
+  }
+  const keyStatus = settings.has_api_key ? `Key ${settings.api_key_source || "已配置"}` : "Key 未配置";
+  return `${settings.provider || "api"} / ${settings.model || "未填写模型"}；${keyStatus}`;
 }
 
 async function loadProjectSpaces() {

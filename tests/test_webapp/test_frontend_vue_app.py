@@ -70,7 +70,6 @@ def test_vue_layout_components_define_four_primary_views():
 def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     b141b_view_files = {
         "frontend/src/views/AssessmentView.vue": ["评估", "后续迁移出题、作答、结果概览和待复测列表"],
-        "frontend/src/views/SettingsView.vue": ["设置", "后续迁移模型设置、模型 Profile 和 Prompt 预设"],
     }
 
     for path, markers in b141b_view_files.items():
@@ -78,6 +77,11 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
         for marker in markers:
             assert marker in view_text
         assert "B-141B" in view_text
+
+    settings_vue = _read("frontend/src/views/SettingsView.vue")
+    assert "设置" in settings_vue
+    assert "B-141R 已迁移模型设置和模型 Profile" in settings_vue
+    assert "Prompt 预设后续迁移" in settings_vue
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
     assert "项目问答" in workbench_vue
