@@ -617,3 +617,67 @@ def test_vue_app_handles_directory_sync_response_and_refreshes_library():
     assert "同步当前项目目录完成" in app_vue
     assert "await loadLibraryDocuments()" in app_vue
     assert "await loadImportBatches()" in app_vue
+
+
+def test_vue_import_api_helper_uses_existing_import_preview_contract():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    assert "export async function previewProjectImport({ projectId })" in imports_js
+    assert 'throw new Error("请先创建或选择项目空间")' in imports_js
+    assert "new URLSearchParams({ project_id: projectId })" in imports_js
+    assert 'apiGet(`/api/import/preview?${params.toString()}`)' in imports_js
+    assert "return data.preview || null" in imports_js
+
+
+def test_vue_document_import_panel_renders_import_preview_summary():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "导入预检",
+        "预检当前项目目录",
+        "预检结果",
+        "可导入",
+        "跳过",
+        "skipped_details",
+        "preview-import",
+        "importPreview",
+        "importPreviewLoading",
+        "importPreviewError",
+        ':disabled="importSubmitting || importPreviewLoading || !selectedProjectId"',
+        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"])',
+    ]:
+        assert marker in panel_vue
+
+    assert "@preview-import" in library_vue
+    assert ":import-preview=\"importPreview\"" in library_vue
+    assert ":import-preview-loading=\"importPreviewLoading\"" in library_vue
+    assert ":import-preview-error=\"importPreviewError\"" in library_vue
+
+
+def test_vue_app_handles_import_preview_state_without_import_side_effects():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    assert "previewProjectImport" in app_vue
+    assert "handlePreviewImport" in app_vue
+    assert "@preview-import=\"handlePreviewImport\"" in app_vue
+    assert ":import-preview=\"appState.importPreview\"" in app_vue
+    assert ":import-preview-loading=\"appState.importPreviewLoading\"" in app_vue
+    assert ":import-preview-error=\"appState.importPreviewError\"" in app_vue
+    assert "formatImportPreview" in app_vue
+    assert "导入预检完成" in app_vue
+
+    preview_block = app_vue.split("async function handlePreviewImport()", 1)[1].split("\nasync function", 1)[0]
+    assert "previewProjectImport({" in preview_block
+    assert "projectId: appState.selectedProjectId" in preview_block
+    assert "appState.importPreview = preview" in preview_block
+    assert "await loadLibraryDocuments()" not in preview_block
+    assert "await loadImportBatches()" not in preview_block
+
+    for state_field in [
+        "importPreview",
+        "importPreviewLoading",
+        "importPreviewError",
+    ]:
+        assert f"{state_field}:" in state_js
