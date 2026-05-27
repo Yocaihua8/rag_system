@@ -99,7 +99,7 @@
 
 - **最后更新**：2026-05-27 00:00
 - **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — test: 覆盖 Vue 文档集合文档归组入口
+- **最新 commit**：`e6755da` — test: 覆盖 Vue 文档集合文档归组入口
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141O 相关文件
 - **下一步**：实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
