@@ -96,7 +96,7 @@
 
 - **最后更新**：2026-05-27 15:35
 - **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`TBD` — 待提交 plan 创建
+- **最新 commit**：`1770232` — docs: 创建 B-141P 文档删除计划
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141P 相关文件
 - **下一步**：增加 Vue 源码契约红灯测试，覆盖文档删除 API helper、文档列表删除入口、LibraryView/App 事件与状态刷新
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
