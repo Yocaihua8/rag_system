@@ -683,23 +683,30 @@ def test_vue_app_handles_import_preview_state_without_import_side_effects():
         assert f"{state_field}:" in state_js
 
 
-def test_vue_document_collections_api_helper_uses_existing_readonly_contract():
+def test_vue_document_collections_api_helper_uses_existing_management_contracts():
     collections_path = Path("frontend/src/api/document-collections.js")
     assert collections_path.exists(), "B-141L should add a Vue document collections API helper"
     collections_js = _read(str(collections_path))
 
-    assert 'import { apiGet } from "./client.js";' in collections_js
+    assert 'import { apiGet, apiPost } from "./client.js";' in collections_js
     assert "export async function listDocumentCollections(projectId)" in collections_js
     assert "if (!projectId)" in collections_js
     assert "return []" in collections_js
     assert "new URLSearchParams({ project_id: projectId })" in collections_js
     assert 'apiGet(`/api/document-collections?${params.toString()}`)' in collections_js
     assert "data.collections || []" in collections_js
+    assert "export async function createDocumentCollection({ projectId, name })" in collections_js
+    assert 'throw new Error("请先创建或选择项目空间")' in collections_js
+    assert 'throw new Error("请输入文档集合名称")' in collections_js
+    assert 'apiPost("/api/document-collections"' in collections_js
+    assert "project_id: projectId" in collections_js
+    assert "name: cleanName" in collections_js
+    assert "export async function deleteDocumentCollection(collectionId)" in collections_js
+    assert 'throw new Error("请选择文档集合")' in collections_js
+    assert 'apiPost("/api/document-collections/delete", { collection_id: collectionId })' in collections_js
 
     for forbidden_action in [
-        "apiPost",
         "/api/document-collections/update",
-        "/api/document-collections/delete",
         "/api/document-collections/items/add",
         "/api/document-collections/items/remove",
     ]:
@@ -715,17 +722,25 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
 
     for marker in [
         "文档集合",
+        "新建集合",
+        "集合名称",
+        "创建集合",
         "全部文档",
         "未分组",
         "刷新集合",
+        "删除集合",
         "暂无文档集合",
         "document_count",
         'v-for="collection in documentCollections"',
-        'defineEmits(["refresh-collections", "select-collection"])',
+        "collectionFormSubmitting",
+        "collectionFormError",
+        "collectionFormStatus",
+        "deletingCollectionId",
+        'defineEmits(["refresh-collections", "select-collection", "create-collection", "delete-collection"])',
     ]:
         assert marker in panel_vue
 
-    for forbidden_action in ["新建集合", "删除集合", "加入集合", "移出集合"]:
+    for forbidden_action in ["重命名集合", "加入集合", "移出集合"]:
         assert forbidden_action not in panel_vue
 
     assert "DocumentCollectionPanel" in library_vue
@@ -733,8 +748,14 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
     assert ":selected-document-collection-id=\"selectedDocumentCollectionId\"" in library_vue
     assert ":document-collections-loading=\"documentCollectionsLoading\"" in library_vue
     assert ":document-collections-load-error=\"documentCollectionsLoadError\"" in library_vue
+    assert ":collection-form-submitting=\"collectionFormSubmitting\"" in library_vue
+    assert ":collection-form-error=\"collectionFormError\"" in library_vue
+    assert ":collection-form-status=\"collectionFormStatus\"" in library_vue
+    assert ":deleting-collection-id=\"deletingCollectionId\"" in library_vue
     assert "@refresh-collections" in library_vue
     assert "@select-collection" in library_vue
+    assert "@create-collection" in library_vue
+    assert "@delete-collection" in library_vue
 
 
 def test_vue_app_loads_document_collections_and_filters_document_list():
@@ -742,14 +763,24 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
     state_js = _read("frontend/src/state/app-state.js")
 
     assert "listDocumentCollections" in app_vue
+    assert "createDocumentCollection" in app_vue
+    assert "deleteDocumentCollection" in app_vue
     assert "loadDocumentCollections" in app_vue
     assert "handleSelectDocumentCollection" in app_vue
+    assert "handleCreateDocumentCollection" in app_vue
+    assert "handleDeleteDocumentCollection" in app_vue
     assert ":document-collections=\"appState.documentCollections\"" in app_vue
     assert ":selected-document-collection-id=\"appState.selectedDocumentCollectionId\"" in app_vue
     assert ":document-collections-loading=\"appState.documentCollectionsLoading\"" in app_vue
     assert ":document-collections-load-error=\"appState.documentCollectionsLoadError\"" in app_vue
+    assert ":collection-form-submitting=\"appState.collectionFormSubmitting\"" in app_vue
+    assert ":collection-form-error=\"appState.collectionFormError\"" in app_vue
+    assert ":collection-form-status=\"appState.collectionFormStatus\"" in app_vue
+    assert ":deleting-collection-id=\"appState.deletingCollectionId\"" in app_vue
     assert "@refresh-collections=\"loadDocumentCollections\"" in app_vue
     assert "@select-collection=\"handleSelectDocumentCollection\"" in app_vue
+    assert "@create-collection=\"handleCreateDocumentCollection\"" in app_vue
+    assert "@delete-collection=\"handleDeleteDocumentCollection\"" in app_vue
     assert "appState.documentCollections = collections" in app_vue
     assert "appState.selectedDocumentCollectionId = collectionId" in app_vue
     assert "await loadDocumentCollections()" in app_vue
@@ -759,10 +790,28 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
     assert "appState.selectedDocumentCollectionId = collectionId" in selection_block
     assert "await loadLibraryDocuments()" in selection_block
 
+    create_block = app_vue.split("async function handleCreateDocumentCollection(name)", 1)[1].split("\nasync function", 1)[0]
+    assert "createDocumentCollection({" in create_block
+    assert "projectId: appState.selectedProjectId" in create_block
+    assert "await loadDocumentCollections()" in create_block
+    assert "appState.collectionFormStatus = \"文档集合已创建\"" in create_block
+
+    delete_block = app_vue.split("async function handleDeleteDocumentCollection(collectionId)", 1)[1].split("\nasync function", 1)[0]
+    assert "window.confirm" in delete_block
+    assert "集合内文档不会被删除" in delete_block
+    assert "deleteDocumentCollection(collectionId)" in delete_block
+    assert "appState.selectedDocumentCollectionId = \"\"" in delete_block
+    assert "await loadDocumentCollections()" in delete_block
+    assert "await loadLibraryDocuments()" in delete_block
+
     for state_field in [
         "documentCollections",
         "selectedDocumentCollectionId",
         "documentCollectionsLoading",
         "documentCollectionsLoadError",
+        "collectionFormSubmitting",
+        "collectionFormError",
+        "collectionFormStatus",
+        "deletingCollectionId",
     ]:
         assert f"{state_field}:" in state_js
