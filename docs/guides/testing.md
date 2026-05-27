@@ -30,7 +30,7 @@ docker compose config
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/test_webapp`。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置、`webapp/static_dist/` 服务策略或 legacy 静态 fallback 时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
-- 变更 Vue API helper、项目空间 helper、问答 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间组件、工作台问答组件、资料库文档列表/预览组件、资料库文档集合筛选/新建/删除/重命名入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
+- 变更 Vue API helper、项目空间 helper、问答 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间组件、工作台问答组件、资料库文档列表/预览组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
@@ -42,6 +42,7 @@ docker compose config
 - 变更文档集合时，必须覆盖 `/api/document-collections`、`/api/document-collections/update`、`/api/document-collections/delete`、`/api/document-collections/items/add`、`/api/document-collections/items/remove`、按集合过滤文档列表、未分组过滤、跨项目文档拒绝、删除集合不删除文档和前端资料库入口。
 - 变更 Vue 文档集合筛选入口时，必须覆盖 `GET /api/document-collections`、前端集合列表读取、全部/未分组/指定集合筛选、选择后刷新文档列表，并确认不提供集合新建/删除/加入/移出入口。
 - 变更 Vue 文档集合管理入口时，必须覆盖 `POST /api/document-collections`、`POST /api/document-collections/update`、`POST /api/document-collections/delete`、前端集合名称校验、新建后刷新集合列表、重命名后刷新集合列表、删除前确认、删除集合不删除文档提示，以及删除当前筛选集合后清空筛选并刷新文档列表。
+- 变更 Vue 文档集合加入/移出入口时，必须覆盖 `POST /api/document-collections/items/add`、`POST /api/document-collections/items/remove`、前端文档列表单文档加入集合、指定集合筛选下移出当前集合、成功后刷新集合列表和文档列表，以及未选集合/文档的错误提示。
 - 变更 Web 文档处理管线时，必须覆盖 DOCX 正文抽取、PDF 可选 `pymupdf` 正文抽取、缺少 PDF 解析器时明确跳过、浏览器上传 `content_base64` 和普通文本导入兼容行为。
 - 变更模型设置页时，必须覆盖 `/api/settings/llm`、`/api/settings/llm/test`、Key 不回显和前端设置入口。
 - 变更模型 Profile 时，必须覆盖 `/api/model-profiles`、`/api/model-profiles/update`、`/api/model-profiles/delete`、`/api/model-profiles/default`、`/api/model-profiles/test`、默认 Profile 注入 `/api/answer`、Key 引用白名单、Key 不写入响应和前端设置入口。
@@ -86,4 +87,4 @@ docker compose config
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；构建产物存在时 FastAPI 首页来自 `static_dist`，缺失时回退 `webapp/static/`
-- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建薄片、文档列表/单文档预览薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片、当前目录同步薄片、导入预检薄片和文档集合筛选/新建/删除/重命名薄片，工作台已迁移非流式问答入口；完整业务流程未迁移前仍由 legacy 静态前端承担
+- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；资料库已迁移项目空间选择/创建薄片、文档列表/单文档预览薄片、文本笔记/URL 摘录导入薄片、导入批次历史薄片、普通文件上传薄片、浏览器文件夹上传薄片、当前目录同步薄片、导入预检薄片和文档集合筛选/新建/删除/重命名/加入/移出薄片，工作台已迁移非流式问答入口；完整业务流程未迁移前仍由 legacy 静态前端承担
