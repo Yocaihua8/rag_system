@@ -37,6 +37,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141U 在 Vue 工作台回答返回后提供回答反馈入口，支持“有用 / 无用 / 来源不准 / 需要更多上下文”四类反馈；复用既有 `POST /api/answer/feedback` 契约。
 - B-141V 在 Vue 工作台提供检索调试入口，支持提交诊断查询、临时调整 `top_k` / `min_score` / 关键词 / 向量参数，并展示来源质量、文档/分块数量、向量可用状态、本次参数和命中片段；复用既有 `POST /api/search/debug` 契约。
 - B-141W 在 Vue 工作台提供 Agent 只读工具面板，支持查看工具元数据、手动运行 `project_overview` / `search_sources`、展示工具结果、运行历史和单条详情；复用既有 `/api/agent/tools*` 契约。
+- B-141X 在 Vue 工作台提供回答区工具建议与工具来源上下文闭环，支持展示后端 `tool_suggestion`、手动运行建议的 `search_sources`、把成功工具运行标记为下一问 `tool_run_id`，并在回答完成后展示 `tool_context`；复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约。
 - 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
 
 ## 3. 工程目录
@@ -47,7 +48,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/` | Vue 入口、组件、前端 API 客户端和样式 |
 | `frontend/src/api/client.js` | Vue 前端 API helper，封装 `apiGet` / `apiPost` 与错误归一化 |
 | `frontend/src/api/projects.js` | Vue 项目空间 API helper，封装项目列表、创建、选择、最近项目恢复、改名和删除 |
-| `frontend/src/api/answer.js` | Vue 工作台非流式问答和回答反馈 API helper，调用既有 `/api/answer` 与 `/api/answer/feedback` |
+| `frontend/src/api/answer.js` | Vue 工作台非流式问答、工具上下文和回答反馈 API helper，调用既有 `/api/answer` 与 `/api/answer/feedback` |
 | `frontend/src/api/search.js` | Vue 工作台检索调试 API helper，调用既有 `/api/search/debug` 契约 |
 | `frontend/src/api/agent.js` | Vue 工作台 Agent 工具 API helper，调用既有 `/api/agent/tools*` 契约 |
 | `frontend/src/api/documents.js` | Vue 资料库文档 API helper，调用既有 `/api/documents`、`/api/document` 和 `/api/documents/delete` |
@@ -63,7 +64,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 
 ## 4. 非目标
 
-- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P/B-141Q/B-141R/B-141S/B-141T/B-141U/B-141V/B-141W 迁移完整业务页面。
+- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K/B-141L/B-141M/B-141N/B-141O/B-141P/B-141Q/B-141R/B-141S/B-141T/B-141U/B-141V/B-141W/B-141X 迁移完整业务页面。
 - B-141C 不迁移导入、重命名、删除、文档列表、问答、评估或设置完整流程。
 - B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
 - B-141E 不迁移文件导入、目录同步、上传、笔记、URL 摘录、删除文档、文档集合增删改或导入批次历史。
@@ -85,6 +86,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141U 不迁移回答反馈备注输入、Workbench SSE/取消、聊天会话/历史、Agent 工具、检索调试或数据库 schema。
 - B-141V 不迁移项目级检索默认值保存、检索复盘保存/列表/详情/删除、普通搜索结果、Workbench SSE/取消、聊天会话/历史、Agent 工具、检索算法或数据库 schema。
 - B-141W 不迁移回答区工具建议按钮、工具来源回填到下一问、Workbench SSE/取消、聊天会话/历史、Agent 自动编排、工具白名单权限逻辑、后端 API 或数据库 schema。
+- B-141X 不迁移 Workbench SSE/取消、聊天会话/历史、Agent 自动编排、工具白名单权限逻辑、检索复盘、后端 API 或数据库 schema。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -138,14 +140,17 @@ B-141V 起，Vue 工作台迁移检索调试薄片：`search.js` 封装既有 `P
 
 B-141W 起，Vue 工作台迁移 Agent 只读工具薄片：`agent.js` 封装既有 `GET /api/agent/tools`、`POST /api/agent/tools/run`、`GET /api/agent/tools/runs` 和 `GET /api/agent/tools/runs/detail` helper，`AgentToolsPanel` 展示只读工具元数据、手动运行 `project_overview` / `search_sources`、工具结果、运行历史和单条详情。`App.vue` 保存工具元数据、运行结果、运行历史、详情、提交状态和错误。后端 API、SQLite schema、工具白名单权限、工具建议自动运行、工具来源回填、Workbench SSE/取消和聊天会话/历史不在本片调整。
 
+B-141X 起，Vue 工作台迁移工具建议与来源上下文薄片：`answer.js` 在既有 `/api/answer` 请求中可选携带 `tool_run_id`，`AnswerPanel` 展示 `tool_suggestion`、可用 `search_sources` 工具结果、下一问上下文提示和本轮 `tool_context`。`App.vue` 只在用户点击后运行建议工具，不自动执行 Agent 工具；用户显式点击“使用工具结果作为下一问上下文”后，下一次非流式问答才发送 `tool_run_id`，回答完成后消耗该上下文。后端 API、SQLite schema、SSE/取消、聊天会话/历史、Agent 自动编排和工具白名单权限不在本片调整。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片、设置页模型设置/Profile/Prompt 预设薄片、评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试和 Agent 只读工具入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片、设置页模型设置/Profile/Prompt 预设薄片、评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、Agent 只读工具和工具来源上下文入口。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
 - Vue 工作台可在回答返回后提交“有用 / 无用 / 来源不准 / 需要更多上下文”四类本地反馈。
 - Vue 工作台可在已选择项目空间时提交检索诊断查询，临时调整 `top_k` / `min_score` / 关键词 / 向量参数，并展示来源质量、分块状态和命中片段。
 - Vue 工作台可在已选择项目空间时查看 Agent 只读工具元数据，手动运行 `project_overview` / `search_sources`，并展示工具结果、运行历史和单条详情。
+- Vue 工作台可在回答来源不足时展示建议工具，用户手动运行 `search_sources` 后可把工具结果标记为下一问上下文，并在下一次 `/api/answer` 中发送 `tool_run_id`。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
 - Vue 资料库可在已选择项目空间时读取导入批次历史，点击批次后查看只读详情、汇总计数和跳过/读取失败明细。
