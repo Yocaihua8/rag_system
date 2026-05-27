@@ -80,8 +80,7 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
 
     settings_vue = _read("frontend/src/views/SettingsView.vue")
     assert "设置" in settings_vue
-    assert "B-141R 已迁移模型设置和模型 Profile" in settings_vue
-    assert "Prompt 预设后续迁移" in settings_vue
+    assert "B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设" in settings_vue
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
     assert "项目问答" in workbench_vue
@@ -1131,6 +1130,32 @@ def test_vue_settings_api_helper_uses_existing_llm_and_profile_contracts():
         assert marker in settings_js
 
 
+def test_vue_settings_api_helper_uses_existing_prompt_preset_contracts():
+    settings_js = _read("frontend/src/api/settings.js")
+
+    for marker in [
+        "export async function listPromptPresets(projectId)",
+        'throw new Error("请先创建或选择项目空间")',
+        "apiGet(`/api/prompt-presets?project_id=${encodeURIComponent(projectId)}`)",
+        "export async function savePromptPreset(preset)",
+        "project_id: preset.projectId",
+        "preset_id: preset.id || preset.preset_id || \"\"",
+        "name: String(preset.name || \"\").trim()",
+        "description: String(preset.description || \"\").trim()",
+        "system_prompt: String(preset.systemPrompt || preset.system_prompt || \"\").trim()",
+        "answer_format: String(preset.answerFormat || preset.answer_format || \"\").trim()",
+        '"/api/prompt-presets/update"',
+        '"/api/prompt-presets"',
+        "export async function deletePromptPreset(presetId)",
+        'apiPost("/api/prompt-presets/delete", { preset_id: presetId })',
+        "export async function setDefaultPromptPreset({ projectId, presetId })",
+        'apiPost("/api/prompt-presets/default"',
+        "project_id: projectId",
+        "preset_id: presetId || \"\"",
+    ]:
+        assert marker in settings_js
+
+
 def test_vue_settings_view_renders_llm_settings_and_model_profile_controls():
     settings_vue = _read("frontend/src/views/SettingsView.vue")
 
@@ -1179,6 +1204,49 @@ def test_vue_settings_view_renders_llm_settings_and_model_profile_controls():
         "modelProfileDefaultSubmitting",
         "modelProfileMutationError",
         "modelProfileStatus",
+    ]:
+        assert f"{prop_name}:" in settings_vue
+
+
+def test_vue_settings_view_renders_prompt_preset_controls():
+    settings_vue = _read("frontend/src/views/SettingsView.vue")
+
+    for marker in [
+        "Prompt 预设",
+        "当前默认 Prompt",
+        "清空默认 Prompt",
+        "保存预设",
+        "取消编辑",
+        "内置模板",
+        "复制模板",
+        "系统提示词",
+        "回答格式",
+        "删除预设",
+        "设为默认",
+        "请选择项目空间后管理 Prompt 预设",
+        "暂无 Prompt 预设，可从模板复制后保存",
+        "promptPresetForm",
+        "copyPromptPresetTemplate",
+        "editPromptPreset",
+        "resetPromptPresetForm",
+        'v-for="preset in promptPresets"',
+        'v-for="template in promptPresetTemplates"',
+        'defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
+    ]:
+        assert marker in settings_vue
+
+    for prop_name in [
+        "selectedProjectId",
+        "promptPresets",
+        "promptPresetTemplates",
+        "selectedPromptPresetId",
+        "promptPresetsLoading",
+        "promptPresetLoadError",
+        "promptPresetSubmitting",
+        "promptPresetDeletingId",
+        "promptPresetDefaultSubmitting",
+        "promptPresetMutationError",
+        "promptPresetStatus",
     ]:
         assert f"{prop_name}:" in settings_vue
 
@@ -1252,5 +1320,57 @@ def test_vue_app_handles_settings_model_config_state_and_events():
         "modelProfileDefaultSubmitting",
         "modelProfileMutationError",
         "modelProfileStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_handles_settings_prompt_preset_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "listPromptPresets",
+        "savePromptPreset",
+        "deletePromptPreset",
+        "setDefaultPromptPreset",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":selected-project-id=\"appState.selectedProjectId\"",
+        ":prompt-presets=\"appState.promptPresets\"",
+        ":prompt-preset-templates=\"appState.promptPresetTemplates\"",
+        ":selected-prompt-preset-id=\"appState.selectedPromptPresetId\"",
+        ":prompt-presets-loading=\"appState.promptPresetsLoading\"",
+        ":prompt-preset-load-error=\"appState.promptPresetLoadError\"",
+        ":prompt-preset-submitting=\"appState.promptPresetSubmitting\"",
+        ":prompt-preset-deleting-id=\"appState.promptPresetDeletingId\"",
+        ":prompt-preset-default-submitting=\"appState.promptPresetDefaultSubmitting\"",
+        ":prompt-preset-mutation-error=\"appState.promptPresetMutationError\"",
+        ":prompt-preset-status=\"appState.promptPresetStatus\"",
+        "@load-prompt-presets=\"loadPromptPresets\"",
+        "@save-prompt-preset=\"handleSavePromptPreset\"",
+        "@delete-prompt-preset=\"handleDeletePromptPreset\"",
+        "@set-default-prompt-preset=\"handleSetDefaultPromptPreset\"",
+        "loadPromptPresets",
+        "handleSavePromptPreset",
+        "handleDeletePromptPreset",
+        "handleSetDefaultPromptPreset",
+        "clearPromptPresetState",
+        "await loadPromptPresets()",
+        "appState.promptPresetStatus = \"Prompt 预设已保存\"",
+        "appState.promptPresetStatus = \"Prompt 预设已删除\"",
+        "appState.promptPresetStatus = \"默认 Prompt 预设已更新\"",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "promptPresetsLoading",
+        "promptPresetLoadError",
+        "promptPresetSubmitting",
+        "promptPresetDeletingId",
+        "promptPresetDefaultSubmitting",
+        "promptPresetMutationError",
+        "promptPresetStatus",
     ]:
         assert f"{state_field}:" in state_js
