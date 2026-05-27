@@ -28,8 +28,8 @@
 - [x] 增加 Vue 源码契约测试，覆盖集合重命名 helper、面板编辑入口和 App 状态刷新。
 - [x] 实现 `document-collections.js`、`DocumentCollectionPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小重命名串联。
 - [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
-- [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
-- [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
+- [x] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
+- [x] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
 ## 4. 影响范围
 
@@ -69,13 +69,13 @@
 
 全部勾选后方可删除本 plan 文件：
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/document-collections-design.md` 的业务规则。
-- [ ] Vue 源码契约测试通过。
-- [ ] `npm run build` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
-- [ ] 浏览器冒烟确认资料库页集合重命名入口可见且无控制台错误。
-- [ ] 相关文档已同步（见下方"回流清单"）。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/document-collections-design.md` 的业务规则。
+- [x] Vue 源码契约测试通过。
+- [x] `npm run build` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
+- [x] 浏览器冒烟确认资料库页集合重命名入口可见且无控制台错误。
+- [x] 相关文档已同步（见下方"回流清单"）。
 
 ## 7. 回流清单
 
@@ -83,11 +83,11 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141N 迁移集合重命名，不迁移加入/移出文档 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue 文档集合 helper/panel/App 重命名边界 | `docs/design/architecture-overview.md` | [ ] |
-| Vue 集合重命名测试和浏览器冒烟范围 | `docs/guides/testing.md` | [ ] |
-| 用户可见变更 | `CHANGELOG.md` | [ ] |
-| 执行与验证记录 | `docs/devlog/2026-05-27.md` | [ ] |
+| B-141N 迁移集合重命名，不迁移加入/移出文档 | `docs/features/frontend-engineering.md` | [x] |
+| Vue 文档集合 helper/panel/App 重命名边界 | `docs/design/architecture-overview.md` | [x] |
+| Vue 集合重命名测试和浏览器冒烟范围 | `docs/guides/testing.md` | [x] |
+| 用户可见变更 | `CHANGELOG.md` | [x] |
+| 执行与验证记录 | `docs/devlog/2026-05-27.md` | [x] |
 
 若产生了重大技术决策，**必须**在删除 plan 前新建对应 ADR。
 
@@ -101,9 +101,9 @@
 > 目的：无论因额度耗尽、开发者中断还是主动结束，下一个 session 都能从此处冷启动。
 > 正常完成后随 plan 一起删除。
 
-- **最后更新**：2026-05-27 15:55
-- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`65bd564` — `feat: 接入 Vue 文档集合重命名`
+- **最后更新**：2026-05-27 16:10
+- **进度**：已完成 5 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`accd05b` — `docs: 同步 B-141N 文档集合重命名说明`
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在大量非本片既有未提交改动，本片仅选择性暂存自身文件
-- **下一步**：运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟
+- **下一步**：继续 B-141O 页面级业务迁移，可在文档加入/移出集合、Workbench SSE/会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：不要清理 unrelated dirty files；本片不得修改后端 schema 或 legacy `webapp/static/`
