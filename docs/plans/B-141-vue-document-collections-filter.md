@@ -28,7 +28,7 @@
 - [x] 新增 Vue source/static contract 红灯测试，覆盖集合 API helper、集合筛选面板和 App 状态接入
 - [x] 实现集合列表读取、筛选 UI 和文档列表过滤状态流
 - [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141L 说明
-- [ ] 完成验证、提交 B-141L，并更新本 plan 快照；B-141 保持 `doing`
+- [x] 完成验证、提交 B-141L，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
 
@@ -68,13 +68,13 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/document-collections-design.md` 的 B-141L 边界。
-- [ ] Vue 资料库可读取当前项目集合列表，并显示“全部文档 / 未分组 / 指定集合”筛选入口。
-- [ ] 选择筛选项后调用既有文档列表 helper，按 `collection_id` 刷新文档列表和清空当前预览。
-- [ ] B-141L 不提供集合新建、编辑、删除、加入文档或移出文档入口。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方“回流清单”）。
-- [ ] B-141 保持 `doing`，等待后续 Vue 页面迁移；不推送。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/document-collections-design.md` 的 B-141L 边界。
+- [x] Vue 资料库可读取当前项目集合列表，并显示“全部文档 / 未分组 / 指定集合”筛选入口。
+- [x] 选择筛选项后调用既有文档列表 helper，按 `collection_id` 刷新文档列表和清空当前预览。
+- [x] B-141L 不提供集合新建、编辑、删除、加入文档或移出文档入口。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方“回流清单”）。
+- [x] B-141 保持 `doing`，等待后续 Vue 页面迁移；不推送。
 
 ## 7. 回流清单
 
@@ -98,12 +98,13 @@
 - 2026-05-27：确认 B-141L 红灯为 3 failed / 31 passed，失败点集中在缺少 `document-collections.js`、`DocumentCollectionPanel.vue` 和 App 集合状态接入。
 - 2026-05-27：实现 Vue 文档集合只读 helper、集合筛选面板和 App 筛选状态；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 34 passed，`npm run build` 成功。
 - 2026-05-27：同步 `frontend-engineering`、架构说明、测试指南、CHANGELOG 和当日 devlog；`api-spec` 未改，因为后端文档集合接口契约没有变化。
+- 2026-05-27：完整验证通过：`tests/test_webapp` 305 passed、legacy 回归 179 passed、`npm run build` 成功、B-141L touched-file `git diff --check` 退出码 0；浏览器资料库页烟测确认文档集合筛选入口可见且控制台 error 数为 0。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-27 14:10
-- **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`eb1342e` — feat: 接入 Vue 文档集合筛选
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141L 文档同步已完成待提交
-- **下一步**：完成验证、提交 B-141L，并更新本 plan 快照；B-141 保持 `doing`
+- **最后更新**：2026-05-27 14:20
+- **进度**：已完成 5 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`02dab75` — docs: 同步 B-141L 文档集合筛选说明
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；B-141L 文档集合筛选薄片已完成；存在大量既有未提交改动，未纳入本轮提交
+- **下一步**：继续 B-141M 页面级业务迁移，可在文档集合编辑/加入移出、Workbench SSE/会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：B-141L 不删除 `webapp/static/`，不迁移集合 CRUD 或加入/移出文档，不修改后端 API 或数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
