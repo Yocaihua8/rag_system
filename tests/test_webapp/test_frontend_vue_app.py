@@ -282,6 +282,23 @@ def test_vue_answer_api_helper_uses_existing_non_streaming_answer_contract():
     assert "请输入问题" in answer_js
 
 
+def test_vue_answer_api_helper_uses_existing_feedback_contract():
+    answer_js = _read("frontend/src/api/answer.js")
+
+    for marker in [
+        "export async function submitAnswerFeedback({ projectId, messageId, rating, note = \"\" })",
+        'throw new Error("请先创建或选择项目空间")',
+        'throw new Error("请先完成一次提问")',
+        'throw new Error("请选择反馈类型")',
+        'apiPost("/api/answer/feedback"',
+        "project_id: projectId",
+        "message_id: messageId",
+        "rating",
+        "note",
+    ]:
+        assert marker in answer_js
+
+
 def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     question_panel_vue = _read("frontend/src/components/QuestionPanel.vue")
     answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
@@ -312,6 +329,36 @@ def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     assert ":answer-result=\"answerResult\"" in workbench_vue
 
 
+def test_vue_answer_panel_renders_answer_feedback_controls():
+    answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "回答反馈",
+        "有用",
+        "无用",
+        "来源不准",
+        "需要更多上下文",
+        'data-feedback-rating="useful"',
+        'data-feedback-rating="not_useful"',
+        'data-feedback-rating="source_wrong"',
+        'data-feedback-rating="need_more_context"',
+        "submitAnswerFeedback",
+        'defineEmits(["submit-answer-feedback"])',
+        "lastAnswerMessageId",
+        "answerFeedbackSubmitting",
+        "answerFeedbackStatus",
+        "answerFeedbackError",
+    ]:
+        assert marker in answer_panel_vue
+
+    assert "@submit-answer-feedback" in workbench_vue
+    assert ":last-answer-message-id=\"lastAnswerMessageId\"" in workbench_vue
+    assert ":answer-feedback-submitting=\"answerFeedbackSubmitting\"" in workbench_vue
+    assert ":answer-feedback-status=\"answerFeedbackStatus\"" in workbench_vue
+    assert ":answer-feedback-error=\"answerFeedbackError\"" in workbench_vue
+
+
 def test_vue_app_handles_non_streaming_workbench_question_state():
     app_vue = _read("frontend/src/App.vue")
     state_js = _read("frontend/src/state/app-state.js")
@@ -331,6 +378,34 @@ def test_vue_app_handles_non_streaming_workbench_question_state():
         "answerLoading",
         "answerError",
         "answerStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_handles_answer_feedback_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for marker in [
+        "submitAnswerFeedback",
+        "handleSubmitAnswerFeedback",
+        "@submit-answer-feedback=\"handleSubmitAnswerFeedback\"",
+        ":last-answer-message-id=\"appState.lastAnswerMessageId\"",
+        ":answer-feedback-submitting=\"appState.answerFeedbackSubmitting\"",
+        ":answer-feedback-status=\"appState.answerFeedbackStatus\"",
+        ":answer-feedback-error=\"appState.answerFeedbackError\"",
+        "appState.lastAnswerMessageId = data.message?.id || \"\"",
+        "appState.answerFeedbackStatus = \"回答反馈已保存\"",
+        "formatAnswerFeedbackRating",
+        "clearAnswerFeedbackState",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "lastAnswerMessageId",
+        "answerFeedbackSubmitting",
+        "answerFeedbackError",
+        "answerFeedbackStatus",
     ]:
         assert f"{state_field}:" in state_js
 
