@@ -33,6 +33,19 @@
       :search-debug-loading="appState.searchDebugLoading"
       :search-debug-error="appState.searchDebugError"
       :search-debug-status="appState.searchDebugStatus"
+      :agent-tools="appState.agentTools"
+      :agent-tools-loading="appState.agentToolsLoading"
+      :agent-tools-error="appState.agentToolsError"
+      :agent-tool-runs="appState.agentToolRuns"
+      :agent-tool-runs-loading="appState.agentToolRunsLoading"
+      :agent-tool-runs-error="appState.agentToolRunsError"
+      :selected-agent-tool-run="appState.selectedAgentToolRun"
+      :agent-tool-result="appState.agentToolResult"
+      :agent-tool-status="appState.agentToolStatus"
+      :agent-tool-error="appState.agentToolError"
+      :agent-tool-submitting-name="appState.agentToolSubmittingName"
+      :agent-tool-detail-loading="appState.agentToolDetailLoading"
+      :agent-tool-detail-error="appState.agentToolDetailError"
       :documents="appState.documents"
       :documents-loading="appState.documentsLoading"
       :documents-load-error="appState.documentsLoadError"
@@ -109,6 +122,10 @@
       @submit-question="handleSubmitQuestion"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
       @run-search-debug="handleRunSearchDebug"
+      @load-agent-tools="loadAgentTools"
+      @run-agent-tool="handleRunAgentTool"
+      @load-agent-tool-runs="loadAgentToolRuns"
+      @select-agent-tool-run="handleSelectAgentToolRun"
       @refresh-documents="loadLibraryDocuments"
       @select-document="handleSelectDocument"
       @refresh-collections="loadDocumentCollections"
@@ -150,6 +167,12 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 
+import {
+  getAgentToolRunDetail,
+  listAgentToolRuns,
+  listAgentTools,
+  runAgentTool,
+} from "./api/agent.js";
 import { askQuestion, submitAnswerFeedback } from "./api/answer.js";
 import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
@@ -233,6 +256,7 @@ const projectStatusMessage = computed(() => {
 onMounted(() => {
   loadProjectSpaces();
   loadSettingsPage();
+  loadAgentTools();
 });
 
 async function checkHealth() {
@@ -542,6 +566,7 @@ async function loadProjectSpaces() {
     await loadLibraryDocuments();
     await loadImportBatches();
     await loadPromptPresets();
+    await loadAgentToolRuns();
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
@@ -557,6 +582,7 @@ async function handleSelectProject(projectId) {
   clearPromptPresetState();
   clearAnswerFeedbackState();
   clearSearchDebugState();
+  clearAgentToolState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
@@ -566,6 +592,7 @@ async function handleSelectProject(projectId) {
   await loadLibraryDocuments();
   await loadImportBatches();
   await loadPromptPresets();
+  await loadAgentToolRuns();
 }
 
 async function handleCreateProject(payload) {
@@ -582,12 +609,14 @@ async function handleCreateProject(payload) {
     clearPromptPresetState();
     clearAnswerFeedbackState();
     clearSearchDebugState();
+    clearAgentToolState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
     await loadPromptPresets();
+    await loadAgentToolRuns();
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -653,6 +682,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearPromptPresetState();
   clearAnswerFeedbackState();
   clearSearchDebugState();
+  clearAgentToolState();
   resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
@@ -803,6 +833,86 @@ function clearSearchDebugState() {
   appState.searchDebugLoading = false;
   appState.searchDebugError = "";
   appState.searchDebugStatus = "";
+}
+
+function clearAgentToolState() {
+  appState.agentToolRuns = [];
+  appState.agentToolRunsError = "";
+  appState.selectedAgentToolRun = null;
+  appState.agentToolSubmittingName = "";
+  appState.agentToolResult = null;
+  appState.agentToolStatus = "";
+  appState.agentToolError = "";
+  appState.agentToolDetailLoading = false;
+  appState.agentToolDetailError = "";
+}
+
+async function loadAgentTools() {
+  appState.agentToolsLoading = true;
+  appState.agentToolsError = "";
+  try {
+    const tools = await listAgentTools();
+    appState.agentTools = tools;
+  } catch (error) {
+    appState.agentTools = [];
+    appState.agentToolsError = error.message || "Agent 工具读取失败";
+  } finally {
+    appState.agentToolsLoading = false;
+  }
+}
+
+async function loadAgentToolRuns() {
+  appState.agentToolRuns = [];
+  appState.agentToolRunsError = "";
+  appState.selectedAgentToolRun = null;
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.agentToolRunsLoading = true;
+  try {
+    const runs = await listAgentToolRuns(appState.selectedProjectId);
+    appState.agentToolRuns = runs;
+  } catch (error) {
+    appState.agentToolRunsError = error.message || "工具运行历史读取失败";
+  } finally {
+    appState.agentToolRunsLoading = false;
+  }
+}
+
+async function handleRunAgentTool(payload) {
+  appState.agentToolSubmittingName = payload.toolName;
+  appState.agentToolError = "";
+  appState.agentToolStatus = "正在运行只读工具...";
+  appState.selectedAgentToolRun = null;
+  try {
+    const data = await runAgentTool({
+      projectId: appState.selectedProjectId,
+      toolName: payload.toolName,
+      argumentsPayload: payload.argumentsPayload || {},
+    });
+    appState.agentToolResult = data;
+    appState.agentToolStatus = "工具运行完成";
+    await loadAgentToolRuns();
+  } catch (error) {
+    appState.agentToolError = error.message || "工具运行失败";
+    appState.agentToolStatus = "工具运行失败";
+  } finally {
+    appState.agentToolSubmittingName = "";
+  }
+}
+
+async function handleSelectAgentToolRun(runId) {
+  appState.agentToolDetailLoading = true;
+  appState.agentToolDetailError = "";
+  try {
+    const run = await getAgentToolRunDetail(runId);
+    appState.selectedAgentToolRun = run;
+  } catch (error) {
+    appState.agentToolDetailError = error.message || "工具运行详情读取失败";
+  } finally {
+    appState.agentToolDetailLoading = false;
+  }
 }
 
 async function handleRunSearchDebug(payload) {

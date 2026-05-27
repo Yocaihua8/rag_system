@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">工作台</p>
         <h2>项目问答</h2>
-        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试；SSE、Agent 工具和会话后续迁移。</p>
+        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试，B-141W 已迁移 Agent 只读工具；SSE、工具来源回填和会话后续迁移。</p>
       </div>
     </header>
 
@@ -35,12 +35,33 @@
         :search-debug-status="searchDebugStatus"
         @run-search-debug="(payload) => $emit('run-search-debug', payload)"
       />
+      <AgentToolsPanel
+        :selected-project-id="selectedProjectId"
+        :agent-tools="agentTools"
+        :agent-tools-loading="agentToolsLoading"
+        :agent-tools-error="agentToolsError"
+        :agent-tool-runs="agentToolRuns"
+        :agent-tool-runs-loading="agentToolRunsLoading"
+        :agent-tool-runs-error="agentToolRunsError"
+        :selected-agent-tool-run="selectedAgentToolRun"
+        :agent-tool-result="agentToolResult"
+        :agent-tool-status="agentToolStatus"
+        :agent-tool-error="agentToolError"
+        :agent-tool-submitting-name="agentToolSubmittingName"
+        :agent-tool-detail-loading="agentToolDetailLoading"
+        :agent-tool-detail-error="agentToolDetailError"
+        @load-agent-tools="$emit('load-agent-tools')"
+        @run-agent-tool="(payload) => $emit('run-agent-tool', payload)"
+        @load-agent-tool-runs="$emit('load-agent-tool-runs')"
+        @select-agent-tool-run="(runId) => $emit('select-agent-tool-run', runId)"
+      />
     </div>
   </section>
 </template>
 
 <script setup>
 import AnswerPanel from "../components/AnswerPanel.vue";
+import AgentToolsPanel from "../components/AgentToolsPanel.vue";
 import QuestionPanel from "../components/QuestionPanel.vue";
 import SearchDebugPanel from "../components/SearchDebugPanel.vue";
 
@@ -101,7 +122,59 @@ defineProps({
     type: String,
     default: "",
   },
+  agentTools: {
+    type: Array,
+    default: () => [],
+  },
+  agentToolsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  agentToolsError: {
+    type: String,
+    default: "",
+  },
+  agentToolRuns: {
+    type: Array,
+    default: () => [],
+  },
+  agentToolRunsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  agentToolRunsError: {
+    type: String,
+    default: "",
+  },
+  selectedAgentToolRun: {
+    type: Object,
+    default: null,
+  },
+  agentToolResult: {
+    type: Object,
+    default: null,
+  },
+  agentToolStatus: {
+    type: String,
+    default: "",
+  },
+  agentToolError: {
+    type: String,
+    default: "",
+  },
+  agentToolSubmittingName: {
+    type: String,
+    default: "",
+  },
+  agentToolDetailLoading: {
+    type: Boolean,
+    default: false,
+  },
+  agentToolDetailError: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-search-debug"]);
+defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-search-debug", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

@@ -26,8 +26,8 @@
 
 - [x] 创建 B-141W plan，并将 BACKLOG 说明列追加本 plan 路径。
 - [x] 增加 Vue 源码契约红灯测试，覆盖 Agent 工具 helper、AgentToolsPanel 控件和 Workbench/App 状态流。
-- [ ] 实现 `frontend/src/api/agent.js` helper、`AgentToolsPanel.vue` 工具面板、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
-- [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
+- [x] 实现 `frontend/src/api/agent.js` helper、`AgentToolsPanel.vue` 工具面板、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
+- [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
 - [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
@@ -98,12 +98,13 @@
 - 2026-05-28：创建 B-141W plan；选择 Vue 工作台 Agent 只读工具作为下一薄片，原因是后端 `/api/agent/tools*` 契约和 legacy 面板已存在，Vue 侧可限定为工具元数据、手动运行、历史和详情展示。
 - 2026-05-28：将 `docs/plans/B-141-vue-agent-tools.md` 追加到 BACKLOG B-141 说明列。
 - 2026-05-28：新增 Vue Agent 工具源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 58 passed，失败点为缺少 Agent 工具 helper、AgentToolsPanel 和 App/Workbench 状态流。
+- 2026-05-28：实现 Vue Agent 工具 helper、工作台只读工具面板和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 61 passed，`npm run build` 成功。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 02:13
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`c9e9ca4` — docs: 创建 B-141W Agent 工具迁移计划
+- **最后更新**：2026-05-28 02:17
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`0582d86` — test: 增加 B-141W Agent 工具红灯用例
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141W 相关文件
-- **下一步**：实现 Vue Agent 工具 helper、面板和 App/Workbench 状态流
+- **下一步**：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog
 - **续任务须知**：不修改后端 `/api/agent/tools*` 契约、不改变只读白名单权限、不做工具建议自动运行、不做工具来源回填、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
