@@ -276,12 +276,14 @@ def test_vue_app_loads_project_spaces_on_startup_and_handles_panel_events():
 def test_vue_answer_api_helper_uses_existing_non_streaming_answer_contract():
     answer_js = _read("frontend/src/api/answer.js")
 
-    assert "export async function askQuestion({ projectId, question })" in answer_js
+    assert "export async function askQuestion({ projectId, question, toolRunId = \"\" })" in answer_js
     assert 'apiPost("/api/answer"' in answer_js
     assert "project_id: projectId" in answer_js
     assert "question" in answer_js
     assert "请先创建或选择项目空间" in answer_js
     assert "请输入问题" in answer_js
+    assert "payload.tool_run_id = toolRunId" in answer_js
+    assert 'return apiPost("/api/answer", payload)' in answer_js
 
 
 def test_vue_answer_api_helper_uses_existing_feedback_contract():
@@ -408,6 +410,71 @@ def test_vue_app_handles_answer_feedback_state_and_events():
         "answerFeedbackSubmitting",
         "answerFeedbackError",
         "answerFeedbackStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_answer_panel_renders_tool_suggestion_and_context_controls():
+    answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "建议工具",
+        "运行建议工具",
+        "可用工具结果",
+        "使用工具结果作为下一问上下文",
+        "下一问将带入工具运行",
+        "清除工具上下文",
+        "本轮已使用工具来源",
+        "toolSuggestion",
+        "lastUsableToolRun",
+        "currentToolContextRunId",
+        "formatToolSuggestion",
+        "formatUsableToolRun",
+        'defineEmits(["submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context"])',
+    ]:
+        assert marker in answer_panel_vue
+
+    for marker in [
+        ":tool-suggestion=\"currentToolSuggestion\"",
+        ":last-usable-tool-run=\"lastUsableToolRun\"",
+        ":current-tool-context-run-id=\"currentToolContextRunId\"",
+        "@run-tool-suggestion",
+        "@use-tool-result-context",
+        "@clear-tool-context",
+    ]:
+        assert marker in workbench_vue
+
+
+def test_vue_app_handles_tool_suggestion_and_next_question_context_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for marker in [
+        ":current-tool-suggestion=\"appState.currentToolSuggestion\"",
+        ":last-usable-tool-run=\"appState.lastUsableToolRun\"",
+        ":current-tool-context-run-id=\"appState.currentToolContextRunId\"",
+        "@run-tool-suggestion=\"handleRunToolSuggestion\"",
+        "@use-tool-result-context=\"handleUseToolResultContext\"",
+        "@clear-tool-context=\"clearToolContextState\"",
+        "toolRunId: appState.currentToolContextRunId",
+        "appState.currentToolSuggestion = data.tool_suggestion || null",
+        "if (data.tool_context) {",
+        "consumeToolContext()",
+        "handleRunToolSuggestion",
+        "handleUseToolResultContext",
+        "setLastUsableToolRun",
+        "clearToolSuggestionState",
+        "clearToolContextState",
+        "appState.currentToolContextRunId = runId",
+        "appState.lastUsableToolRun = data.run",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "currentToolSuggestion",
+        "currentToolContextRunId",
+        "lastUsableToolRun",
     ]:
         assert f"{state_field}:" in state_js
 

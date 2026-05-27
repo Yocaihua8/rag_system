@@ -25,7 +25,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-141X plan，并将 BACKLOG 说明列追加本 plan 路径。
-- [ ] 增加 Vue 源码契约红灯测试，覆盖 `tool_run_id` helper、回答区工具建议控件、可用工具结果和下一问上下文状态流。
+- [x] 增加 Vue 源码契约红灯测试，覆盖 `tool_run_id` helper、回答区工具建议控件、可用工具结果和下一问上下文状态流。
 - [ ] 实现 `answer.js` 可选 `toolRunId`、`AnswerPanel.vue` 建议工具/上下文 UI、`App.vue` 状态处理和手动运行建议工具逻辑。
 - [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
@@ -96,12 +96,13 @@
 
 - 2026-05-28：创建 B-141X plan；选择 Vue 工具建议与来源上下文作为下一薄片，原因是 `/api/answer` 已返回 `tool_suggestion/tool_context` 且 B-141W 已迁移 Agent 只读工具运行能力，可限定为前端手动运行和 `tool_run_id` 状态流。
 - 2026-05-28：将 `docs/plans/B-141-vue-tool-suggestion-context.md` 追加到 BACKLOG B-141 说明列。
+- 2026-05-28：新增 Vue 工具建议与来源上下文源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 60 passed，失败点为缺少 `toolRunId` 请求参数、回答区工具建议/上下文控件和 App 状态流。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 02:42
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — docs: 创建 B-141X 工具建议迁移计划
+- **最后更新**：2026-05-28 02:49
+- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — test: 增加 B-141X 工具建议红灯用例
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141X 相关文件
-- **下一步**：增加 Vue 源码契约红灯测试，覆盖 `tool_run_id` helper、回答区工具建议控件、可用工具结果和下一问上下文状态流
+- **下一步**：实现 `answer.js` 可选 `toolRunId`、`AnswerPanel.vue` 建议工具/上下文 UI、`App.vue` 状态处理和手动运行建议工具逻辑
 - **续任务须知**：不修改后端 `/api/answer`、`/api/agent/tools*` 契约，不改变工具白名单权限，不做自动工具编排，不接入 SSE/取消，不迁移聊天会话/历史，不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
