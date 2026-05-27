@@ -494,6 +494,130 @@ def test_vue_app_handles_search_debug_state_and_events():
         assert f"{state_field}:" in state_js
 
 
+def test_vue_agent_api_helper_uses_existing_readonly_tool_contracts():
+    agent_path = Path("frontend/src/api/agent.js")
+    assert agent_path.exists(), "B-141W should add a Vue Agent tools API helper"
+    agent_js = _read(str(agent_path))
+
+    for marker in [
+        'import { apiGet, apiPost } from "./client.js";',
+        "export async function listAgentTools()",
+        'apiGet("/api/agent/tools")',
+        "return data.tools || []",
+        "export async function listAgentToolRuns(projectId)",
+        'throw new Error("请先创建或选择项目空间")',
+        'apiGet(`/api/agent/tools/runs?project_id=${encodeURIComponent(projectId)}`)',
+        "return data.runs || []",
+        "export async function getAgentToolRunDetail(runId)",
+        'throw new Error("请选择工具运行记录")',
+        'apiGet(`/api/agent/tools/runs/detail?run_id=${encodeURIComponent(runId)}`)',
+        "return data.run || null",
+        "export async function runAgentTool({ projectId, toolName, argumentsPayload = {} })",
+        'throw new Error("请选择只读工具")',
+        'apiPost("/api/agent/tools/run"',
+        "project_id: projectId",
+        "tool: toolName",
+        "arguments: argumentsPayload",
+    ]:
+        assert marker in agent_js
+
+
+def test_vue_agent_tools_panel_renders_readonly_tool_controls():
+    panel_path = Path("frontend/src/components/AgentToolsPanel.vue")
+    assert panel_path.exists(), "B-141W should add AgentToolsPanel"
+    panel_vue = _read(str(panel_path))
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "Agent 工具",
+        "当前只开放只读工具，并记录工具调用",
+        "刷新工具",
+        "项目概览",
+        "检索来源",
+        "工具参数：query",
+        "运行",
+        "工具结果",
+        "暂无工具结果",
+        "运行历史",
+        "暂无工具运行历史",
+        "查看详情",
+        "工具运行详情",
+        "请选择一条工具运行查看详情",
+        "formatToolParameters",
+        "formatToolResult",
+        "formatToolRunDetail",
+        "defineEmits([\"load-agent-tools\", \"run-agent-tool\", \"load-agent-tool-runs\", \"select-agent-tool-run\"])",
+    ]:
+        assert marker in panel_vue
+
+    assert "AgentToolsPanel" in workbench_vue
+    assert "@load-agent-tools" in workbench_vue
+    assert "@run-agent-tool" in workbench_vue
+    assert "@load-agent-tool-runs" in workbench_vue
+    assert "@select-agent-tool-run" in workbench_vue
+    assert ":agent-tools=\"agentTools\"" in workbench_vue
+    assert ":agent-tool-runs=\"agentToolRuns\"" in workbench_vue
+    assert ":selected-agent-tool-run=\"selectedAgentToolRun\"" in workbench_vue
+    assert ":agent-tool-result=\"agentToolResult\"" in workbench_vue
+
+
+def test_vue_app_handles_agent_tool_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "listAgentTools",
+        "listAgentToolRuns",
+        "getAgentToolRunDetail",
+        "runAgentTool",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":agent-tools=\"appState.agentTools\"",
+        ":agent-tools-loading=\"appState.agentToolsLoading\"",
+        ":agent-tools-error=\"appState.agentToolsError\"",
+        ":agent-tool-runs=\"appState.agentToolRuns\"",
+        ":agent-tool-runs-loading=\"appState.agentToolRunsLoading\"",
+        ":agent-tool-runs-error=\"appState.agentToolRunsError\"",
+        ":selected-agent-tool-run=\"appState.selectedAgentToolRun\"",
+        ":agent-tool-result=\"appState.agentToolResult\"",
+        ":agent-tool-status=\"appState.agentToolStatus\"",
+        ":agent-tool-error=\"appState.agentToolError\"",
+        ":agent-tool-submitting-name=\"appState.agentToolSubmittingName\"",
+        "@load-agent-tools=\"loadAgentTools\"",
+        "@run-agent-tool=\"handleRunAgentTool\"",
+        "@load-agent-tool-runs=\"loadAgentToolRuns\"",
+        "@select-agent-tool-run=\"handleSelectAgentToolRun\"",
+        "loadAgentTools",
+        "loadAgentToolRuns",
+        "handleRunAgentTool",
+        "handleSelectAgentToolRun",
+        "clearAgentToolState",
+        "appState.agentTools = tools",
+        "appState.agentToolRuns = runs",
+        "appState.agentToolResult = data",
+        "appState.selectedAgentToolRun = run",
+        "appState.agentToolStatus = \"工具运行完成\"",
+        "await loadAgentToolRuns()",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "agentToolsLoading",
+        "agentToolsError",
+        "agentToolRunsLoading",
+        "agentToolRunsError",
+        "agentToolSubmittingName",
+        "agentToolResult",
+        "agentToolStatus",
+        "agentToolError",
+        "agentToolDetailLoading",
+        "agentToolDetailError",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
 def test_vue_document_api_helper_uses_existing_read_only_document_contract():
     documents_path = Path("frontend/src/api/documents.js")
     assert documents_path.exists(), "B-141E should add a Vue documents API helper"
