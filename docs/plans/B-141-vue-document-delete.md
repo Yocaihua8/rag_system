@@ -97,7 +97,7 @@
 
 - **最后更新**：2026-05-27 15:39
 - **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`7b21ce4` — docs: 更新 B-141P 计划快照
+- **最新 commit**：`d0b8f5d` — test: 覆盖 Vue 文档删除入口
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141P 相关文件
 - **下一步**：实现 `documents.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小删除文档串联
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
