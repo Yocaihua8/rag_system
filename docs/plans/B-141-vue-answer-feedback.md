@@ -28,7 +28,7 @@
 - [x] 实现 `frontend/src/api/answer.js` 回答反馈 helper、`AnswerPanel.vue` 反馈入口、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
-- [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
+- [x] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
 
@@ -69,14 +69,14 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141U 业务规则。
-- [ ] Vue 工作台在一次回答返回 `message.id` 后展示回答反馈入口。
-- [ ] Vue 工作台可提交 `useful / not_useful / source_wrong / need_more_context` 四类反馈。
-- [ ] Vue 工作台反馈保存后展示对应中文状态；提交失败时展示错误。
-- [ ] 反馈 helper 只调用既有 `POST /api/answer/feedback` 契约，不新增接口、不修改数据库 schema。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方"回流清单"）。
-- [ ] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141U 业务规则。
+- [x] Vue 工作台在一次回答返回 `message.id` 后展示回答反馈入口。
+- [x] Vue 工作台可提交 `useful / not_useful / source_wrong / need_more_context` 四类反馈。
+- [x] Vue 工作台反馈保存后展示对应中文状态；提交失败时展示错误。
+- [x] 反馈 helper 只调用既有 `POST /api/answer/feedback` 契约，不新增接口、不修改数据库 schema。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方"回流清单"）。
+- [x] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
 
 ## 7. 回流清单
 
@@ -96,12 +96,13 @@
 - 2026-05-28：新增 Vue 回答反馈源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 52 passed，失败点为缺少反馈 helper、AnswerPanel 反馈控件和 App 状态流。
 - 2026-05-28：实现 Vue 回答反馈 helper、显式四类反馈按钮和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 55 passed，`npm run build` 成功。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141U 明确不迁移反馈备注输入、Workbench SSE/取消、聊天会话/历史、Agent 工具、检索调试或数据库 schema。
+- 2026-05-28：完成 Web MVP 全量 326 passed、legacy 回归 179 passed、最终前端构建和浏览器烟测；临时项目 `B-141U-smoke-20260528013115` 已删除，本地服务已停止。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 01:29
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 同步 B-141U 回答反馈迁移说明
+- **最后更新**：2026-05-28 01:38
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 更新 B-141U 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141U 相关文件
-- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
+- **下一步**：B-141 可继续迁移 Workbench SSE/会话、Agent 工具、检索调试或评估题库/历史列表
 - **续任务须知**：不修改后端 `/api/answer/feedback` 契约、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
