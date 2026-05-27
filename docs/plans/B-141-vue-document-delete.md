@@ -26,7 +26,7 @@
 - [x] 增加 Vue 源码契约红灯测试，覆盖文档删除 API helper、文档列表删除入口、LibraryView/App 事件与状态刷新。
 - [x] 实现 `documents.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小删除文档串联。
 - [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
-- [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
+- [x] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
 - [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
 ## 4. 影响范围
@@ -63,19 +63,19 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/api-spec.md` 的业务规则。
-- [ ] Vue 资料库文档列表可对单个文档触发删除确认。
-- [ ] 删除确认文案明确“源文件不会被删除”。
-- [ ] 删除成功后刷新当前文档列表和文档集合列表。
-- [ ] 删除当前预览文档后清空预览状态。
-- [ ] 未选择文档时有明确错误提示或禁用态。
-- [ ] B-141P 不迁移批量删除、源文件删除、项目改名/删除、问答按集合过滤或数据库 schema。
-- [ ] Vue 源码契约测试通过。
-- [ ] `npm run build` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
-- [ ] 浏览器冒烟确认资料库页删除文档入口可见且无控制台错误。
-- [ ] 相关文档已同步（见下方“回流清单”）。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 和 `docs/design/api-spec.md` 的业务规则。
+- [x] Vue 资料库文档列表可对单个文档触发删除确认。
+- [x] 删除确认文案明确“源文件不会被删除”。
+- [x] 删除成功后刷新当前文档列表和文档集合列表。
+- [x] 删除当前预览文档后清空预览状态。
+- [x] 未选择文档时有明确错误提示或禁用态。
+- [x] B-141P 不迁移批量删除、源文件删除、项目改名/删除、问答按集合过滤或数据库 schema。
+- [x] Vue 源码契约测试通过。
+- [x] `npm run build` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` 通过。
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_application tests/test_domain tests/test_adapters -q` 通过。
+- [x] 浏览器冒烟确认资料库页删除文档入口可见；CDP 未捕获 Runtime exception 或 `console.error`，仅有 `favicon.ico` 404 resource log。
+- [x] 相关文档已同步（见下方“回流清单”）。
 
 ## 7. 回流清单
 
@@ -94,12 +94,13 @@
 - 2026-05-27：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 4 failed / 36 passed，失败点为迁移文案仍停留 B-141O、缺少 delete helper、文档列表删除入口和 App 删除处理函数。
 - 2026-05-27：实现 Vue 文档删除 helper、文档列表删除按钮、LibraryView 透传和 App 删除确认/刷新流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 40 passed，`npm run build` 成功。
 - 2026-05-27：同步 B-141P 功能文档、架构文档、测试指南、devlog、CHANGELOG 和资料库页迁移文案。
+- 2026-05-27：完成 B-141P 验证：Vue 源码 40 passed，`npm run build` 成功，Web MVP 311 passed，legacy 179 passed，docs contract 22 passed；headless Edge 烟测验证删除入口、确认文案、删除成功状态和接口侧剩余文档数 0，临时项目已清理。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-27 15:53
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`622ea2c` — docs: 同步 B-141P 文档删除说明
+- **最后更新**：2026-05-27 16:02
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`d8a1a3c` — docs: 更新 B-141P 文档快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141P 相关文件
-- **下一步**：运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟
+- **下一步**：完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
