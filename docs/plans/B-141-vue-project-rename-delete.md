@@ -27,7 +27,7 @@
 - [x] 实现 `projects.js`、`ProjectSpacePanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小改名/删除串联。
 - [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
 - [x] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
-- [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
+- [x] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
 ## 4. 影响范围
 
@@ -100,8 +100,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-05-27
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`TBD` — 本片实现与验证待提交
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`6267d1a` — feat: 接入 Vue 项目空间改名删除
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141Q 相关文件
-- **下一步**：提交本片实现与验证快照，并回写最新 commit
+- **下一步**：继续 B-141R 页面级业务迁移，可在 Workbench SSE/会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
