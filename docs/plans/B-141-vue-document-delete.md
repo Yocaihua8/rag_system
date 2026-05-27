@@ -27,7 +27,7 @@
 - [x] 实现 `documents.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小删除文档串联。
 - [x] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
 - [x] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
-- [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
+- [x] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
 
 ## 4. 影响范围
 
@@ -95,12 +95,13 @@
 - 2026-05-27：实现 Vue 文档删除 helper、文档列表删除按钮、LibraryView 透传和 App 删除确认/刷新流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 40 passed，`npm run build` 成功。
 - 2026-05-27：同步 B-141P 功能文档、架构文档、测试指南、devlog、CHANGELOG 和资料库页迁移文案。
 - 2026-05-27：完成 B-141P 验证：Vue 源码 40 passed，`npm run build` 成功，Web MVP 311 passed，legacy 179 passed，docs contract 22 passed；headless Edge 烟测验证删除入口、确认文案、删除成功状态和接口侧剩余文档数 0，临时项目已清理。
+- 2026-05-27：完成 B-141P plan 状态回写；B-141 总 BACKLOG 保持 `doing`，等待后续 Vue 页面级迁移薄片。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-27 16:02
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`d8a1a3c` — docs: 更新 B-141P 文档快照
+- **最后更新**：2026-05-27 16:04
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`05d1e1a` — docs: 更新 B-141P 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141P 相关文件
-- **下一步**：完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照
+- **下一步**：继续 B-141Q 页面级业务迁移，可在项目改名/删除、Workbench SSE/会话或设置页模型配置中选择下一个薄片
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
