@@ -1,6 +1,6 @@
 import { apiPost } from "./client.js";
 
-export async function askQuestion({ projectId, question }) {
+export async function askQuestion({ projectId, question, toolRunId = "" }) {
   const trimmedQuestion = (question || "").trim();
   if (!projectId) {
     throw new Error("请先创建或选择项目空间");
@@ -8,10 +8,14 @@ export async function askQuestion({ projectId, question }) {
   if (!trimmedQuestion) {
     throw new Error("请输入问题");
   }
-  return apiPost("/api/answer", {
+  const payload = {
     project_id: projectId,
     question: trimmedQuestion,
-  });
+  };
+  if (toolRunId) {
+    payload.tool_run_id = toolRunId;
+  }
+  return apiPost("/api/answer", payload);
 }
 
 export async function submitAnswerFeedback({ projectId, messageId, rating, note = "" }) {

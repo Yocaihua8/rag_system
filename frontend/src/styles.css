@@ -621,9 +621,33 @@ button:focus-visible {
 .answer-body,
 .source-quality,
 .source-list,
+.tool-suggestion,
+.tool-context-card,
+.tool-context-notice,
 .answer-feedback {
   border-top: 1px solid #edf2f7;
   padding-top: 16px;
+}
+
+.tool-suggestion,
+.tool-context-card,
+.tool-context-notice {
+  display: grid;
+  gap: 10px;
+}
+
+.tool-suggestion,
+.tool-context-notice {
+  background: #f8fafc;
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  padding: 14px;
+}
+
+.tool-context-card button,
+.tool-context-notice button,
+.tool-suggestion button {
+  width: fit-content;
 }
 
 .source-list ol {

@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">工作台</p>
         <h2>项目问答</h2>
-        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试，B-141W 已迁移 Agent 只读工具；SSE、工具来源回填和会话后续迁移。</p>
+        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试，B-141W 已迁移 Agent 只读工具，B-141X 已迁移工具建议与来源上下文；SSE 和会话后续迁移。</p>
       </div>
     </header>
 
@@ -25,7 +25,14 @@
         :answer-feedback-submitting="answerFeedbackSubmitting"
         :answer-feedback-status="answerFeedbackStatus"
         :answer-feedback-error="answerFeedbackError"
+        :tool-suggestion="currentToolSuggestion"
+        :last-usable-tool-run="lastUsableToolRun"
+        :current-tool-context-run-id="currentToolContextRunId"
+        :agent-tool-submitting-name="agentToolSubmittingName"
         @submit-answer-feedback="(rating) => $emit('submit-answer-feedback', rating)"
+        @run-tool-suggestion="(suggestion) => $emit('run-tool-suggestion', suggestion)"
+        @use-tool-result-context="(runId) => $emit('use-tool-result-context', runId)"
+        @clear-tool-context="$emit('clear-tool-context')"
       />
       <SearchDebugPanel
         :selected-project-id="selectedProjectId"
@@ -106,6 +113,18 @@ defineProps({
     type: String,
     default: "",
   },
+  currentToolSuggestion: {
+    type: Object,
+    default: null,
+  },
+  lastUsableToolRun: {
+    type: Object,
+    default: null,
+  },
+  currentToolContextRunId: {
+    type: String,
+    default: "",
+  },
   searchDebugResult: {
     type: Object,
     default: null,
@@ -176,5 +195,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-search-debug", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

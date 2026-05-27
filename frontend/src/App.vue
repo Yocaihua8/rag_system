@@ -29,6 +29,9 @@
       :answer-feedback-submitting="appState.answerFeedbackSubmitting"
       :answer-feedback-status="appState.answerFeedbackStatus"
       :answer-feedback-error="appState.answerFeedbackError"
+      :current-tool-suggestion="appState.currentToolSuggestion"
+      :last-usable-tool-run="appState.lastUsableToolRun"
+      :current-tool-context-run-id="appState.currentToolContextRunId"
       :search-debug-result="appState.searchDebugResult"
       :search-debug-loading="appState.searchDebugLoading"
       :search-debug-error="appState.searchDebugError"
@@ -121,6 +124,9 @@
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
+      @run-tool-suggestion="handleRunToolSuggestion"
+      @use-tool-result-context="handleUseToolResultContext"
+      @clear-tool-context="clearToolContextState"
       @run-search-debug="handleRunSearchDebug"
       @load-agent-tools="loadAgentTools"
       @run-agent-tool="handleRunAgentTool"
@@ -845,6 +851,29 @@ function clearAgentToolState() {
   appState.agentToolError = "";
   appState.agentToolDetailLoading = false;
   appState.agentToolDetailError = "";
+  clearToolSuggestionState();
+  clearToolContextState();
+  appState.lastUsableToolRun = null;
+}
+
+function clearToolSuggestionState() {
+  appState.currentToolSuggestion = null;
+}
+
+function clearToolContextState() {
+  appState.currentToolContextRunId = "";
+}
+
+function consumeToolContext() {
+  appState.currentToolContextRunId = "";
+}
+
+function setLastUsableToolRun(data) {
+  if (data.run?.tool_name === "search_sources" && data.run.status === "success") {
+    appState.lastUsableToolRun = data.run;
+    return;
+  }
+  appState.lastUsableToolRun = null;
 }
 
 async function loadAgentTools() {
@@ -892,6 +921,7 @@ async function handleRunAgentTool(payload) {
       argumentsPayload: payload.argumentsPayload || {},
     });
     appState.agentToolResult = data;
+    setLastUsableToolRun(data);
     appState.agentToolStatus = "工具运行完成";
     await loadAgentToolRuns();
   } catch (error) {
@@ -900,6 +930,28 @@ async function handleRunAgentTool(payload) {
   } finally {
     appState.agentToolSubmittingName = "";
   }
+}
+
+async function handleRunToolSuggestion(suggestion) {
+  const toolName = suggestion?.tool || "search_sources";
+  if (toolName !== "search_sources") {
+    appState.agentToolError = "当前只支持运行 search_sources 建议工具";
+    return;
+  }
+  await handleRunAgentTool({
+    toolName: "search_sources",
+    argumentsPayload: suggestion?.arguments || {},
+  });
+  clearToolSuggestionState();
+}
+
+function handleUseToolResultContext(runId) {
+  if (!runId) {
+    appState.answerStatus = "暂无可引用的工具结果";
+    return;
+  }
+  appState.currentToolContextRunId = runId;
+  appState.answerStatus = `下一问将引用工具运行 ID：${runId}`;
 }
 
 async function handleSelectAgentToolRun(runId) {
@@ -944,14 +996,20 @@ async function handleSubmitQuestion(question) {
     const data = await askQuestion({
       projectId: appState.selectedProjectId,
       question,
+      toolRunId: appState.currentToolContextRunId,
     });
     appState.answerResult = data;
+    appState.currentToolSuggestion = data.tool_suggestion || null;
+    if (data.tool_context) {
+      consumeToolContext();
+    }
     appState.lastAnswerMessageId = data.message?.id || "";
     appState.answerStatus = "回答已生成";
   } catch (error) {
     appState.answerError = error.message || "回答生成失败";
     appState.answerStatus = "回答生成失败";
     appState.lastAnswerMessageId = "";
+    clearToolSuggestionState();
   } finally {
     appState.answerLoading = false;
   }

@@ -83,7 +83,8 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     assert "B-141D 已迁移非流式问答入口" in workbench_vue
     assert "B-141V 已迁移检索调试" in workbench_vue
     assert "B-141W 已迁移 Agent 只读工具" in workbench_vue
-    assert "SSE、工具来源回填和会话后续迁移" in workbench_vue
+    assert "B-141X 已迁移工具建议与来源上下文" in workbench_vue
+    assert "SSE 和会话后续迁移" in workbench_vue
 
     library_vue = _read("frontend/src/views/LibraryView.vue")
     assert "资料库" in library_vue
@@ -348,7 +349,7 @@ def test_vue_answer_panel_renders_answer_feedback_controls():
         'data-feedback-rating="source_wrong"',
         'data-feedback-rating="need_more_context"',
         "submitAnswerFeedback",
-        'defineEmits(["submit-answer-feedback"])',
+        'defineEmits(["submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context"])',
         "lastAnswerMessageId",
         "answerFeedbackSubmitting",
         "answerFeedbackStatus",
