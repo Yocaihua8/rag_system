@@ -28,7 +28,7 @@
 - [x] 实现 `frontend/src/api/settings.js`、`SettingsView.vue`、`App.vue` 和共享状态的 Prompt 预设串联。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
-- [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
+- [x] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
 
@@ -65,13 +65,13 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141S 业务规则。
-- [ ] Vue 设置页可在已选择项目空间时读取 Prompt 预设和内置模板。
-- [ ] Vue 设置页可新建/编辑/删除 Prompt 预设，并可设置或清空默认预设。
-- [ ] Prompt 预设 helper 只调用既有 `/api/prompt-presets*` 契约，不新增接口、不修改数据库 schema。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方"回流清单"）。
-- [ ] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141S 业务规则。
+- [x] Vue 设置页可在已选择项目空间时读取 Prompt 预设和内置模板。
+- [x] Vue 设置页可新建/编辑/删除 Prompt 预设，并可设置或清空默认预设。
+- [x] Prompt 预设 helper 只调用既有 `/api/prompt-presets*` 契约，不新增接口、不修改数据库 schema。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方"回流清单"）。
+- [x] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
 
 ## 7. 回流清单
 
@@ -91,12 +91,13 @@
 - 2026-05-28：实现 Vue 设置页 Prompt 预设 helper、列表/模板/表单和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 49 passed。
 - 2026-05-28：完成前端验证：Vue 源码测试 49 passed，`npm run build` 成功；构建产物未进入待提交范围。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG、BACKLOG 更新时间和 devlog；B-141S 明确不迁移 Workbench SSE/会话、评估页、真实 LLM prompt 注入逻辑或数据库 schema。
+- 2026-05-28：完成最终验证：Web MVP 全量 320 passed，legacy 回归 179 passed；浏览器烟测确认设置页 Prompt 预设入口、默认状态、保存入口和内置模板可见，API Key 输入为空且控制台 error 数 0。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 00:32
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 同步 B-141S Prompt 预设迁移说明
+- **最后更新**：2026-05-28 00:36
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 更新 B-141S 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141S 相关文件
-- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
+- **下一步**：继续 B-141T 页面级业务迁移，可在 Workbench SSE/会话或评估页中选择下一个薄片
 - **续任务须知**：不修改后端 `/api/prompt-presets*` 契约、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
