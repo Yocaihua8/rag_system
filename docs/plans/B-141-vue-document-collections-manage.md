@@ -25,7 +25,7 @@
 未完成项不得删除。
 
 - [x] 增加 Vue 源码契约测试，覆盖集合新建/删除 helper、面板入口和 App 状态刷新。
-- [ ] 实现 `frontend/src/api/document-collections.js`、`DocumentCollectionPanel.vue`、`LibraryView.vue`、`App.vue` 的最小功能串联。
+- [x] 实现 `frontend/src/api/document-collections.js`、`DocumentCollectionPanel.vue`、`LibraryView.vue`、`App.vue` 的最小功能串联。
 - [ ] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
 - [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
 - [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
@@ -99,9 +99,9 @@
 > 目的：无论因额度耗尽、开发者中断还是主动结束，下一个 session 都能从此处冷启动。
 > 正常完成后随 plan 一起删除。
 
-- **最后更新**：2026-05-27 14:35
-- **进度**：已完成 1 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`56625b1` — `docs: 创建 B-141M 文档集合管理计划`
+- **最后更新**：2026-05-27 14:45
+- **进度**：已完成 2 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`9050443` — `test: 覆盖 Vue 文档集合管理入口`
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在大量非本片既有未提交改动，本片仅选择性暂存自身文件
-- **下一步**：实现 `frontend/src/api/document-collections.js`、`DocumentCollectionPanel.vue`、`LibraryView.vue`、`App.vue` 的最小功能串联
+- **下一步**：同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog
 - **续任务须知**：不要清理 unrelated dirty files；本片不得修改后端 schema 或 legacy `webapp/static/`

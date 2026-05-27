@@ -206,6 +206,21 @@ select {
   font-size: 20px;
 }
 
+.collection-form {
+  align-items: end;
+  border-top: 1px solid #edf2f7;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  padding-top: 16px;
+}
+
+.collection-form label {
+  color: #52616f;
+  display: grid;
+  gap: 8px;
+}
+
 .import-grid {
   display: grid;
   gap: 18px;
@@ -329,6 +344,13 @@ select {
   padding: 0;
 }
 
+.document-collection-list li {
+  align-items: stretch;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .document-collection-item {
   align-items: flex-start;
   background: #ffffff;
@@ -356,6 +378,13 @@ select {
 
 .document-collection-item small {
   color: #52616f;
+}
+
+.danger-link {
+  align-self: center;
+  background: transparent;
+  border-color: #c2410c;
+  color: #9a3412;
 }
 
 .import-batch-item {

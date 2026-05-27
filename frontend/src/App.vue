@@ -28,6 +28,10 @@
       :selected-document-collection-id="appState.selectedDocumentCollectionId"
       :document-collections-loading="appState.documentCollectionsLoading"
       :document-collections-load-error="appState.documentCollectionsLoadError"
+      :collection-form-submitting="appState.collectionFormSubmitting"
+      :collection-form-error="appState.collectionFormError"
+      :collection-form-status="appState.collectionFormStatus"
+      :deleting-collection-id="appState.deletingCollectionId"
       :selected-document-id="appState.selectedDocumentId"
       :selected-document="appState.selectedDocument"
       :document-preview-loading="appState.documentPreviewLoading"
@@ -48,6 +52,8 @@
       @select-document="handleSelectDocument"
       @refresh-collections="loadDocumentCollections"
       @select-collection="handleSelectDocumentCollection"
+      @create-collection="handleCreateDocumentCollection"
+      @delete-collection="handleDeleteDocumentCollection"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
@@ -65,7 +71,11 @@ import { computed, onMounted, ref } from "vue";
 
 import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
-import { listDocumentCollections } from "./api/document-collections.js";
+import {
+  createDocumentCollection,
+  deleteDocumentCollection,
+  listDocumentCollections,
+} from "./api/document-collections.js";
 import { getDocument, listDocuments } from "./api/documents.js";
 import {
   getImportBatchDetail,
@@ -151,6 +161,7 @@ async function loadProjectSpaces() {
 async function handleSelectProject(projectId) {
   selectProject(projectId);
   clearImportPreview();
+  clearCollectionFormStatus();
   appState.selectedDocumentCollectionId = "";
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadDocumentCollections();
@@ -165,6 +176,7 @@ async function handleCreateProject(payload) {
   try {
     const project = await createProject(payload);
     projectFormStatus.value = `已创建项目空间：${project.name}`;
+    clearCollectionFormStatus();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadLibraryDocuments();
@@ -376,6 +388,51 @@ async function loadDocumentCollections() {
 async function handleSelectDocumentCollection(collectionId) {
   appState.selectedDocumentCollectionId = collectionId;
   await loadLibraryDocuments();
+}
+
+async function handleCreateDocumentCollection(name) {
+  appState.collectionFormSubmitting = true;
+  appState.collectionFormError = "";
+  appState.collectionFormStatus = "";
+  try {
+    await createDocumentCollection({
+      projectId: appState.selectedProjectId,
+      name,
+    });
+    appState.collectionFormStatus = "文档集合已创建";
+    await loadDocumentCollections();
+  } catch (error) {
+    appState.collectionFormError = error.message || "文档集合创建失败";
+  } finally {
+    appState.collectionFormSubmitting = false;
+  }
+}
+
+async function handleDeleteDocumentCollection(collectionId) {
+  if (!window.confirm("确认删除这个文档集合？集合内文档不会被删除。")) {
+    return;
+  }
+  appState.collectionFormError = "";
+  appState.collectionFormStatus = "";
+  appState.deletingCollectionId = collectionId;
+  try {
+    await deleteDocumentCollection(collectionId);
+    if (appState.selectedDocumentCollectionId === collectionId) {
+      appState.selectedDocumentCollectionId = "";
+    }
+    appState.collectionFormStatus = "文档集合已删除，集合内文档不会被删除";
+    await loadDocumentCollections();
+    await loadLibraryDocuments();
+  } catch (error) {
+    appState.collectionFormError = error.message || "文档集合删除失败";
+  } finally {
+    appState.deletingCollectionId = "";
+  }
+}
+
+function clearCollectionFormStatus() {
+  appState.collectionFormError = "";
+  appState.collectionFormStatus = "";
 }
 
 async function loadImportBatches() {

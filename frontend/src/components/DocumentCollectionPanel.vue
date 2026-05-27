@@ -13,6 +13,22 @@
     <p v-if="!selectedProjectId" class="status-line">未选择项目空间</p>
     <p v-else-if="loading" class="status-line">正在读取文档集合...</p>
     <p v-else-if="loadError" class="status-line error">{{ loadError }}</p>
+    <p v-if="collectionFormError" class="status-line error">{{ collectionFormError }}</p>
+    <p v-else-if="collectionFormStatus" class="status-line">{{ collectionFormStatus }}</p>
+
+    <form class="collection-form" @submit.prevent="submitCreateCollection">
+      <label>
+        新建集合
+        <input
+          v-model.trim="collectionForm.name"
+          :disabled="collectionFormSubmitting || !selectedProjectId"
+          placeholder="集合名称"
+        />
+      </label>
+      <button type="submit" :disabled="collectionFormSubmitting || !selectedProjectId">
+        {{ collectionFormSubmitting ? "创建中..." : "创建集合" }}
+      </button>
+    </form>
 
     <label class="field-block">
       集合筛选
@@ -48,12 +64,22 @@
           <span>{{ collection.name }}</span>
           <small>{{ collection.document_count ?? 0 }} 个文档</small>
         </button>
+        <button
+          type="button"
+          class="danger-link"
+          :disabled="deletingCollectionId === collection.id"
+          @click.stop="$emit('delete-collection', collection.id)"
+        >
+          {{ deletingCollectionId === collection.id ? "删除中..." : "删除集合" }}
+        </button>
       </li>
     </ul>
   </section>
 </template>
 
 <script setup>
+import { reactive } from "vue";
+
 defineProps({
   documentCollections: {
     type: Array,
@@ -75,7 +101,34 @@ defineProps({
     type: String,
     default: "",
   },
+  collectionFormSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  collectionFormError: {
+    type: String,
+    default: "",
+  },
+  collectionFormStatus: {
+    type: String,
+    default: "",
+  },
+  deletingCollectionId: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["refresh-collections", "select-collection"]);
+const emit = defineEmits(["refresh-collections", "select-collection", "create-collection", "delete-collection"]);
+
+const collectionForm = reactive({
+  name: "",
+});
+
+function submitCreateCollection() {
+  emit("create-collection", collectionForm.name);
+  if (collectionForm.name.trim()) {
+    collectionForm.name = "";
+  }
+}
 </script>
