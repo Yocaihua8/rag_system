@@ -681,3 +681,88 @@ def test_vue_app_handles_import_preview_state_without_import_side_effects():
         "importPreviewError",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_document_collections_api_helper_uses_existing_readonly_contract():
+    collections_path = Path("frontend/src/api/document-collections.js")
+    assert collections_path.exists(), "B-141L should add a Vue document collections API helper"
+    collections_js = _read(str(collections_path))
+
+    assert 'import { apiGet } from "./client.js";' in collections_js
+    assert "export async function listDocumentCollections(projectId)" in collections_js
+    assert "if (!projectId)" in collections_js
+    assert "return []" in collections_js
+    assert "new URLSearchParams({ project_id: projectId })" in collections_js
+    assert 'apiGet(`/api/document-collections?${params.toString()}`)' in collections_js
+    assert "data.collections || []" in collections_js
+
+    for forbidden_action in [
+        "apiPost",
+        "/api/document-collections/update",
+        "/api/document-collections/delete",
+        "/api/document-collections/items/add",
+        "/api/document-collections/items/remove",
+    ]:
+        assert forbidden_action not in collections_js
+
+
+def test_vue_document_collection_panel_renders_readonly_filter_controls():
+    panel_path = Path("frontend/src/components/DocumentCollectionPanel.vue")
+    assert panel_path.exists(), "B-141L should add DocumentCollectionPanel"
+
+    panel_vue = _read(str(panel_path))
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "文档集合",
+        "全部文档",
+        "未分组",
+        "刷新集合",
+        "暂无文档集合",
+        "document_count",
+        'v-for="collection in documentCollections"',
+        'defineEmits(["refresh-collections", "select-collection"])',
+    ]:
+        assert marker in panel_vue
+
+    for forbidden_action in ["新建集合", "删除集合", "加入集合", "移出集合"]:
+        assert forbidden_action not in panel_vue
+
+    assert "DocumentCollectionPanel" in library_vue
+    assert ":document-collections=\"documentCollections\"" in library_vue
+    assert ":selected-document-collection-id=\"selectedDocumentCollectionId\"" in library_vue
+    assert ":document-collections-loading=\"documentCollectionsLoading\"" in library_vue
+    assert ":document-collections-load-error=\"documentCollectionsLoadError\"" in library_vue
+    assert "@refresh-collections" in library_vue
+    assert "@select-collection" in library_vue
+
+
+def test_vue_app_loads_document_collections_and_filters_document_list():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    assert "listDocumentCollections" in app_vue
+    assert "loadDocumentCollections" in app_vue
+    assert "handleSelectDocumentCollection" in app_vue
+    assert ":document-collections=\"appState.documentCollections\"" in app_vue
+    assert ":selected-document-collection-id=\"appState.selectedDocumentCollectionId\"" in app_vue
+    assert ":document-collections-loading=\"appState.documentCollectionsLoading\"" in app_vue
+    assert ":document-collections-load-error=\"appState.documentCollectionsLoadError\"" in app_vue
+    assert "@refresh-collections=\"loadDocumentCollections\"" in app_vue
+    assert "@select-collection=\"handleSelectDocumentCollection\"" in app_vue
+    assert "appState.documentCollections = collections" in app_vue
+    assert "appState.selectedDocumentCollectionId = collectionId" in app_vue
+    assert "await loadDocumentCollections()" in app_vue
+    assert "listDocuments(appState.selectedProjectId, appState.selectedDocumentCollectionId)" in app_vue
+
+    selection_block = app_vue.split("async function handleSelectDocumentCollection(collectionId)", 1)[1].split("\nasync function", 1)[0]
+    assert "appState.selectedDocumentCollectionId = collectionId" in selection_block
+    assert "await loadLibraryDocuments()" in selection_block
+
+    for state_field in [
+        "documentCollections",
+        "selectedDocumentCollectionId",
+        "documentCollectionsLoading",
+        "documentCollectionsLoadError",
+    ]:
+        assert f"{state_field}:" in state_js
