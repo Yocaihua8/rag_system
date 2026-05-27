@@ -410,6 +410,89 @@ def test_vue_app_handles_answer_feedback_state_and_events():
         assert f"{state_field}:" in state_js
 
 
+def test_vue_search_debug_api_helper_uses_existing_debug_contract():
+    search_path = Path("frontend/src/api/search.js")
+    assert search_path.exists(), "B-141V should add a Vue search debug API helper"
+    search_js = _read(str(search_path))
+
+    for marker in [
+        'import { apiPost } from "./client.js";',
+        "export async function runSearchDebug({ projectId, query, topK = 5, minScore = 0, useKeyword = true, useVector = true })",
+        'throw new Error("请先创建或选择项目空间")',
+        'throw new Error("请输入检索诊断查询")',
+        'apiPost("/api/search/debug"',
+        "project_id: projectId",
+        "query: trimmedQuery",
+        "top_k: Number(topK)",
+        "min_score: Number(minScore)",
+        "use_keyword: Boolean(useKeyword)",
+        "use_vector: Boolean(useVector)",
+    ]:
+        assert marker in search_js
+
+
+def test_vue_search_debug_panel_renders_rag_diagnostics_controls():
+    panel_path = Path("frontend/src/components/SearchDebugPanel.vue")
+    assert panel_path.exists(), "B-141V should add SearchDebugPanel"
+    panel_vue = _read(str(panel_path))
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "检索调试",
+        "查看命中片段、分数和实际上下文",
+        "诊断查询",
+        "运行诊断",
+        "Top K",
+        "最低分",
+        "关键词",
+        "向量",
+        "暂无检索诊断",
+        "来源质量",
+        "文档/分块",
+        "向量可用",
+        "命中片段",
+        "searchDebugQuery",
+        "searchDebugParameters",
+        "formatScore",
+        "defineEmits([\"run-search-debug\"])",
+    ]:
+        assert marker in panel_vue
+
+    assert "SearchDebugPanel" in workbench_vue
+    assert "@run-search-debug" in workbench_vue
+    assert ":search-debug-result=\"searchDebugResult\"" in workbench_vue
+    assert ":search-debug-loading=\"searchDebugLoading\"" in workbench_vue
+    assert ":search-debug-error=\"searchDebugError\"" in workbench_vue
+    assert ":search-debug-status=\"searchDebugStatus\"" in workbench_vue
+
+
+def test_vue_app_handles_search_debug_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for marker in [
+        "runSearchDebug",
+        "handleRunSearchDebug",
+        "@run-search-debug=\"handleRunSearchDebug\"",
+        ":search-debug-result=\"appState.searchDebugResult\"",
+        ":search-debug-loading=\"appState.searchDebugLoading\"",
+        ":search-debug-error=\"appState.searchDebugError\"",
+        ":search-debug-status=\"appState.searchDebugStatus\"",
+        "appState.searchDebugResult = data",
+        "appState.searchDebugStatus = `检索诊断完成：${data.hits?.length || 0} 条来源。`",
+        "clearSearchDebugState",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "searchDebugResult",
+        "searchDebugLoading",
+        "searchDebugError",
+        "searchDebugStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
 def test_vue_document_api_helper_uses_existing_read_only_document_contract():
     documents_path = Path("frontend/src/api/documents.js")
     assert documents_path.exists(), "B-141E should add a Vue documents API helper"

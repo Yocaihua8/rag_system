@@ -24,7 +24,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-141V plan，并将 BACKLOG 说明列追加本 plan 路径。
-- [ ] 增加 Vue 源码契约红灯测试，覆盖检索调试 helper、SearchDebugPanel 控件和 Workbench/App 状态流。
+- [x] 增加 Vue 源码契约红灯测试，覆盖检索调试 helper、SearchDebugPanel 控件和 Workbench/App 状态流。
 - [ ] 实现 `frontend/src/api/search.js` 检索调试 helper、`SearchDebugPanel.vue` 诊断入口、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
 - [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
@@ -93,12 +93,13 @@
 
 - 2026-05-28：创建 B-141V plan；选择 Vue 工作台检索调试作为下一薄片，原因是只复用既有 `/api/search/debug`，范围小于 Agent 工具、SSE/会话或检索复盘。
 - 2026-05-28：将 `docs/plans/B-141-vue-search-debug.md` 追加到 BACKLOG B-141 说明列。
+- 2026-05-28：新增 Vue 检索调试源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 55 passed，失败点为缺少检索调试 helper、SearchDebugPanel 和 App/Workbench 状态流。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 02:02
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 创建 B-141V 检索调试迁移计划
+- **最后更新**：2026-05-28 02:07
+- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — test: 增加 B-141V 检索调试红灯用例
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141V 相关文件
-- **下一步**：增加 Vue 检索调试 helper、组件和 App 状态流的红灯测试
+- **下一步**：实现 Vue 检索调试 helper、SearchDebugPanel 和 App 状态流
 - **续任务须知**：不修改后端 `/api/search/debug` 契约、不保存检索默认值、不创建检索复盘、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
