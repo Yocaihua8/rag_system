@@ -28,7 +28,7 @@
 - [x] 实现 `frontend/src/api/search.js` 检索调试 helper、`SearchDebugPanel.vue` 诊断入口、`WorkbenchView.vue` 事件透传和 `App.vue` 状态处理。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
-- [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
+- [x] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
 
@@ -69,14 +69,14 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141V 业务规则。
-- [ ] Vue 工作台在已选择项目空间时可提交检索诊断查询。
-- [ ] Vue 工作台可临时设置 `top_k`、`min_score`、`use_keyword` 和 `use_vector`。
-- [ ] Vue 工作台展示检索诊断来源质量、文档/分块数量、向量可用状态、本次参数和命中片段。
-- [ ] 检索调试 helper 只调用既有 `POST /api/search/debug` 契约，不保存项目默认值、不创建检索复盘、不修改数据库 schema。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方"回流清单"）。
-- [ ] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141V 业务规则。
+- [x] Vue 工作台在已选择项目空间时可提交检索诊断查询。
+- [x] Vue 工作台可临时设置 `top_k`、`min_score`、`use_keyword` 和 `use_vector`。
+- [x] Vue 工作台展示检索诊断来源质量、文档/分块数量、向量可用状态、本次参数和命中片段。
+- [x] 检索调试 helper 只调用既有 `POST /api/search/debug` 契约，不保存项目默认值、不创建检索复盘、不修改数据库 schema。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方"回流清单"）。
+- [x] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
 
 ## 7. 回流清单
 
@@ -96,12 +96,13 @@
 - 2026-05-28：新增 Vue 检索调试源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 55 passed，失败点为缺少检索调试 helper、SearchDebugPanel 和 App/Workbench 状态流。
 - 2026-05-28：实现 Vue 检索调试 helper、工作台诊断面板和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 58 passed，`npm run build` 成功。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141V 明确不迁移项目级检索默认值保存、检索复盘、普通搜索结果、Workbench SSE/取消、聊天会话/历史、Agent 工具、检索算法或数据库 schema。
+- 2026-05-28：完成最终验证：Web MVP 全量 329 passed，legacy 回归 179 passed，最终 `npm run build` 成功；headless Chrome 烟测临时项目 `B-141V-smoke-20260528015330`，诊断查询 `app.py` 命中 `README.md`，页面展示来源质量、文档/分块 `1 / 2`、向量可用、本次参数和命中片段。业务 console/runtime error 数 0；既有 `favicon.ico` 404 作为非业务资源缺失单独记录。烟测后已删除临时项目并停止本地服务。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 02:24
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 同步 B-141V 检索调试迁移说明
+- **最后更新**：2026-05-28 02:25
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 更新 B-141V 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141V 相关文件
-- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
+- **下一步**：B-141 后续可继续迁移 Agent 工具、Workbench SSE/会话、检索默认值/复盘或评估题库/历史列表
 - **续任务须知**：不修改后端 `/api/search/debug` 契约、不保存检索默认值、不创建检索复盘、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
