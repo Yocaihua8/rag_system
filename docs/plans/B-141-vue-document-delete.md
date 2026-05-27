@@ -99,7 +99,7 @@
 
 - **最后更新**：2026-05-27 15:53
 - **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`b962a25` — docs: 更新 B-141P 实现快照
+- **最新 commit**：`622ea2c` — docs: 同步 B-141P 文档删除说明
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141P 相关文件
 - **下一步**：运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
