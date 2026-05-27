@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-05-27
 > Scope：B-141 Vue 3 + Vite 前端工程化
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
@@ -24,6 +24,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141H 在 Vue 资料库视图中提供普通文件上传导入，复用既有 `POST /api/import/upload` 契约；有当前项目空间时导入当前项目，没有项目空间时由后端创建 `browser-upload` 项目。
 - B-141I 在 Vue 资料库视图中提供浏览器文件夹上传导入，复用既有 `POST /api/import/upload` 契约；前端用 `webkitRelativePath` 推导项目名和文档相对路径，并发送 `source_type=browser_folder_upload`。
 - B-141J 在 Vue 资料库视图中提供当前项目目录同步入口，复用既有 `POST /api/import` 契约；后端继续负责项目根目录校验、导入规则和 `directory_sync` 批次记录。
+- B-141K 在 Vue 资料库视图中提供当前项目目录导入预检入口，复用既有 `GET /api/import/preview` 只读契约；预检只展示可导入数、跳过数和跳过原因，不创建导入批次。
 - 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
 
 ## 3. 工程目录
@@ -36,7 +37,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/api/projects.js` | Vue 项目空间 API helper，封装项目列表、创建、选择和最近项目恢复 |
 | `frontend/src/api/answer.js` | Vue 工作台非流式问答 API helper，调用既有 `/api/answer` |
 | `frontend/src/api/documents.js` | Vue 资料库文档 API helper，调用既有 `/api/documents` 和 `/api/document` |
-| `frontend/src/api/imports.js` | Vue 资料库导入 API helper，调用既有 `/api/import/note`、`/api/import/url`、`/api/import/upload`、`/api/import/batches` 和 `/api/import/batches/detail` |
+| `frontend/src/api/imports.js` | Vue 资料库导入 API helper，调用既有 `/api/import/preview`、`/api/import`、`/api/import/note`、`/api/import/url`、`/api/import/upload`、`/api/import/batches` 和 `/api/import/batches/detail` |
 | `frontend/src/state/app-state.js` | Vue 迁移期共享状态模型和基础视图切换 |
 | `frontend/src/components/` | 迁移期布局组件，例如 `AppShell.vue`、`ProjectSpacePanel.vue`、`QuestionPanel.vue`、`AnswerPanel.vue`、`DocumentListPanel.vue`、`DocumentPreviewPanel.vue`、`DocumentImportPanel.vue`、`ImportBatchHistoryPanel.vue` |
 | `frontend/src/views/` | 工作台、资料库、评估、设置等页面组件 |
@@ -45,7 +46,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 
 ## 4. 非目标
 
-- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J 迁移完整业务页面。
+- 不在 B-141A/B-141B/B-141C/B-141D/B-141E/B-141F/B-141G/B-141H/B-141I/B-141J/B-141K 迁移完整业务页面。
 - B-141C 不迁移导入、重命名、删除、文档列表、问答、评估或设置完整流程。
 - B-141D 不迁移 SSE 流式输出、取消、聊天会话/历史、回答反馈、Agent 工具或检索调试。
 - B-141E 不迁移文件导入、目录同步、上传、笔记、URL 摘录、删除文档、文档集合增删改或导入批次历史。
@@ -54,6 +55,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141H 不迁移浏览器文件夹上传、同步当前项目目录、导入预检、删除文档、文档集合增删改或数据库 schema。
 - B-141I 不迁移同步当前项目目录、导入预检、删除文档、文档集合增删改或数据库 schema。
 - B-141J 不迁移导入预检、删除文档、文档集合增删改、项目改名/删除或数据库 schema。
+- B-141K 不执行导入、不创建导入批次、不迁移删除文档、文档集合增删改、项目改名/删除或数据库 schema。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -81,10 +83,12 @@ B-141I 起，Vue 资料库继续迁移浏览器文件夹上传导入薄片：`im
 
 B-141J 起，Vue 资料库继续迁移当前项目目录同步薄片：`imports.js` 扩展 `POST /api/import` helper，`DocumentImportPanel` 增加“同步当前项目目录”按钮，未选择项目空间时禁用。`App.vue` 在成功后刷新文档列表和导入批次历史，并复用导入结果计数展示。后端 API、SQLite schema、导入预检、删除、集合管理和项目改名/删除不在本片调整。
 
+B-141K 起，Vue 资料库继续迁移当前项目目录导入预检薄片：`imports.js` 扩展 `GET /api/import/preview` helper，`DocumentImportPanel` 在本地目录区域增加“预检当前项目目录”按钮和只读结果摘要，展示可导入数、跳过数和跳过原因。`App.vue` 单独保存 `importPreview`、`importPreviewLoading` 和 `importPreviewError`，预检完成后不刷新文档列表、不刷新导入批次历史，也不创建导入批次。后端 API、SQLite schema、删除、集合管理和项目改名/删除不在本片调整。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建薄片、资料库文档列表/预览薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片，以及工作台非流式问答入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、工作台 / 资料库 / 评估 / 设置四个基础视图、资料库项目空间选择/创建薄片、资料库文档列表/预览薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片，以及工作台非流式问答入口。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
@@ -92,6 +96,7 @@ B-141J 起，Vue 资料库继续迁移当前项目目录同步薄片：`imports.
 - Vue 资料库可选择一个或多个普通文件上传；有当前项目空间时导入当前项目，没有项目空间时由后端创建 `browser-upload` 项目。
 - Vue 资料库可通过浏览器文件夹选择导入本机文件夹；前端不读取原始宿主机绝对路径，只上传授权文件内容和相对路径。
 - Vue 资料库可在已选择项目空间时同步当前项目目录；未选择项目空间时同步入口禁用。
+- Vue 资料库可在已选择项目空间时预检当前项目目录，展示可导入数、跳过数和跳过原因；预检不会写入文档或导入批次。
 - `npm run build` 可生成 `webapp/static_dist/`。
 - FastAPI 优先服务 `webapp/static_dist/`；构建产物不存在时回退 `webapp/static/`。
 - Web MVP 后端测试保持通过。

@@ -30,7 +30,7 @@
 - [x] 创建 B-141K plan，并将 BACKLOG 说明列追加本 plan 路径
 - [x] 新增 Vue source/static contract 红灯测试，覆盖导入预检 API helper、面板入口和 App 状态接入
 - [x] 实现 `previewProjectImport`、预检 UI、状态流和错误提示
-- [ ] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141K 说明
+- [x] 同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141K 说明
 - [ ] 完成验证、提交 B-141K，并更新本 plan 快照；B-141 保持 `doing`
 
 ## 4. 影响范围
@@ -82,11 +82,11 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-141K 导入预检迁移边界 | `docs/features/frontend-engineering.md` | [ ] |
-| Vue 导入 helper、导入面板和状态流职责 | `docs/design/architecture-overview.md` | [ ] |
-| B-141K Vue source/static contract 测试命令 | `docs/guides/testing.md` | [ ] |
-| B-141K 用户可见变更 | `CHANGELOG.md` | [ ] |
-| B-141K 执行记录与验证结果 | `docs/devlog/2026-05-27.md` | [ ] |
+| B-141K 导入预检迁移边界 | `docs/features/frontend-engineering.md` | [x] |
+| Vue 导入 helper、导入面板和状态流职责 | `docs/design/architecture-overview.md` | [x] |
+| B-141K Vue source/static contract 测试命令 | `docs/guides/testing.md` | [x] |
+| B-141K 用户可见变更 | `CHANGELOG.md` | [x] |
+| B-141K 执行记录与验证结果 | `docs/devlog/2026-05-27.md` | [x] |
 | B-141 仍处于 doing，等待后续页面迁移 | `docs/BACKLOG.md` | [x] |
 
 若产生了重大技术决策，必须在删除 plan 前新建对应 ADR。本切片预期不触发 ADR。
@@ -99,12 +99,13 @@
 - 2026-05-27：创建 `docs/plans/B-141-vue-import-preview.md`，并将 BACKLOG B-141 说明列追加本 plan 路径。
 - 2026-05-27：确认 B-141K 红灯为 3 failed / 28 passed，失败点集中在缺少 `previewProjectImport`、导入面板预检入口和 App 预检状态接入。
 - 2026-05-27：实现 Vue 导入预检 helper、导入面板入口、只读结果摘要和 App 状态接入；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 31 passed，`npm run build` 成功。
+- 2026-05-27：同步 `frontend-engineering`、架构说明、测试指南、CHANGELOG 和当日 devlog；`api-spec` 未改，因为后端 `GET /api/import/preview` 契约没有变化。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-27 13:44
-- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`41d834f` — test: 覆盖 Vue 导入预检入口
-- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141K Vue 导入预检实现已完成待提交
-- **下一步**：同步功能文档、架构/测试/devlog/CHANGELOG 中的 B-141K 说明
+- **最后更新**：2026-05-27 13:55
+- **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`3dfb50d` — feat: 接入 Vue 导入预检
+- **代码状态**：分支 `fix/url-virtual-source-preserve`；存在大量既有未提交改动；B-141K 文档同步已完成待提交
+- **下一步**：完成验证、提交 B-141K，并更新本 plan 快照；B-141 保持 `doing`
 - **续任务须知**：B-141K 不删除 `webapp/static/`，不迁移删除/集合/项目改名/删除，不修改后端 API 或数据库 schema，不新增 Pinia/Vue Router；技术栈迁移整体完成前不推送
