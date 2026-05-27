@@ -28,17 +28,18 @@
 - [x] 实现 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 和共享状态的评估闭环串联。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
-- [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
+- [x] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
 
 | 类型 | 路径 / 模块 | 变更方向 |
 |------|------------|---------|
 | 代码 | `frontend/src/api/assessment.js` | 新增：评估 API helper |
+| 代码 | `frontend/src/components/AppShell.vue` | 修改：更新 Vue 迁移顶栏状态文案，避免仍宣称完整业务流程由 legacy 承载 |
 | 代码 | `frontend/src/views/AssessmentView.vue` | 修改：增加评估题目、作答、进度、结果和待复测列表 |
 | 代码 | `frontend/src/App.vue` | 修改：增加评估开始、提交、下一题和状态清理流 |
 | 代码 | `frontend/src/state/app-state.js` | 修改：补充评估加载/提交/错误/状态字段 |
-| 测试 | `tests/test_webapp/test_frontend_vue_app.py` | 修改：增加 Vue 评估源码契约测试 |
+| 测试 | `tests/test_webapp/test_frontend_vue_app.py` | 修改：增加 Vue 评估源码契约和顶栏迁移状态测试 |
 | 文档 | `docs/features/frontend-engineering.md` | 修改：同步 B-141T 用户可见行为和非目标 |
 | 文档 | `docs/design/architecture-overview.md` | 修改：同步 Vue 评估页迁移状态 |
 | 文档 | `docs/guides/testing.md` | 修改：补充 Vue 评估页验证要求 |
@@ -66,14 +67,14 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141T 业务规则。
-- [ ] Vue 评估页可在已选择项目空间时开始评估并显示当前题目。
-- [ ] Vue 评估页可提交当前题回答，展示评分状态、得分、匹配点、缺失点和来源。
-- [ ] Vue 评估页可进入下一题或完成本轮，并展示答题记录和待复测列表。
-- [ ] 评估 helper 只调用既有 `/api/assessment/start` 与 `/api/assessment/answer` 契约，不新增接口、不修改数据库 schema。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方"回流清单"）。
-- [ ] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141T 业务规则。
+- [x] Vue 评估页可在已选择项目空间时开始评估并显示当前题目。
+- [x] Vue 评估页可提交当前题回答，展示评分状态、得分、匹配点、缺失点和来源。
+- [x] Vue 评估页可进入下一题或完成本轮，并展示答题记录和待复测列表。
+- [x] 评估 helper 只调用既有 `/api/assessment/start` 与 `/api/assessment/answer` 契约，不新增接口、不修改数据库 schema。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方"回流清单"）。
+- [x] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
 
 ## 7. 回流清单
 
@@ -93,12 +94,14 @@
 - 2026-05-28：实现 Vue 评估 API helper、评估页最小闭环 UI 和 App 状态流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 52 passed。
 - 2026-05-28：完成前端验证：Vue 源码测试 52 passed，`npm run build` 成功；构建产物未进入待提交范围。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141T 明确不迁移评估题库管理、历史评估列表、回答反馈、知识点画像、Workbench SSE/会话或数据库 schema。
+- 2026-05-28：浏览器烟测发现 `AppShell` 顶栏仍显示 B-141B legacy 占位文案；补充源码契约断言并更新为当前 Vue 薄片迁移状态说明，聚焦 Vue 测试恢复为 52 passed。
+- 2026-05-28：完成最终验证：Web MVP 全量 323 passed，legacy 业务层回归 179 passed，`npm run build` 成功；浏览器烟测用临时导入项目完成开始评估、提交回答、结果概览、答题记录和待复测列表验证，控制台 error 数 0，临时项目和本地服务已清理。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 00:49
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 同步 B-141T 评估页迁移说明
+- **最后更新**：2026-05-28 01:00
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — docs: 更新 B-141T 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141T 相关文件
-- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
+- **下一步**：B-141 后续可继续迁移 Workbench SSE/会话、回答反馈、Agent 工具或检索调试
 - **续任务须知**：不修改后端 `/api/assessment*` 契约、不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
