@@ -705,9 +705,11 @@ def test_vue_document_collections_api_helper_uses_existing_management_contracts(
     assert "export async function deleteDocumentCollection(collectionId)" in collections_js
     assert 'throw new Error("请选择文档集合")' in collections_js
     assert 'apiPost("/api/document-collections/delete", { collection_id: collectionId })' in collections_js
+    assert "export async function updateDocumentCollection({ collectionId, name })" in collections_js
+    assert 'apiPost("/api/document-collections/update"' in collections_js
+    assert "collection_id: collectionId" in collections_js
 
     for forbidden_action in [
-        "/api/document-collections/update",
         "/api/document-collections/items/add",
         "/api/document-collections/items/remove",
     ]:
@@ -726,6 +728,10 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
         "新建集合",
         "集合名称",
         "创建集合",
+        "重命名集合",
+        "保存名称",
+        "取消",
+        "新的集合名称",
         "全部文档",
         "未分组",
         "刷新集合",
@@ -736,12 +742,16 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
         "collectionFormSubmitting",
         "collectionFormError",
         "collectionFormStatus",
+        "collectionRenameSubmitting",
+        "collectionRenameError",
+        "collectionRenameStatus",
         "deletingCollectionId",
-        'defineEmits(["refresh-collections", "select-collection", "create-collection", "delete-collection"])',
+        "editingCollectionId",
+        'defineEmits(["refresh-collections", "select-collection", "create-collection", "delete-collection", "update-collection"])',
     ]:
         assert marker in panel_vue
 
-    for forbidden_action in ["重命名集合", "加入集合", "移出集合"]:
+    for forbidden_action in ["加入集合", "移出集合"]:
         assert forbidden_action not in panel_vue
 
     assert "DocumentCollectionPanel" in library_vue
@@ -752,11 +762,15 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
     assert ":collection-form-submitting=\"collectionFormSubmitting\"" in library_vue
     assert ":collection-form-error=\"collectionFormError\"" in library_vue
     assert ":collection-form-status=\"collectionFormStatus\"" in library_vue
+    assert ":collection-rename-submitting=\"collectionRenameSubmitting\"" in library_vue
+    assert ":collection-rename-error=\"collectionRenameError\"" in library_vue
+    assert ":collection-rename-status=\"collectionRenameStatus\"" in library_vue
     assert ":deleting-collection-id=\"deletingCollectionId\"" in library_vue
     assert "@refresh-collections" in library_vue
     assert "@select-collection" in library_vue
     assert "@create-collection" in library_vue
     assert "@delete-collection" in library_vue
+    assert "@update-collection" in library_vue
 
 
 def test_vue_app_loads_document_collections_and_filters_document_list():
@@ -766,10 +780,12 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
     assert "listDocumentCollections" in app_vue
     assert "createDocumentCollection" in app_vue
     assert "deleteDocumentCollection" in app_vue
+    assert "updateDocumentCollection" in app_vue
     assert "loadDocumentCollections" in app_vue
     assert "handleSelectDocumentCollection" in app_vue
     assert "handleCreateDocumentCollection" in app_vue
     assert "handleDeleteDocumentCollection" in app_vue
+    assert "handleUpdateDocumentCollection" in app_vue
     assert ":document-collections=\"appState.documentCollections\"" in app_vue
     assert ":selected-document-collection-id=\"appState.selectedDocumentCollectionId\"" in app_vue
     assert ":document-collections-loading=\"appState.documentCollectionsLoading\"" in app_vue
@@ -777,11 +793,15 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
     assert ":collection-form-submitting=\"appState.collectionFormSubmitting\"" in app_vue
     assert ":collection-form-error=\"appState.collectionFormError\"" in app_vue
     assert ":collection-form-status=\"appState.collectionFormStatus\"" in app_vue
+    assert ":collection-rename-submitting=\"appState.collectionRenameSubmitting\"" in app_vue
+    assert ":collection-rename-error=\"appState.collectionRenameError\"" in app_vue
+    assert ":collection-rename-status=\"appState.collectionRenameStatus\"" in app_vue
     assert ":deleting-collection-id=\"appState.deletingCollectionId\"" in app_vue
     assert "@refresh-collections=\"loadDocumentCollections\"" in app_vue
     assert "@select-collection=\"handleSelectDocumentCollection\"" in app_vue
     assert "@create-collection=\"handleCreateDocumentCollection\"" in app_vue
     assert "@delete-collection=\"handleDeleteDocumentCollection\"" in app_vue
+    assert "@update-collection=\"handleUpdateDocumentCollection\"" in app_vue
     assert "appState.documentCollections = collections" in app_vue
     assert "appState.selectedDocumentCollectionId = collectionId" in app_vue
     assert "await loadDocumentCollections()" in app_vue
@@ -796,6 +816,13 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
     assert "projectId: appState.selectedProjectId" in create_block
     assert "await loadDocumentCollections()" in create_block
     assert "appState.collectionFormStatus = \"文档集合已创建\"" in create_block
+
+    update_block = app_vue.split("async function handleUpdateDocumentCollection(payload)", 1)[1].split("\nasync function", 1)[0]
+    assert "updateDocumentCollection({" in update_block
+    assert "collectionId: payload.collectionId" in update_block
+    assert "name: payload.name" in update_block
+    assert "await loadDocumentCollections()" in update_block
+    assert "appState.collectionRenameStatus = \"文档集合已重命名\"" in update_block
 
     delete_block = app_vue.split("async function handleDeleteDocumentCollection(collectionId)", 1)[1].split("\nasync function", 1)[0]
     assert "window.confirm" in delete_block
@@ -813,6 +840,9 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
         "collectionFormSubmitting",
         "collectionFormError",
         "collectionFormStatus",
+        "collectionRenameSubmitting",
+        "collectionRenameError",
+        "collectionRenameStatus",
         "deletingCollectionId",
     ]:
         assert f"{state_field}:" in state_js
