@@ -299,6 +299,11 @@ select {
   padding: 0;
 }
 
+.document-list li {
+  display: grid;
+  gap: 8px;
+}
+
 .document-list-item {
   align-items: flex-start;
   background: #ffffff;
@@ -326,6 +331,19 @@ select {
 
 .document-list-item small {
   color: #52616f;
+}
+
+.document-collection-actions {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+}
+
+.document-collection-actions label {
+  color: #52616f;
+  display: grid;
+  gap: 6px;
 }
 
 .import-batch-list {

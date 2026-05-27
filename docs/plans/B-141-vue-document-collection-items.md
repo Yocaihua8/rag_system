@@ -25,7 +25,7 @@
 
 - [x] 创建 B-141O plan，并将 BACKLOG 说明列追加本 plan 路径。
 - [x] 增加 Vue 源码契约红灯测试，覆盖集合 items API helper、文档列表加入/移出入口、LibraryView/App 事件与状态刷新。
-- [ ] 实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联。
+- [x] 实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联。
 - [ ] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
 - [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
 - [ ] 完成 BACKLOG/plan 状态回写；如本片完全验收，通过提交保留验证快照。
@@ -94,12 +94,13 @@
 
 - 2026-05-27：创建 B-141O plan；冲突扫描显示 B-141L/M/N 涉及相同文件但任务均已完成，本片按 items 操作分区继续。
 - 2026-05-27：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 4 failed / 33 passed，失败点为缺少 add/remove helper、文档列表操作入口和 App 处理函数。
+- 2026-05-27：实现 Vue 集合 items add/remove helper、文档列表单文档加入/移出入口、LibraryView 透传和 App 刷新流；聚焦测试 `tests/test_webapp/test_frontend_vue_app.py` 为 37 passed，`npm run build` 成功。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-27 00:00
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`e6755da` — test: 覆盖 Vue 文档集合文档归组入口
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — feat: 接入 Vue 文档集合文档归组
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141O 相关文件
-- **下一步**：实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联
+- **下一步**：同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。

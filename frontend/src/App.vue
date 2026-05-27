@@ -35,6 +35,9 @@
       :collection-rename-error="appState.collectionRenameError"
       :collection-rename-status="appState.collectionRenameStatus"
       :deleting-collection-id="appState.deletingCollectionId"
+      :collection-item-submitting-id="appState.collectionItemSubmittingId"
+      :collection-item-error="appState.collectionItemError"
+      :collection-item-status="appState.collectionItemStatus"
       :selected-document-id="appState.selectedDocumentId"
       :selected-document="appState.selectedDocument"
       :document-preview-loading="appState.documentPreviewLoading"
@@ -58,6 +61,8 @@
       @create-collection="handleCreateDocumentCollection"
       @delete-collection="handleDeleteDocumentCollection"
       @update-collection="handleUpdateDocumentCollection"
+      @add-document-to-collection="handleAddDocumentToCollection"
+      @remove-document-from-collection="handleRemoveDocumentFromCollection"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
@@ -76,9 +81,11 @@ import { computed, onMounted, ref } from "vue";
 import { askQuestion } from "./api/answer.js";
 import { apiGet } from "./api/client.js";
 import {
+  addDocumentToCollection,
   createDocumentCollection,
   deleteDocumentCollection,
   listDocumentCollections,
+  removeDocumentFromCollection,
   updateDocumentCollection,
 } from "./api/document-collections.js";
 import { getDocument, listDocuments } from "./api/documents.js";
@@ -168,6 +175,7 @@ async function handleSelectProject(projectId) {
   clearImportPreview();
   clearCollectionFormStatus();
   appState.selectedDocumentCollectionId = "";
+  clearCollectionItemStatus();
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadDocumentCollections();
   await loadLibraryDocuments();
@@ -182,6 +190,7 @@ async function handleCreateProject(payload) {
     const project = await createProject(payload);
     projectFormStatus.value = `已创建项目空间：${project.name}`;
     clearCollectionFormStatus();
+    clearCollectionItemStatus();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadLibraryDocuments();
@@ -392,6 +401,7 @@ async function loadDocumentCollections() {
 
 async function handleSelectDocumentCollection(collectionId) {
   appState.selectedDocumentCollectionId = collectionId;
+  clearCollectionItemStatus();
   await loadLibraryDocuments();
 }
 
@@ -400,6 +410,7 @@ async function handleCreateDocumentCollection(name) {
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
   clearCollectionRenameStatus();
+  clearCollectionItemStatus();
   try {
     await createDocumentCollection({
       projectId: appState.selectedProjectId,
@@ -419,6 +430,7 @@ async function handleUpdateDocumentCollection(payload) {
   appState.collectionRenameError = "";
   appState.collectionRenameStatus = "";
   clearCollectionFormStatus();
+  clearCollectionItemStatus();
   try {
     await updateDocumentCollection({
       collectionId: payload.collectionId,
@@ -440,6 +452,7 @@ async function handleDeleteDocumentCollection(collectionId) {
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
   clearCollectionRenameStatus();
+  clearCollectionItemStatus();
   appState.deletingCollectionId = collectionId;
   try {
     await deleteDocumentCollection(collectionId);
@@ -456,6 +469,48 @@ async function handleDeleteDocumentCollection(collectionId) {
   }
 }
 
+async function handleAddDocumentToCollection(payload) {
+  appState.collectionItemSubmittingId = payload.documentId;
+  appState.collectionItemError = "";
+  appState.collectionItemStatus = "";
+  clearCollectionFormStatus();
+  clearCollectionRenameStatus();
+  try {
+    await addDocumentToCollection({
+      collectionId: payload.collectionId,
+      documentId: payload.documentId,
+    });
+    appState.collectionItemStatus = "文档已加入集合";
+    await loadDocumentCollections();
+    await loadLibraryDocuments();
+  } catch (error) {
+    appState.collectionItemError = error.message || "文档加入集合失败";
+  } finally {
+    appState.collectionItemSubmittingId = "";
+  }
+}
+
+async function handleRemoveDocumentFromCollection(payload) {
+  appState.collectionItemSubmittingId = payload.documentId;
+  appState.collectionItemError = "";
+  appState.collectionItemStatus = "";
+  clearCollectionFormStatus();
+  clearCollectionRenameStatus();
+  try {
+    await removeDocumentFromCollection({
+      collectionId: payload.collectionId,
+      documentId: payload.documentId,
+    });
+    appState.collectionItemStatus = "文档已从集合移出";
+    await loadDocumentCollections();
+    await loadLibraryDocuments();
+  } catch (error) {
+    appState.collectionItemError = error.message || "文档移出集合失败";
+  } finally {
+    appState.collectionItemSubmittingId = "";
+  }
+}
+
 function clearCollectionFormStatus() {
   appState.collectionFormError = "";
   appState.collectionFormStatus = "";
@@ -464,6 +519,11 @@ function clearCollectionFormStatus() {
 function clearCollectionRenameStatus() {
   appState.collectionRenameError = "";
   appState.collectionRenameStatus = "";
+}
+
+function clearCollectionItemStatus() {
+  appState.collectionItemError = "";
+  appState.collectionItemStatus = "";
 }
 
 async function loadImportBatches() {

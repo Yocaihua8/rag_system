@@ -26,13 +26,51 @@
           <span>{{ document.relative_path || document.source_path || "未命名文档" }}</span>
           <small>{{ document.updated_at || "未记录更新时间" }}</small>
         </button>
+        <div v-if="documentCollections.length > 0" class="document-collection-actions">
+          <label>
+            <span>加入集合</span>
+            <select
+              v-model="collectionSelections[document.id]"
+              :disabled="isSubmitting(document) || availableCollectionsForDocument(document).length === 0"
+            >
+              <option value="">选择集合</option>
+              <option
+                v-for="collection in availableCollectionsForDocument(document)"
+                :key="collection.id"
+                :value="collection.id"
+              >
+                {{ collection.name }}
+              </option>
+            </select>
+          </label>
+          <button
+            type="button"
+            :disabled="isSubmitting(document) || !collectionSelections[document.id]"
+            @click="submitAdd(document)"
+          >
+            {{ isSubmitting(document) ? "处理中..." : "加入集合" }}
+          </button>
+          <button
+            v-if='selectedDocumentCollectionId && selectedDocumentCollectionId !== "unassigned"'
+            type="button"
+            class="danger-link"
+            :disabled="isSubmitting(document)"
+            @click="submitRemove(document)"
+          >
+            移出集合
+          </button>
+        </div>
       </li>
     </ul>
+    <p v-if="collectionItemError" class="status-line error">{{ collectionItemError }}</p>
+    <p v-else-if="collectionItemStatus" class="status-line">{{ collectionItemStatus }}</p>
   </section>
 </template>
 
 <script setup>
-defineProps({
+import { reactive } from "vue";
+
+const props = defineProps({
   documents: {
     type: Array,
     required: true,
@@ -53,7 +91,51 @@ defineProps({
     type: String,
     default: "",
   },
+  documentCollections: {
+    type: Array,
+    default: () => [],
+  },
+  selectedDocumentCollectionId: {
+    type: String,
+    default: "",
+  },
+  collectionItemSubmittingId: {
+    type: String,
+    default: "",
+  },
+  collectionItemError: {
+    type: String,
+    default: "",
+  },
+  collectionItemStatus: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["refresh-documents", "select-document"]);
+const emit = defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection"]);
+
+const collectionSelections = reactive({});
+
+function availableCollectionsForDocument() {
+  return props.documentCollections.filter((collection) => collection.id !== props.selectedDocumentCollectionId);
+}
+
+function isSubmitting(document) {
+  return props.collectionItemSubmittingId === document.id;
+}
+
+function submitAdd(document) {
+  emit("add-document-to-collection", {
+    collectionId: collectionSelections[document.id],
+    documentId: document.id,
+  });
+}
+
+function submitRemove(document) {
+  emit("remove-document-from-collection", {
+    collectionId: props.selectedDocumentCollectionId,
+    documentId: document.id,
+  });
+}
 </script>

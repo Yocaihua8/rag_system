@@ -43,3 +43,29 @@ export async function updateDocumentCollection({ collectionId, name }) {
     name: cleanName,
   });
 }
+
+export async function addDocumentToCollection({ collectionId, documentId }) {
+  if (!collectionId) {
+    throw new Error("请选择文档集合");
+  }
+  if (!documentId) {
+    throw new Error("请选择文档");
+  }
+  return apiPost("/api/document-collections/items/add", {
+    collection_id: collectionId,
+    document_ids: [documentId],
+  });
+}
+
+export async function removeDocumentFromCollection({ collectionId, documentId }) {
+  if (!collectionId) {
+    throw new Error("请选择文档集合");
+  }
+  if (!documentId) {
+    throw new Error("请选择文档");
+  }
+  return apiPost("/api/document-collections/items/remove", {
+    collection_id: collectionId,
+    document_ids: [documentId],
+  });
+}

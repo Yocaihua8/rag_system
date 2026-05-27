@@ -62,8 +62,15 @@
         :selected-document-id="selectedDocumentId"
         :loading="documentsLoading"
         :load-error="documentsLoadError"
+        :document-collections="documentCollections"
+        :selected-document-collection-id="selectedDocumentCollectionId"
+        :collection-item-submitting-id="collectionItemSubmittingId"
+        :collection-item-error="collectionItemError"
+        :collection-item-status="collectionItemStatus"
         @refresh-documents="$emit('refresh-documents')"
         @select-document="(documentId) => $emit('select-document', documentId)"
+        @add-document-to-collection="(payload) => $emit('add-document-to-collection', payload)"
+        @remove-document-from-collection="(payload) => $emit('remove-document-from-collection', payload)"
       />
       <DocumentPreviewPanel
         :selected-document="selectedDocument"
@@ -208,6 +215,18 @@ defineProps({
     type: String,
     default: "",
   },
+  collectionItemSubmittingId: {
+    type: String,
+    default: "",
+  },
+  collectionItemError: {
+    type: String,
+    default: "",
+  },
+  collectionItemStatus: {
+    type: String,
+    default: "",
+  },
   selectedDocumentId: {
     type: String,
     default: "",
@@ -265,6 +284,8 @@ defineEmits([
   "create-collection",
   "delete-collection",
   "update-collection",
+  "add-document-to-collection",
+  "remove-document-from-collection",
   "import-note",
   "import-url",
   "import-files",
