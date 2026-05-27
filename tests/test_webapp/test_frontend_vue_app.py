@@ -259,7 +259,7 @@ def test_vue_library_document_panels_render_list_and_preview_states():
         "未选择项目空间",
         'v-for="document in documents"',
         '@click="$emit(\'select-document\', document.id)"',
-        'defineEmits(["refresh-documents", "select-document"])',
+        'defineEmits(["refresh-documents", "select-document", "add-document-to-collection", "remove-document-from-collection"])',
     ]:
         assert marker in list_panel_vue
 
@@ -709,12 +709,6 @@ def test_vue_document_collections_api_helper_uses_existing_management_contracts(
     assert 'apiPost("/api/document-collections/update"' in collections_js
     assert "collection_id: collectionId" in collections_js
 
-    for forbidden_action in [
-        "/api/document-collections/items/add",
-        "/api/document-collections/items/remove",
-    ]:
-        assert forbidden_action not in collections_js
-
 
 def test_vue_document_collection_panel_renders_readonly_filter_controls():
     panel_path = Path("frontend/src/components/DocumentCollectionPanel.vue")
@@ -771,6 +765,49 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
     assert "@create-collection" in library_vue
     assert "@delete-collection" in library_vue
     assert "@update-collection" in library_vue
+
+
+def test_vue_document_collections_api_helper_uses_existing_item_contracts():
+    collections_js = _read("frontend/src/api/document-collections.js")
+
+    assert "export async function addDocumentToCollection({ collectionId, documentId })" in collections_js
+    assert 'apiPost("/api/document-collections/items/add"' in collections_js
+    assert "collection_id: collectionId" in collections_js
+    assert "document_ids: [documentId]" in collections_js
+    assert "export async function removeDocumentFromCollection({ collectionId, documentId })" in collections_js
+    assert 'apiPost("/api/document-collections/items/remove"' in collections_js
+    assert 'throw new Error("请选择文档集合")' in collections_js
+    assert 'throw new Error("请选择文档")' in collections_js
+
+
+def test_vue_document_list_panel_renders_collection_item_controls():
+    list_panel_vue = _read("frontend/src/components/DocumentListPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "加入集合",
+        "移出集合",
+        "documentCollections",
+        "selectedDocumentCollectionId",
+        "collectionSelections",
+        "collectionItemSubmittingId",
+        "collectionItemError",
+        "collectionItemStatus",
+        "availableCollectionsForDocument",
+        "add-document-to-collection",
+        "remove-document-from-collection",
+        'v-for="collection in availableCollectionsForDocument(document)"',
+        'selectedDocumentCollectionId !== "unassigned"',
+    ]:
+        assert marker in list_panel_vue
+
+    assert ":document-collections=\"documentCollections\"" in library_vue
+    assert ":selected-document-collection-id=\"selectedDocumentCollectionId\"" in library_vue
+    assert ":collection-item-submitting-id=\"collectionItemSubmittingId\"" in library_vue
+    assert ":collection-item-error=\"collectionItemError\"" in library_vue
+    assert ":collection-item-status=\"collectionItemStatus\"" in library_vue
+    assert "@add-document-to-collection" in library_vue
+    assert "@remove-document-from-collection" in library_vue
 
 
 def test_vue_app_loads_document_collections_and_filters_document_list():
@@ -844,5 +881,48 @@ def test_vue_app_loads_document_collections_and_filters_document_list():
         "collectionRenameError",
         "collectionRenameStatus",
         "deletingCollectionId",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_handles_document_collection_item_add_and_remove():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "addDocumentToCollection",
+        "removeDocumentFromCollection",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":collection-item-submitting-id=\"appState.collectionItemSubmittingId\"",
+        ":collection-item-error=\"appState.collectionItemError\"",
+        ":collection-item-status=\"appState.collectionItemStatus\"",
+        "@add-document-to-collection=\"handleAddDocumentToCollection\"",
+        "@remove-document-from-collection=\"handleRemoveDocumentFromCollection\"",
+        "handleAddDocumentToCollection",
+        "handleRemoveDocumentFromCollection",
+        "appState.collectionItemStatus = \"文档已加入集合\"",
+        "appState.collectionItemStatus = \"文档已从集合移出\"",
+        "await loadDocumentCollections()",
+        "await loadLibraryDocuments()",
+    ]:
+        assert marker in app_vue
+
+    add_block = app_vue.split("async function handleAddDocumentToCollection(payload)", 1)[1].split("\nasync function", 1)[0]
+    assert "addDocumentToCollection({" in add_block
+    assert "collectionId: payload.collectionId" in add_block
+    assert "documentId: payload.documentId" in add_block
+
+    remove_block = app_vue.split("async function handleRemoveDocumentFromCollection(payload)", 1)[1].split("\nasync function", 1)[0]
+    assert "removeDocumentFromCollection({" in remove_block
+    assert "collectionId: payload.collectionId" in remove_block
+    assert "documentId: payload.documentId" in remove_block
+
+    for state_field in [
+        "collectionItemSubmittingId",
+        "collectionItemError",
+        "collectionItemStatus",
     ]:
         assert f"{state_field}:" in state_js

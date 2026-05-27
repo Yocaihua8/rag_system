@@ -24,7 +24,7 @@
 ## 3. 任务拆解
 
 - [x] 创建 B-141O plan，并将 BACKLOG 说明列追加本 plan 路径。
-- [ ] 增加 Vue 源码契约红灯测试，覆盖集合 items API helper、文档列表加入/移出入口、LibraryView/App 事件与状态刷新。
+- [x] 增加 Vue 源码契约红灯测试，覆盖集合 items API helper、文档列表加入/移出入口、LibraryView/App 事件与状态刷新。
 - [ ] 实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联。
 - [ ] 同步 `docs/features/frontend-engineering.md`、`docs/design/architecture-overview.md`、`CHANGELOG.md`、`docs/guides/testing.md` 和 devlog。
 - [ ] 运行前端源码测试、Web MVP 测试、legacy 回归、构建和浏览器冒烟。
@@ -93,12 +93,13 @@
 ## 8. 执行记录
 
 - 2026-05-27：创建 B-141O plan；冲突扫描显示 B-141L/M/N 涉及相同文件但任务均已完成，本片按 items 操作分区继续。
+- 2026-05-27：新增 Vue 源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 4 failed / 33 passed，失败点为缺少 add/remove helper、文档列表操作入口和 App 处理函数。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-27 00:00
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`e514672` — docs: 创建 B-141O 文档集合归组计划
+- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — test: 覆盖 Vue 文档集合文档归组入口
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141O 相关文件
-- **下一步**：增加 Vue 源码契约红灯测试，覆盖集合 items API helper、文档列表加入/移出入口、LibraryView/App 事件与状态刷新
+- **下一步**：实现 `document-collections.js`、`DocumentListPanel.vue`、`LibraryView.vue`、`App.vue` 和共享状态的最小加入/移出串联
 - **续任务须知**：不要推送；不要清理 unrelated dirty files；不要修改后端接口或 SQLite schema。
