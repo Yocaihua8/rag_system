@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">工作台</p>
         <h2>项目问答</h2>
-        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈；SSE、Agent 工具和检索调试后续迁移。</p>
+        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试；SSE、Agent 工具和会话后续迁移。</p>
       </div>
     </header>
 
@@ -27,6 +27,14 @@
         :answer-feedback-error="answerFeedbackError"
         @submit-answer-feedback="(rating) => $emit('submit-answer-feedback', rating)"
       />
+      <SearchDebugPanel
+        :selected-project-id="selectedProjectId"
+        :search-debug-result="searchDebugResult"
+        :search-debug-loading="searchDebugLoading"
+        :search-debug-error="searchDebugError"
+        :search-debug-status="searchDebugStatus"
+        @run-search-debug="(payload) => $emit('run-search-debug', payload)"
+      />
     </div>
   </section>
 </template>
@@ -34,6 +42,7 @@
 <script setup>
 import AnswerPanel from "../components/AnswerPanel.vue";
 import QuestionPanel from "../components/QuestionPanel.vue";
+import SearchDebugPanel from "../components/SearchDebugPanel.vue";
 
 defineProps({
   statusMessage: {
@@ -76,7 +85,23 @@ defineProps({
     type: String,
     default: "",
   },
+  searchDebugResult: {
+    type: Object,
+    default: null,
+  },
+  searchDebugLoading: {
+    type: Boolean,
+    default: false,
+  },
+  searchDebugError: {
+    type: String,
+    default: "",
+  },
+  searchDebugStatus: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["check-health", "submit-question", "submit-answer-feedback"]);
+defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-search-debug"]);
 </script>

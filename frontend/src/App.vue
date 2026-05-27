@@ -29,6 +29,10 @@
       :answer-feedback-submitting="appState.answerFeedbackSubmitting"
       :answer-feedback-status="appState.answerFeedbackStatus"
       :answer-feedback-error="appState.answerFeedbackError"
+      :search-debug-result="appState.searchDebugResult"
+      :search-debug-loading="appState.searchDebugLoading"
+      :search-debug-error="appState.searchDebugError"
+      :search-debug-status="appState.searchDebugStatus"
       :documents="appState.documents"
       :documents-loading="appState.documentsLoading"
       :documents-load-error="appState.documentsLoadError"
@@ -104,6 +108,7 @@
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
+      @run-search-debug="handleRunSearchDebug"
       @refresh-documents="loadLibraryDocuments"
       @select-document="handleSelectDocument"
       @refresh-collections="loadDocumentCollections"
@@ -189,6 +194,7 @@ import {
   testLlmSettings,
   testModelProfile,
 } from "./api/settings.js";
+import { runSearchDebug } from "./api/search.js";
 import AppShell from "./components/AppShell.vue";
 import { appState, showView } from "./state/app-state.js";
 import AssessmentView from "./views/AssessmentView.vue";
@@ -550,6 +556,7 @@ async function handleSelectProject(projectId) {
   clearProjectMutationStatus();
   clearPromptPresetState();
   clearAnswerFeedbackState();
+  clearSearchDebugState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
@@ -574,6 +581,7 @@ async function handleCreateProject(payload) {
     clearDocumentDeleteStatus();
     clearPromptPresetState();
     clearAnswerFeedbackState();
+    clearSearchDebugState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
@@ -644,6 +652,7 @@ function resetLibraryStateAfterProjectDelete() {
   appState.importBatchDetailError = "";
   clearPromptPresetState();
   clearAnswerFeedbackState();
+  clearSearchDebugState();
   resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
@@ -787,6 +796,32 @@ function clearAnswerFeedbackState() {
   appState.answerFeedbackSubmitting = false;
   appState.answerFeedbackError = "";
   appState.answerFeedbackStatus = "";
+}
+
+function clearSearchDebugState() {
+  appState.searchDebugResult = null;
+  appState.searchDebugLoading = false;
+  appState.searchDebugError = "";
+  appState.searchDebugStatus = "";
+}
+
+async function handleRunSearchDebug(payload) {
+  appState.searchDebugLoading = true;
+  appState.searchDebugError = "";
+  appState.searchDebugStatus = "正在生成检索诊断...";
+  try {
+    const data = await runSearchDebug({
+      projectId: appState.selectedProjectId,
+      ...payload,
+    });
+    appState.searchDebugResult = data;
+    appState.searchDebugStatus = `检索诊断完成：${data.hits?.length || 0} 条来源。`;
+  } catch (error) {
+    appState.searchDebugError = error.message || "检索诊断失败";
+    appState.searchDebugStatus = "检索诊断失败";
+  } finally {
+    appState.searchDebugLoading = false;
+  }
 }
 
 async function handleSubmitQuestion(question) {
