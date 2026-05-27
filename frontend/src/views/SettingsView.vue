@@ -4,10 +4,10 @@
       <div>
         <p class="section-kicker">设置</p>
         <h2>设置</h2>
-        <p>B-141R 已迁移模型设置和模型 Profile；Prompt 预设后续迁移。</p>
+        <p>B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设；Workbench SSE/会话后续迁移。</p>
       </div>
-      <button type="button" :disabled="llmSettingsLoading || modelProfilesLoading" @click="$emit('load-settings')">
-        {{ llmSettingsLoading || modelProfilesLoading ? "刷新中..." : "刷新设置" }}
+      <button type="button" :disabled="llmSettingsLoading || modelProfilesLoading || promptPresetsLoading" @click="$emit('load-settings')">
+        {{ llmSettingsLoading || modelProfilesLoading || promptPresetsLoading ? "刷新中..." : "刷新设置" }}
       </button>
     </header>
 
@@ -168,6 +168,114 @@
           </div>
         </form>
       </section>
+
+      <section class="settings-panel">
+        <div class="section-title-row">
+          <div>
+            <p class="section-kicker">Prompt 预设</p>
+            <h3>项目回答风格</h3>
+          </div>
+          <button type="button" :disabled="promptPresetsLoading" @click="$emit('load-prompt-presets')">
+            {{ promptPresetsLoading ? "刷新中..." : "刷新预设" }}
+          </button>
+        </div>
+
+        <p class="status-line">当前默认 Prompt：{{ defaultPromptPresetLabel }}</p>
+        <p v-if="promptPresetMutationError" class="status-line error">{{ promptPresetMutationError }}</p>
+        <p v-if="promptPresetLoadError" class="status-line error">{{ promptPresetLoadError }}</p>
+        <p class="status-line">{{ promptPresetStatus || promptPresetEmptyMessage }}</p>
+
+        <ul class="model-profile-list">
+          <li v-for="preset in promptPresets" :key="preset.id">
+            <div>
+              <strong>{{ preset.id === selectedPromptPresetId ? `${preset.name}（默认）` : preset.name }}</strong>
+              <small>{{ preset.description || "无说明" }}</small>
+            </div>
+            <div class="actions compact-actions">
+              <button type="button" @click="editPromptPreset(preset)">编辑</button>
+              <button
+                type="button"
+                :disabled="promptPresetDefaultSubmitting"
+                @click="$emit('set-default-prompt-preset', preset.id)"
+              >
+                {{ preset.id === selectedPromptPresetId ? "默认" : "设为默认" }}
+              </button>
+              <button
+                class="danger-link"
+                type="button"
+                :disabled="promptPresetDeletingId === preset.id"
+                @click="$emit('delete-prompt-preset', preset.id)"
+              >
+                {{ promptPresetDeletingId === preset.id ? "删除中..." : "删除预设" }}
+              </button>
+            </div>
+          </li>
+        </ul>
+
+        <div class="actions">
+          <button
+            type="button"
+            :disabled="promptPresetDefaultSubmitting || !selectedProjectId"
+            @click="$emit('set-default-prompt-preset', '')"
+          >
+            清空默认 Prompt
+          </button>
+        </div>
+
+        <form class="project-form" @submit.prevent="submitPromptPreset">
+          <p class="section-kicker">{{ promptPresetForm.id ? "编辑 Prompt 预设" : "新建 Prompt 预设" }}</p>
+          <label>
+            名称
+            <input v-model.trim="promptPresetForm.name" name="prompt_name" placeholder="例如：项目问答" :disabled="promptPresetSubmitting || !selectedProjectId" />
+          </label>
+          <label>
+            说明
+            <input
+              v-model.trim="promptPresetForm.description"
+              name="prompt_description"
+              placeholder="用于回答项目资料问题"
+              :disabled="promptPresetSubmitting || !selectedProjectId"
+            />
+          </label>
+          <label>
+            系统提示词
+            <textarea
+              v-model.trim="promptPresetForm.systemPrompt"
+              name="system_prompt"
+              placeholder="只基于来源片段回答，资料不足时说明缺口"
+              :disabled="promptPresetSubmitting || !selectedProjectId"
+            ></textarea>
+          </label>
+          <label>
+            回答格式
+            <textarea
+              v-model.trim="promptPresetForm.answerFormat"
+              name="answer_format"
+              placeholder="先结论，再列依据来源"
+              :disabled="promptPresetSubmitting || !selectedProjectId"
+            ></textarea>
+          </label>
+          <div class="actions">
+            <button type="submit" :disabled="promptPresetSubmitting || !selectedProjectId">
+              {{ promptPresetSubmitting ? "保存中..." : "保存预设" }}
+            </button>
+            <button type="button" @click="resetPromptPresetForm">取消编辑</button>
+          </div>
+        </form>
+
+        <p class="section-kicker">内置模板</p>
+        <ul class="model-profile-list">
+          <li v-for="template in promptPresetTemplates" :key="template.name">
+            <div>
+              <strong>{{ template.name }}</strong>
+              <small>{{ template.description || "无说明" }}</small>
+            </div>
+            <div class="actions compact-actions">
+              <button type="button" :disabled="!selectedProjectId" @click="copyPromptPresetTemplate(template)">复制模板</button>
+            </div>
+          </li>
+        </ul>
+      </section>
     </div>
   </section>
 </template>
@@ -240,9 +348,53 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  selectedProjectId: {
+    type: String,
+    default: "",
+  },
+  promptPresets: {
+    type: Array,
+    default: () => [],
+  },
+  promptPresetTemplates: {
+    type: Array,
+    default: () => [],
+  },
+  selectedPromptPresetId: {
+    type: String,
+    default: "",
+  },
+  promptPresetsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  promptPresetLoadError: {
+    type: String,
+    default: "",
+  },
+  promptPresetSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  promptPresetDeletingId: {
+    type: String,
+    default: "",
+  },
+  promptPresetDefaultSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  promptPresetMutationError: {
+    type: String,
+    default: "",
+  },
+  promptPresetStatus: {
+    type: String,
+    default: "",
+  },
 });
 
-const emit = defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile"]);
+const emit = defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"]);
 
 const llmForm = reactive({
   provider: "api",
@@ -262,6 +414,14 @@ const profileForm = reactive({
   apiKeyRef: "",
 });
 
+const promptPresetForm = reactive({
+  id: "",
+  name: "",
+  description: "",
+  systemPrompt: "",
+  answerFormat: "",
+});
+
 watch(
   () => props.llmSettings,
   (settings) => {
@@ -271,6 +431,13 @@ watch(
     llmForm.apiKey = "";
   },
   { immediate: true },
+);
+
+watch(
+  () => props.selectedProjectId,
+  () => {
+    resetPromptPresetForm();
+  },
 );
 
 const llmSettingsSummary = computed(() => {
@@ -290,6 +457,27 @@ const defaultModelProfileLabel = computed(() => {
   }
   const profile = props.modelProfiles.find((entry) => entry.id === props.defaultModelProfileId);
   return profile?.name || props.defaultModelProfileId;
+});
+
+const defaultPromptPresetLabel = computed(() => {
+  if (!props.selectedPromptPresetId) {
+    return "未选择";
+  }
+  const preset = props.promptPresets.find((entry) => entry.id === props.selectedPromptPresetId);
+  return preset?.name || props.selectedPromptPresetId;
+});
+
+const promptPresetEmptyMessage = computed(() => {
+  if (!props.selectedProjectId) {
+    return "请选择项目空间后管理 Prompt 预设。";
+  }
+  if (props.promptPresetsLoading) {
+    return "正在读取 Prompt 预设...";
+  }
+  if (props.promptPresets.length === 0) {
+    return "暂无 Prompt 预设，可从模板复制后保存。";
+  }
+  return "";
 });
 
 function submitLlmSettings() {
@@ -320,5 +508,36 @@ function resetProfileForm() {
 
 function submitModelProfile() {
   emit("save-model-profile", { ...profileForm });
+}
+
+function editPromptPreset(preset) {
+  promptPresetForm.id = preset.id || "";
+  promptPresetForm.name = preset.name || "";
+  promptPresetForm.description = preset.description || "";
+  promptPresetForm.systemPrompt = preset.system_prompt || "";
+  promptPresetForm.answerFormat = preset.answer_format || "";
+}
+
+function copyPromptPresetTemplate(template) {
+  promptPresetForm.id = "";
+  promptPresetForm.name = template.name || "";
+  promptPresetForm.description = template.description || "";
+  promptPresetForm.systemPrompt = template.system_prompt || "";
+  promptPresetForm.answerFormat = template.answer_format || "";
+}
+
+function resetPromptPresetForm() {
+  promptPresetForm.id = "";
+  promptPresetForm.name = "";
+  promptPresetForm.description = "";
+  promptPresetForm.systemPrompt = "";
+  promptPresetForm.answerFormat = "";
+}
+
+function submitPromptPreset() {
+  emit("save-prompt-preset", {
+    ...promptPresetForm,
+    projectId: props.selectedProjectId,
+  });
 }
 </script>

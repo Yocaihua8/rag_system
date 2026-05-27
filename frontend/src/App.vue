@@ -72,6 +72,16 @@
       :model-profile-default-submitting="appState.modelProfileDefaultSubmitting"
       :model-profile-mutation-error="appState.modelProfileMutationError"
       :model-profile-status="appState.modelProfileStatus"
+      :prompt-presets="appState.promptPresets"
+      :prompt-preset-templates="appState.promptPresetTemplates"
+      :selected-prompt-preset-id="appState.selectedPromptPresetId"
+      :prompt-presets-loading="appState.promptPresetsLoading"
+      :prompt-preset-load-error="appState.promptPresetLoadError"
+      :prompt-preset-submitting="appState.promptPresetSubmitting"
+      :prompt-preset-deleting-id="appState.promptPresetDeletingId"
+      :prompt-preset-default-submitting="appState.promptPresetDefaultSubmitting"
+      :prompt-preset-mutation-error="appState.promptPresetMutationError"
+      :prompt-preset-status="appState.promptPresetStatus"
       @check-health="checkHealth"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
@@ -105,6 +115,10 @@
       @delete-model-profile="handleDeleteModelProfile"
       @set-default-model-profile="handleSetDefaultModelProfile"
       @test-model-profile="handleTestModelProfile"
+      @load-prompt-presets="loadPromptPresets"
+      @save-prompt-preset="handleSavePromptPreset"
+      @delete-prompt-preset="handleDeletePromptPreset"
+      @set-default-prompt-preset="handleSetDefaultPromptPreset"
     />
   </AppShell>
 </template>
@@ -143,11 +157,15 @@ import {
 } from "./api/projects.js";
 import {
   deleteModelProfile,
+  deletePromptPreset,
   listModelProfiles,
+  listPromptPresets,
   loadLlmSettings,
   saveLlmSettings,
   saveModelProfile,
+  savePromptPreset,
   setDefaultModelProfile,
+  setDefaultPromptPreset,
   testLlmSettings,
   testModelProfile,
 } from "./api/settings.js";
@@ -202,7 +220,7 @@ async function checkHealth() {
 }
 
 async function loadSettingsPage() {
-  await Promise.all([loadModelSettings(), loadModelProfiles()]);
+  await Promise.all([loadModelSettings(), loadModelProfiles(), loadPromptPresets()]);
 }
 
 async function loadModelSettings() {
@@ -322,6 +340,86 @@ async function handleTestModelProfile(profileId) {
   }
 }
 
+async function loadPromptPresets() {
+  if (!appState.selectedProjectId) {
+    clearPromptPresetState();
+    appState.promptPresetStatus = "请选择项目空间后管理 Prompt 预设";
+    return;
+  }
+
+  appState.promptPresetsLoading = true;
+  appState.promptPresetLoadError = "";
+  try {
+    const data = await listPromptPresets(appState.selectedProjectId);
+    appState.promptPresets = data.presets || [];
+    appState.promptPresetTemplates = data.templates || [];
+    appState.selectedPromptPresetId = data.default_preset_id || "";
+    appState.promptPresetStatus = "已加载当前项目 Prompt 预设";
+  } catch (error) {
+    appState.promptPresets = [];
+    appState.promptPresetTemplates = [];
+    appState.selectedPromptPresetId = "";
+    appState.promptPresetLoadError = error.message || "Prompt 预设读取失败";
+  } finally {
+    appState.promptPresetsLoading = false;
+  }
+}
+
+async function handleSavePromptPreset(payload) {
+  appState.promptPresetSubmitting = true;
+  appState.promptPresetMutationError = "";
+  appState.promptPresetStatus = "";
+  try {
+    await savePromptPreset({
+      ...payload,
+      projectId: appState.selectedProjectId,
+    });
+    await loadPromptPresets();
+    appState.promptPresetStatus = "Prompt 预设已保存";
+  } catch (error) {
+    appState.promptPresetMutationError = error.message || "Prompt 预设保存失败";
+  } finally {
+    appState.promptPresetSubmitting = false;
+  }
+}
+
+async function handleDeletePromptPreset(presetId) {
+  if (!window.confirm("确认删除这个 Prompt 预设？")) {
+    return;
+  }
+  appState.promptPresetDeletingId = presetId;
+  appState.promptPresetMutationError = "";
+  appState.promptPresetStatus = "";
+  try {
+    await deletePromptPreset(presetId);
+    await loadPromptPresets();
+    appState.promptPresetStatus = "Prompt 预设已删除";
+  } catch (error) {
+    appState.promptPresetMutationError = error.message || "Prompt 预设删除失败";
+  } finally {
+    appState.promptPresetDeletingId = "";
+  }
+}
+
+async function handleSetDefaultPromptPreset(presetId) {
+  appState.promptPresetDefaultSubmitting = true;
+  appState.promptPresetMutationError = "";
+  appState.promptPresetStatus = "";
+  try {
+    const data = await setDefaultPromptPreset({
+      projectId: appState.selectedProjectId,
+      presetId,
+    });
+    appState.selectedPromptPresetId = data.default_preset_id || "";
+    await loadPromptPresets();
+    appState.promptPresetStatus = "默认 Prompt 预设已更新";
+  } catch (error) {
+    appState.promptPresetMutationError = error.message || "默认 Prompt 预设更新失败";
+  } finally {
+    appState.promptPresetDefaultSubmitting = false;
+  }
+}
+
 function formatLlmSettingsStatus(settings = {}) {
   if (!settings.provider && !settings.model) {
     return "模型设置已读取";
@@ -339,6 +437,7 @@ async function loadProjectSpaces() {
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadPromptPresets();
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
@@ -351,6 +450,7 @@ async function handleSelectProject(projectId) {
   clearImportPreview();
   clearCollectionFormStatus();
   clearProjectMutationStatus();
+  clearPromptPresetState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
   clearDocumentDeleteStatus();
@@ -358,6 +458,7 @@ async function handleSelectProject(projectId) {
   await loadDocumentCollections();
   await loadLibraryDocuments();
   await loadImportBatches();
+  await loadPromptPresets();
 }
 
 async function handleCreateProject(payload) {
@@ -371,10 +472,12 @@ async function handleCreateProject(payload) {
     clearProjectMutationStatus();
     clearCollectionItemStatus();
     clearDocumentDeleteStatus();
+    clearPromptPresetState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadPromptPresets();
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -437,6 +540,7 @@ function resetLibraryStateAfterProjectDelete() {
   appState.selectedImportBatch = null;
   appState.selectedImportBatchItems = [];
   appState.importBatchDetailError = "";
+  clearPromptPresetState();
   clearImportPreview();
   clearCollectionFormStatus();
   clearCollectionRenameStatus();
@@ -792,6 +896,16 @@ function clearCollectionFormStatus() {
 function clearProjectMutationStatus() {
   appState.projectMutationError = "";
   appState.projectMutationStatus = "";
+}
+
+function clearPromptPresetState() {
+  appState.promptPresets = [];
+  appState.promptPresetTemplates = [];
+  appState.selectedPromptPresetId = "";
+  appState.editingPromptPresetId = "";
+  appState.promptPresetLoadError = "";
+  appState.promptPresetMutationError = "";
+  appState.promptPresetStatus = "";
 }
 
 function clearCollectionRenameStatus() {

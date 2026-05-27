@@ -56,3 +56,40 @@ export async function testModelProfile(profileId) {
   }
   return apiPost("/api/model-profiles/test", { profile_id: profileId });
 }
+
+export async function listPromptPresets(projectId) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  return apiGet(`/api/prompt-presets?project_id=${encodeURIComponent(projectId)}`);
+}
+
+export async function savePromptPreset(preset) {
+  const payload = {
+    project_id: preset.projectId,
+    preset_id: preset.id || preset.preset_id || "",
+    name: String(preset.name || "").trim(),
+    description: String(preset.description || "").trim(),
+    system_prompt: String(preset.systemPrompt || preset.system_prompt || "").trim(),
+    answer_format: String(preset.answerFormat || preset.answer_format || "").trim(),
+  };
+  const path = payload.preset_id ? "/api/prompt-presets/update" : "/api/prompt-presets";
+  return apiPost(path, payload);
+}
+
+export async function deletePromptPreset(presetId) {
+  if (!presetId) {
+    throw new Error("请选择 Prompt 预设");
+  }
+  return apiPost("/api/prompt-presets/delete", { preset_id: presetId });
+}
+
+export async function setDefaultPromptPreset({ projectId, presetId }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  return apiPost("/api/prompt-presets/default", {
+    project_id: projectId,
+    preset_id: presetId || "",
+  });
+}

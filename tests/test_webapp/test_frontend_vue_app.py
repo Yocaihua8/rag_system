@@ -1184,7 +1184,7 @@ def test_vue_settings_view_renders_llm_settings_and_model_profile_controls():
         "profileForm",
         "editProfile",
         'v-for="profile in modelProfiles"',
-        'defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile"])',
+        'defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
     ]:
         assert marker in settings_vue
 
