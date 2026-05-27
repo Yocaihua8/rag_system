@@ -82,6 +82,16 @@
       :prompt-preset-default-submitting="appState.promptPresetDefaultSubmitting"
       :prompt-preset-mutation-error="appState.promptPresetMutationError"
       :prompt-preset-status="appState.promptPresetStatus"
+      :assessment-session="appState.assessmentSession"
+      :assessment-question="appState.assessmentQuestion"
+      :assessment-question-index="appState.assessmentQuestionIndex"
+      :assessment-results="appState.assessmentResults"
+      :assessment-missed-questions="appState.assessmentMissedQuestions"
+      :assessment-answered-current="appState.assessmentAnsweredCurrent"
+      :assessment-loading="appState.assessmentLoading"
+      :assessment-submitting="appState.assessmentSubmitting"
+      :assessment-error="appState.assessmentError"
+      :assessment-status="appState.assessmentStatus"
       @check-health="checkHealth"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
@@ -119,6 +129,10 @@
       @save-prompt-preset="handleSavePromptPreset"
       @delete-prompt-preset="handleDeletePromptPreset"
       @set-default-prompt-preset="handleSetDefaultPromptPreset"
+      @start-assessment="handleStartAssessment"
+      @submit-assessment-answer="handleSubmitAssessmentAnswer"
+      @next-assessment-question="handleNextAssessmentQuestion"
+      @reset-assessment="resetAssessmentState"
     />
   </AppShell>
 </template>
@@ -127,6 +141,7 @@
 import { computed, onMounted, ref } from "vue";
 
 import { askQuestion } from "./api/answer.js";
+import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
 import {
   addDocumentToCollection,
@@ -420,6 +435,84 @@ async function handleSetDefaultPromptPreset(presetId) {
   }
 }
 
+async function handleStartAssessment() {
+  appState.assessmentLoading = true;
+  appState.assessmentError = "";
+  appState.assessmentStatus = "正在生成评估题...";
+  try {
+    const data = await startAssessmentSession(appState.selectedProjectId);
+    appState.assessmentSession = data.session;
+    appState.assessmentQuestionIndex = 0;
+    appState.assessmentResults = [];
+    appState.assessmentMissedQuestions = [];
+    appState.assessmentAnsweredCurrent = false;
+    appState.assessmentQuestion = currentAssessmentQuestion();
+    appState.assessmentStatus = "评估题已生成";
+  } catch (error) {
+    appState.assessmentError = error.message || "评估题生成失败";
+    appState.assessmentStatus = "评估题生成失败";
+  } finally {
+    appState.assessmentLoading = false;
+  }
+}
+
+async function handleSubmitAssessmentAnswer(answer) {
+  appState.assessmentSubmitting = true;
+  appState.assessmentError = "";
+  appState.assessmentStatus = "正在评估回答...";
+  try {
+    const data = await submitAssessmentAnswer({
+      projectId: appState.selectedProjectId,
+      question: appState.assessmentQuestion,
+      answer,
+    });
+    const entry = {
+      question: appState.assessmentQuestion,
+      result: data.result,
+    };
+    appState.assessmentResults = [...appState.assessmentResults, entry];
+    appState.assessmentMissedQuestions = appState.assessmentResults.filter((item) => item.result?.status !== "已掌握");
+    appState.assessmentAnsweredCurrent = true;
+    appState.assessmentStatus = "评估反馈已生成";
+  } catch (error) {
+    appState.assessmentError = error.message || "评估回答失败";
+    appState.assessmentStatus = "评估回答失败";
+  } finally {
+    appState.assessmentSubmitting = false;
+  }
+}
+
+function handleNextAssessmentQuestion() {
+  if (!appState.assessmentSession) {
+    appState.assessmentStatus = "请先开始评估";
+    return;
+  }
+  if (!hasNextAssessmentQuestion()) {
+    appState.assessmentQuestion = null;
+    appState.assessmentAnsweredCurrent = true;
+    appState.assessmentStatus = "本轮评估已完成";
+    return;
+  }
+  appState.assessmentQuestionIndex += 1;
+  appState.assessmentQuestion = currentAssessmentQuestion();
+  appState.assessmentAnsweredCurrent = false;
+  appState.assessmentStatus = `进入第 ${appState.assessmentQuestionIndex + 1} 题`;
+}
+
+function currentAssessmentQuestion() {
+  const questions = Array.isArray(appState.assessmentSession?.questions)
+    ? appState.assessmentSession.questions
+    : [];
+  return questions[appState.assessmentQuestionIndex] || null;
+}
+
+function hasNextAssessmentQuestion() {
+  const questions = Array.isArray(appState.assessmentSession?.questions)
+    ? appState.assessmentSession.questions
+    : [];
+  return appState.assessmentQuestionIndex + 1 < questions.length;
+}
+
 function formatLlmSettingsStatus(settings = {}) {
   if (!settings.provider && !settings.model) {
     return "模型设置已读取";
@@ -451,6 +544,7 @@ async function handleSelectProject(projectId) {
   clearCollectionFormStatus();
   clearProjectMutationStatus();
   clearPromptPresetState();
+  resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
   clearDocumentDeleteStatus();
@@ -473,6 +567,7 @@ async function handleCreateProject(payload) {
     clearCollectionItemStatus();
     clearDocumentDeleteStatus();
     clearPromptPresetState();
+    resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadLibraryDocuments();
@@ -541,6 +636,7 @@ function resetLibraryStateAfterProjectDelete() {
   appState.selectedImportBatchItems = [];
   appState.importBatchDetailError = "";
   clearPromptPresetState();
+  resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
   clearCollectionRenameStatus();
@@ -906,6 +1002,17 @@ function clearPromptPresetState() {
   appState.promptPresetLoadError = "";
   appState.promptPresetMutationError = "";
   appState.promptPresetStatus = "";
+}
+
+function resetAssessmentState() {
+  appState.assessmentSession = null;
+  appState.assessmentQuestion = null;
+  appState.assessmentQuestionIndex = 0;
+  appState.assessmentResults = [];
+  appState.assessmentMissedQuestions = [];
+  appState.assessmentAnsweredCurrent = false;
+  appState.assessmentError = "";
+  appState.assessmentStatus = "等待评估";
 }
 
 function clearCollectionRenameStatus() {

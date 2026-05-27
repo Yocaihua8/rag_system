@@ -108,6 +108,10 @@ export function createInitialState() {
     assessmentResults: [],
     assessmentMissedQuestions: [],
     assessmentAnsweredCurrent: false,
+    assessmentLoading: false,
+    assessmentSubmitting: false,
+    assessmentError: "",
+    assessmentStatus: "等待评估",
   };
 }
 
