@@ -524,7 +524,7 @@ def test_vue_search_debug_panel_renders_rag_diagnostics_controls():
         "searchDebugQuery",
         "searchDebugParameters",
         "formatScore",
-        'defineEmits(["run-search-debug", "save-retrieval-settings"])',
+        'defineEmits(["run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review"])',
     ]:
         assert marker in panel_vue
 
@@ -572,7 +572,7 @@ def test_vue_search_debug_panel_renders_retrieval_settings_defaults_and_save_con
         "默认值",
         "检索默认值",
         "saveRetrievalSettings",
-        'defineEmits(["run-search-debug", "save-retrieval-settings"])',
+        'defineEmits(["run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review"])',
     ]:
         assert marker in panel_vue
 
@@ -642,6 +642,130 @@ def test_vue_app_loads_and_saves_project_retrieval_settings():
         "retrievalSettingsSaving",
         "retrievalSettingsError",
         "retrievalSettingsStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_search_api_helper_uses_existing_retrieval_review_contracts():
+    search_js = _read("frontend/src/api/search.js")
+
+    for marker in [
+        'import { apiGet, apiPost } from "./client.js";',
+        "export async function saveRetrievalReview({ projectId, query, note = \"\", topK = 5, minScore = 0, useKeyword = true, useVector = true })",
+        'throw new Error("请先创建或选择项目空间")',
+        'throw new Error("请输入检索复盘查询")',
+        'apiPost("/api/retrieval/reviews"',
+        "project_id: projectId",
+        "query: trimmedQuery",
+        "note",
+        "top_k: Number(topK)",
+        "min_score: Number(minScore)",
+        "use_keyword: Boolean(useKeyword)",
+        "use_vector: Boolean(useVector)",
+        "return data.review || null",
+        "export async function listRetrievalReviews(projectId)",
+        'apiGet(`/api/retrieval/reviews?project_id=${encodeURIComponent(projectId)}`)',
+        "return data.reviews || []",
+        "export async function getRetrievalReviewDetail(reviewId)",
+        'throw new Error("请选择检索复盘记录")',
+        'apiGet(`/api/retrieval/reviews/detail?review_id=${encodeURIComponent(reviewId)}`)',
+        "export async function deleteRetrievalReview(reviewId)",
+        'apiPost("/api/retrieval/reviews/delete"',
+        "review_id: reviewId",
+    ]:
+        assert marker in search_js
+
+
+def test_vue_search_debug_panel_renders_retrieval_review_controls_and_detail():
+    panel_vue = _read("frontend/src/components/SearchDebugPanel.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "检索复盘",
+        "复盘备注",
+        "保存复盘",
+        "复盘历史",
+        "查看详情",
+        "删除",
+        "请选择一条检索复盘查看详情",
+        "retrievalReviews",
+        "retrievalReviewsLoading",
+        "retrievalReviewsError",
+        "retrievalReviewSaving",
+        "retrievalReviewStatus",
+        "selectedRetrievalReview",
+        "retrievalReviewDetailLoading",
+        "retrievalReviewDetailError",
+        "deletingRetrievalReviewId",
+        "retrievalReviewNote",
+        "saveRetrievalReview",
+        "selectRetrievalReview",
+        "deleteRetrievalReview",
+        "selectedReviewHits",
+        'defineEmits(["run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review"])',
+    ]:
+        assert marker in panel_vue
+
+    for marker in [
+        ":retrieval-reviews=\"retrievalReviews\"",
+        ":retrieval-reviews-loading=\"retrievalReviewsLoading\"",
+        ":retrieval-reviews-error=\"retrievalReviewsError\"",
+        ":retrieval-review-saving=\"retrievalReviewSaving\"",
+        ":retrieval-review-status=\"retrievalReviewStatus\"",
+        ":selected-retrieval-review=\"selectedRetrievalReview\"",
+        ":retrieval-review-detail-loading=\"retrievalReviewDetailLoading\"",
+        ":retrieval-review-detail-error=\"retrievalReviewDetailError\"",
+        ":deleting-retrieval-review-id=\"deletingRetrievalReviewId\"",
+        "@save-retrieval-review",
+        "@select-retrieval-review",
+        "@delete-retrieval-review",
+    ]:
+        assert marker in workbench_vue
+
+
+def test_vue_app_handles_retrieval_review_state_and_events():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for marker in [
+        "listRetrievalReviews",
+        "saveRetrievalReview",
+        "getRetrievalReviewDetail",
+        "deleteRetrievalReview",
+        "loadRetrievalReviews",
+        "handleSaveRetrievalReview",
+        "handleSelectRetrievalReview",
+        "handleDeleteRetrievalReview",
+        "clearRetrievalReviewState",
+        "@save-retrieval-review=\"handleSaveRetrievalReview\"",
+        "@select-retrieval-review=\"handleSelectRetrievalReview\"",
+        "@delete-retrieval-review=\"handleDeleteRetrievalReview\"",
+        ":retrieval-reviews=\"appState.retrievalReviews\"",
+        ":retrieval-reviews-loading=\"appState.retrievalReviewsLoading\"",
+        ":retrieval-reviews-error=\"appState.retrievalReviewsError\"",
+        ":retrieval-review-saving=\"appState.retrievalReviewSaving\"",
+        ":retrieval-review-status=\"appState.retrievalReviewStatus\"",
+        ":selected-retrieval-review=\"appState.selectedRetrievalReview\"",
+        ":retrieval-review-detail-loading=\"appState.retrievalReviewDetailLoading\"",
+        ":retrieval-review-detail-error=\"appState.retrievalReviewDetailError\"",
+        ":deleting-retrieval-review-id=\"appState.deletingRetrievalReviewId\"",
+        "appState.retrievalReviewStatus = \"检索复盘已保存\"",
+        "confirm(\"确认删除这条检索复盘吗？\")",
+        "await loadRetrievalReviews()",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "retrievalReviews",
+        "retrievalReviewsLoading",
+        "retrievalReviewsError",
+        "retrievalReviewSaving",
+        "retrievalReviewError",
+        "retrievalReviewStatus",
+        "selectedRetrievalReview",
+        "retrievalReviewDetailLoading",
+        "retrievalReviewDetailError",
+        "deletingRetrievalReviewId",
     ]:
         assert f"{state_field}:" in state_js
 

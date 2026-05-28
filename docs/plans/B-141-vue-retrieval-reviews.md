@@ -25,7 +25,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建 B-141Z plan，并将 BACKLOG 说明列追加本 plan 路径。
-- [ ] 增加 Vue 源码契约红灯测试，覆盖检索复盘 API helper、`SearchDebugPanel` 保存/列表/详情/删除控件、`WorkbenchView` 透传和 `App.vue` 状态流。
+- [x] 增加 Vue 源码契约红灯测试，覆盖检索复盘 API helper、`SearchDebugPanel` 保存/列表/详情/删除控件、`WorkbenchView` 透传和 `App.vue` 状态流。
 - [ ] 实现 `search.js` 检索复盘 helper、`SearchDebugPanel.vue` 复盘 UI、`WorkbenchView.vue` 透传和 `App.vue` 读取/保存/详情/删除状态。
 - [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
@@ -98,12 +98,13 @@
 
 - 2026-05-28：创建 B-141Z plan；选择检索复盘作为下一薄片，原因是后端 `POST/GET/detail/delete /api/retrieval/reviews` 契约已存在，B-141V/B-141Y 已提供检索调试查询与参数，可限定为 Vue 侧复盘保存、列表、详情和删除。
 - 2026-05-28：将 `docs/plans/B-141-vue-retrieval-reviews.md` 追加到 BACKLOG B-141 说明列。
+- 2026-05-28：新增 Vue 检索复盘源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 5 failed / 64 passed，失败点为缺少检索复盘 helper、`SearchDebugPanel` 保存/列表/详情/删除控件和 `App.vue` 状态流。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 13:15
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — docs: 创建 B-141Z 检索复盘迁移计划
+- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：16dba3c docs: 创建 B-141Z 检索复盘迁移计划
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141Z 相关文件
-- **下一步**：增加 Vue 检索复盘源码契约红灯测试
+- **下一步**：实现 Vue 检索复盘 helper、组件和 App 状态流
 - **续任务须知**：不修改后端 `/api/retrieval/reviews*`、`/api/search/debug` 或 `/api/answer` 契约，不迁移普通搜索结果页，不接入 SSE/会话，不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
