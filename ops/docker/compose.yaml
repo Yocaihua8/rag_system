@@ -4,7 +4,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ops/docker/Dockerfile
     image: knowledge-island-web:local
     container_name: knowledge-island-web
     ports:

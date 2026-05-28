@@ -20,7 +20,7 @@
 ## 3. 任务拆解
 
 - [x] 创建红灯测试，锁定根目录新布局、前端 npm 配置位置、Docker 入口位置和 quickstart 文档位置。
-- [ ] 移动前端 npm 配置、Docker 运维入口和文档映射文件，同步脚本路径、构建路径和 Docker Compose 路径。
+- [x] 移动前端 npm 配置、Docker 运维入口和文档映射文件，同步脚本路径、构建路径和 Docker Compose 路径。
 - [ ] 同步正式文档、发布说明、测试指南和 devlog，更新 BACKLOG 并删除本 plan。
 
 ## 4. 影响范围
@@ -69,12 +69,13 @@
 
 - 2026-05-28：用户确认执行根目录结构收敛；本任务只做文件位置、脚本路径、测试和文档同步，不改变业务契约。
 - 2026-05-28：红灯验证命令 `.venv\Scripts\python.exe -m pytest tests\backend\test_root_layout.py tests\backend\test_docker_startup.py tests\frontend\test_frontend_build.py -q`，结果 7 failed / 4 passed；失败原因均为目标新路径尚未落地或根目录旧文件仍存在。
+- 2026-05-28：前端 npm 配置移至 `frontend/`，Docker 运维入口移至 `ops/docker/`，文档映射移至 `docs/`，根 Vite shim 已删除；聚焦验证 `.venv\Scripts\python.exe -m pytest tests\backend\test_root_layout.py tests\backend\test_docker_startup.py tests\frontend\test_frontend_build.py -q`，11 passed；`docker compose --project-directory . -f ops\docker\compose.yaml config` 通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 00:00
-- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 锁定 B-146 根目录新布局测试
-- **代码状态**：`fix/b-146-root-layout`；红灯测试已落地，尚未移动文件
-- **下一步**：移动前端 npm 配置、Docker 运维入口和文档映射文件，同步脚本路径、构建路径和 Docker Compose 路径
+- **进度**：已完成 2 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 移动前端与 Docker 运维文件
+- **代码状态**：`fix/b-146-root-layout`；文件移动与脚本路径已完成，正式文档尚未同步
+- **下一步**：同步正式文档、发布说明、测试指南和 devlog，更新 BACKLOG 并删除本 plan
 - **续任务须知**：每完成 § 3 一项后按项目规则提交一次；不要修改 API 契约、数据库 schema 或 Agent 工具权限。

@@ -6,8 +6,9 @@ def test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies():
 
     assert "python:3.11-slim" in dockerfile
     assert "node:20-slim AS frontend-build" in dockerfile
-    assert "npm ci" in dockerfile
-    assert "npm run build" in dockerfile
+    assert "COPY frontend/package.json frontend/package-lock.json ./frontend/" in dockerfile
+    assert "npm --prefix frontend ci" in dockerfile
+    assert "npm --prefix frontend run build" in dockerfile
     assert "COPY backend ./backend" in dockerfile
     assert "COPY --from=frontend-build /app/backend/knowledge_island/static_dist ./backend/knowledge_island/static_dist" in dockerfile
     assert "EXPOSE 8765" in dockerfile
@@ -22,11 +23,11 @@ def test_compose_maps_port_runtime_workspace_and_deepseek_env():
     compose = Path("ops/docker/compose.yaml").read_text(encoding="utf-8")
 
     assert "knowledge-island-web" in compose
-    assert "context: ../.." in compose
+    assert "context: ." in compose
     assert "dockerfile: ops/docker/Dockerfile" in compose
     assert "8765:8765" in compose
-    assert "../../runtime/docker:/app/runtime" in compose
-    assert "${KNOWLEDGE_ISLAND_WORKSPACE:-../../docker-workspace}:/workspace" in compose
+    assert "./runtime/docker:/app/runtime" in compose
+    assert "${KNOWLEDGE_ISLAND_WORKSPACE:-./docker-workspace}:/workspace" in compose
     assert "DEEPSEEK_API_KEY" in compose
     assert "RAG_LLM_PROVIDER" in compose
     assert "RAG_EMBED_PROVIDER" in compose

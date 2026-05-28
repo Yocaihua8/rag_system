@@ -5,7 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$composeFile = Join-Path $PSScriptRoot "compose.yaml"
 Set-Location $projectRoot
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -38,7 +39,7 @@ if (-not $env:KNOWLEDGE_ISLAND_WORKSPACE) {
     $env:KNOWLEDGE_ISLAND_WORKSPACE = $workspace
 }
 
-docker compose up --build -d
+docker compose --project-directory "$projectRoot" -f "$composeFile" up --build -d
 
 Write-Host "知识岛 Docker Web 已启动：http://127.0.0.1:8765"
 Write-Host "Docker 内导入目录请填写：/workspace"

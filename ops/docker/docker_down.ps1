@@ -4,7 +4,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$projectRoot = Resolve-Path (Join-Path $PSScriptRoot "..\..")
+$composeFile = Join-Path $PSScriptRoot "compose.yaml"
 Set-Location $projectRoot
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -12,9 +13,9 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 }
 
 if ($RemoveVolumes) {
-    docker compose down --volumes
+    docker compose --project-directory "$projectRoot" -f "$composeFile" down --volumes
 } else {
-    docker compose down
+    docker compose --project-directory "$projectRoot" -f "$composeFile" down
 }
 
 Write-Host "知识岛 Docker Web 已停止。"

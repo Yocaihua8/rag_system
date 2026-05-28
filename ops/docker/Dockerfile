@@ -2,11 +2,11 @@ FROM node:20-slim AS frontend-build
 
 WORKDIR /app
 
-COPY package.json package-lock.json vite.config.js ./
+COPY frontend/package.json frontend/package-lock.json ./frontend/
 COPY frontend ./frontend
 
-RUN npm ci
-RUN npm run build
+RUN npm --prefix frontend ci
+RUN npm --prefix frontend run build
 
 FROM python:3.11-slim
 
