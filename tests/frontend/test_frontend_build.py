@@ -10,9 +10,9 @@ def _server_module():
 
 
 def test_frontend_package_declares_vue_vite_build_scripts():
-    package_path = Path("package.json")
+    package_path = Path("frontend/package.json")
 
-    assert package_path.exists(), "root package.json must expose frontend npm scripts"
+    assert package_path.exists(), "frontend/package.json must expose frontend npm scripts"
     package_data = json.loads(package_path.read_text(encoding="utf-8"))
 
     assert package_data["private"] is True
