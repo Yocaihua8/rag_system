@@ -15,6 +15,7 @@
         :error="answerError"
         :status-message="answerStatus || statusMessage"
         @submit-question="(question) => $emit('submit-question', question)"
+        @cancel-answer="$emit('cancel-answer')"
         @check-health="$emit('check-health')"
       />
       <AnswerPanel
@@ -274,5 +275,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "cancel-answer", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

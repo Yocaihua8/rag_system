@@ -24,6 +24,9 @@
         <button type="submit" :disabled="loading || !selectedProjectId">
           {{ loading ? "提问中..." : "提问" }}
         </button>
+        <button v-if="loading" type="button" @click="$emit('cancel-answer')">
+          取消当前回答
+        </button>
         <span class="status">{{ statusMessage }}</span>
       </div>
       <p v-if="error" class="status-line error">{{ error }}</p>
@@ -53,7 +56,7 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["submit-question", "check-health"]);
+const emit = defineEmits(["submit-question", "cancel-answer", "check-health"]);
 const questionText = ref("");
 
 function submitQuestion() {

@@ -287,6 +287,30 @@ def test_vue_answer_api_helper_uses_existing_non_streaming_answer_contract():
     assert 'return apiPost("/api/answer", payload)' in answer_js
 
 
+def test_vue_answer_api_helper_uses_existing_streaming_answer_contract():
+    answer_js = _read("frontend/src/api/answer.js")
+
+    for marker in [
+        "export function streamQuestion({ projectId, question, sessionId = \"\", toolRunId = \"\", onToken, onDone, onError })",
+        "new URLSearchParams()",
+        'params.set("project_id", projectId)',
+        'params.set("question", trimmedQuestion)',
+        'params.set("session_id", sessionId)',
+        'params.set("tool_run_id", toolRunId)',
+        "new EventSource(`/api/answer/stream?${params.toString()}`)",
+        'source.addEventListener("token"',
+        'source.addEventListener("done"',
+        'source.addEventListener("answer_error"',
+        "JSON.parse(event.data)",
+        "onToken?.(data.text || \"\")",
+        "onDone?.(data)",
+        "onError?.(new Error(data.error || \"回答生成失败\"))",
+        "source.close()",
+        "return source",
+    ]:
+        assert marker in answer_js
+
+
 def test_vue_answer_api_helper_uses_existing_feedback_contract():
     answer_js = _read("frontend/src/api/answer.js")
 
@@ -313,8 +337,9 @@ def test_vue_workbench_question_and_answer_panels_render_entrypoint():
         "输入问题",
         "例如：这个项目的默认入口是什么？",
         "提问",
+        "取消当前回答",
         "未选择项目空间",
-        "defineEmits([\"submit-question\", \"check-health\"])",
+        "defineEmits([\"submit-question\", \"cancel-answer\", \"check-health\"])",
     ]:
         assert marker in question_panel_vue
 
@@ -331,6 +356,7 @@ def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     assert "QuestionPanel" in workbench_vue
     assert "AnswerPanel" in workbench_vue
     assert "@submit-question" in workbench_vue
+    assert "@cancel-answer" in workbench_vue
     assert ":answer-result=\"answerResult\"" in workbench_vue
 
 
@@ -364,18 +390,26 @@ def test_vue_answer_panel_renders_answer_feedback_controls():
     assert ":answer-feedback-error=\"answerFeedbackError\"" in workbench_vue
 
 
-def test_vue_app_handles_non_streaming_workbench_question_state():
+def test_vue_app_handles_streaming_workbench_question_state_and_cancel():
     app_vue = _read("frontend/src/App.vue")
     state_js = _read("frontend/src/state/app-state.js")
 
-    assert "askQuestion" in app_vue
+    assert "streamQuestion" in app_vue
     assert "handleSubmitQuestion" in app_vue
     assert "@submit-question=\"handleSubmitQuestion\"" in app_vue
+    assert "@cancel-answer=\"handleCancelAnswer\"" in app_vue
     assert ":answer-result=\"appState.answerResult\"" in app_vue
     assert ":answer-loading=\"appState.answerLoading\"" in app_vue
     assert ":answer-error=\"appState.answerError\"" in app_vue
     assert "appState.selectedProjectId" in app_vue
-    assert "appState.answerResult = data" in app_vue
+    assert "appState.currentAnswerSource = streamQuestion({" in app_vue
+    assert "sessionId: appState.selectedChatSessionId" in app_vue
+    assert "onToken: appendStreamToken" in app_vue
+    assert "onDone: finishStreamAnswer" in app_vue
+    assert "onError: failStreamAnswer" in app_vue
+    assert "handleCancelAnswer" in app_vue
+    assert "closeCurrentAnswerSource()" in app_vue
+    assert "appState.answerStatus = \"回答已取消\"" in app_vue
 
     for state_field in [
         "currentQuestion",
@@ -383,6 +417,8 @@ def test_vue_app_handles_non_streaming_workbench_question_state():
         "answerLoading",
         "answerError",
         "answerStatus",
+        "currentAnswerSource",
+        "streamedAnswerText",
     ]:
         assert f"{state_field}:" in state_js
 

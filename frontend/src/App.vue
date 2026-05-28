@@ -138,6 +138,7 @@
       @rename-project="handleRenameProject"
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
+      @cancel-answer="handleCancelAnswer"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
       @run-tool-suggestion="handleRunToolSuggestion"
       @use-tool-result-context="handleUseToolResultContext"
@@ -198,7 +199,7 @@ import {
   listAgentTools,
   runAgentTool,
 } from "./api/agent.js";
-import { askQuestion, submitAnswerFeedback } from "./api/answer.js";
+import { askQuestion, streamQuestion, submitAnswerFeedback } from "./api/answer.js";
 import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
 import {
@@ -1167,32 +1168,80 @@ async function handleDeleteRetrievalReview(reviewId) {
 }
 
 async function handleSubmitQuestion(question) {
+  closeCurrentAnswerSource();
   appState.currentQuestion = question;
   appState.answerLoading = true;
   appState.answerError = "";
   appState.answerStatus = "正在生成回答...";
+  appState.streamedAnswerText = "";
+  appState.answerResult = null;
   clearAnswerFeedbackState();
   try {
-    const data = await askQuestion({
+    appState.currentAnswerSource = streamQuestion({
       projectId: appState.selectedProjectId,
       question,
+      sessionId: appState.selectedChatSessionId,
       toolRunId: appState.currentToolContextRunId,
+      onToken: appendStreamToken,
+      onDone: finishStreamAnswer,
+      onError: failStreamAnswer,
     });
-    appState.answerResult = data;
-    appState.currentToolSuggestion = data.tool_suggestion || null;
-    if (data.tool_context) {
-      consumeToolContext();
-    }
-    appState.lastAnswerMessageId = data.message?.id || "";
-    appState.answerStatus = "回答已生成";
   } catch (error) {
-    appState.answerError = error.message || "回答生成失败";
-    appState.answerStatus = "回答生成失败";
-    appState.lastAnswerMessageId = "";
-    clearToolSuggestionState();
-  } finally {
-    appState.answerLoading = false;
+    failStreamAnswer(error);
   }
+}
+
+function appendStreamToken(token) {
+  if (!token) {
+    return;
+  }
+  appState.streamedAnswerText += token;
+  appState.answerResult = {
+    ...(appState.answerResult || {}),
+    answer: appState.streamedAnswerText,
+    mode: appState.answerResult?.mode || "api",
+    provider: appState.answerResult?.provider || "stream",
+    sources: appState.answerResult?.sources || [],
+  };
+}
+
+function finishStreamAnswer(data) {
+  closeCurrentAnswerSource();
+  appState.answerResult = data;
+  appState.currentToolSuggestion = data.tool_suggestion || null;
+  if (data.tool_context) {
+    consumeToolContext();
+  }
+  appState.lastAnswerMessageId = data.message?.id || "";
+  appState.streamedAnswerText = data.answer || appState.streamedAnswerText;
+  appState.answerStatus = "回答已生成";
+  appState.answerLoading = false;
+}
+
+function failStreamAnswer(error) {
+  closeCurrentAnswerSource();
+  appState.answerError = error.message || "回答生成失败";
+  appState.answerStatus = "回答生成失败";
+  appState.lastAnswerMessageId = "";
+  appState.answerLoading = false;
+  clearToolSuggestionState();
+}
+
+function handleCancelAnswer() {
+  if (!appState.currentAnswerSource) {
+    return;
+  }
+  closeCurrentAnswerSource();
+  appState.answerLoading = false;
+  appState.answerStatus = "回答已取消";
+}
+
+function closeCurrentAnswerSource() {
+  if (!appState.currentAnswerSource) {
+    return;
+  }
+  appState.currentAnswerSource.close();
+  appState.currentAnswerSource = null;
 }
 
 async function handleSubmitAnswerFeedback(rating) {
