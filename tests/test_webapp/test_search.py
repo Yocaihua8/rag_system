@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from webapp.chunking import split_into_chunks
 from webapp.import_rules import MAX_TEXT_FILE_BYTES
 from webapp.ingestion import import_directory
 from webapp.search import search_documents
@@ -46,6 +47,25 @@ def test_import_directory_reports_reimport_changes_and_removes_missing_files(tmp
     assert second.unchanged == 0
     assert [doc.relative_path for doc in store.list_documents(project.id)] == ["a.md", "c.md"]
     assert [chunk.document.relative_path for chunk in store.list_chunks(project.id)] == ["a.md", "c.md"]
+
+
+def test_import_directory_reports_unchanged_files_on_second_import(tmp_path: Path):
+    project_dir = tmp_path / "demo"
+    project_dir.mkdir()
+    (project_dir / "README.md").write_text("Alpha", encoding="utf-8")
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", project_dir)
+
+    first = import_directory(store, project.id, project_dir)
+    second = import_directory(store, project.id, project_dir)
+
+    assert first.created == 1
+    assert second.imported == 1
+    assert second.created == 0
+    assert second.updated == 0
+    assert second.unchanged == 1
+    assert second.deleted == 0
+    assert [doc.relative_path for doc in store.list_documents(project.id)] == ["README.md"]
 
 
 def test_import_directory_skips_dependency_cache_and_vcs_directories(tmp_path: Path):
@@ -108,6 +128,49 @@ def test_search_documents_ranks_matching_documents_first(tmp_path: Path):
     assert "request handler" in hits[0].snippet
 
 
+def test_search_documents_matches_chinese_terms_with_keyword_only(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(project.id, tmp_path / "entry.md", "entry.md", "默认入口是 app.py，用于启动本地 Web MVP。")
+    store.upsert_document(project.id, tmp_path / "model.md", "model.md", "模型设置页面用于保存 API Key。")
+
+    hits = search_documents(store, project.id, "默认入口", limit=2, use_keyword=True, use_vector=False)
+
+    assert hits[0].document.relative_path == "entry.md"
+    assert hits[0].keyword_score > 0
+    assert hits[0].vector_score == 0
+    assert "默认入口" in hits[0].snippet
+
+
+def test_search_uses_bm25_so_repeated_common_terms_do_not_dominate(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(
+        project.id,
+        tmp_path / "common.md",
+        "common.md",
+        "API " * 30 + "route handler request",
+    )
+    store.upsert_document(
+        project.id,
+        tmp_path / "deepseek.md",
+        "deepseek.md",
+        "DeepSeek API key setup and model configuration",
+    )
+
+    hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+    )
+
+    assert hits[0].document.relative_path == "deepseek.md"
+    assert hits[0].keyword_score > hits[1].keyword_score
+
+
 def test_upsert_document_builds_retrievable_chunks(tmp_path: Path):
     store = KnowledgeStore(tmp_path / "app.db")
     project = store.create_project("Demo", tmp_path)
@@ -126,6 +189,25 @@ def test_upsert_document_builds_retrievable_chunks(tmp_path: Path):
     assert [chunk.chunk_index for chunk in chunks] == list(range(len(chunks)))
     assert all(chunk.document.relative_path == "guide.md" for chunk in chunks)
     assert "DeepSeek API Key" in " ".join(chunk.content for chunk in chunks)
+
+
+def test_markdown_chunking_keeps_fenced_code_block_together():
+    markdown = (
+        "## 示例\n\n"
+        "```python\n"
+        "print('hello')\n"
+        "print('world')\n"
+        "```\n\n"
+        "结论段落"
+    )
+
+    chunks = split_into_chunks(markdown, max_chars=120, overlap_chars=10)
+
+    assert chunks == [
+        "## 示例",
+        "```python\nprint('hello')\nprint('world')\n```",
+        "结论段落",
+    ]
 
 
 def test_search_returns_best_matching_chunk_not_entire_document(tmp_path: Path):

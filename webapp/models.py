@@ -49,6 +49,80 @@ class Document:
 
 
 @dataclass(frozen=True)
+class DocumentCollection:
+    id: str
+    project_id: str
+    name: str
+    description: str
+    color: str
+    created_at: str
+    updated_at: str
+    document_count: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "name": self.name,
+            "description": self.description,
+            "color": self.color,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "document_count": self.document_count,
+        }
+
+
+@dataclass(frozen=True)
+class ImportBatch:
+    id: str
+    project_id: str
+    source_type: str
+    status: str
+    started_at: str
+    finished_at: str
+    summary: dict[str, Any]
+    message: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "source_type": self.source_type,
+            "status": self.status,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
+            "summary": self.summary,
+            "message": self.message,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
+class ImportBatchItem:
+    id: str
+    batch_id: str
+    project_id: str
+    kind: str
+    relative_path: str
+    document_id: str
+    reason: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "batch_id": self.batch_id,
+            "project_id": self.project_id,
+            "kind": self.kind,
+            "relative_path": self.relative_path,
+            "document_id": self.document_id,
+            "reason": self.reason,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
 class DocumentChunk:
     id: str
     document: Document
@@ -110,6 +184,80 @@ class AnswerResult:
 
 
 @dataclass(frozen=True)
+class AssessmentQuestion:
+    id: str
+    project_id: str
+    source_path: str
+    question_type: str
+    knowledge_point: str
+    prompt: str
+    expected_points: list[str]
+    reference_snippet: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "source_path": self.source_path,
+            "question_type": self.question_type,
+            "knowledge_point": self.knowledge_point,
+            "prompt": self.prompt,
+            "expected_points": self.expected_points,
+            "reference_snippet": self.reference_snippet,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
+class AssessmentAnswer:
+    id: str
+    project_id: str
+    question_id: str
+    answer: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "question_id": self.question_id,
+            "answer": self.answer,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
+class AssessmentResult:
+    id: str
+    project_id: str
+    question_id: str
+    answer_id: str
+    status: str
+    score: float
+    matched_points: list[str]
+    missing_points: list[str]
+    feedback: str
+    source_path: str
+    created_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "question_id": self.question_id,
+            "answer_id": self.answer_id,
+            "status": self.status,
+            "score": self.score,
+            "matched_points": self.matched_points,
+            "missing_points": self.missing_points,
+            "feedback": self.feedback,
+            "source_path": self.source_path,
+            "created_at": self.created_at,
+        }
+
+
+@dataclass(frozen=True)
 class ChatSession:
     id: str
     project_id: str
@@ -146,6 +294,42 @@ class PromptPreset:
             "description": self.description,
             "system_prompt": self.system_prompt,
             "answer_format": self.answer_format,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass(frozen=True)
+class ModelProfile:
+    id: str
+    name: str
+    provider: str
+    api_base: str
+    model: str
+    temperature: float
+    max_tokens: int
+    api_key_ref: str
+    is_default: bool
+    created_at: str
+    updated_at: str
+
+    def to_dict(
+        self,
+        has_api_key: bool = False,
+        api_key_source: str = "",
+    ) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "provider": self.provider,
+            "api_base": self.api_base,
+            "model": self.model,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "api_key_ref": self.api_key_ref,
+            "has_api_key": has_api_key,
+            "api_key_source": api_key_source,
+            "is_default": self.is_default,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -276,3 +460,9 @@ class ImportResult:
 class ApiResponse:
     status: int
     body: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class ApiStreamEvent:
+    event: str
+    data: dict[str, Any]

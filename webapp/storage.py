@@ -12,10 +12,17 @@ from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_
 from webapp.models import (
     AgentToolRun,
     AnswerFeedback,
+    AssessmentAnswer,
+    AssessmentQuestion,
+    AssessmentResult,
     ChatMessage,
     ChatSession,
     Document,
     DocumentChunk,
+    DocumentCollection,
+    ImportBatch,
+    ImportBatchItem,
+    ModelProfile,
     PromptPreset,
     Project,
     RetrievalReview,
@@ -57,6 +64,164 @@ class KnowledgeStore:
                 (project.id, project.name, str(project.root_path), project.created_at),
             )
         return project
+
+    def restore_document_metadata(
+        self,
+        project_id: str,
+        source_path: str,
+        relative_path: str,
+        checksum: str,
+        updated_at: str,
+    ) -> Document:
+        document = Document(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            source_path=Path(source_path),
+            relative_path=relative_path,
+            content="",
+            checksum=checksum,
+            updated_at=updated_at or _now(),
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO documents
+                    (id, project_id, source_path, relative_path, content, checksum, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    document.id,
+                    document.project_id,
+                    str(document.source_path),
+                    document.relative_path,
+                    document.content,
+                    document.checksum,
+                    document.updated_at,
+                ),
+            )
+        return document
+
+    def restore_document_snapshot(
+        self,
+        project_id: str,
+        source_path: str,
+        relative_path: str,
+        content: str,
+        checksum: str,
+        updated_at: str,
+        chunks: list[dict[str, object]] | None = None,
+    ) -> tuple[Document, dict[str, str], int, int]:
+        document_content = str(content)
+        document_checksum = str(checksum).strip()
+        if not document_checksum and document_content:
+            document_checksum = hashlib.sha256(document_content.encode("utf-8")).hexdigest()
+        document = Document(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            source_path=Path(source_path),
+            relative_path=relative_path,
+            content=document_content,
+            checksum=document_checksum,
+            updated_at=updated_at or _now(),
+        )
+        chunk_id_map: dict[str, str] = {}
+        now = _now()
+        chunk_rows = []
+        vector_rows = []
+        for fallback_index, item in enumerate(chunks or []):
+            if not isinstance(item, dict):
+                continue
+            chunk_content = str(item.get("content", ""))
+            if not chunk_content:
+                continue
+            chunk_id = str(uuid.uuid4())
+            original_chunk_id = str(item.get("id", "")).strip()
+            if original_chunk_id:
+                chunk_id_map[original_chunk_id] = chunk_id
+            chunk_rows.append(
+                (
+                    chunk_id,
+                    document.id,
+                    document.project_id,
+                    _int_snapshot_value(item.get("chunk_index"), fallback_index),
+                    chunk_content,
+                    _int_snapshot_value(item.get("token_count"), count_tokens(chunk_content)),
+                    str(item.get("created_at", "")).strip() or now,
+                )
+            )
+            vector_body = item.get("vector")
+            if isinstance(vector_body, dict):
+                vector = _snapshot_vector(vector_body.get("values"))
+                if vector:
+                    vector_rows.append(
+                        (
+                            chunk_id,
+                            document.project_id,
+                            serialize_vector(vector),
+                            str(vector_body.get("provider", "")).strip() or "local",
+                            str(vector_body.get("model", "")).strip() or "hashing-96",
+                            str(vector_body.get("updated_at", "")).strip() or now,
+                        )
+                    )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO documents
+                    (id, project_id, source_path, relative_path, content, checksum, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    document.id,
+                    document.project_id,
+                    str(document.source_path),
+                    document.relative_path,
+                    document.content,
+                    document.checksum,
+                    document.updated_at,
+                ),
+            )
+            if chunk_rows:
+                conn.executemany(
+                    """
+                    INSERT INTO document_chunks
+                        (id, document_id, project_id, chunk_index, content, token_count, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    chunk_rows,
+                )
+                conn.executemany(
+                    """
+                    INSERT INTO chunk_vectors
+                        (chunk_id, project_id, vector_json, provider, model, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    vector_rows,
+                )
+            elif document.content:
+                self._replace_document_chunks(conn, document)
+                rows = conn.execute(
+                    """
+                    SELECT id
+                    FROM document_chunks
+                    WHERE document_id = ?
+                    ORDER BY chunk_index ASC
+                    """,
+                    (document.id,),
+                ).fetchall()
+                chunk_rows = [(row["id"],) for row in rows]
+                vector_count = conn.execute(
+                    """
+                    SELECT COUNT(*) AS total
+                    FROM chunk_vectors
+                    WHERE project_id = ?
+                      AND chunk_id IN (
+                          SELECT id FROM document_chunks WHERE document_id = ?
+                      )
+                    """,
+                    (document.project_id, document.id),
+                ).fetchone()
+                return document, chunk_id_map, len(chunk_rows), int(vector_count["total"])
+        return document, chunk_id_map, len(chunk_rows), len(vector_rows)
 
     def list_projects(self) -> list[Project]:
         with self._connect() as conn:
@@ -254,6 +419,147 @@ class KnowledgeStore:
             return preset
         return None
 
+    def create_model_profile(
+        self,
+        name: str,
+        provider: str,
+        api_base: str,
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        api_key_ref: str,
+    ) -> ModelProfile:
+        now = _now()
+        profile = ModelProfile(
+            id=str(uuid.uuid4()),
+            name=name.strip(),
+            provider=provider.strip(),
+            api_base=api_base.strip(),
+            model=model.strip(),
+            temperature=temperature,
+            max_tokens=max_tokens,
+            api_key_ref=api_key_ref.strip(),
+            is_default=False,
+            created_at=now,
+            updated_at=now,
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO model_profiles
+                    (id, name, provider, api_base, model, temperature, max_tokens, api_key_ref, is_default, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    profile.id,
+                    profile.name,
+                    profile.provider,
+                    profile.api_base,
+                    profile.model,
+                    profile.temperature,
+                    profile.max_tokens,
+                    profile.api_key_ref,
+                    1 if profile.is_default else 0,
+                    profile.created_at,
+                    profile.updated_at,
+                ),
+            )
+        return profile
+
+    def list_model_profiles(self) -> list[ModelProfile]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, name, provider, api_base, model, temperature, max_tokens, api_key_ref, is_default, created_at, updated_at
+                FROM model_profiles
+                ORDER BY is_default DESC, updated_at DESC
+                """
+            ).fetchall()
+        return [_model_profile_from_row(row) for row in rows]
+
+    def get_model_profile(self, profile_id: str) -> ModelProfile | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id, name, provider, api_base, model, temperature, max_tokens, api_key_ref, is_default, created_at, updated_at
+                FROM model_profiles
+                WHERE id = ?
+                """,
+                (profile_id,),
+            ).fetchone()
+        return _model_profile_from_row(row) if row else None
+
+    def get_default_model_profile_id(self) -> str:
+        with self._connect() as conn:
+            row = conn.execute("SELECT id FROM model_profiles WHERE is_default = 1 LIMIT 1").fetchone()
+        return row["id"] if row else ""
+
+    def get_default_model_profile(self) -> ModelProfile | None:
+        default_id = self.get_default_model_profile_id()
+        return self.get_model_profile(default_id) if default_id else None
+
+    def update_model_profile(
+        self,
+        profile_id: str,
+        name: str,
+        provider: str,
+        api_base: str,
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        api_key_ref: str,
+    ) -> ModelProfile | None:
+        with self._connect() as conn:
+            result = conn.execute(
+                """
+                UPDATE model_profiles
+                SET name = ?,
+                    provider = ?,
+                    api_base = ?,
+                    model = ?,
+                    temperature = ?,
+                    max_tokens = ?,
+                    api_key_ref = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    name.strip(),
+                    provider.strip(),
+                    api_base.strip(),
+                    model.strip(),
+                    temperature,
+                    max_tokens,
+                    api_key_ref.strip(),
+                    _now(),
+                    profile_id,
+                ),
+            )
+        if result.rowcount == 0:
+            return None
+        return self.get_model_profile(profile_id)
+
+    def delete_model_profile(self, profile_id: str) -> ModelProfile | None:
+        profile = self.get_model_profile(profile_id)
+        if not profile:
+            return None
+        with self._connect() as conn:
+            conn.execute("DELETE FROM model_profiles WHERE id = ?", (profile_id,))
+        return profile
+
+    def set_default_model_profile(self, profile_id: str = "") -> str:
+        clean_profile_id = profile_id.strip()
+        with self._connect() as conn:
+            conn.execute("UPDATE model_profiles SET is_default = 0")
+            if clean_profile_id:
+                result = conn.execute(
+                    "UPDATE model_profiles SET is_default = 1, updated_at = ? WHERE id = ?",
+                    (_now(), clean_profile_id),
+                )
+                if result.rowcount == 0:
+                    return ""
+        return clean_profile_id
+
     def update_prompt_preset(
         self,
         preset_id: str,
@@ -315,6 +621,178 @@ class KnowledgeStore:
             result = conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
         return result.rowcount > 0
 
+    def create_document_collection(
+        self,
+        project_id: str,
+        name: str,
+        description: str = "",
+        color: str = "",
+    ) -> DocumentCollection:
+        now = _now()
+        collection_id = str(uuid.uuid4())
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO document_collections
+                    (id, project_id, name, description, color, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    collection_id,
+                    project_id,
+                    name.strip(),
+                    description.strip(),
+                    color.strip(),
+                    now,
+                    now,
+                ),
+            )
+        collection = self.get_document_collection(collection_id)
+        if not collection:
+            raise RuntimeError("created document collection was not found")
+        return collection
+
+    def list_document_collections(self, project_id: str) -> list[DocumentCollection]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    c.id,
+                    c.project_id,
+                    c.name,
+                    c.description,
+                    c.color,
+                    c.created_at,
+                    c.updated_at,
+                    COUNT(i.document_id) AS document_count
+                FROM document_collections c
+                LEFT JOIN document_collection_items i ON i.collection_id = c.id
+                WHERE c.project_id = ?
+                GROUP BY c.id
+                ORDER BY c.updated_at DESC, c.name ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_document_collection_from_row(row) for row in rows]
+
+    def get_document_collection(self, collection_id: str) -> DocumentCollection | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT
+                    c.id,
+                    c.project_id,
+                    c.name,
+                    c.description,
+                    c.color,
+                    c.created_at,
+                    c.updated_at,
+                    COUNT(i.document_id) AS document_count
+                FROM document_collections c
+                LEFT JOIN document_collection_items i ON i.collection_id = c.id
+                WHERE c.id = ?
+                GROUP BY c.id
+                """,
+                (collection_id,),
+            ).fetchone()
+        return _document_collection_from_row(row) if row else None
+
+    def update_document_collection(
+        self,
+        collection_id: str,
+        name: str,
+        description: str = "",
+        color: str = "",
+    ) -> DocumentCollection | None:
+        with self._connect() as conn:
+            result = conn.execute(
+                """
+                UPDATE document_collections
+                SET name = ?, description = ?, color = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (name.strip(), description.strip(), color.strip(), _now(), collection_id),
+            )
+        if result.rowcount == 0:
+            return None
+        return self.get_document_collection(collection_id)
+
+    def delete_document_collection(self, collection_id: str) -> DocumentCollection | None:
+        collection = self.get_document_collection(collection_id)
+        if not collection:
+            return None
+        with self._connect() as conn:
+            conn.execute("DELETE FROM document_collections WHERE id = ?", (collection_id,))
+        return collection
+
+    def add_documents_to_collection(
+        self,
+        collection_id: str,
+        document_ids: list[str],
+    ) -> DocumentCollection | None:
+        collection = self.get_document_collection(collection_id)
+        if not collection:
+            return None
+        clean_ids = _unique_non_empty(document_ids)
+        if not self._documents_belong_to_project(clean_ids, collection.project_id):
+            return None
+        now = _now()
+        with self._connect() as conn:
+            for document_id in clean_ids:
+                conn.execute(
+                    """
+                    INSERT OR IGNORE INTO document_collection_items
+                        (id, project_id, collection_id, document_id, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (str(uuid.uuid4()), collection.project_id, collection.id, document_id, now),
+                )
+            conn.execute(
+                "UPDATE document_collections SET updated_at = ? WHERE id = ?",
+                (now, collection.id),
+            )
+        return self.get_document_collection(collection_id)
+
+    def remove_documents_from_collection(
+        self,
+        collection_id: str,
+        document_ids: list[str],
+    ) -> DocumentCollection | None:
+        collection = self.get_document_collection(collection_id)
+        if not collection:
+            return None
+        clean_ids = _unique_non_empty(document_ids)
+        now = _now()
+        with self._connect() as conn:
+            for document_id in clean_ids:
+                conn.execute(
+                    """
+                    DELETE FROM document_collection_items
+                    WHERE collection_id = ? AND document_id = ?
+                    """,
+                    (collection.id, document_id),
+                )
+            conn.execute(
+                "UPDATE document_collections SET updated_at = ? WHERE id = ?",
+                (now, collection.id),
+            )
+        return self.get_document_collection(collection_id)
+
+    def _documents_belong_to_project(self, document_ids: list[str], project_id: str) -> bool:
+        if not document_ids:
+            return True
+        placeholders = ",".join("?" for _ in document_ids)
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT id
+                FROM documents
+                WHERE project_id = ? AND id IN ({placeholders})
+                """,
+                (project_id, *document_ids),
+            ).fetchall()
+        return {row["id"] for row in rows} == set(document_ids)
+
     def upsert_document(
         self,
         project_id: str,
@@ -367,7 +845,11 @@ class KnowledgeStore:
             self._replace_document_chunks(conn, document)
         return DocumentWriteResult(document=document, action=action)
 
-    def list_documents(self, project_id: str) -> list[Document]:
+    def list_documents(self, project_id: str, collection_id: str = "") -> list[Document]:
+        if collection_id == "unassigned":
+            return self.list_unassigned_documents(project_id)
+        if collection_id:
+            return self.list_documents_for_collection(project_id, collection_id)
         with self._connect() as conn:
             rows = conn.execute(
                 """
@@ -375,6 +857,133 @@ class KnowledgeStore:
                 FROM documents
                 WHERE project_id = ?
                 ORDER BY relative_path ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_document_from_row(row) for row in rows]
+
+    def create_import_batch(
+        self,
+        project_id: str,
+        source_type: str,
+        status: str,
+        summary: dict[str, object],
+        message: str = "",
+        items: list[dict[str, object]] | None = None,
+    ) -> ImportBatch:
+        now = _now()
+        batch_id = str(uuid.uuid4())
+        clean_items = items or []
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO import_batches
+                    (id, project_id, source_type, status, started_at, finished_at, summary_json, message, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    batch_id,
+                    project_id,
+                    source_type,
+                    status,
+                    now,
+                    now,
+                    json.dumps(summary, ensure_ascii=False),
+                    message.strip(),
+                    now,
+                ),
+            )
+            conn.executemany(
+                """
+                INSERT INTO import_batch_items
+                    (id, batch_id, project_id, kind, relative_path, document_id, reason, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        str(uuid.uuid4()),
+                        batch_id,
+                        project_id,
+                        str(item.get("kind", "")).strip(),
+                        str(item.get("relative_path", "")).strip(),
+                        str(item.get("document_id", "")).strip(),
+                        str(item.get("reason", "")).strip(),
+                        now,
+                    )
+                    for item in clean_items
+                ],
+            )
+        batch = self.get_import_batch(batch_id)
+        if not batch:
+            raise RuntimeError("created import batch was not found")
+        return batch
+
+    def list_import_batches(self, project_id: str, limit: int = 20) -> list[ImportBatch]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, project_id, source_type, status, started_at, finished_at, summary_json, message, created_at
+                FROM import_batches
+                WHERE project_id = ?
+                ORDER BY rowid DESC
+                LIMIT ?
+                """,
+                (project_id, limit),
+            ).fetchall()
+        return [_import_batch_from_row(row) for row in rows]
+
+    def get_import_batch(self, batch_id: str) -> ImportBatch | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id, project_id, source_type, status, started_at, finished_at, summary_json, message, created_at
+                FROM import_batches
+                WHERE id = ?
+                """,
+                (batch_id,),
+            ).fetchone()
+        return _import_batch_from_row(row) if row else None
+
+    def list_import_batch_items(self, batch_id: str) -> list[ImportBatchItem]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, batch_id, project_id, kind, relative_path, document_id, reason, created_at
+                FROM import_batch_items
+                WHERE batch_id = ?
+                ORDER BY rowid ASC
+                """,
+                (batch_id,),
+            ).fetchall()
+        return [_import_batch_item_from_row(row) for row in rows]
+
+    def list_documents_for_collection(self, project_id: str, collection_id: str) -> list[Document]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT d.id, d.project_id, d.source_path, d.relative_path, d.content, d.checksum, d.updated_at
+                FROM documents d
+                JOIN document_collection_items i ON i.document_id = d.id
+                WHERE d.project_id = ? AND i.collection_id = ?
+                ORDER BY d.relative_path ASC
+                """,
+                (project_id, collection_id),
+            ).fetchall()
+        return [_document_from_row(row) for row in rows]
+
+    def list_unassigned_documents(self, project_id: str) -> list[Document]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT d.id, d.project_id, d.source_path, d.relative_path, d.content, d.checksum, d.updated_at
+                FROM documents d
+                WHERE d.project_id = ?
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM document_collection_items i
+                      WHERE i.document_id = d.id
+                  )
+                ORDER BY d.relative_path ASC
                 """,
                 (project_id,),
             ).fetchall()
@@ -551,6 +1160,31 @@ class KnowledgeStore:
             )
         return session
 
+    def restore_chat_session(
+        self,
+        project_id: str,
+        title: str,
+        created_at: str = "",
+        updated_at: str = "",
+    ) -> ChatSession:
+        now = _now()
+        session = ChatSession(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            title=title.strip() or "恢复会话",
+            created_at=created_at or now,
+            updated_at=updated_at or created_at or now,
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_sessions (id, project_id, title, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (session.id, session.project_id, session.title, session.created_at, session.updated_at),
+            )
+        return session
+
     def list_chat_sessions(self, project_id: str) -> list[ChatSession]:
         with self._connect() as conn:
             rows = conn.execute(
@@ -653,6 +1287,52 @@ class KnowledgeStore:
             )
         return feedback
 
+    def restore_chat_message(
+        self,
+        project_id: str,
+        question: str,
+        answer: str,
+        mode: str,
+        provider: str,
+        warning: str,
+        sources: list[dict[str, object]],
+        created_at: str,
+        session_id: str = "",
+    ) -> ChatMessage:
+        message = ChatMessage(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            question=question,
+            answer=answer,
+            mode=mode,
+            provider=provider,
+            warning=warning,
+            sources=[dict(source) for source in sources],
+            created_at=created_at or _now(),
+            session_id=session_id,
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO chat_messages
+                    (id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    message.id,
+                    message.project_id,
+                    message.session_id or None,
+                    message.question,
+                    message.answer,
+                    message.mode,
+                    message.provider,
+                    message.warning,
+                    json.dumps(message.sources, ensure_ascii=False),
+                    message.created_at,
+                ),
+            )
+        return message
+
     def list_answer_feedback(self, project_id: str) -> list[AnswerFeedback]:
         with self._connect() as conn:
             rows = conn.execute(
@@ -665,6 +1345,192 @@ class KnowledgeStore:
                 (project_id,),
             ).fetchall()
         return [_answer_feedback_from_row(row) for row in rows]
+
+    def create_assessment_question(
+        self,
+        project_id: str,
+        source_path: str,
+        prompt: str,
+        expected_points: list[str],
+        reference_snippet: str,
+        question_type: str = "concept",
+        knowledge_point: str = "",
+        question_id: str = "",
+    ) -> AssessmentQuestion:
+        question = AssessmentQuestion(
+            id=question_id or str(uuid.uuid4()),
+            project_id=project_id,
+            source_path=source_path,
+            question_type=question_type.strip() or "concept",
+            knowledge_point=knowledge_point.strip(),
+            prompt=prompt,
+            expected_points=list(expected_points),
+            reference_snippet=reference_snippet,
+            created_at=_now(),
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO assessment_questions
+                    (
+                        id, project_id, source_path, question_type, knowledge_point,
+                        prompt, expected_points_json, reference_snippet, created_at
+                    )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    question.id,
+                    question.project_id,
+                    question.source_path,
+                    question.question_type,
+                    question.knowledge_point,
+                    question.prompt,
+                    json.dumps(question.expected_points, ensure_ascii=False),
+                    question.reference_snippet,
+                    question.created_at,
+                ),
+            )
+        return question
+
+    def list_assessment_questions(self, project_id: str) -> list[AssessmentQuestion]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    id, project_id, source_path, question_type, knowledge_point,
+                    prompt, expected_points_json, reference_snippet, created_at
+                FROM assessment_questions
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_assessment_question_from_row(row) for row in rows]
+
+    def get_assessment_question(self, question_id: str) -> AssessmentQuestion | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT
+                    id, project_id, source_path, question_type, knowledge_point,
+                    prompt, expected_points_json, reference_snippet, created_at
+                FROM assessment_questions
+                WHERE id = ?
+                """,
+                (question_id,),
+            ).fetchone()
+        return _assessment_question_from_row(row) if row else None
+
+    def create_assessment_answer(
+        self,
+        project_id: str,
+        question_id: str,
+        answer: str,
+    ) -> AssessmentAnswer:
+        assessment_answer = AssessmentAnswer(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            question_id=question_id,
+            answer=answer.strip(),
+            created_at=_now(),
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO assessment_answers
+                    (id, project_id, question_id, answer, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    assessment_answer.id,
+                    assessment_answer.project_id,
+                    assessment_answer.question_id,
+                    assessment_answer.answer,
+                    assessment_answer.created_at,
+                ),
+            )
+        return assessment_answer
+
+    def list_assessment_answers(self, project_id: str) -> list[AssessmentAnswer]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, project_id, question_id, answer, created_at
+                FROM assessment_answers
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_assessment_answer_from_row(row) for row in rows]
+
+    def create_assessment_result(
+        self,
+        project_id: str,
+        question_id: str,
+        answer_id: str,
+        status: str,
+        score: float,
+        matched_points: list[str],
+        missing_points: list[str],
+        feedback: str,
+        source_path: str,
+    ) -> AssessmentResult:
+        result = AssessmentResult(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            question_id=question_id,
+            answer_id=answer_id,
+            status=status,
+            score=score,
+            matched_points=list(matched_points),
+            missing_points=list(missing_points),
+            feedback=feedback,
+            source_path=source_path,
+            created_at=_now(),
+        )
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO assessment_results
+                    (
+                        id, project_id, question_id, answer_id, status, score,
+                        matched_points_json, missing_points_json, feedback,
+                        source_path, created_at
+                    )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    result.id,
+                    result.project_id,
+                    result.question_id,
+                    result.answer_id,
+                    result.status,
+                    result.score,
+                    json.dumps(result.matched_points, ensure_ascii=False),
+                    json.dumps(result.missing_points, ensure_ascii=False),
+                    result.feedback,
+                    result.source_path,
+                    result.created_at,
+                ),
+            )
+        return result
+
+    def list_assessment_results(self, project_id: str) -> list[AssessmentResult]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    id, project_id, question_id, answer_id, status, score,
+                    matched_points_json, missing_points_json, feedback,
+                    source_path, created_at
+                FROM assessment_results
+                WHERE project_id = ?
+                ORDER BY created_at ASC
+                """,
+                (project_id,),
+            ).fetchall()
+        return [_assessment_result_from_row(row) for row in rows]
 
     def create_agent_tool_run(
         self,
@@ -884,6 +1750,23 @@ class KnowledgeStore:
                 CREATE INDEX IF NOT EXISTS idx_prompt_presets_project
                     ON prompt_presets(project_id, updated_at);
 
+                CREATE TABLE IF NOT EXISTS model_profiles (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    provider TEXT NOT NULL,
+                    api_base TEXT NOT NULL DEFAULT '',
+                    model TEXT NOT NULL,
+                    temperature REAL NOT NULL DEFAULT 0.7,
+                    max_tokens INTEGER NOT NULL DEFAULT 2048,
+                    api_key_ref TEXT NOT NULL DEFAULT '',
+                    is_default INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_model_profiles_default
+                    ON model_profiles(is_default, updated_at);
+
                 CREATE TABLE IF NOT EXISTS documents (
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
@@ -898,6 +1781,71 @@ class KnowledgeStore:
 
                 CREATE INDEX IF NOT EXISTS idx_documents_project
                     ON documents(project_id);
+
+                CREATE TABLE IF NOT EXISTS document_collections (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    color TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(project_id, name),
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_document_collections_project
+                    ON document_collections(project_id, updated_at);
+
+                CREATE TABLE IF NOT EXISTS document_collection_items (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    collection_id TEXT NOT NULL,
+                    document_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(collection_id, document_id),
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY(collection_id) REFERENCES document_collections(id) ON DELETE CASCADE,
+                    FOREIGN KEY(document_id) REFERENCES documents(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_document_collection_items_collection
+                    ON document_collection_items(collection_id);
+
+                CREATE INDEX IF NOT EXISTS idx_document_collection_items_document
+                    ON document_collection_items(document_id);
+
+                CREATE TABLE IF NOT EXISTS import_batches (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    source_type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT NOT NULL,
+                    summary_json TEXT NOT NULL,
+                    message TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_import_batches_project
+                    ON import_batches(project_id, created_at);
+
+                CREATE TABLE IF NOT EXISTS import_batch_items (
+                    id TEXT PRIMARY KEY,
+                    batch_id TEXT NOT NULL,
+                    project_id TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    relative_path TEXT NOT NULL DEFAULT '',
+                    document_id TEXT NOT NULL DEFAULT '',
+                    reason TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(batch_id) REFERENCES import_batches(id) ON DELETE CASCADE,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_import_batch_items_batch
+                    ON import_batch_items(batch_id, created_at);
 
                 CREATE TABLE IF NOT EXISTS document_chunks (
                     id TEXT PRIMARY KEY,
@@ -970,6 +1918,55 @@ class KnowledgeStore:
                 CREATE INDEX IF NOT EXISTS idx_answer_feedback_project
                     ON answer_feedback(project_id, created_at);
 
+                CREATE TABLE IF NOT EXISTS assessment_questions (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    source_path TEXT NOT NULL,
+                    question_type TEXT NOT NULL DEFAULT 'concept',
+                    knowledge_point TEXT NOT NULL DEFAULT '',
+                    prompt TEXT NOT NULL,
+                    expected_points_json TEXT NOT NULL,
+                    reference_snippet TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_assessment_questions_project
+                    ON assessment_questions(project_id, created_at);
+
+                CREATE TABLE IF NOT EXISTS assessment_answers (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    question_id TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY(question_id) REFERENCES assessment_questions(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_assessment_answers_project
+                    ON assessment_answers(project_id, created_at);
+
+                CREATE TABLE IF NOT EXISTS assessment_results (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    question_id TEXT NOT NULL,
+                    answer_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    score REAL NOT NULL,
+                    matched_points_json TEXT NOT NULL,
+                    missing_points_json TEXT NOT NULL,
+                    feedback TEXT NOT NULL,
+                    source_path TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY(question_id) REFERENCES assessment_questions(id) ON DELETE CASCADE,
+                    FOREIGN KEY(answer_id) REFERENCES assessment_answers(id) ON DELETE CASCADE
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_assessment_results_project
+                    ON assessment_results(project_id, created_at);
+
                 CREATE TABLE IF NOT EXISTS agent_tool_runs (
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
@@ -1009,6 +2006,8 @@ class KnowledgeStore:
             _ensure_column(conn, "chat_messages", "session_id", "TEXT")
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
             _ensure_column(conn, "chunk_vectors", "model", "TEXT NOT NULL DEFAULT 'hashing-96'")
+            _ensure_column(conn, "assessment_questions", "question_type", "TEXT NOT NULL DEFAULT 'concept'")
+            _ensure_column(conn, "assessment_questions", "knowledge_point", "TEXT NOT NULL DEFAULT ''")
             self._backfill_document_chunks(conn)
             self._backfill_chunk_vectors(conn)
 
@@ -1110,6 +2109,25 @@ class KnowledgeStore:
         )
 
 
+def _int_snapshot_value(value: object, default: int) -> int:
+    if isinstance(value, int | float):
+        return int(value)
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _snapshot_vector(value: object) -> dict[str, float]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        str(key): float(raw_value)
+        for key, raw_value in value.items()
+        if isinstance(raw_value, int | float)
+    }
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -1136,6 +2154,22 @@ def _prompt_preset_from_row(row: sqlite3.Row) -> PromptPreset:
         description=row["description"],
         system_prompt=row["system_prompt"],
         answer_format=row["answer_format"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _model_profile_from_row(row: sqlite3.Row) -> ModelProfile:
+    return ModelProfile(
+        id=row["id"],
+        name=row["name"],
+        provider=row["provider"],
+        api_base=row["api_base"],
+        model=row["model"],
+        temperature=float(row["temperature"]),
+        max_tokens=int(row["max_tokens"]),
+        api_key_ref=row["api_key_ref"],
+        is_default=bool(row["is_default"]),
         created_at=row["created_at"],
         updated_at=row["updated_at"],
     )
@@ -1171,6 +2205,46 @@ def _document_from_row(row: sqlite3.Row) -> Document:
         row["content"],
         row["checksum"],
         row["updated_at"],
+    )
+
+
+def _document_collection_from_row(row: sqlite3.Row) -> DocumentCollection:
+    return DocumentCollection(
+        id=row["id"],
+        project_id=row["project_id"],
+        name=row["name"],
+        description=row["description"],
+        color=row["color"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        document_count=int(row["document_count"]),
+    )
+
+
+def _import_batch_from_row(row: sqlite3.Row) -> ImportBatch:
+    return ImportBatch(
+        id=row["id"],
+        project_id=row["project_id"],
+        source_type=row["source_type"],
+        status=row["status"],
+        started_at=row["started_at"],
+        finished_at=row["finished_at"],
+        summary=_json_object(row["summary_json"]),
+        message=row["message"],
+        created_at=row["created_at"],
+    )
+
+
+def _import_batch_item_from_row(row: sqlite3.Row) -> ImportBatchItem:
+    return ImportBatchItem(
+        id=row["id"],
+        batch_id=row["batch_id"],
+        project_id=row["project_id"],
+        kind=row["kind"],
+        relative_path=row["relative_path"],
+        document_id=row["document_id"],
+        reason=row["reason"],
+        created_at=row["created_at"],
     )
 
 
@@ -1226,6 +2300,46 @@ def _answer_feedback_from_row(row: sqlite3.Row) -> AnswerFeedback:
     )
 
 
+def _assessment_question_from_row(row: sqlite3.Row) -> AssessmentQuestion:
+    return AssessmentQuestion(
+        id=row["id"],
+        project_id=row["project_id"],
+        source_path=row["source_path"],
+        question_type=row["question_type"],
+        knowledge_point=row["knowledge_point"],
+        prompt=row["prompt"],
+        expected_points=list(json.loads(row["expected_points_json"])),
+        reference_snippet=row["reference_snippet"],
+        created_at=row["created_at"],
+    )
+
+
+def _assessment_answer_from_row(row: sqlite3.Row) -> AssessmentAnswer:
+    return AssessmentAnswer(
+        id=row["id"],
+        project_id=row["project_id"],
+        question_id=row["question_id"],
+        answer=row["answer"],
+        created_at=row["created_at"],
+    )
+
+
+def _assessment_result_from_row(row: sqlite3.Row) -> AssessmentResult:
+    return AssessmentResult(
+        id=row["id"],
+        project_id=row["project_id"],
+        question_id=row["question_id"],
+        answer_id=row["answer_id"],
+        status=row["status"],
+        score=float(row["score"]),
+        matched_points=list(json.loads(row["matched_points_json"])),
+        missing_points=list(json.loads(row["missing_points_json"])),
+        feedback=row["feedback"],
+        source_path=row["source_path"],
+        created_at=row["created_at"],
+    )
+
+
 def _agent_tool_run_from_row(row: sqlite3.Row) -> AgentToolRun:
     return AgentToolRun(
         id=row["id"],
@@ -1250,6 +2364,17 @@ def _retrieval_review_from_row(row: sqlite3.Row) -> RetrievalReview:
         note=row["note"],
         created_at=row["created_at"],
     )
+
+
+def _unique_non_empty(values: list[str]) -> list[str]:
+    clean_values = []
+    seen = set()
+    for value in values:
+        clean = str(value).strip()
+        if clean and clean not in seen:
+            clean_values.append(clean)
+            seen.add(clean)
+    return clean_values
 
 
 def _json_object(raw: str) -> dict[str, object]:

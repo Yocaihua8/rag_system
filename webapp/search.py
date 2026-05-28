@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from collections import Counter
+import math
 import re
 
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
-from webapp.models import SearchHit
+from webapp.models import DocumentChunk, SearchHit
 from webapp.storage import KnowledgeStore
 from webapp.vector_index import cosine_similarity
 
@@ -18,6 +20,8 @@ def search_documents(
     use_vector: bool = True,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
+    chunks = store.list_chunks(project_id)
+    keyword_scores = _bm25_keyword_scores(chunks, tokens) if use_keyword else {}
     query_vector = {}
     if use_vector:
         query_vectors, _, _ = embed_with_fallback(
@@ -31,8 +35,8 @@ def search_documents(
     }
     retrieval = _retrieval_label(use_keyword, use_vector)
     hits: list[SearchHit] = []
-    for chunk in store.list_chunks(project_id):
-        keyword_score = _score(chunk.content, tokens, query) if use_keyword else 0.0
+    for chunk in chunks:
+        keyword_score = keyword_scores.get(chunk.id, 0.0)
         vector_record = vector_records.get(chunk.id, {})
         vector_score = (
             cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
@@ -69,16 +73,56 @@ def _tokenize(text: str) -> list[str]:
     return [token for token in tokens if len(token) >= 2]
 
 
-def _score(content: str, tokens: list[str], query: str) -> float:
-    lowered = content.lower()
-    score = 0.0
-    for token in tokens:
-        score += lowered.count(token) * (2.0 if _is_cjk(token) else 1.0)
-    compact_query = re.sub(r"\W+", "", query.lower())
-    compact_content = re.sub(r"\W+", "", lowered)
-    if compact_query and compact_query in compact_content:
-        score += 5.0
-    return score
+def _bm25_keyword_scores(chunks: list[DocumentChunk], query_tokens: list[str]) -> dict[str, float]:
+    if not chunks or not query_tokens:
+        return {}
+
+    query_terms = list(dict.fromkeys(query_tokens))
+    corpus_tokens = [_tokenize(chunk.content) for chunk in chunks]
+    scores = _local_bm25_scores(corpus_tokens, query_terms)
+    return {chunk.id: score for chunk, score in zip(chunks, scores)}
+
+
+def _local_bm25_scores(
+    corpus_tokens: list[list[str]],
+    query_terms: list[str],
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> list[float]:
+    document_count = len(corpus_tokens)
+    if document_count == 0:
+        return []
+
+    average_doc_length = sum(len(tokens) for tokens in corpus_tokens) / document_count or 1.0
+    document_term_sets = [set(tokens) for tokens in corpus_tokens]
+    document_frequencies = {
+        term: sum(1 for term_set in document_term_sets if term in term_set)
+        for term in query_terms
+    }
+
+    scores: list[float] = []
+    for tokens in corpus_tokens:
+        term_counts = Counter(tokens)
+        doc_length = len(tokens) or 1
+        length_normalizer = k1 * (1 - b + b * (doc_length / average_doc_length))
+        score = 0.0
+        for term in query_terms:
+            term_frequency = term_counts.get(term, 0)
+            if term_frequency == 0:
+                continue
+            document_frequency = document_frequencies[term]
+            idf = math.log(
+                1 + (document_count - document_frequency + 0.5) / (document_frequency + 0.5)
+            )
+            term_weight = 2.0 if _is_cjk(term) else 1.0
+            score += (
+                term_weight
+                * idf
+                * (term_frequency * (k1 + 1))
+                / (term_frequency + length_normalizer)
+            )
+        scores.append(score)
+    return scores
 
 
 def _snippet(content: str, tokens: list[str], radius: int = 80) -> str:

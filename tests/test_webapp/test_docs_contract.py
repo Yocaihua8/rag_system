@@ -17,7 +17,14 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "POST /api/prompt-presets/update",
         "POST /api/prompt-presets/delete",
         "POST /api/prompt-presets/default",
+        "GET /api/model-profiles",
+        "POST /api/model-profiles",
+        "POST /api/model-profiles/update",
+        "POST /api/model-profiles/delete",
+        "POST /api/model-profiles/default",
+        "POST /api/model-profiles/test",
         "GET /api/export/project",
+        "POST /api/export/project/restore",
         "GET /api/import/preview",
         "POST /api/import",
         "POST /api/search",
@@ -28,6 +35,7 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "GET /api/retrieval/reviews/detail",
         "POST /api/retrieval/reviews/delete",
         "POST /api/answer",
+        "GET /api/answer/stream",
         "GET /api/chat/sessions",
         "POST /api/chat/sessions",
         "POST /api/chat/sessions/rename",
@@ -64,7 +72,28 @@ def test_project_export_contract_is_documented():
     assert "project_id is required" in api_spec
     assert "project not found" in api_spec
     assert "不导出 API Key" in api_spec
+    assert "POST /api/export/project/restore" in api_spec
+    assert "恢复为新项目空间" in api_spec
+    assert "文档正文" in api_spec
+    assert "chunk_vectors" in api_spec
+    assert "不恢复 API Key" in api_spec
+    assert "unsupported export version" in api_spec
+    assert "备份恢复" in readme
     assert "备份导出" in readme
+
+
+def test_answer_stream_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    testing = Path("docs/guides/testing.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "/api/answer/stream" in api_spec
+    assert "text/event-stream" in api_spec
+    assert "token" in api_spec
+    assert "done" in api_spec
+    assert "answer_error" in api_spec
+    assert "EventSource" in readme
+    assert "stream=true" in testing
 
 
 def test_upload_api_spec_documents_binary_document_payload():
@@ -242,6 +271,75 @@ def test_prompt_preset_contract_is_documented():
     assert "prompt preset not found" in api_spec
     assert "不保存 API Key" in api_spec
     assert "Prompt 预设" in readme
+
+
+def test_model_profile_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for endpoint in [
+        "GET /api/model-profiles",
+        "POST /api/model-profiles",
+        "POST /api/model-profiles/update",
+        "POST /api/model-profiles/delete",
+        "POST /api/model-profiles/default",
+        "POST /api/model-profiles/test",
+    ]:
+        assert endpoint in api_spec
+    assert "model_profiles" in database_design
+    for field in ["api_key_ref", "is_default", "temperature", "max_tokens"]:
+        assert field in api_spec
+        assert field in database_design
+    assert "model profile not found" in api_spec
+    assert "api_key_ref is invalid" in api_spec
+    assert "不保存 API Key 明文" in api_spec
+    assert "模型 Profile" in readme
+
+
+def test_document_collection_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for endpoint in [
+        "GET /api/document-collections",
+        "POST /api/document-collections",
+        "POST /api/document-collections/update",
+        "POST /api/document-collections/delete",
+        "POST /api/document-collections/items/add",
+        "POST /api/document-collections/items/remove",
+    ]:
+        assert endpoint in api_spec
+    assert "collection_id=unassigned" in api_spec
+    assert "document_collections" in database_design
+    assert "document_collection_items" in database_design
+    assert "删除集合不删除文档" in api_spec
+    assert "跨项目加入集合必须拒绝" in api_spec
+    assert "文档集合" in readme
+
+
+def test_import_batch_history_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
+    design_doc = Path("docs/design/import-batches-design.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    for endpoint in [
+        "GET /api/import/batches",
+        "GET /api/import/batches/detail",
+    ]:
+        assert endpoint in api_spec
+    for table in ["import_batches", "import_batch_items"]:
+        assert table in database_design
+        assert table in design_doc
+    for field in ["source_type", "status", "summary", "started_at", "finished_at"]:
+        assert field in api_spec
+    for source_type in ["directory_sync", "browser_folder_upload", "file_upload", "text_note", "url_excerpt"]:
+        assert source_type in api_spec
+    assert "不会保存文档正文" in api_spec
+    assert "不做回滚" in api_spec
+    assert "导入批次历史" in readme
 
 
 def test_answer_observability_contract_is_documented():

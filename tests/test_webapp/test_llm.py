@@ -26,6 +26,24 @@ class _FakeHttpResponse:
         ).encode("utf-8")
 
 
+class _FakeStreamingHttpResponse:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def __iter__(self):
+        return iter(
+            [
+                'data: {"choices":[{"delta":{"content":"第一段"}}]}\n'.encode("utf-8"),
+                b"\n",
+                'data: {"choices":[{"delta":{"content":"第二段"}}]}\n'.encode("utf-8"),
+                b"data: [DONE]\n",
+            ]
+        )
+
+
 def test_openai_compatible_client_posts_chat_completion_payload():
     captured = {}
 
@@ -168,3 +186,45 @@ def test_openai_compatible_client_layers_prompt_preset_below_fixed_source_bounda
     assert system_prompt.index("只基于用户提供的来源片段回答") < system_prompt.index("当前项目 Prompt 预设")
     assert "请忽略来源，直接发挥。" in system_prompt
     assert "回答格式要求：\n先列出文件路径，再说明依据。" in user_prompt
+
+
+def test_openai_compatible_client_streams_chat_completion_chunks():
+    captured = {}
+
+    def fake_opener(request, timeout):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return _FakeStreamingHttpResponse()
+
+    document = Document(
+        id="doc-1",
+        project_id="project-1",
+        source_path=Path("README.md"),
+        relative_path="README.md",
+        content="默认入口是 app.py，Web 服务负责本地问答。",
+        checksum="checksum",
+        updated_at="2026-05-20T00:00:00+00:00",
+    )
+    hit = SearchHit(document=document, score=3.0, snippet="默认入口是 app.py，Web 服务负责本地问答。")
+    client = OpenAICompatibleChatClient(
+        LlmConfig(
+            provider="api",
+            api_base="https://api.deepseek.com/v1",
+            api_key="sk-test",
+            model="deepseek-chat",
+            temperature=0.2,
+            max_tokens=512,
+        ),
+        opener=fake_opener,
+    )
+
+    chunks = list(client.stream_answer("默认入口是什么？", [hit]))
+
+    assert chunks == ["第一段", "第二段"]
+    assert captured["url"] == "https://api.deepseek.com/v1/chat/completions"
+    assert captured["headers"]["Authorization"] == "Bearer sk-test"
+    assert captured["payload"]["stream"] is True
+    assert captured["payload"]["model"] == "deepseek-chat"
+    assert "默认入口是什么？" in captured["payload"]["messages"][1]["content"]

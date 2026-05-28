@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Iterator
 from urllib.request import Request, urlopen
 
 from src.config.settings import AppSettings, load_settings
@@ -87,6 +87,58 @@ class OpenAICompatibleChatClient:
         except (KeyError, IndexError, TypeError) as exc:
             raise RuntimeError("LLM response missing choices[0].message.content") from exc
         return str(content or "").strip()
+
+    def stream_answer(
+        self,
+        question: str,
+        hits: list[SearchHit],
+        history_messages: list[ChatMessage] | None = None,
+        prompt_preset: PromptPreset | None = None,
+    ) -> Iterator[str]:
+        if not self.is_configured():
+            raise RuntimeError("LLM provider is not configured")
+
+        payload = {
+            "model": self._config.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": _build_system_prompt(prompt_preset),
+                },
+                {
+                    "role": "user",
+                    "content": _build_user_prompt(question, hits, history_messages or [], prompt_preset),
+                },
+            ],
+            "temperature": self._config.temperature,
+            "max_tokens": self._config.max_tokens,
+            "stream": True,
+        }
+        request = Request(
+            _chat_completions_url(self._config.api_base),
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self._config.api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        with self._opener(request, timeout=self._timeout) as response:
+            for raw_line in response:
+                line = raw_line.decode("utf-8").strip()
+                if not line.startswith("data:"):
+                    continue
+                payload_text = line.removeprefix("data:").strip()
+                if payload_text == "[DONE]":
+                    break
+                try:
+                    data = json.loads(payload_text)
+                    content = data["choices"][0].get("delta", {}).get("content", "")
+                except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+                    continue
+                if content:
+                    yield str(content)
 
 
 def load_llm_config(settings: AppSettings | None = None) -> LlmConfig:

@@ -1,5 +1,7 @@
 from pathlib import Path
+from urllib.parse import quote
 
+import webapp.api as api_module
 from webapp.api import dispatch
 from webapp.ingestion import import_directory
 from webapp.storage import KnowledgeStore
@@ -203,6 +205,60 @@ def test_api_import_search_and_answer_flow(tmp_path: Path):
     assert answer_response.body["mode"] == "local"
     assert answer_response.body["sources"][0]["path"] == "stack.md"
     assert "tool_suggestion" not in answer_response.body
+
+
+def test_answer_stream_api_yields_token_events_and_done_payload(tmp_path: Path):
+    class FakeStreamingClient:
+        provider = "deepseek"
+
+        def __init__(self):
+            self.calls = []
+
+        def stream_answer(self, question, hits, history_messages=None, prompt_preset=None):
+            self.calls.append(
+                {
+                    "question": question,
+                    "hit_paths": [hit.document.relative_path for hit in hits],
+                    "history": history_messages or [],
+                    "prompt_preset": prompt_preset,
+                }
+            )
+            yield "第一段"
+            yield "第二段"
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    document = store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口是 app.py，本地 Web 服务负责页面和 API。",
+    ).document
+    session = store.create_chat_session(project.id, "默认会话")
+    client = FakeStreamingClient()
+
+    events = list(
+        api_module.answer_stream_events(
+            store,
+            f"/api/answer/stream?project_id={project.id}&session_id={session.id}&question={quote('默认入口是什么？')}",
+            llm_client=client,
+        )
+    )
+
+    assert [event.event for event in events] == ["token", "token", "done"]
+    assert [event.data for event in events[:2]] == [{"text": "第一段"}, {"text": "第二段"}]
+    done = events[-1].data
+    assert done["answer"] == "第一段第二段"
+    assert done["mode"] == "api"
+    assert done["provider"] == "deepseek"
+    assert done["sources"][0]["document_id"] == document.id
+    assert done["message"]["answer"] == "第一段第二段"
+    assert done["message"]["session_id"] == session.id
+    assert store.list_chat_messages(project.id, session.id)[0].answer == "第一段第二段"
+    assert client.calls[0]["question"] == "默认入口是什么？"
+    assert client.calls[0]["hit_paths"] == ["stack.md"]
 
 
 def test_answer_api_suggests_readonly_source_search_when_sources_are_missing(tmp_path: Path):
@@ -778,6 +834,183 @@ def test_llm_settings_test_api_requires_configured_key(tmp_path: Path, monkeypat
     assert response.body["error"] == "LLM provider is not configured"
 
 
+def test_model_profile_api_crud_default_and_key_status(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("RAG_LLM_API_KEY", "sk-profile-secret")
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    create_response = dispatch(
+        store,
+        "POST",
+        "/api/model-profiles",
+        {
+            "name": "DeepSeek 默认",
+            "provider": "api",
+            "api_base": "https://api.deepseek.com/v1",
+            "model": "deepseek-chat",
+            "temperature": 0.3,
+            "max_tokens": 1024,
+            "api_key_ref": "env:RAG_LLM_API_KEY",
+        },
+    )
+
+    assert create_response.status == 200
+    profile = create_response.body["profile"]
+    assert profile["name"] == "DeepSeek 默认"
+    assert profile["provider"] == "api"
+    assert profile["has_api_key"] is True
+    assert profile["api_key_source"] == "environment"
+    assert profile["is_default"] is False
+    assert "sk-profile-secret" not in str(create_response.body)
+
+    default_response = dispatch(
+        store,
+        "POST",
+        "/api/model-profiles/default",
+        {"profile_id": profile["id"]},
+    )
+    list_response = dispatch(store, "GET", "/api/model-profiles")
+    update_response = dispatch(
+        store,
+        "POST",
+        "/api/model-profiles/update",
+        {
+            "profile_id": profile["id"],
+            "name": "OpenAI 轻量",
+            "provider": "api",
+            "api_base": "https://api.openai.com/v1",
+            "model": "gpt-4o-mini",
+            "temperature": 0.2,
+            "max_tokens": 512,
+            "api_key_ref": "env:RAG_LLM_API_KEY",
+        },
+    )
+
+    assert default_response.status == 200
+    assert default_response.body["default_profile_id"] == profile["id"]
+    assert list_response.status == 200
+    assert list_response.body["default_profile_id"] == profile["id"]
+    assert list_response.body["profiles"][0]["is_default"] is True
+    assert update_response.status == 200
+    assert update_response.body["profile"]["name"] == "OpenAI 轻量"
+    assert update_response.body["profile"]["model"] == "gpt-4o-mini"
+
+    clear_default_response = dispatch(store, "POST", "/api/model-profiles/default", {"profile_id": ""})
+    delete_response = dispatch(store, "POST", "/api/model-profiles/delete", {"profile_id": profile["id"]})
+
+    assert clear_default_response.status == 200
+    assert clear_default_response.body["default_profile_id"] == ""
+    assert delete_response.status == 200
+    assert delete_response.body["deleted"] is True
+    assert delete_response.body["profiles"] == []
+
+
+def test_model_profile_api_rejects_invalid_payload_and_missing_profile(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    blank_name = dispatch(
+        store,
+        "POST",
+        "/api/model-profiles",
+        {"name": "", "provider": "api", "model": "deepseek-chat"},
+    )
+    invalid_key_ref = dispatch(
+        store,
+        "POST",
+        "/api/model-profiles",
+        {
+            "name": "误填 Key",
+            "provider": "api",
+            "api_base": "https://api.deepseek.com/v1",
+            "model": "deepseek-chat",
+            "api_key_ref": "sk-real-key-should-not-save",
+        },
+    )
+    missing_update_id = dispatch(store, "POST", "/api/model-profiles/update", {"name": "x"})
+    missing_delete_id = dispatch(store, "POST", "/api/model-profiles/delete", {})
+    unknown_default = dispatch(store, "POST", "/api/model-profiles/default", {"profile_id": "missing"})
+
+    assert blank_name.status == 400
+    assert blank_name.body["error"] == "name is required"
+    assert invalid_key_ref.status == 400
+    assert invalid_key_ref.body["error"] == "api_key_ref is invalid"
+    assert missing_update_id.status == 400
+    assert missing_update_id.body["error"] == "profile_id is required"
+    assert missing_delete_id.status == 400
+    assert missing_delete_id.body["error"] == "profile_id is required"
+    assert unknown_default.status == 404
+    assert unknown_default.body["error"] == "model profile not found"
+
+
+def test_answer_api_uses_default_model_profile_when_no_client_is_injected(tmp_path: Path, monkeypatch):
+    class FakeProfileClient:
+        instances = []
+
+        def __init__(self, config, timeout=60.0):
+            self.config = config
+            self.provider = "openai"
+            FakeProfileClient.instances.append(self)
+
+        def is_configured(self):
+            return True
+
+        def generate_answer(self, question, hits, history_messages=None, prompt_preset=None):
+            return f"{self.config.model} 回答：{question}"
+
+    monkeypatch.setenv("RAG_LLM_API_KEY", "sk-profile-secret")
+    monkeypatch.setattr(api_module, "OpenAICompatibleChatClient", FakeProfileClient)
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "默认入口是 app.py。")
+    profile = store.create_model_profile(
+        name="OpenAI 轻量",
+        provider="api",
+        api_base="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        temperature=0.2,
+        max_tokens=512,
+        api_key_ref="env:RAG_LLM_API_KEY",
+    )
+    store.set_default_model_profile(profile.id)
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "默认入口是什么？"},
+    )
+
+    assert response.status == 200
+    assert response.body["answer"] == "gpt-4o-mini 回答：默认入口是什么？"
+    assert response.body["mode"] == "api"
+    assert response.body["provider"] == "openai"
+    assert FakeProfileClient.instances[0].config.api_base == "https://api.openai.com/v1"
+    assert FakeProfileClient.instances[0].config.api_key == "sk-profile-secret"
+    assert FakeProfileClient.instances[0].config.temperature == 0.2
+    assert FakeProfileClient.instances[0].config.max_tokens == 512
+
+
+def test_model_profile_test_api_requires_resolvable_key_without_changing_default(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("RAG_LLM_API_KEY", raising=False)
+    store = KnowledgeStore(tmp_path / "app.db")
+    profile = store.create_model_profile(
+        name="DeepSeek 默认",
+        provider="api",
+        api_base="https://api.deepseek.com/v1",
+        model="deepseek-chat",
+        temperature=0.3,
+        max_tokens=1024,
+        api_key_ref="env:RAG_LLM_API_KEY",
+    )
+
+    response = dispatch(store, "POST", "/api/model-profiles/test", {"profile_id": profile.id})
+
+    assert response.status == 400
+    assert response.body["error"] == "LLM provider is not configured"
+    assert store.get_default_model_profile_id() == ""
+
+
 def test_import_api_returns_current_document_list(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()
@@ -793,6 +1026,134 @@ def test_import_api_returns_current_document_list(tmp_path: Path):
     assert response.body["result"]["created"] == 2
     assert response.body["result"]["deleted"] == 0
     assert [doc["relative_path"] for doc in response.body["documents"]] == ["a.md", "b.md"]
+
+
+def test_import_api_creates_batch_history_with_detail(tmp_path: Path, monkeypatch):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    (project_dir / "a.md").write_text("Alpha content", encoding="utf-8")
+    (project_dir / "bad.md").write_text("bad", encoding="utf-8")
+    protected_path = project_dir / "notes" / "protected.txt"
+    protected_path.parent.mkdir()
+    protected_path.write_text("real file should be skipped", encoding="utf-8")
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, Path("note:protected"), "notes/protected.txt", "virtual note")
+    original_read_text = Path.read_text
+
+    def fail_bad_file(path: Path, *args, **kwargs):
+        if path == project_dir / "bad.md":
+            raise OSError("permission denied")
+        return original_read_text(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", fail_bad_file)
+
+    response = dispatch(store, "POST", "/api/import", {"project_id": project.id})
+    list_response = dispatch(store, "GET", f"/api/import/batches?project_id={project.id}")
+
+    assert response.status == 200
+    assert response.body["batch"]["source_type"] == "directory_sync"
+    assert response.body["batch"]["status"] == "partial"
+    assert response.body["batch"]["summary"]["created"] == 1
+    assert response.body["batch"]["summary"]["skipped"] == 2
+    assert list_response.status == 200
+    assert len(list_response.body["batches"]) == 1
+    batch = list_response.body["batches"][0]
+    assert batch["id"] == response.body["batch"]["id"]
+    assert batch["project_id"] == project.id
+    assert batch["summary"]["errors"] == 1
+
+    detail_response = dispatch(store, "GET", f"/api/import/batches/detail?batch_id={batch['id']}")
+
+    assert detail_response.status == 200
+    assert detail_response.body["batch"]["id"] == batch["id"]
+    assert detail_response.body["items"] == [
+        {
+            "kind": "skipped",
+            "relative_path": "bad.md",
+            "document_id": "",
+            "reason": "permission denied",
+        },
+        {
+            "kind": "skipped",
+            "relative_path": "notes/protected.txt",
+            "document_id": "",
+            "reason": "reserved note path",
+        },
+        {
+            "kind": "error",
+            "relative_path": "bad.md",
+            "document_id": "",
+            "reason": "bad.md: permission denied",
+        },
+    ]
+
+
+def test_import_sources_create_project_scoped_batches(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", Path("browser-upload:知识岛"))
+
+    upload_response = dispatch(
+        store,
+        "POST",
+        "/api/import/upload",
+        {
+            "project_id": project.id,
+            "source_type": "file_upload",
+            "files": [{"relative_path": "README.md", "content": "上传文件"}],
+        },
+    )
+    note_response = dispatch(
+        store,
+        "POST",
+        "/api/import/note",
+        {"project_id": project.id, "title": "会议记录", "content": "文本笔记"},
+    )
+    url_response = dispatch(
+        store,
+        "POST",
+        "/api/import/url",
+        {
+            "project_id": project.id,
+            "url": "https://example.com/article",
+            "title": "网页摘录",
+            "content": "人工粘贴正文",
+        },
+    )
+    other_project = store.create_project("其他项目", Path("browser-upload:其他项目"))
+
+    list_response = dispatch(store, "GET", f"/api/import/batches?project_id={project.id}")
+    other_list_response = dispatch(store, "GET", f"/api/import/batches?project_id={other_project.id}")
+
+    assert upload_response.status == 200
+    assert note_response.status == 200
+    assert url_response.status == 200
+    assert {response.body["batch"]["source_type"] for response in [upload_response, note_response, url_response]} == {
+        "file_upload",
+        "text_note",
+        "url_excerpt",
+    }
+    assert [batch["source_type"] for batch in list_response.body["batches"]] == [
+        "url_excerpt",
+        "text_note",
+        "file_upload",
+    ]
+    assert other_list_response.body["batches"] == []
+
+
+def test_import_preview_does_not_create_batch_history(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    (project_dir / "a.md").write_text("Alpha content", encoding="utf-8")
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+
+    preview_response = dispatch(store, "GET", f"/api/import/preview?project_id={project.id}")
+    list_response = dispatch(store, "GET", f"/api/import/batches?project_id={project.id}")
+
+    assert preview_response.status == 200
+    assert list_response.status == 200
+    assert list_response.body["batches"] == []
 
 
 def test_import_preview_api_returns_counts_without_writing_documents(tmp_path: Path):
@@ -967,6 +1328,8 @@ def test_project_export_api_returns_project_documents_chat_and_settings_summary(
         warning="",
         sources=[{"path": "stack.md", "document_id": document.id}],
     )
+    chunk = store.list_chunks(project.id)[0]
+    vector_record = store.list_chunk_vector_records(project.id)[0]
 
     response = dispatch(store, "GET", f"/api/export/project?project_id={project.id}")
 
@@ -980,6 +1343,22 @@ def test_project_export_api_returns_project_documents_chat_and_settings_summary(
             "source_path": str(project_dir / "stack.md"),
             "checksum": document.checksum,
             "updated_at": document.updated_at,
+            "content": "默认入口是 app.py，本地 Web 服务负责页面和 API。",
+            "chunks": [
+                {
+                    "id": chunk.id,
+                    "chunk_index": chunk.chunk_index,
+                    "content": chunk.content,
+                    "token_count": chunk.token_count,
+                    "created_at": chunk.created_at,
+                    "vector": {
+                        "values": vector_record["vector"],
+                        "provider": vector_record["provider"],
+                        "model": vector_record["model"],
+                        "updated_at": vector_record["updated_at"],
+                    },
+                }
+            ],
         }
     ]
     assert response.body["export"]["chat_messages"] == [message.to_dict()]
@@ -989,7 +1368,6 @@ def test_project_export_api_returns_project_documents_chat_and_settings_summary(
         "model": "deepseek-chat",
         "key_configured": True,
     }
-    assert "content" not in response.body["export"]["documents"][0]
     assert "api_key" not in str(response.body).lower()
     assert "sk-export-secret" not in str(response.body)
 
@@ -1031,6 +1409,132 @@ def test_project_export_api_rejects_missing_or_unknown_project(tmp_path: Path):
     assert missing_id_response.body["error"] == "project_id is required"
     assert unknown_project_response.status == 404
     assert unknown_project_response.body["error"] == "project not found"
+
+
+def test_project_restore_api_restores_backup_as_new_project_with_document_content_chunks_and_vectors(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    embedding_client = FakeEmbeddingClient()
+    store = KnowledgeStore(tmp_path / "app.db", embedding_client=embedding_client)
+    project = store.create_project("知识岛", project_dir)
+    document = store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "DeepSeek API Key 用于模型配置。\n\n本地 Web 服务负责页面和 API。",
+    ).document
+    original_chunks = store.list_chunks(project.id)
+    original_vectors = {
+        record["chunk_id"]: record
+        for record in store.list_chunk_vector_records(project.id)
+    }
+    session = store.create_chat_session(project.id, "架构说明")
+    message = store.create_chat_message(
+        project.id,
+        "默认入口是什么？",
+        "默认入口是 app.py。",
+        "local",
+        "local",
+        "",
+        [
+            {
+                "path": "stack.md",
+                "document_id": document.id,
+                "chunk_id": original_chunks[0].id,
+            }
+        ],
+        session_id=session.id,
+    )
+    assert embedding_client.calls == [["DeepSeek API Key 用于模型配置。", "本地 Web 服务负责页面和 API。"]]
+    export_response = dispatch(store, "GET", f"/api/export/project?project_id={project.id}")
+
+    restore_response = dispatch(
+        store,
+        "POST",
+        "/api/export/project/restore",
+        {"export": export_response.body["export"], "name": "知识岛恢复"},
+    )
+
+    assert restore_response.status == 200
+    restored_project = restore_response.body["project"]
+    assert restored_project["id"] != project.id
+    assert restored_project["name"] == "知识岛恢复"
+    assert restored_project["root_path"] == "browser-upload:知识岛恢复"
+    assert restore_response.body["restored"] == {
+        "documents": 1,
+        "chunks": 2,
+        "vectors": 2,
+        "chat_sessions": 1,
+        "chat_messages": 1,
+    }
+    assert embedding_client.calls == [["DeepSeek API Key 用于模型配置。", "本地 Web 服务负责页面和 API。"]]
+
+    restored_documents = store.list_documents(restored_project["id"])
+    assert len(restored_documents) == 1
+    assert restored_documents[0].id != document.id
+    assert restored_documents[0].relative_path == "stack.md"
+    assert restored_documents[0].checksum == document.checksum
+    assert restored_documents[0].content == "DeepSeek API Key 用于模型配置。\n\n本地 Web 服务负责页面和 API。"
+
+    restored_chunks = store.list_chunks(restored_project["id"])
+    assert [chunk.content for chunk in restored_chunks] == [chunk.content for chunk in original_chunks]
+    assert [chunk.id for chunk in restored_chunks] != [chunk.id for chunk in original_chunks]
+    assert [chunk.document.id for chunk in restored_chunks] == [restored_documents[0].id, restored_documents[0].id]
+
+    restored_vectors = {
+        record["chunk_id"]: record
+        for record in store.list_chunk_vector_records(restored_project["id"])
+    }
+    assert len(restored_vectors) == 2
+    assert {record["provider"] for record in restored_vectors.values()} == {"api"}
+    assert {record["model"] for record in restored_vectors.values()} == {"fake-embedding"}
+    assert {
+        chunk.chunk_index: restored_vectors[chunk.id]["vector"]
+        for chunk in restored_chunks
+    } == {
+        chunk.chunk_index: original_vectors[chunk.id]["vector"]
+        for chunk in original_chunks
+    }
+
+    restored_sessions = store.list_chat_sessions(restored_project["id"])
+    assert len(restored_sessions) == 1
+    assert restored_sessions[0].title == "架构说明"
+
+    restored_messages = store.list_all_chat_messages(restored_project["id"])
+    assert len(restored_messages) == 1
+    assert restored_messages[0].id != message.id
+    assert restored_messages[0].question == "默认入口是什么？"
+    assert restored_messages[0].session_id == restored_sessions[0].id
+    assert restored_messages[0].sources[0]["document_id"] == restored_documents[0].id
+    assert restored_messages[0].sources[0]["document_id"] != document.id
+    assert restored_messages[0].sources[0]["chunk_id"] == restored_chunks[0].id
+    assert restored_messages[0].sources[0]["chunk_id"] != original_chunks[0].id
+    assert store.list_documents(project.id)[0].content.startswith("DeepSeek API Key")
+
+
+def test_project_restore_api_rejects_missing_invalid_or_unsupported_backup(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    missing_export = dispatch(store, "POST", "/api/export/project/restore", {})
+    missing_project = dispatch(
+        store,
+        "POST",
+        "/api/export/project/restore",
+        {"export": {"version": 1, "documents": [], "chat_messages": []}},
+    )
+    unsupported_version = dispatch(
+        store,
+        "POST",
+        "/api/export/project/restore",
+        {"export": {"version": 999, "project": {"name": "旧备份"}}},
+    )
+
+    assert missing_export.status == 400
+    assert missing_export.body["error"] == "export is required"
+    assert missing_project.status == 400
+    assert missing_project.body["error"] == "export project is required"
+    assert unsupported_version.status == 400
+    assert unsupported_version.body["error"] == "unsupported export version"
 
 
 def test_upload_import_api_creates_project_without_host_directory(tmp_path: Path):
@@ -1592,6 +2096,165 @@ def test_document_preview_api_returns_404_for_missing_document(tmp_path: Path):
     assert response.body["error"] == "document not found"
 
 
+def test_document_collection_api_creates_updates_lists_and_deletes_without_deleting_documents(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    document = store.upsert_document(project.id, project_dir / "api.md", "api.md", "接口文档").document
+
+    create_response = dispatch(
+        store,
+        "POST",
+        "/api/document-collections",
+        {
+            "project_id": project.id,
+            "name": "接口资料",
+            "description": "接口相关文档",
+            "color": "#0f766e",
+        },
+    )
+    collection_id = create_response.body["collection"]["id"]
+    add_response = dispatch(
+        store,
+        "POST",
+        "/api/document-collections/items/add",
+        {"collection_id": collection_id, "document_ids": [document.id]},
+    )
+    update_response = dispatch(
+        store,
+        "POST",
+        "/api/document-collections/update",
+        {
+            "collection_id": collection_id,
+            "name": "API 资料",
+            "description": "更新后的说明",
+            "color": "#4f46e5",
+        },
+    )
+    list_response = dispatch(store, "GET", f"/api/document-collections?project_id={project.id}")
+    delete_response = dispatch(
+        store,
+        "POST",
+        "/api/document-collections/delete",
+        {"collection_id": collection_id},
+    )
+
+    assert create_response.status == 200
+    assert create_response.body["collection"]["name"] == "接口资料"
+    assert add_response.status == 200
+    assert add_response.body["collection"]["document_count"] == 1
+    assert update_response.status == 200
+    assert update_response.body["collection"]["name"] == "API 资料"
+    assert update_response.body["collection"]["description"] == "更新后的说明"
+    assert update_response.body["collection"]["color"] == "#4f46e5"
+    assert list_response.status == 200
+    assert list_response.body["collections"][0]["document_count"] == 1
+    assert delete_response.status == 200
+    assert delete_response.body["deleted"] is True
+    assert delete_response.body["collections"] == []
+    assert store.get_document(document.id) is not None
+
+
+def test_document_collection_items_filter_documents_and_unassigned_documents(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    api_doc = store.upsert_document(project.id, project_dir / "api.md", "api.md", "接口文档").document
+    ui_doc = store.upsert_document(project.id, project_dir / "ui.md", "ui.md", "界面文档").document
+    collection = dispatch(
+        store,
+        "POST",
+        "/api/document-collections",
+        {"project_id": project.id, "name": "接口资料"},
+    ).body["collection"]
+
+    add_response = dispatch(
+        store,
+        "POST",
+        "/api/document-collections/items/add",
+        {"collection_id": collection["id"], "document_ids": [api_doc.id]},
+    )
+    filtered_response = dispatch(
+        store,
+        "GET",
+        f"/api/documents?project_id={project.id}&collection_id={collection['id']}",
+    )
+    unassigned_response = dispatch(
+        store,
+        "GET",
+        f"/api/documents?project_id={project.id}&collection_id=unassigned",
+    )
+    remove_response = dispatch(
+        store,
+        "POST",
+        "/api/document-collections/items/remove",
+        {"collection_id": collection["id"], "document_ids": [api_doc.id]},
+    )
+    unassigned_after_remove = dispatch(
+        store,
+        "GET",
+        f"/api/documents?project_id={project.id}&collection_id=unassigned",
+    )
+
+    assert add_response.status == 200
+    assert [doc["relative_path"] for doc in filtered_response.body["documents"]] == ["api.md"]
+    assert [doc["relative_path"] for doc in unassigned_response.body["documents"]] == ["ui.md"]
+    assert remove_response.status == 200
+    assert remove_response.body["collection"]["document_count"] == 0
+    assert [doc["relative_path"] for doc in unassigned_after_remove.body["documents"]] == ["api.md", "ui.md"]
+    assert {api_doc.id, ui_doc.id} == {doc.id for doc in store.list_documents(project.id)}
+
+
+def test_document_collection_api_rejects_cross_project_documents_and_invalid_payloads(tmp_path: Path):
+    project_a_dir = tmp_path / "a"
+    project_b_dir = tmp_path / "b"
+    project_a_dir.mkdir()
+    project_b_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project_a = store.create_project("A", project_a_dir)
+    project_b = store.create_project("B", project_b_dir)
+    document_b = store.upsert_document(project_b.id, project_b_dir / "b.md", "b.md", "B 项目").document
+    collection = dispatch(
+        store,
+        "POST",
+        "/api/document-collections",
+        {"project_id": project_a.id, "name": "A 集合"},
+    ).body["collection"]
+
+    missing_project = dispatch(store, "GET", "/api/document-collections")
+    unknown_project = dispatch(store, "GET", "/api/document-collections?project_id=missing")
+    blank_name = dispatch(
+        store,
+        "POST",
+        "/api/document-collections",
+        {"project_id": project_a.id, "name": " "},
+    )
+    cross_project = dispatch(
+        store,
+        "POST",
+        "/api/document-collections/items/add",
+        {"collection_id": collection["id"], "document_ids": [document_b.id]},
+    )
+    unknown_filter = dispatch(
+        store,
+        "GET",
+        f"/api/documents?project_id={project_a.id}&collection_id=missing",
+    )
+
+    assert missing_project.status == 400
+    assert missing_project.body["error"] == "project_id is required"
+    assert unknown_project.status == 404
+    assert unknown_project.body["error"] == "project not found"
+    assert blank_name.status == 400
+    assert blank_name.body["error"] == "name is required"
+    assert cross_project.status == 404
+    assert cross_project.body["error"] == "document not found"
+    assert unknown_filter.status == 404
+    assert unknown_filter.body["error"] == "document collection not found"
+
+
 def test_delete_document_api_removes_single_document_and_returns_remaining_list(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()
@@ -1968,3 +2631,23 @@ def test_rename_project_api_rejects_blank_name(tmp_path: Path):
     assert response.status == 400
     assert response.body["error"] == "name is required"
     assert store.get_project(project.id).name == "知识岛"
+
+
+class FakeEmbeddingClient:
+    provider = "api"
+    model = "fake-embedding"
+
+    def __init__(self):
+        self.calls = []
+
+    def embed_texts(self, texts):
+        self.calls.append(list(texts))
+        vectors = []
+        for text in texts:
+            lowered = text.lower()
+            vectors.append({
+                "deepseek": 1.0 if "deepseek" in lowered else 0.0,
+                "api": 1.0 if "api" in lowered else 0.0,
+                "key": 1.0 if "key" in lowered else 0.0,
+            })
+        return vectors
