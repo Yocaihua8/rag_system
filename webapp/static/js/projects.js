@@ -40,6 +40,7 @@ export async function importSelectedProject() {
 
 export async function importBrowserFolder(files) {
   const payload = await buildBrowserFolderPayload(files);
+  payload.source_type = "browser_folder_upload";
   const response = await apiPost("/api/import/upload", payload);
   state.selectedProjectId = response.project.id;
   persistSelectedProject(state.selectedProjectId);
@@ -58,6 +59,7 @@ export async function importBrowserFiles(files) {
   } else {
     payload.project_name = "browser-upload";
   }
+  payload.source_type = "file_upload";
   const response = await apiPost("/api/import/upload", payload);
   state.selectedProjectId = response.project.id;
   persistSelectedProject(state.selectedProjectId);
@@ -125,7 +127,64 @@ export async function listDocuments() {
   if (!state.selectedProjectId) {
     return { documents: [] };
   }
-  return apiGet(`/api/documents?project_id=${encodeURIComponent(state.selectedProjectId)}`);
+  const params = new URLSearchParams({ project_id: state.selectedProjectId });
+  if (state.selectedDocumentCollectionId) {
+    params.set("collection_id", state.selectedDocumentCollectionId);
+  }
+  return apiGet(`/api/documents?${params.toString()}`);
+}
+
+export async function listDocumentCollections() {
+  if (!state.selectedProjectId) {
+    return { collections: [] };
+  }
+  return apiGet(`/api/document-collections?project_id=${encodeURIComponent(state.selectedProjectId)}`);
+}
+
+export async function listImportBatches() {
+  if (!state.selectedProjectId) {
+    return { batches: [] };
+  }
+  return apiGet(`/api/import/batches?project_id=${encodeURIComponent(state.selectedProjectId)}`);
+}
+
+export async function getImportBatchDetail(batchId) {
+  return apiGet(`/api/import/batches/detail?batch_id=${encodeURIComponent(batchId)}`);
+}
+
+export async function createDocumentCollection(name) {
+  if (!state.selectedProjectId) {
+    throw new Error("请先选择项目空间");
+  }
+  return apiPost("/api/document-collections", {
+    project_id: state.selectedProjectId,
+    name,
+  });
+}
+
+export async function updateDocumentCollection(collectionId, name) {
+  return apiPost("/api/document-collections/update", {
+    collection_id: collectionId,
+    name,
+  });
+}
+
+export async function deleteDocumentCollection(collectionId) {
+  return apiPost("/api/document-collections/delete", { collection_id: collectionId });
+}
+
+export async function addDocumentToCollection(collectionId, documentId) {
+  return apiPost("/api/document-collections/items/add", {
+    collection_id: collectionId,
+    document_ids: [documentId],
+  });
+}
+
+export async function removeDocumentFromCollection(collectionId, documentId) {
+  return apiPost("/api/document-collections/items/remove", {
+    collection_id: collectionId,
+    document_ids: [documentId],
+  });
 }
 
 export async function getProjectSummary() {

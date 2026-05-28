@@ -9,12 +9,13 @@ export async function apiGet(path) {
   }
 }
 
-export async function apiPost(path, payload) {
+export async function apiPost(path, payload, options = {}) {
   try {
     const response = await fetch(path, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: options.signal,
     });
     return readJson(response);
   } catch (error) {

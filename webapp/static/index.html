@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>知识岛</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -20,6 +21,8 @@
           <button type="button" data-view-target="assessment-view">评估</button>
           <button type="button" data-view-target="settings-view">设置</button>
         </nav>
+
+        <button id="theme-toggle-button" class="theme-toggle-button" type="button" aria-pressed="false">深色</button>
       </aside>
 
       <section class="workspace-main">
@@ -51,6 +54,7 @@
               <div class="ask-row">
                 <input id="question" placeholder="例如：这个项目的默认入口是什么？" />
                 <button id="ask-button" class="primary-action" type="button">提问</button>
+                <button id="ask-cancel-button" type="button" hidden>取消</button>
               </div>
               <p id="tool-context-notice" class="status-line"></p>
               <p id="status" class="status-line"></p>
@@ -83,7 +87,7 @@
                 <h2>回答</h2>
                 <span class="soft-label">来源可追溯</span>
               </div>
-              <pre id="answer" class="answer"></pre>
+              <div id="answer" class="answer markdown-body"></div>
               <div id="answer-feedback" class="project-actions compact" hidden>
                 <button type="button" data-feedback-rating="useful">有用</button>
                 <button type="button" data-feedback-rating="not_useful">无用</button>
@@ -231,6 +235,12 @@
                 </div>
                 <p id="document-count" class="count-pill">0 / 0</p>
               </div>
+              <div class="search-row">
+                <select id="document-collection-filter" aria-label="按文档集合过滤"></select>
+                <input id="document-collection-name" placeholder="新集合名称，例如：接口资料" />
+                <button id="document-collection-create-button" type="button">新建集合</button>
+              </div>
+              <ul id="document-collections" class="tool-runs"></ul>
               <input id="document-filter" placeholder="按路径过滤文件" />
               <ul id="documents" class="documents"></ul>
             </section>
@@ -252,6 +262,9 @@
               <h2>导入状态</h2>
               <ul id="skipped-details" class="skipped-details"></ul>
               <ul id="import-errors" class="skipped-details"></ul>
+              <h2>导入批次历史</h2>
+              <ul id="import-batches" class="skipped-details"></ul>
+              <pre id="import-batch-detail" class="preview"></pre>
             </section>
           </aside>
         </section>
@@ -269,14 +282,28 @@
               <div class="section-title-row">
                 <div>
                   <p class="section-kicker">掌握评估</p>
-                  <h2>从资料生成一道检查题</h2>
+                  <h2>从资料生成一组检查题</h2>
                 </div>
                 <button id="start-assessment-button" type="button">开始评估</button>
               </div>
+              <p id="assessment-progress" class="assessment-progress">等待开始</p>
               <pre id="assessment-question" class="answer compact-answer">请先导入文件，再开始评估。</pre>
               <textarea id="assessment-answer" placeholder="输入你的回答，系统会按来源关键词给出反馈。"></textarea>
-              <button id="assessment-answer-button" type="button">提交回答</button>
+              <div class="assessment-action-row">
+                <button id="assessment-answer-button" type="button">提交回答</button>
+                <button id="assessment-next-button" type="button" hidden>下一题</button>
+              </div>
               <pre id="assessment-result" class="answer compact-answer"></pre>
+              <div class="assessment-session-grid">
+                <section>
+                  <h3>答题记录</h3>
+                  <ul id="assessment-result-history" class="assessment-session-list"></ul>
+                </section>
+                <section>
+                  <h3>错题记录 / 待复测</h3>
+                  <ul id="assessment-missed-questions" class="assessment-session-list missed"></ul>
+                </section>
+              </div>
             </section>
 
             <section id="assessment-overview" class="assessment-overview-card is-empty" aria-labelledby="assessment-overview-title">
@@ -379,6 +406,60 @@
             </section>
 
             <section class="design-note-card">
+              <h2>模型 Profile</h2>
+              <p class="status-line">当前默认：<span id="current-model-profile-label">未选择</span></p>
+              <ul id="model-profile-list" class="tool-runs"></ul>
+              <div class="project-actions compact">
+                <button id="clear-default-model-profile-button" type="button">清空默认</button>
+              </div>
+              <form id="model-profile-form" class="project-form compact-form">
+                <input id="model-profile-id" name="profile_id" type="hidden" />
+                <label>
+                  名称
+                  <input id="model-profile-name" name="name" placeholder="例如：DeepSeek 默认" />
+                </label>
+                <label>
+                  模型提供商
+                  <select id="model-profile-provider" name="provider">
+                    <option value="api">DeepSeek / OpenAI-compatible API</option>
+                    <option value="ollama">Ollama 本地模式</option>
+                  </select>
+                </label>
+                <label>
+                  API 地址
+                  <input id="model-profile-api-base" name="api_base" placeholder="例如：https://api.deepseek.com/v1" />
+                </label>
+                <label>
+                  模型名称
+                  <input id="model-profile-model" name="model" placeholder="例如：deepseek-chat" />
+                </label>
+                <label>
+                  温度
+                  <input id="model-profile-temperature" name="temperature" type="number" min="0" max="2" step="0.1" value="0.7" />
+                </label>
+                <label>
+                  最大输出 tokens
+                  <input id="model-profile-max-tokens" name="max_tokens" type="number" min="1" value="2048" />
+                </label>
+                <label>
+                  API Key 引用
+                  <select id="model-profile-api-key-ref" name="api_key_ref">
+                    <option value="">不使用 Key</option>
+                    <option value="env:RAG_LLM_API_KEY">环境变量 RAG_LLM_API_KEY</option>
+                    <option value="env:DEEPSEEK_API_KEY">环境变量 DEEPSEEK_API_KEY</option>
+                    <option value="saved:RAG_LLM_API_KEY">已保存的 RAG_LLM_API_KEY</option>
+                  </select>
+                </label>
+                <p class="muted-line">Profile 只保存 Key 引用，不保存或回显 API Key 明文。</p>
+                <p id="model-profile-status" class="status-line">正在读取模型 Profile...</p>
+                <div class="project-actions compact">
+                  <button class="primary-action" type="submit">保存 Profile</button>
+                  <button id="reset-model-profile-form-button" type="button">取消编辑</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="design-note-card">
               <h2>Prompt 预设</h2>
               <p class="status-line">当前默认：<span id="current-prompt-preset-label">未选择</span></p>
               <ul id="prompt-preset-list" class="tool-runs"></ul>
@@ -434,6 +515,9 @@
         </section>
       </section>
     </main>
+    <script defer src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/marked@12.0.2/lib/marked.umd.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
     <script type="module" src="/js/app.js"></script>
   </body>
 </html>

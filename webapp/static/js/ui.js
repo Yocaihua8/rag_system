@@ -68,7 +68,7 @@ export function renderAnswer(answerEl, sourcesEl, data) {
   const suggestionLabel = formatToolSuggestion(data.tool_suggestion);
   const qualityLabel = formatSourceQuality(data.source_quality);
   const observabilityLabel = formatAnswerObservability(data.observability);
-  answerEl.textContent = `${data.answer}${modeLabel}${qualityLabel}${observabilityLabel}${suggestionLabel}`;
+  renderMarkdownElement(answerEl, `${data.answer}${modeLabel}${qualityLabel}${observabilityLabel}${suggestionLabel}`);
   sourcesEl.innerHTML = "";
   if (data.sources.length === 0) {
     appendEmptyItem(sourcesEl, "暂无来源。请先在资料库导入文件，或换一个更贴近资料内容的问题。");
@@ -78,6 +78,25 @@ export function renderAnswer(answerEl, sourcesEl, data) {
     const item = document.createElement("li");
     item.textContent = `${source.path}：${source.snippet}`;
     sourcesEl.appendChild(item);
+  }
+}
+
+export function renderStreamingAnswer(answerEl, answer) {
+  renderMarkdownElement(answerEl, String(answer || ""));
+}
+
+function renderMarkdownElement(targetEl, markdown) {
+  const source = String(markdown || "");
+  if (!window.marked?.parse || !window.DOMPurify?.sanitize) {
+    targetEl.textContent = source;
+    return;
+  }
+  const rawHtml = window.marked.parse(source, { breaks: true, gfm: true });
+  targetEl.innerHTML = window.DOMPurify.sanitize(rawHtml);
+  if (window.hljs?.highlightElement) {
+    for (const codeBlock of targetEl.querySelectorAll("pre code")) {
+      window.hljs.highlightElement(codeBlock);
+    }
   }
 }
 
@@ -471,11 +490,67 @@ export function renderImportErrors(errorsEl, errors) {
   }
 }
 
+export function renderImportBatches(batchesEl, batches, onShowDetail = null) {
+  batchesEl.innerHTML = "";
+  if (batches.length === 0) {
+    appendEmptyItem(batchesEl, "暂无导入批次历史。");
+    return;
+  }
+  for (const batch of batches) {
+    const item = document.createElement("li");
+    const summary = batch.summary || {};
+    const label = [
+      `${formatImportSourceType(batch.source_type)} / ${formatImportBatchStatus(batch.status)}`,
+      `新增 ${summary.created ?? 0}，更新 ${summary.updated ?? 0}，未变更 ${summary.unchanged ?? 0}，删除 ${summary.deleted ?? 0}`,
+      `跳过 ${summary.skipped ?? 0}，错误 ${summary.errors ?? 0}`,
+    ].join("\n");
+    const text = document.createElement("span");
+    text.textContent = `${label}\n${batch.finished_at || batch.created_at || ""}`;
+    item.appendChild(text);
+    if (onShowDetail) {
+      const detailButton = document.createElement("button");
+      detailButton.type = "button";
+      detailButton.textContent = "查看详情";
+      detailButton.addEventListener("click", () => onShowDetail(batch.id));
+      item.appendChild(detailButton);
+    }
+    batchesEl.appendChild(item);
+  }
+}
+
+export function renderImportBatchDetail(detailEl, batch, items = []) {
+  if (!batch) {
+    detailEl.textContent = "请选择一条导入批次查看详情";
+    return;
+  }
+  const summary = batch.summary || {};
+  const detailLines = [
+    `来源：${formatImportSourceType(batch.source_type)}`,
+    `状态：${formatImportBatchStatus(batch.status)}`,
+    `时间：${batch.finished_at || batch.created_at || ""}`,
+    `汇总：新增 ${summary.created ?? 0}，更新 ${summary.updated ?? 0}，未变更 ${summary.unchanged ?? 0}，删除 ${summary.deleted ?? 0}，跳过 ${summary.skipped ?? 0}，错误 ${summary.errors ?? 0}`,
+  ];
+  const visibleItems = items.filter((item) => ["skipped", "error"].includes(item.kind));
+  if (visibleItems.length === 0) {
+    detailEl.textContent = [...detailLines, "本批次没有跳过或错误明细。"].join("\n\n");
+    return;
+  }
+  detailEl.textContent = [
+    ...detailLines,
+    "跳过 / 错误明细：",
+    ...visibleItems.map((item, index) => `${index + 1}. ${formatImportBatchItemKind(item.kind)}：${item.relative_path || "未记录路径"}：${item.reason || "无原因"}`),
+  ].join("\n\n");
+}
+
 export function renderDocuments(
   documentsEl,
   documents,
   onSelect,
   onDelete,
+  collections = [],
+  selectedCollectionId = "",
+  onAddToCollection = null,
+  onRemoveFromCollection = null,
   emptyMessage = "暂无导入文件。点击“选择本机文件夹导入”开始。",
 ) {
   documentsEl.innerHTML = "";
@@ -495,12 +570,109 @@ export function renderDocuments(
     deleteButton.textContent = "移除";
     deleteButton.addEventListener("click", () => onDelete(entry.id));
     item.appendChild(deleteButton);
+    if (selectedCollectionId && selectedCollectionId !== "unassigned" && onRemoveFromCollection) {
+      const removeFromCollectionButton = document.createElement("button");
+      removeFromCollectionButton.type = "button";
+      removeFromCollectionButton.textContent = "移出集合";
+      removeFromCollectionButton.addEventListener("click", () => onRemoveFromCollection(selectedCollectionId, entry.id));
+      item.appendChild(removeFromCollectionButton);
+    } else if (collections.length > 0 && onAddToCollection) {
+      const collectionSelect = document.createElement("select");
+      collectionSelect.setAttribute("aria-label", "选择要加入的集合");
+      for (const collection of collections) {
+        const option = document.createElement("option");
+        option.value = collection.id;
+        option.textContent = collection.name;
+        collectionSelect.appendChild(option);
+      }
+      item.appendChild(collectionSelect);
+      const addButton = document.createElement("button");
+      addButton.type = "button";
+      addButton.textContent = "加入集合";
+      addButton.addEventListener("click", () => onAddToCollection(collectionSelect.value, entry.id));
+      item.appendChild(addButton);
+    }
     documentsEl.appendChild(item);
   }
 }
 
 export function renderDocumentCount(countEl, visibleCount, totalCount) {
   countEl.textContent = `${visibleCount} / ${totalCount} 个文件`;
+}
+
+export function renderDocumentCollections(
+  collectionsEl,
+  filterEl,
+  collections,
+  selectedCollectionId,
+  onSelect,
+  onDelete,
+) {
+  filterEl.innerHTML = "";
+  appendCollectionOption(filterEl, "", "全部文档");
+  appendCollectionOption(filterEl, "unassigned", "未分组");
+  for (const collection of collections) {
+    appendCollectionOption(filterEl, collection.id, `${collection.name}（${collection.document_count ?? 0}）`);
+  }
+  filterEl.value = selectedCollectionId;
+
+  collectionsEl.innerHTML = "";
+  if (collections.length === 0) {
+    appendEmptyItem(collectionsEl, "暂无文档集合");
+    return;
+  }
+  for (const collection of collections) {
+    const item = document.createElement("li");
+    const title = document.createElement("span");
+    title.textContent = `${collection.name}（${collection.document_count ?? 0} 个文档）`;
+    item.appendChild(title);
+    const filterButton = document.createElement("button");
+    filterButton.type = "button";
+    filterButton.textContent = "筛选";
+    filterButton.addEventListener("click", () => onSelect(collection.id));
+    item.appendChild(filterButton);
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "删除集合";
+    deleteButton.addEventListener("click", () => onDelete(collection.id));
+    item.appendChild(deleteButton);
+    collectionsEl.appendChild(item);
+  }
+}
+
+function formatImportSourceType(sourceType) {
+  const labels = {
+    directory_sync: "同步当前项目目录",
+    browser_folder_upload: "浏览器文件夹导入",
+    file_upload: "文件上传导入",
+    text_note: "文本笔记导入",
+    url_excerpt: "URL 摘录导入",
+  };
+  return labels[sourceType] || sourceType || "未知来源";
+}
+
+function formatImportBatchStatus(status) {
+  const labels = {
+    success: "成功",
+    partial: "部分完成",
+    failed: "失败",
+  };
+  return labels[status] || status || "未知";
+}
+
+function formatImportBatchItemKind(kind) {
+  const labels = {
+    skipped: "未导入",
+    error: "读取失败",
+  };
+  return labels[kind] || kind || "明细";
+}
+
+function appendCollectionOption(filterEl, value, label) {
+  const option = document.createElement("option");
+  option.value = value;
+  option.textContent = label;
+  filterEl.appendChild(option);
 }
 
 export function renderProjectHealthSummary(metricsEl, retrievalHealthEl, summary) {
@@ -639,6 +811,60 @@ export function renderAssessmentOverview(overviewEl, result) {
   renderPointTags(matchedListEl, matchedPoints, "暂无命中要点");
   renderPointTags(missingListEl, missingPoints, "暂无待补充要点");
   sourcePathEl.textContent = result.source_path || "暂无";
+}
+
+export function renderAssessmentProgress(progressEl, session, questionIndex, results) {
+  const questions = Array.isArray(session?.questions) ? session.questions : [];
+  const answeredCount = Array.isArray(results) ? results.length : 0;
+  if (questions.length === 0) {
+    progressEl.textContent = "等待开始";
+    return;
+  }
+  const total = questions.length;
+  const current = Math.min(total, Math.max(1, questionIndex + 1));
+  const completedText = answeredCount >= total ? "本轮评估已完成" : `第 ${current} / ${total} 题`;
+  progressEl.textContent = `${completedText}，已完成 ${Math.min(answeredCount, total)} / ${total} 题`;
+}
+
+export function renderAssessmentResultHistory(listEl, entries) {
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  listEl.innerHTML = "";
+  if (safeEntries.length === 0) {
+    appendAssessmentListItem(listEl, "暂无答题记录。");
+    return;
+  }
+  safeEntries.forEach((entry, index) => {
+    const question = entry.question || {};
+    const result = entry.result || {};
+    const scorePercent = Math.round(clampScore(Number(result.score)) * 100);
+    appendAssessmentListItem(
+      listEl,
+      `第 ${index + 1} 题｜${result.status || "未评估"}｜${scorePercent}%｜${question.knowledge_point || question.source_path || "未命名题目"}`
+    );
+  });
+}
+
+export function renderAssessmentMissedQuestions(listEl, entries) {
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  listEl.innerHTML = "";
+  if (safeEntries.length === 0) {
+    appendAssessmentListItem(listEl, "暂无待复测题目。");
+    return;
+  }
+  for (const entry of safeEntries) {
+    const question = entry.question || {};
+    const result = entry.result || {};
+    appendAssessmentListItem(
+      listEl,
+      `${result.status || "待复测"}｜${question.knowledge_point || "未命名题目"}｜${question.source_path || "暂无来源"}`
+    );
+  }
+}
+
+function appendAssessmentListItem(listEl, text) {
+  const item = document.createElement("li");
+  item.textContent = text;
+  listEl.appendChild(item);
 }
 
 function buildRadarPoints(values) {

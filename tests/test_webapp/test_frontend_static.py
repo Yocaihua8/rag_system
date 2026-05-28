@@ -54,6 +54,16 @@ def test_frontend_errors_include_recovery_hint():
     assert "setStatus(error.message)" not in app_js
 
 
+def test_frontend_global_error_boundary_is_wired_to_recoverable_status():
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+
+    assert "function handleGlobalFrontendError" in app_js
+    assert 'window.addEventListener("error", handleGlobalFrontendError)' in app_js
+    assert 'window.addEventListener("unhandledrejection", handleGlobalFrontendError)' in app_js
+    assert "前端出现未处理错误" in app_js
+    assert "setErrorStatus(" in app_js.split("function handleGlobalFrontendError", 1)[1]
+
+
 def test_model_settings_errors_include_specific_recovery_hints():
     ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
     app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
@@ -409,6 +419,42 @@ def test_assessment_view_has_radar_and_score_overview():
     assert "score-ring" in styles_css
 
 
+def test_assessment_view_supports_multi_question_frontend_flow():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    for element_id in [
+        "assessment-progress",
+        "assessment-next-button",
+        "assessment-result-history",
+        "assessment-missed-questions",
+    ]:
+        assert f'id="{element_id}"' in index_html
+
+    for state_field in [
+        "assessmentQuestionIndex",
+        "assessmentResults",
+        "assessmentMissedQuestions",
+        "assessmentAnsweredCurrent",
+    ]:
+        assert state_field in state_js
+
+    for function_name in [
+        "advanceAssessmentQuestion",
+        "completeAssessmentSession",
+        "renderAssessmentProgress",
+        "renderAssessmentResultHistory",
+        "renderAssessmentMissedQuestions",
+    ]:
+        assert function_name in app_js or function_name in ui_js
+
+    assert "assessmentNextButton.addEventListener" in app_js
+    assert "state.assessmentResults.push" in app_js
+    assert "state.assessmentMissedQuestions" in app_js
+
+
 def test_model_settings_view_is_wired():
     index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
     app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
@@ -430,6 +476,41 @@ def test_model_settings_view_is_wired():
     assert "loadLlmSettings" in app_js
     assert "saveLlmSettings" in app_js
     assert "testLlmSettings" in app_js
+
+
+def test_model_profile_settings_are_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    settings_js = Path("webapp/static/js/settings.js").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+
+    for marker in [
+        'id="model-profile-form"',
+        'id="model-profile-list"',
+        'id="model-profile-name"',
+        'id="model-profile-provider"',
+        'id="model-profile-api-base"',
+        'id="model-profile-model"',
+        'id="model-profile-temperature"',
+        'id="model-profile-max-tokens"',
+        'id="model-profile-api-key-ref"',
+        'id="clear-default-model-profile-button"',
+    ]:
+        assert marker in index_html
+    for endpoint in [
+        "/api/model-profiles",
+        "/api/model-profiles/update",
+        "/api/model-profiles/delete",
+        "/api/model-profiles/default",
+        "/api/model-profiles/test",
+    ]:
+        assert endpoint in settings_js + app_js
+    assert "modelProfiles:" in state_js
+    assert "defaultModelProfileId:" in state_js
+    assert "refreshModelProfiles" in app_js
+    assert "renderModelProfileList" in app_js
+    assert "api_key_ref" in settings_js
+    assert "sk-" not in index_html.split('id="model-profile-api-key-ref"', 1)[1].split("</section>", 1)[0]
 
 
 def test_project_chat_history_is_wired():
@@ -505,6 +586,26 @@ def test_answer_observability_metadata_is_rendered():
         assert text in ui_js
     assert "observability" in api_spec
     assert "问答可观察性" in readme
+
+
+def test_answer_markdown_rendering_uses_sanitizer_and_highlighting():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+    styles_css = Path("webapp/static/styles.css").read_text(encoding="utf-8")
+
+    assert "marked" in index_html
+    assert "dompurify" in index_html
+    assert "highlight.js" in index_html
+    assert 'id="answer" class="answer markdown-body"' in index_html
+    assert "function renderMarkdownElement" in ui_js
+    assert "marked.parse" in ui_js
+    assert "DOMPurify.sanitize" in ui_js
+    assert "hljs.highlightElement" in ui_js
+    assert "answerEl.innerHTML" not in ui_js
+    assert "answerEl.textContent = `${data.answer}" not in ui_js
+    assert "renderMarkdownElement(answerEl" in ui_js
+    assert ".markdown-body" in styles_css
+    assert ".hljs" in styles_css
 
 
 def test_chat_history_delete_and_clear_entrypoints_are_wired():
@@ -615,6 +716,51 @@ def test_answer_tool_suggestion_can_be_accepted_by_user_action():
     assert "applyToolSuggestionButton.addEventListener" in app_js
     assert 'runAgentTool("search_sources"' in app_js
     assert "state.currentToolSuggestion.arguments" in app_js
+
+
+def test_answer_request_can_be_cancelled_from_frontend():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    api_js = Path("webapp/static/js/api.js").read_text(encoding="utf-8")
+    qa_js = Path("webapp/static/js/qa.js").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    assert 'id="ask-cancel-button"' in index_html
+    assert "currentAnswerAbortController:" in state_js
+    assert "apiPost(path, payload, options = {})" in api_js
+    assert "askStream(question" in qa_js
+    assert "new EventSource" in qa_js
+    assert "/api/answer/stream" in qa_js
+    assert "addEventListener(\"token\"" in qa_js
+    assert "addEventListener(\"done\"" in qa_js
+    assert "source.close()" in qa_js
+    assert "const askCancelButton" in app_js
+    assert "renderStreamingAnswer" in ui_js
+    assert "onToken" in app_js
+    assert "askCancelButton.addEventListener" in app_js
+    assert "state.currentAnswerAbortController.abort()" in app_js
+    assert "AbortError" in app_js
+    assert "已取消本次提问" in app_js
+
+
+def test_dark_mode_theme_toggle_is_wired_and_persisted():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    styles_css = Path("webapp/static/styles.css").read_text(encoding="utf-8")
+
+    assert 'id="theme-toggle-button"' in index_html
+    assert "knowledge-island:theme" in app_js
+    assert "localStorage.getItem(THEME_STORAGE_KEY)" in app_js
+    assert "localStorage.setItem(THEME_STORAGE_KEY, theme)" in app_js
+    assert "window.matchMedia(\"(prefers-color-scheme: dark)\")" in app_js
+    assert "document.documentElement.dataset.theme = theme" in app_js
+    assert "themeToggleButton.addEventListener" in app_js
+    assert "@media (prefers-color-scheme: dark)" in styles_css
+    assert ':root[data-theme="dark"]' in styles_css
+    assert ':root[data-theme="light"]' in styles_css
+    assert "--color-bg: #101418" in styles_css
+    assert "color-scheme: dark" in styles_css
 
 
 def test_recent_search_sources_run_can_be_used_as_next_answer_context():
@@ -751,6 +897,30 @@ def test_url_excerpt_import_entrypoint_is_wired_without_auto_crawling():
     assert "自动抓取" in index_html
 
 
+def test_import_batch_history_entrypoint_is_wired_without_rollback_actions():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    projects_js = Path("webapp/static/js/projects.js").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    assert 'id="import-batches"' in index_html
+    assert 'id="import-batch-detail"' in index_html
+    assert "importBatches:" in state_js
+    assert "selectedImportBatch:" in state_js
+    assert "listImportBatches" in projects_js
+    assert "getImportBatchDetail" in projects_js
+    assert "/api/import/batches" in projects_js
+    assert "refreshImportBatches" in app_js
+    assert "showImportBatchDetail" in app_js
+    assert "renderImportBatches" in ui_js
+    assert "renderImportBatchDetail" in ui_js
+    import_batch_ui = index_html.split('id="import-batches"', 1)[1].split('id="import-batch-detail"', 1)[0]
+    assert "回滚" not in import_batch_ui
+    assert "删除批次" not in import_batch_ui
+    assert "重试" not in import_batch_ui
+
+
 def test_retrieval_review_entrypoint_is_wired():
     index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
     qa_js = Path("webapp/static/js/qa.js").read_text(encoding="utf-8")
@@ -872,3 +1042,37 @@ def test_retrieval_health_is_derived_from_project_summary_only():
     assert "已有向量" in ui_js
     assert "已有检索复盘" in ui_js
     assert "/api/retrieval/health" not in ui_js
+
+
+def test_document_collections_panel_and_actions_are_wired():
+    index_html = Path("webapp/static/index.html").read_text(encoding="utf-8")
+    projects_js = Path("webapp/static/js/projects.js").read_text(encoding="utf-8")
+    state_js = Path("webapp/static/js/state.js").read_text(encoding="utf-8")
+    app_js = Path("webapp/static/js/app.js").read_text(encoding="utf-8")
+    ui_js = Path("webapp/static/js/ui.js").read_text(encoding="utf-8")
+
+    for element_id in [
+        'id="document-collection-filter"',
+        'id="document-collection-name"',
+        'id="document-collection-create-button"',
+        'id="document-collections"',
+    ]:
+        assert element_id in index_html
+    for endpoint in [
+        "/api/document-collections",
+        "/api/document-collections/update",
+        "/api/document-collections/delete",
+        "/api/document-collections/items/add",
+        "/api/document-collections/items/remove",
+    ]:
+        assert endpoint in projects_js
+    assert "documentCollections:" in state_js
+    assert "selectedDocumentCollectionId:" in state_js
+    assert "refreshDocumentCollections" in app_js
+    assert "documentCollectionFilterEl.addEventListener" in app_js
+    assert "createDocumentCollectionButton.addEventListener" in app_js
+    assert "addDocumentToCollection" in app_js
+    assert "removeDocumentFromCollection" in app_js
+    assert "renderDocumentCollections" in ui_js
+    assert "加入集合" in ui_js
+    assert "移出集合" in ui_js

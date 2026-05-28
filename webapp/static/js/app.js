@@ -1,22 +1,29 @@
 import {
   createProject,
+  addDocumentToCollection,
+  createDocumentCollection,
+  deleteDocumentCollection,
   deleteDocument,
   deleteSelectedProject,
   getDocument,
+  getImportBatchDetail,
   getProjectSummary,
   importBrowserFolder,
   importBrowserFiles,
   importPlainTextNote,
   importUrlExcerpt,
   importSelectedProject,
+  listDocumentCollections,
   listDocuments,
+  listImportBatches,
+  removeDocumentFromCollection,
   refreshProjects,
   renameSelectedProject,
   selectProject,
 } from "./projects.js";
 import { getAgentToolRunDetail, listAgentToolRuns, listAgentTools, runAgentTool } from "./agent.js";
 import {
-  ask,
+  askStream,
   clearChatMessages,
   createChatSession,
   deleteChatMessage,
@@ -36,15 +43,27 @@ import {
   submitAnswerFeedback,
   submitAssessmentAnswer,
 } from "./qa.js";
-import { loadLlmSettings, saveLlmSettings, testLlmSettings } from "./settings.js";
+import {
+  deleteModelProfile,
+  listModelProfiles,
+  loadLlmSettings,
+  saveLlmSettings,
+  saveModelProfile,
+  setDefaultModelProfile,
+  testLlmSettings,
+  testModelProfile,
+} from "./settings.js";
 import { apiGet, apiPost } from "./api.js";
 import { state } from "./state.js";
 import {
   renderAnswer,
   renderDocumentCount,
+  renderDocumentCollections,
   renderDocumentPreview,
   renderDocuments,
   renderImportErrors,
+  renderImportBatchDetail,
+  renderImportBatches,
   renderProjectHealthError,
   renderProjectHealthStatus,
   renderProjectHealthSummary,
@@ -52,6 +71,9 @@ import {
   renderAssessmentQuestion,
   renderAssessmentResult,
   renderAssessmentOverview,
+  renderAssessmentProgress,
+  renderAssessmentResultHistory,
+  renderAssessmentMissedQuestions,
   renderAgentToolResult,
   renderAgentToolRunDetail,
   renderAgentToolRuns,
@@ -64,6 +86,7 @@ import {
   renderRetrievalReviews,
   renderRetrievalReviewDetail,
   renderSkippedDetails,
+  renderStreamingAnswer,
   renderToolContextNotice,
   renderToolSuggestionAction,
   renderUseToolResultAction,
@@ -96,6 +119,7 @@ const urlExcerptImportButton = document.querySelector("#url-excerpt-import-butto
 const renameProjectButton = document.querySelector("#rename-project-button");
 const deleteProjectButton = document.querySelector("#delete-project-button");
 const askButton = document.querySelector("#ask-button");
+const askCancelButton = document.querySelector("#ask-cancel-button");
 const toolContextNoticeEl = document.querySelector("#tool-context-notice");
 const agentOverviewButton = document.querySelector("#agent-overview-button");
 const agentSearchButton = document.querySelector("#agent-search-button");
@@ -130,18 +154,28 @@ const deleteChatSessionButton = document.querySelector("#delete-chat-session-but
 const clearChatHistoryButton = document.querySelector("#clear-chat-history-button");
 const documentsEl = document.querySelector("#documents");
 const documentFilterInput = document.querySelector("#document-filter");
+const documentCollectionFilterEl = document.querySelector("#document-collection-filter");
+const documentCollectionNameInput = document.querySelector("#document-collection-name");
+const createDocumentCollectionButton = document.querySelector("#document-collection-create-button");
+const documentCollectionsEl = document.querySelector("#document-collections");
 const documentCountEl = document.querySelector("#document-count");
 const documentPreviewEl = document.querySelector("#document-preview");
 const searchResultsEl = document.querySelector("#search-results");
 const searchDebugResultsEl = document.querySelector("#search-debug-results");
 const skippedDetailsEl = document.querySelector("#skipped-details");
 const importErrorsEl = document.querySelector("#import-errors");
+const importBatchesEl = document.querySelector("#import-batches");
+const importBatchDetailEl = document.querySelector("#import-batch-detail");
 const startAssessmentButton = document.querySelector("#start-assessment-button");
 const assessmentQuestionEl = document.querySelector("#assessment-question");
 const assessmentAnswerInput = document.querySelector("#assessment-answer");
 const assessmentAnswerButton = document.querySelector("#assessment-answer-button");
+const assessmentNextButton = document.querySelector("#assessment-next-button");
 const assessmentResultEl = document.querySelector("#assessment-result");
 const assessmentOverviewEl = document.querySelector("#assessment-overview");
+const assessmentProgressEl = document.querySelector("#assessment-progress");
+const assessmentResultHistoryEl = document.querySelector("#assessment-result-history");
+const assessmentMissedQuestionsEl = document.querySelector("#assessment-missed-questions");
 const llmSettingsForm = document.querySelector("#llm-settings-form");
 const llmProviderSelect = document.querySelector("#llm-provider");
 const llmApiBaseInput = document.querySelector("#llm-api-base");
@@ -150,6 +184,21 @@ const llmApiKeyInput = document.querySelector("#llm-api-key");
 const llmSettingsStatusEl = document.querySelector("#llm-settings-status");
 const llmSaveButton = llmSettingsForm.querySelector('button[type="submit"]');
 const llmTestButton = document.querySelector("#llm-test-button");
+const modelProfileForm = document.querySelector("#model-profile-form");
+const modelProfileIdInput = document.querySelector("#model-profile-id");
+const modelProfileNameInput = document.querySelector("#model-profile-name");
+const modelProfileProviderSelect = document.querySelector("#model-profile-provider");
+const modelProfileApiBaseInput = document.querySelector("#model-profile-api-base");
+const modelProfileModelInput = document.querySelector("#model-profile-model");
+const modelProfileTemperatureInput = document.querySelector("#model-profile-temperature");
+const modelProfileMaxTokensInput = document.querySelector("#model-profile-max-tokens");
+const modelProfileApiKeyRefSelect = document.querySelector("#model-profile-api-key-ref");
+const modelProfileStatusEl = document.querySelector("#model-profile-status");
+const modelProfileListEl = document.querySelector("#model-profile-list");
+const currentModelProfileLabelEl = document.querySelector("#current-model-profile-label");
+const clearDefaultModelProfileButton = document.querySelector("#clear-default-model-profile-button");
+const resetModelProfileFormButton = document.querySelector("#reset-model-profile-form-button");
+const modelProfileSaveButton = modelProfileForm.querySelector('button[type="submit"]');
 const promptPresetForm = document.querySelector("#prompt-preset-form");
 const promptPresetIdInput = document.querySelector("#prompt-preset-id");
 const promptPresetNameInput = document.querySelector("#prompt-preset-name");
@@ -165,12 +214,63 @@ const resetPromptPresetFormButton = document.querySelector("#reset-prompt-preset
 const promptPresetSaveButton = promptPresetForm.querySelector('button[type="submit"]');
 const viewNavButtons = Array.from(document.querySelectorAll("[data-view-target]"));
 const workspaceViews = Array.from(document.querySelectorAll(".workspace-view"));
+const themeToggleButton = document.querySelector("#theme-toggle-button");
+const THEME_STORAGE_KEY = "knowledge-island:theme";
+const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+initializeTheme();
 
 for (const button of viewNavButtons) {
   button.addEventListener("click", () => showView(button.dataset.viewTarget));
 }
 
 showView("workbench-view");
+
+themeToggleButton.addEventListener("click", () => {
+  const theme = currentTheme() === "dark" ? "light" : "dark";
+  applyTheme(theme, { persist: true });
+});
+
+themeMediaQuery.addEventListener("change", () => {
+  if (!readStoredTheme()) {
+    applyTheme(currentSystemTheme());
+  }
+});
+
+window.addEventListener("error", handleGlobalFrontendError);
+window.addEventListener("unhandledrejection", handleGlobalFrontendError);
+
+function handleGlobalFrontendError(event) {
+  const reason = event.reason || event.error || event.message || "未知错误";
+  const message = reason.message || String(reason);
+  setErrorStatus(new Error(`前端出现未处理错误：${message}`));
+}
+
+function initializeTheme() {
+  applyTheme(readStoredTheme() || currentSystemTheme());
+}
+
+function readStoredTheme() {
+  const storedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+  return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "";
+}
+
+function currentSystemTheme() {
+  return themeMediaQuery.matches ? "dark" : "light";
+}
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || currentSystemTheme();
+}
+
+function applyTheme(theme, options = {}) {
+  document.documentElement.dataset.theme = theme;
+  themeToggleButton.textContent = theme === "dark" ? "浅色" : "深色";
+  themeToggleButton.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+  if (options.persist) {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }
+}
 
 projectSelect.addEventListener("change", async () => {
   selectProject(projectSelect.value);
@@ -182,7 +282,9 @@ projectSelect.addEventListener("change", async () => {
   await refreshRetrievalSettings();
   await refreshPromptPresets();
   await refreshChatSessions();
+  await refreshDocumentCollections();
   await refreshDocuments();
+  await refreshImportBatches();
   await refreshChatHistory();
   state.selectedAgentToolRun = null;
   renderAgentToolRunDetail(agentToolRunDetailEl, null);
@@ -203,7 +305,20 @@ projectForm.addEventListener("submit", async (event) => {
     refreshProjectSummary();
     await refreshRetrievalSettings();
     await refreshPromptPresets();
+    await refreshDocumentCollections();
     state.documents = [];
+    state.documentCollections = [];
+    state.selectedDocumentCollectionId = "";
+    state.importBatches = [];
+    state.selectedImportBatch = null;
+    renderDocumentCollections(
+      documentCollectionsEl,
+      documentCollectionFilterEl,
+      state.documentCollections,
+      state.selectedDocumentCollectionId,
+      selectDocumentCollection,
+      removeDocumentCollection,
+    );
     state.chatMessages = [];
     state.chatSessions = [];
     state.selectedChatSessionId = "";
@@ -228,6 +343,8 @@ projectForm.addEventListener("submit", async (event) => {
     renderSearchResults(searchResultsEl, [], previewDocument);
     renderSkippedDetails(skippedDetailsEl, []);
     renderImportErrors(importErrorsEl, []);
+    renderImportBatches(importBatchesEl, state.importBatches, showImportBatchDetail);
+    renderImportBatchDetail(importBatchDetailEl, null);
     setStatus("项目空间已创建，可点击导入。");
   } catch (error) {
     setErrorStatus(error);
@@ -247,6 +364,7 @@ importButton.addEventListener("click", async () => {
       clearSearchDebug();
       renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
       renderImportErrors(importErrorsEl, data.result.errors);
+      await refreshImportBatches();
       setStatus(
         `导入完成：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}，删除 ${data.result.deleted}，跳过 ${data.result.skipped}。`,
       );
@@ -273,12 +391,14 @@ folderImportInput.addEventListener("change", async () => {
       renderSelectedProjectRoot();
       await refreshProjectSummary();
       await refreshPromptPresets();
+      await refreshDocumentCollections();
       renderFilteredDocuments();
       renderDocumentPreview(documentPreviewEl, null);
       renderSearchResults(searchResultsEl, [], previewDocument);
       clearSearchDebug();
       renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
       renderImportErrors(importErrorsEl, data.result.errors);
+      await refreshImportBatches();
       setStatus(
         `浏览器导入完成：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}，删除 ${data.result.deleted}，跳过 ${data.result.skipped}。`,
       );
@@ -308,12 +428,14 @@ fileImportInput.addEventListener("change", async () => {
       renderSelectedProjectRoot();
       await refreshProjectSummary();
       await refreshPromptPresets();
+      await refreshDocumentCollections();
       renderFilteredDocuments();
       renderDocumentPreview(documentPreviewEl, null);
       renderSearchResults(searchResultsEl, [], previewDocument);
       clearSearchDebug();
       renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
       renderImportErrors(importErrorsEl, data.result.errors);
+      await refreshImportBatches();
       setStatus(
         `文件上传导入完成：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}，删除 ${data.result.deleted}，跳过 ${data.result.skipped}。`,
       );
@@ -338,6 +460,7 @@ noteImportButton.addEventListener("click", async () => {
       clearSearchDebug();
       renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
       renderImportErrors(importErrorsEl, data.result.errors);
+      await refreshImportBatches();
       noteContentInput.value = "";
       setStatus(
         `文本笔记已导入：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}。`,
@@ -361,6 +484,7 @@ clipboardImportButton.addEventListener("click", async () => {
       clearSearchDebug();
       renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
       renderImportErrors(importErrorsEl, data.result.errors);
+      await refreshImportBatches();
       clipboardContentInput.value = "";
       setStatus(
         `剪贴板文本已导入：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}。`,
@@ -388,6 +512,7 @@ urlExcerptImportButton.addEventListener("click", async () => {
       clearSearchDebug();
       renderSkippedDetails(skippedDetailsEl, data.result.skipped_details);
       renderImportErrors(importErrorsEl, data.result.errors);
+      await refreshImportBatches();
       urlExcerptContentInput.value = "";
       setStatus(
         `URL 摘录已导入：新增 ${data.result.created}，更新 ${data.result.updated}，未变更 ${data.result.unchanged}。`,
@@ -436,7 +561,9 @@ deleteProjectButton.addEventListener("click", async () => {
     renderSelectedProjectRoot();
     refreshProjectSummary();
     await refreshPromptPresets();
+    await refreshDocumentCollections();
     await refreshDocuments();
+    await refreshImportBatches();
     await refreshChatHistory();
     await refreshAgentToolRuns();
     await refreshRetrievalReviews();
@@ -451,6 +578,28 @@ deleteProjectButton.addEventListener("click", async () => {
 documentFilterInput.addEventListener("input", () => {
   state.documentFilter = documentFilterInput.value.trim();
   renderFilteredDocuments();
+});
+
+documentCollectionFilterEl.addEventListener("change", async () => {
+  state.selectedDocumentCollectionId = documentCollectionFilterEl.value;
+  await refreshDocuments();
+});
+
+createDocumentCollectionButton.addEventListener("click", async () => {
+  const name = documentCollectionNameInput.value.trim();
+  if (!name) {
+    setStatus("请输入文档集合名称。");
+    return;
+  }
+  try {
+    setStatus("正在新建文档集合...");
+    await createDocumentCollection(name);
+    documentCollectionNameInput.value = "";
+    await refreshDocumentCollections();
+    setStatus("文档集合已创建。");
+  } catch (error) {
+    setErrorStatus(error);
+  }
 });
 
 searchButton.addEventListener("click", async () => {
@@ -620,10 +769,22 @@ askButton.addEventListener("click", async () => {
     setStatus("请输入问题。");
     return;
   }
+  state.currentAnswerAbortController = null;
+  askCancelButton.hidden = false;
+  askCancelButton.disabled = false;
   await withBusyButton(askButton, "提问中...", async () => {
     try {
       setStatus("正在检索资料...");
-      const data = await ask(question);
+      renderStreamingAnswer(answerEl, "");
+      clearAnswerFeedback();
+      const stream = askStream(question, {
+        onToken: (answer) => {
+          renderStreamingAnswer(answerEl, answer);
+          setStatus("正在生成答案...");
+        },
+      });
+      state.currentAnswerAbortController = stream;
+      const data = await stream.promise;
       renderAnswer(answerEl, sourcesEl, data);
       renderToolContextNotice(toolContextNoticeEl, data.tool_context || null);
       if (data.tool_context) {
@@ -634,20 +795,37 @@ askButton.addEventListener("click", async () => {
       if (data.message) {
         state.lastAnswerMessageId = data.message.id;
         renderAnswerFeedback(answerFeedbackEl, state.lastAnswerMessageId);
-    state.chatMessages = [...state.chatMessages, data.message];
-    renderChatHistory(chatHistoryEl, state.chatMessages, removeChatMessage);
-    if (state.selectedChatSessionId) {
-      await refreshChatSessions();
-    }
-    await refreshProjectSummary();
+        state.chatMessages = [...state.chatMessages, data.message];
+        renderChatHistory(chatHistoryEl, state.chatMessages, removeChatMessage);
+        if (state.selectedChatSessionId) {
+          await refreshChatSessions();
+        }
+        await refreshProjectSummary();
       } else {
         clearAnswerFeedback();
       }
       setStatus("已返回答案。");
     } catch (error) {
-      setErrorStatus(error);
+      if (error.name === "AbortError") {
+        setStatus("已取消本次提问。");
+      } else {
+        setErrorStatus(error);
+      }
+    } finally {
+      state.currentAnswerAbortController = null;
+      askCancelButton.hidden = true;
+      askCancelButton.disabled = false;
     }
   });
+});
+
+askCancelButton.addEventListener("click", () => {
+  if (!state.currentAnswerAbortController) {
+    return;
+  }
+  askCancelButton.disabled = true;
+  setStatus("正在取消本次提问...");
+  state.currentAnswerAbortController.abort();
 });
 
 for (const button of answerFeedbackButtons) {
@@ -708,13 +886,8 @@ startAssessmentButton.addEventListener("click", async () => {
     try {
       setStatus("正在生成评估题...");
       const data = await startAssessment();
-      state.assessmentSession = data.session;
-      state.assessmentQuestion = data.session.questions[0] || null;
-      assessmentAnswerInput.value = "";
-      renderAssessmentQuestion(assessmentQuestionEl, state.assessmentQuestion);
-      renderAssessmentResult(assessmentResultEl, null);
-      renderAssessmentOverview(assessmentOverviewEl, null);
-      setStatus("评估题已生成。");
+      initializeAssessmentSession(data.session);
+      setStatus(`评估题已生成，共 ${(data.session.questions || []).length} 题。`);
     } catch (error) {
       setErrorStatus(error);
     }
@@ -722,22 +895,48 @@ startAssessmentButton.addEventListener("click", async () => {
 });
 
 assessmentAnswerButton.addEventListener("click", async () => {
+  if (state.assessmentAnsweredCurrent) {
+    setStatus("请先进入下一题，或重新开始评估。");
+    return;
+  }
   const answer = assessmentAnswerInput.value.trim();
   if (!answer) {
     setStatus("请输入评估回答。");
     return;
   }
+  let submitted = false;
   await withBusyButton(assessmentAnswerButton, "评估中...", async () => {
     try {
       setStatus("正在评估回答...");
       const data = await submitAssessmentAnswer(answer);
+      const entry = {
+        question: state.assessmentQuestion,
+        result: data.result,
+        answer,
+      };
+      state.assessmentResults.push(entry);
+      state.assessmentMissedQuestions = state.assessmentResults.filter((item) => item.result?.status !== "已掌握");
+      state.assessmentAnsweredCurrent = true;
       renderAssessmentResult(assessmentResultEl, data.result);
       renderAssessmentOverview(assessmentOverviewEl, data.result);
-      setStatus("评估反馈已生成。");
+      renderAssessmentProgress(assessmentProgressEl, state.assessmentSession, state.assessmentQuestionIndex, state.assessmentResults);
+      renderAssessmentResultHistory(assessmentResultHistoryEl, state.assessmentResults);
+      renderAssessmentMissedQuestions(assessmentMissedQuestionsEl, state.assessmentMissedQuestions);
+      assessmentNextButton.hidden = false;
+      assessmentNextButton.textContent = hasNextAssessmentQuestion() ? "下一题" : "完成评估";
+      setStatus(hasNextAssessmentQuestion() ? "评估反馈已生成，可进入下一题。" : "最后一题反馈已生成，可完成评估。");
+      submitted = true;
     } catch (error) {
       setErrorStatus(error);
     }
   });
+  if (submitted) {
+    setAssessmentInputEnabled(false);
+  }
+});
+
+assessmentNextButton.addEventListener("click", () => {
+  advanceAssessmentQuestion();
 });
 
 llmSettingsForm.addEventListener("submit", async (event) => {
@@ -765,6 +964,36 @@ llmTestButton.addEventListener("click", async () => {
       setInlineErrorStatus(llmSettingsStatusEl, error);
     }
   });
+});
+
+modelProfileForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await withBusyButton(modelProfileSaveButton, "保存中...", async () => {
+    try {
+      modelProfileStatusEl.textContent = "正在保存模型 Profile...";
+      const data = await saveModelProfile(modelProfileForm);
+      resetModelProfileForm();
+      await refreshModelProfiles();
+      modelProfileStatusEl.textContent = `模型 Profile 已保存：${data.profile.name}`;
+    } catch (error) {
+      setInlineErrorStatus(modelProfileStatusEl, error);
+    }
+  });
+});
+
+clearDefaultModelProfileButton.addEventListener("click", async () => {
+  try {
+    await setDefaultModelProfile("");
+    await refreshModelProfiles();
+    modelProfileStatusEl.textContent = "已清空默认模型 Profile。";
+  } catch (error) {
+    setInlineErrorStatus(modelProfileStatusEl, error);
+  }
+});
+
+resetModelProfileFormButton.addEventListener("click", () => {
+  resetModelProfileForm();
+  modelProfileStatusEl.textContent = "已取消编辑。";
 });
 
 promptPresetForm.addEventListener("submit", async (event) => {
@@ -805,6 +1034,96 @@ resetPromptPresetFormButton.addEventListener("click", () => {
   promptPresetStatusEl.textContent = "已取消编辑。";
 });
 
+function initializeAssessmentSession(session) {
+  state.assessmentSession = session;
+  state.assessmentQuestionIndex = 0;
+  state.assessmentResults = [];
+  state.assessmentMissedQuestions = [];
+  state.assessmentAnsweredCurrent = false;
+  state.assessmentQuestion = currentAssessmentQuestion();
+  assessmentAnswerInput.value = "";
+  assessmentNextButton.hidden = true;
+  setAssessmentInputEnabled(Boolean(state.assessmentQuestion));
+  renderAssessmentQuestion(assessmentQuestionEl, state.assessmentQuestion);
+  renderAssessmentResult(assessmentResultEl, null);
+  renderAssessmentOverview(assessmentOverviewEl, null);
+  renderAssessmentProgress(assessmentProgressEl, state.assessmentSession, state.assessmentQuestionIndex, state.assessmentResults);
+  renderAssessmentResultHistory(assessmentResultHistoryEl, state.assessmentResults);
+  renderAssessmentMissedQuestions(assessmentMissedQuestionsEl, state.assessmentMissedQuestions);
+}
+
+function advanceAssessmentQuestion() {
+  if (!state.assessmentSession) {
+    setStatus("请先开始评估。");
+    return;
+  }
+  if (!hasNextAssessmentQuestion()) {
+    completeAssessmentSession();
+    return;
+  }
+  state.assessmentQuestionIndex += 1;
+  state.assessmentQuestion = currentAssessmentQuestion();
+  state.assessmentAnsweredCurrent = false;
+  assessmentAnswerInput.value = "";
+  assessmentNextButton.hidden = true;
+  setAssessmentInputEnabled(true);
+  renderAssessmentQuestion(assessmentQuestionEl, state.assessmentQuestion);
+  renderAssessmentResult(assessmentResultEl, null);
+  renderAssessmentOverview(assessmentOverviewEl, null);
+  renderAssessmentProgress(assessmentProgressEl, state.assessmentSession, state.assessmentQuestionIndex, state.assessmentResults);
+  setStatus(`进入第 ${state.assessmentQuestionIndex + 1} 题。`);
+}
+
+function completeAssessmentSession() {
+  const total = state.assessmentSession?.questions?.length || 0;
+  state.assessmentQuestion = null;
+  state.assessmentAnsweredCurrent = true;
+  assessmentNextButton.hidden = true;
+  setAssessmentInputEnabled(false);
+  assessmentQuestionEl.textContent = `本轮评估已完成，共 ${state.assessmentResults.length} / ${total} 题。`;
+  renderAssessmentProgress(assessmentProgressEl, state.assessmentSession, total - 1, state.assessmentResults);
+  renderAssessmentResultHistory(assessmentResultHistoryEl, state.assessmentResults);
+  renderAssessmentMissedQuestions(assessmentMissedQuestionsEl, state.assessmentMissedQuestions);
+  setStatus("本轮评估已完成，可查看答题记录和待复测题目。");
+}
+
+function resetAssessmentState() {
+  state.assessmentSession = null;
+  state.assessmentQuestion = null;
+  state.assessmentQuestionIndex = 0;
+  state.assessmentResults = [];
+  state.assessmentMissedQuestions = [];
+  state.assessmentAnsweredCurrent = false;
+  assessmentAnswerInput.value = "";
+  assessmentNextButton.hidden = true;
+  setAssessmentInputEnabled(true);
+  renderAssessmentQuestion(assessmentQuestionEl, null);
+  renderAssessmentResult(assessmentResultEl, null);
+  renderAssessmentOverview(assessmentOverviewEl, null);
+  renderAssessmentProgress(assessmentProgressEl, null, 0, []);
+  renderAssessmentResultHistory(assessmentResultHistoryEl, []);
+  renderAssessmentMissedQuestions(assessmentMissedQuestionsEl, []);
+}
+
+function currentAssessmentQuestion() {
+  const questions = Array.isArray(state.assessmentSession?.questions)
+    ? state.assessmentSession.questions
+    : [];
+  return questions[state.assessmentQuestionIndex] || null;
+}
+
+function hasNextAssessmentQuestion() {
+  const questions = Array.isArray(state.assessmentSession?.questions)
+    ? state.assessmentSession.questions
+    : [];
+  return state.assessmentQuestionIndex + 1 < questions.length;
+}
+
+function setAssessmentInputEnabled(enabled) {
+  assessmentAnswerInput.disabled = !enabled;
+  assessmentAnswerButton.disabled = !enabled;
+}
+
 async function refreshDocuments() {
   const data = await listDocuments();
   state.documents = data.documents;
@@ -814,11 +1133,47 @@ async function refreshDocuments() {
   clearSearchDebug();
   renderSkippedDetails(skippedDetailsEl, []);
   renderImportErrors(importErrorsEl, []);
-  state.assessmentSession = null;
-  state.assessmentQuestion = null;
-  renderAssessmentQuestion(assessmentQuestionEl, null);
-  renderAssessmentResult(assessmentResultEl, null);
-  renderAssessmentOverview(assessmentOverviewEl, null);
+  resetAssessmentState();
+}
+
+async function refreshDocumentCollections() {
+  const data = await listDocumentCollections();
+  state.documentCollections = data.collections;
+  if (
+    state.selectedDocumentCollectionId
+    && state.selectedDocumentCollectionId !== "unassigned"
+    && !state.documentCollections.some((collection) => collection.id === state.selectedDocumentCollectionId)
+  ) {
+    state.selectedDocumentCollectionId = "";
+  }
+  renderDocumentCollections(
+    documentCollectionsEl,
+    documentCollectionFilterEl,
+    state.documentCollections,
+    state.selectedDocumentCollectionId,
+    selectDocumentCollection,
+    removeDocumentCollection,
+  );
+}
+
+async function refreshImportBatches() {
+  const data = await listImportBatches();
+  state.importBatches = data.batches;
+  state.selectedImportBatch = null;
+  renderImportBatches(importBatchesEl, state.importBatches, showImportBatchDetail);
+  renderImportBatchDetail(importBatchDetailEl, null);
+}
+
+async function showImportBatchDetail(batchId) {
+  try {
+    setStatus("正在读取导入批次详情...");
+    const data = await getImportBatchDetail(batchId);
+    state.selectedImportBatch = data.batch;
+    renderImportBatchDetail(importBatchDetailEl, data.batch, data.items || []);
+    setStatus("已显示导入批次详情。");
+  } catch (error) {
+    setErrorStatus(error);
+  }
 }
 
 async function refreshRetrievalSettings() {
@@ -1237,6 +1592,125 @@ function formatLlmSettingsSummary(settings) {
   return `模型服务：${providerText} / API 地址：${baseText} / 模型名称：${modelText} / API Key：${keyLabel}`;
 }
 
+async function refreshModelProfiles() {
+  try {
+    const data = await listModelProfiles();
+    state.modelProfiles = data.profiles || [];
+    state.defaultModelProfileId = data.default_profile_id || "";
+    renderModelProfileList();
+    modelProfileStatusEl.textContent = "已加载模型 Profile。";
+  } catch (error) {
+    state.modelProfiles = [];
+    state.defaultModelProfileId = "";
+    renderModelProfileList();
+    setInlineErrorStatus(modelProfileStatusEl, error);
+  }
+}
+
+function renderModelProfileList() {
+  modelProfileListEl.innerHTML = "";
+  updateCurrentModelProfileLabel();
+  if (state.modelProfiles.length === 0) {
+    appendModelProfileLine("暂无模型 Profile，可保存当前常用模型配置。");
+    return;
+  }
+  for (const profile of state.modelProfiles) {
+    const item = document.createElement("li");
+    const title = document.createElement("strong");
+    title.textContent = profile.id === state.defaultModelProfileId ? `${profile.name}（默认）` : profile.name;
+    const desc = document.createElement("span");
+    const keyText = profile.has_api_key ? `Key：${profile.api_key_source || "已配置"}` : "Key：未配置";
+    desc.textContent = `${profile.provider} / ${profile.api_base || "无 API 地址"} / ${profile.model} / ${keyText}`;
+    const actions = document.createElement("div");
+    actions.className = "project-actions compact";
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.textContent = "编辑";
+    editButton.addEventListener("click", () => editModelProfile(profile));
+    const defaultButton = document.createElement("button");
+    defaultButton.type = "button";
+    defaultButton.textContent = "设为默认";
+    defaultButton.addEventListener("click", () => updateDefaultModelProfile(profile.id));
+    const testButton = document.createElement("button");
+    testButton.type = "button";
+    testButton.textContent = "测试";
+    testButton.addEventListener("click", () => runModelProfileTest(profile.id));
+    const deleteButton = document.createElement("button");
+    deleteButton.type = "button";
+    deleteButton.textContent = "删除";
+    deleteButton.addEventListener("click", () => removeModelProfile(profile.id));
+    actions.append(editButton, defaultButton, testButton, deleteButton);
+    item.append(title, desc, actions);
+    modelProfileListEl.appendChild(item);
+  }
+}
+
+function appendModelProfileLine(text) {
+  const item = document.createElement("li");
+  item.textContent = text;
+  modelProfileListEl.appendChild(item);
+}
+
+function updateCurrentModelProfileLabel() {
+  const profile = state.modelProfiles.find((entry) => entry.id === state.defaultModelProfileId);
+  currentModelProfileLabelEl.textContent = profile ? profile.name : "未选择";
+}
+
+function editModelProfile(profile) {
+  state.editingModelProfileId = profile.id;
+  modelProfileIdInput.value = profile.id;
+  modelProfileNameInput.value = profile.name || "";
+  modelProfileProviderSelect.value = profile.provider || "api";
+  modelProfileApiBaseInput.value = profile.api_base || "";
+  modelProfileModelInput.value = profile.model || "";
+  modelProfileTemperatureInput.value = profile.temperature ?? 0.7;
+  modelProfileMaxTokensInput.value = profile.max_tokens ?? 2048;
+  modelProfileApiKeyRefSelect.value = profile.api_key_ref || "";
+  modelProfileStatusEl.textContent = `正在编辑模型 Profile：${profile.name}`;
+}
+
+function resetModelProfileForm() {
+  state.editingModelProfileId = "";
+  modelProfileForm.reset();
+  modelProfileIdInput.value = "";
+  modelProfileTemperatureInput.value = 0.7;
+  modelProfileMaxTokensInput.value = 2048;
+}
+
+async function updateDefaultModelProfile(profileId) {
+  try {
+    await setDefaultModelProfile(profileId);
+    await refreshModelProfiles();
+    modelProfileStatusEl.textContent = "默认模型 Profile 已更新。";
+  } catch (error) {
+    setInlineErrorStatus(modelProfileStatusEl, error);
+  }
+}
+
+async function runModelProfileTest(profileId) {
+  try {
+    modelProfileStatusEl.textContent = "正在测试模型 Profile...";
+    const data = await testModelProfile(profileId);
+    modelProfileStatusEl.textContent = `连接成功：${data.provider}。${data.message || ""}`;
+  } catch (error) {
+    setInlineErrorStatus(modelProfileStatusEl, error);
+  }
+}
+
+async function removeModelProfile(profileId) {
+  if (!confirm("确认删除这个模型 Profile？不会删除 API Key。")) {
+    return;
+  }
+  try {
+    await deleteModelProfile(profileId);
+    resetModelProfileForm();
+    await refreshModelProfiles();
+    modelProfileStatusEl.textContent = "模型 Profile 已删除。";
+  } catch (error) {
+    setInlineErrorStatus(modelProfileStatusEl, error);
+  }
+}
+
 function renderFilteredDocuments() {
   const filterText = state.documentFilter.toLowerCase();
   const documents = filterText
@@ -1245,13 +1719,82 @@ function renderFilteredDocuments() {
   const emptyMessage = state.documents.length === 0
     ? "暂无导入文件。点击“选择本机文件夹导入”开始。"
     : "没有匹配文件";
-  renderDocuments(documentsEl, documents, previewDocument, removeDocument, emptyMessage);
+  renderDocuments(
+    documentsEl,
+    documents,
+    previewDocument,
+    removeDocument,
+    state.documentCollections,
+    state.selectedDocumentCollectionId,
+    addDocumentToCollectionAndRefresh,
+    removeDocumentFromCollectionAndRefresh,
+    emptyMessage,
+  );
   renderDocumentCount(documentCountEl, documents.length, state.documents.length);
 }
 
 function renderSelectedProjectRoot() {
   const project = state.projects.find((entry) => entry.id === state.selectedProjectId);
   renderProjectRoot(projectRootEl, project);
+}
+
+async function selectDocumentCollection(collectionId) {
+  state.selectedDocumentCollectionId = collectionId;
+  await refreshDocuments();
+  renderDocumentCollections(
+    documentCollectionsEl,
+    documentCollectionFilterEl,
+    state.documentCollections,
+    state.selectedDocumentCollectionId,
+    selectDocumentCollection,
+    removeDocumentCollection,
+  );
+}
+
+async function removeDocumentCollection(collectionId) {
+  if (!confirm("确认删除这个文档集合？集合内文档不会被删除。")) {
+    return;
+  }
+  try {
+    setStatus("正在删除文档集合...");
+    await deleteDocumentCollection(collectionId);
+    if (state.selectedDocumentCollectionId === collectionId) {
+      state.selectedDocumentCollectionId = "";
+    }
+    await refreshDocumentCollections();
+    await refreshDocuments();
+    setStatus("文档集合已删除，文档记录已保留。");
+  } catch (error) {
+    setErrorStatus(error);
+  }
+}
+
+async function addDocumentToCollectionAndRefresh(collectionId, documentId) {
+  if (!collectionId) {
+    setStatus("请先选择要加入的文档集合。");
+    return;
+  }
+  try {
+    setStatus("正在把文档加入集合...");
+    await addDocumentToCollection(collectionId, documentId);
+    await refreshDocumentCollections();
+    await refreshDocuments();
+    setStatus("文档已加入集合。");
+  } catch (error) {
+    setErrorStatus(error);
+  }
+}
+
+async function removeDocumentFromCollectionAndRefresh(collectionId, documentId) {
+  try {
+    setStatus("正在从集合移出文档...");
+    await removeDocumentFromCollection(collectionId, documentId);
+    await refreshDocumentCollections();
+    await refreshDocuments();
+    setStatus("文档已从集合移出。");
+  } catch (error) {
+    setErrorStatus(error);
+  }
 }
 
 async function removeDocument(documentId) {
@@ -1262,6 +1805,7 @@ async function removeDocument(documentId) {
     setStatus("正在移除文档记录...");
     const data = await deleteDocument(documentId);
     state.documents = data.documents;
+    await refreshDocumentCollections();
     await refreshProjectSummary();
     renderFilteredDocuments();
     renderDocumentPreview(documentPreviewEl, null);
@@ -1325,8 +1869,11 @@ refreshProjects(projectSelect)
       .catch((error) => {
         setInlineErrorStatus(llmSettingsStatusEl, error);
       });
-    return refreshDocuments();
+    refreshModelProfiles().catch((error) => setInlineErrorStatus(modelProfileStatusEl, error));
+    return refreshDocumentCollections();
   })
+  .then(() => refreshDocuments())
+  .then(() => refreshImportBatches())
   .then(() => refreshRetrievalSettings())
   .then(() => refreshPromptPresets())
   .then(() => refreshChatSessions())

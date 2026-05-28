@@ -1,7 +1,7 @@
 import { apiGet, apiPost } from "./api.js";
 import { state } from "./state.js";
 
-export async function ask(question) {
+export async function ask(question, options = {}) {
   if (!state.selectedProjectId) {
     throw new Error("请先创建或选择项目空间");
   }
@@ -15,7 +15,81 @@ export async function ask(question) {
   if (state.currentToolContextRunId) {
     payload.tool_run_id = state.currentToolContextRunId;
   }
-  return apiPost("/api/answer", payload);
+  return apiPost("/api/answer", payload, options);
+}
+
+export function askStream(question, handlers = {}) {
+  if (!state.selectedProjectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  const params = new URLSearchParams({
+    project_id: state.selectedProjectId,
+    question,
+  });
+  if (state.selectedChatSessionId) {
+    params.set("session_id", state.selectedChatSessionId);
+  }
+  if (state.currentToolContextRunId) {
+    params.set("tool_run_id", state.currentToolContextRunId);
+  }
+  const source = new EventSource(`/api/answer/stream?${params.toString()}`);
+  let settled = false;
+  let answer = "";
+  let rejectPromise = () => {};
+  const promise = new Promise((resolve, reject) => {
+    rejectPromise = reject;
+    source.addEventListener("token", (event) => {
+      const data = parseStreamPayload(event);
+      const text = String(data.text || "");
+      answer += text;
+      handlers.onToken?.(answer, text);
+    });
+    source.addEventListener("done", (event) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      source.close();
+      resolve(parseStreamPayload(event));
+    });
+    source.addEventListener("answer_error", (event) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      source.close();
+      const data = parseStreamPayload(event);
+      reject(new Error(data.error || "流式问答失败"));
+    });
+    source.onerror = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      source.close();
+      reject(new Error("本地服务暂时不可用。请确认应用已启动后刷新页面。"));
+    };
+  });
+  return {
+    promise,
+    abort() {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      source.close();
+      const error = new DOMException("已取消本次提问", "AbortError");
+      rejectPromise(error);
+    },
+  };
+}
+
+function parseStreamPayload(event) {
+  try {
+    return JSON.parse(event.data || "{}");
+  } catch (error) {
+    throw new Error("服务返回格式异常。请刷新页面后重试。");
+  }
 }
 
 export async function listChatMessages() {
