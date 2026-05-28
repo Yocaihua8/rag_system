@@ -57,6 +57,28 @@ export async function deleteProject(projectId) {
   return response;
 }
 
+export async function getRetrievalSettings(projectId) {
+  if (!projectId) {
+    return null;
+  }
+  const data = await apiGet(`/api/projects/retrieval-settings?project_id=${encodeURIComponent(projectId)}`);
+  return data.settings || null;
+}
+
+export async function saveRetrievalSettings({ projectId, topK, minScore, useKeyword, useVector }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  const data = await apiPost("/api/projects/retrieval-settings", {
+    project_id: projectId,
+    top_k: Number(topK),
+    min_score: Number(minScore),
+    use_keyword: Boolean(useKeyword),
+    use_vector: Boolean(useVector),
+  });
+  return data.settings || null;
+}
+
 export function selectProject(projectId) {
   appState.selectedProjectId = projectId || "";
   persistSelectedProjectId(appState.selectedProjectId);

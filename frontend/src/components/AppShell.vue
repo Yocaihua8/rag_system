@@ -51,7 +51,7 @@
         <div>
           <p class="eyebrow">B-141 Vue Migration</p>
           <h2>{{ activeTitle }}</h2>
-          <p>B-141 已按薄片迁移项目问答、检索调试、Agent 只读工具、工具来源上下文、资料库、设置和评估基础闭环；SSE 和会话后续迁移。</p>
+        <p>B-141 已按薄片迁移项目问答、检索调试、项目级检索默认值、Agent 只读工具、工具来源上下文、资料库、设置和评估基础闭环；SSE 和会话后续迁移。</p>
         </div>
         <div class="status-pills" aria-label="服务状态">
           <span>FastAPI</span>

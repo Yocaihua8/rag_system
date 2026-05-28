@@ -36,6 +36,11 @@
       :search-debug-loading="appState.searchDebugLoading"
       :search-debug-error="appState.searchDebugError"
       :search-debug-status="appState.searchDebugStatus"
+      :retrieval-settings="appState.retrievalSettings"
+      :retrieval-settings-loading="appState.retrievalSettingsLoading"
+      :retrieval-settings-saving="appState.retrievalSettingsSaving"
+      :retrieval-settings-status="appState.retrievalSettingsStatus"
+      :retrieval-settings-error="appState.retrievalSettingsError"
       :agent-tools="appState.agentTools"
       :agent-tools-loading="appState.agentToolsLoading"
       :agent-tools-error="appState.agentToolsError"
@@ -128,6 +133,7 @@
       @use-tool-result-context="handleUseToolResultContext"
       @clear-tool-context="clearToolContextState"
       @run-search-debug="handleRunSearchDebug"
+      @save-retrieval-settings="handleSaveRetrievalSettings"
       @load-agent-tools="loadAgentTools"
       @run-agent-tool="handleRunAgentTool"
       @load-agent-tool-runs="loadAgentToolRuns"
@@ -204,9 +210,11 @@ import {
 import {
   createProject,
   deleteProject,
+  getRetrievalSettings,
   loadProjects,
   renameProject,
   restoreSelectedProjectId,
+  saveRetrievalSettings,
   selectProject,
 } from "./api/projects.js";
 import {
@@ -568,6 +576,7 @@ async function loadProjectSpaces() {
   try {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
+    await loadRetrievalSettings();
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
@@ -588,6 +597,7 @@ async function handleSelectProject(projectId) {
   clearPromptPresetState();
   clearAnswerFeedbackState();
   clearSearchDebugState();
+  clearRetrievalSettingsState();
   clearAgentToolState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
@@ -595,6 +605,7 @@ async function handleSelectProject(projectId) {
   clearDocumentDeleteStatus();
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadDocumentCollections();
+  await loadRetrievalSettings();
   await loadLibraryDocuments();
   await loadImportBatches();
   await loadPromptPresets();
@@ -615,10 +626,12 @@ async function handleCreateProject(payload) {
     clearPromptPresetState();
     clearAnswerFeedbackState();
     clearSearchDebugState();
+    clearRetrievalSettingsState();
     clearAgentToolState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
+    await loadRetrievalSettings();
     await loadLibraryDocuments();
     await loadImportBatches();
     await loadPromptPresets();
@@ -688,6 +701,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearPromptPresetState();
   clearAnswerFeedbackState();
   clearSearchDebugState();
+  clearRetrievalSettingsState();
   clearAgentToolState();
   resetAssessmentState();
   clearImportPreview();
@@ -841,6 +855,14 @@ function clearSearchDebugState() {
   appState.searchDebugStatus = "";
 }
 
+function clearRetrievalSettingsState() {
+  appState.retrievalSettings = null;
+  appState.retrievalSettingsLoading = false;
+  appState.retrievalSettingsSaving = false;
+  appState.retrievalSettingsError = "";
+  appState.retrievalSettingsStatus = "";
+}
+
 function clearAgentToolState() {
   appState.agentToolRuns = [];
   appState.agentToolRunsError = "";
@@ -983,6 +1005,45 @@ async function handleRunSearchDebug(payload) {
     appState.searchDebugStatus = "检索诊断失败";
   } finally {
     appState.searchDebugLoading = false;
+  }
+}
+
+async function loadRetrievalSettings() {
+  clearRetrievalSettingsState();
+  if (!appState.selectedProjectId) {
+    appState.retrievalSettingsStatus = "请选择项目空间后读取检索默认值";
+    return;
+  }
+
+  appState.retrievalSettingsLoading = true;
+  try {
+    const settings = await getRetrievalSettings(appState.selectedProjectId);
+    appState.retrievalSettings = settings;
+    appState.retrievalSettingsStatus = settings ? "已加载当前项目默认值" : "未保存项目默认值";
+  } catch (error) {
+    appState.retrievalSettingsError = error.message || "检索默认值读取失败";
+    appState.retrievalSettingsStatus = "检索默认值读取失败";
+  } finally {
+    appState.retrievalSettingsLoading = false;
+  }
+}
+
+async function handleSaveRetrievalSettings(payload) {
+  appState.retrievalSettingsSaving = true;
+  appState.retrievalSettingsError = "";
+  appState.retrievalSettingsStatus = "正在保存检索默认值...";
+  try {
+    const settings = await saveRetrievalSettings({
+      projectId: appState.selectedProjectId,
+      ...payload,
+    });
+    appState.retrievalSettings = settings;
+    appState.retrievalSettingsStatus = "检索默认值已保存";
+  } catch (error) {
+    appState.retrievalSettingsError = error.message || "检索默认值保存失败";
+    appState.retrievalSettingsStatus = "检索默认值保存失败";
+  } finally {
+    appState.retrievalSettingsSaving = false;
   }
 }
 

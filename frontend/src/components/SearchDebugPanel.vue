@@ -11,6 +11,21 @@
       </button>
     </div>
 
+    <div class="retrieval-settings-row">
+      <div>
+        <p class="section-kicker">检索默认值</p>
+        <p>{{ retrievalSettingsStatus || defaultSettingsText }}</p>
+      </div>
+      <button
+        type="button"
+        :disabled="retrievalSettingsLoading || retrievalSettingsSaving || !selectedProjectId"
+        @click="saveRetrievalSettings"
+      >
+        {{ retrievalSettingsSaving ? "保存中..." : "保存为默认" }}
+      </button>
+    </div>
+    <p v-if="retrievalSettingsError" class="status-line error">{{ retrievalSettingsError }}</p>
+
     <form id="search-debug-form" class="search-debug-form" @submit.prevent="runSearchDebug">
       <label>
         诊断查询
@@ -84,7 +99,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 
 const props = defineProps({
   selectedProjectId: {
@@ -107,9 +122,29 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  retrievalSettings: {
+    type: Object,
+    default: null,
+  },
+  retrievalSettingsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalSettingsSaving: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalSettingsStatus: {
+    type: String,
+    default: "",
+  },
+  retrievalSettingsError: {
+    type: String,
+    default: "",
+  },
 });
 
-const emit = defineEmits(["run-search-debug"]);
+const emit = defineEmits(["run-search-debug", "save-retrieval-settings"]);
 
 const searchDebugQuery = ref("");
 const searchDebugParameters = reactive({
@@ -123,6 +158,15 @@ const debug = computed(() => props.searchDebugResult?.debug || {});
 const sourceQuality = computed(() => debug.value.quality || props.searchDebugResult?.source_quality || {});
 const parameters = computed(() => debug.value.parameters || {});
 const hits = computed(() => props.searchDebugResult?.hits || []);
+const defaultSettingsText = computed(() => (
+  props.retrievalSettingsLoading ? "正在读取当前项目默认值..." : "未保存项目默认值，使用本地默认参数。"
+));
+
+watch(
+  () => props.retrievalSettings,
+  (settings) => applyRetrievalSettings(settings),
+  { immediate: true },
+);
 
 function runSearchDebug() {
   emit("run-search-debug", {
@@ -132,6 +176,28 @@ function runSearchDebug() {
     useKeyword: searchDebugParameters.useKeyword,
     useVector: searchDebugParameters.useVector,
   });
+}
+
+function saveRetrievalSettings() {
+  emit("save-retrieval-settings", {
+    topK: searchDebugParameters.topK,
+    minScore: searchDebugParameters.minScore,
+    useKeyword: searchDebugParameters.useKeyword,
+    useVector: searchDebugParameters.useVector,
+  });
+}
+
+function applyRetrievalSettings(settings) {
+  const values = settings || {
+    top_k: 5,
+    min_score: 0,
+    use_keyword: true,
+    use_vector: true,
+  };
+  searchDebugParameters.topK = values.top_k ?? 5;
+  searchDebugParameters.minScore = values.min_score ?? 0;
+  searchDebugParameters.useKeyword = Boolean(values.use_keyword);
+  searchDebugParameters.useVector = Boolean(values.use_vector);
 }
 
 function formatScore(score) {

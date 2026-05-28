@@ -524,7 +524,7 @@ def test_vue_search_debug_panel_renders_rag_diagnostics_controls():
         "searchDebugQuery",
         "searchDebugParameters",
         "formatScore",
-        "defineEmits([\"run-search-debug\"])",
+        'defineEmits(["run-search-debug", "save-retrieval-settings"])',
     ]:
         assert marker in panel_vue
 
