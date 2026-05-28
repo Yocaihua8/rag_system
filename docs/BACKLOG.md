@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-28（完成 B-141 Vue 页面级业务迁移收口）
+> Last Updated：2026-05-28（确认 legacy 静态前端清理排期）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -68,6 +68,7 @@
 | B-140 | feature | 认证中间件（JWT / API Key） | done | P1 | M | v1.0.0 | RAG 团队 | docs/adr/ADR-005-remote-auth.md | 已完成：可选启用 API Key + 短期 JWT；保护 `/api/*`、`/docs`、`/redoc`、`/openapi.json`；不改数据库 schema |
 | B-141 | feature | Vue 3 + Vite 前端工程化 | done | P1 | XL | v1.0.0 | RAG 团队 | docs/features/frontend-engineering.md | 已完成：Vue/Vite 工程骨架和 B-141A-Z 页面级迁移薄片已收口，覆盖资料库、设置、评估、工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文；`webapp/static/` 继续保留为未迁移高级交互 fallback；已按 plan 生命周期删除 B-141 临时计划文件 |
 | B-142 | feature | Vue 工作台 SSE 与会话历史迁移 | todo | P2 | M | v0.11.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/api-spec.md | 从 B-141 非目标拆出：Vue 工作台接入 `/api/answer/stream` EventSource 流式输出、取消当前请求、`/api/chat/sessions*` 与 `/api/chat/messages` 会话列表/历史恢复；不修改后端契约或数据库 schema；预估 3 天 |
+| B-143 | tech-debt | 移除 legacy 静态前端 fallback | todo | P2 | M | v0.12.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md, docs/guides/testing.md | B-142 完成并确认 Vue 覆盖旧前端保留主流程后执行：删除 `webapp/static/` legacy 原生前端，调整 `webapp/server.py` 静态文件兜底策略，清理仅针对 legacy 静态前端的测试断言，并同步前端工程、启动和测试文档；B-142 前不得执行 |
 | B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
 | B-125 | feature | Reranker 重排序接入 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/architecture-overview.md | 向量检索 top_k 候选后增加 Cross-Encoder reranker；优先对接 Cohere Rerank API（可选依赖），本地 cross-encoder 作为后备；预估 5 天 |
 | B-128 | feature | 对话分支与历史消息编辑重发 | todo | P2 | M | v0.11.0 | RAG 团队 | docs/design/api-spec.md | 支持在某条历史消息上编辑并重发，派生新对话分支；Claude.ai / ChatGPT 标配交互；预估 3 天 |
