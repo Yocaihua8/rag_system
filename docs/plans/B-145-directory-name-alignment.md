@@ -19,7 +19,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 创建红灯测试，锁定 `backend/knowledge_island/`、新测试目录和 legacy/archive 目录边界。
+- [x] 创建红灯测试，锁定 `backend/knowledge_island/`、新测试目录和 legacy/archive 目录边界。
 - [ ] 迁移后端包目录与测试目录命名，同步 import、Vite 输出、Docker 和构建提示。
 - [ ] 归档 legacy 桌面端与历史文档目录，同步 Docker/测试/脚本引用。
 - [ ] 同步正式文档、运行验证、更新 BACKLOG 并删除本 plan。
@@ -72,12 +72,13 @@
 ## 8. 执行记录
 
 - 2026-05-28：用户确认按当前 Web MVP 阶段统一目录命名；本任务只做路径和引用迁移，不改变业务契约。
+- 2026-05-28：红灯验证命令 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_backend_layout.py tests\test_webapp\test_app_entrypoint.py tests\test_webapp\test_frontend_build.py::test_vite_config_builds_into_backend_knowledge_island_static_dist_and_proxies_api tests\test_webapp\test_docker_startup.py::test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies -q`，结果 6 failed / 2 passed；失败原因均为旧目录名仍存在或新目录/import/output 尚未落地。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 00:00
-- **进度**：已完成 0 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：N/A
-- **代码状态**：`fix/b-145-directory-naming`；已创建 plan，尚未开始代码迁移
-- **下一步**：创建红灯测试，锁定 `backend/knowledge_island/`、新测试目录和 legacy/archive 目录边界
+- **进度**：已完成 1 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — red tests for directory naming
+- **代码状态**：`fix/b-145-directory-naming`；红灯测试已写入，生产路径尚未迁移
+- **下一步**：迁移后端包目录与测试目录命名，同步 import、Vite 输出、Docker 和构建提示
 - **续任务须知**：每完成 § 3 一项后按项目规则提交一次；不要修改 API 契约、数据库 schema 或 Agent 工具权限。

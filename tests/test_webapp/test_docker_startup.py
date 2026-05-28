@@ -9,9 +9,9 @@ def test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies():
     assert "npm ci" in dockerfile
     assert "npm run build" in dockerfile
     assert "COPY backend ./backend" in dockerfile
-    assert "COPY --from=frontend-build /app/backend/webapp/static_dist ./backend/webapp/static_dist" in dockerfile
+    assert "COPY --from=frontend-build /app/backend/knowledge_island/static_dist ./backend/knowledge_island/static_dist" in dockerfile
     assert "EXPOSE 8765" in dockerfile
-    assert "backend.webapp.server" in dockerfile
+    assert "backend.knowledge_island.server" in dockerfile
     assert "0.0.0.0" in dockerfile
     assert "fastapi" in dockerfile
     assert "uvicorn[standard]" in dockerfile
