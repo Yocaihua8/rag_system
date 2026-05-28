@@ -27,7 +27,7 @@
 - [x] 创建 B-141Y plan，并将 BACKLOG 说明列追加本 plan 路径。
 - [x] 增加 Vue 源码契约红灯测试，覆盖检索默认值 helper、`SearchDebugPanel` 默认值/保存控件、`WorkbenchView` 透传和 `App.vue` 状态流。
 - [x] 实现 `projects.js` 检索默认值 helper、`SearchDebugPanel.vue` 默认值回填/保存入口、`WorkbenchView.vue` 透传和 `App.vue` 读取/保存状态。
-- [ ] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
+- [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [ ] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
 - [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
@@ -97,12 +97,13 @@
 - 2026-05-28：将 `docs/plans/B-141-vue-retrieval-settings.md` 追加到 BACKLOG B-141 说明列。
 - 2026-05-28：新增 Vue 检索默认值源码契约红灯测试；聚焦运行 `tests/test_webapp/test_frontend_vue_app.py` 得到 3 failed / 63 passed，失败点为缺少 `retrieval-settings` helper、检索调试默认值/保存控件和 App 状态流。
 - 2026-05-28：实现 Vue 检索默认值读取/保存状态流；`projects.js` 复用既有 `GET/POST /api/projects/retrieval-settings`，`SearchDebugPanel` 根据已加载默认值回填诊断参数并提供“保存为默认”入口，`App.vue` 在项目加载、切换和创建时读取当前项目默认值。
+- 2026-05-28：聚焦验证通过：`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q` 为 66 passed，`npm run build` 成功。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 12:39
-- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — feat: 接入 Vue 检索默认值设置
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — docs: 记录 B-141Y 聚焦验证
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141Y 相关文件
-- **下一步**：运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过
+- **下一步**：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog
 - **续任务须知**：不修改后端 `/api/projects/retrieval-settings`、`/api/search/debug`、`/api/answer` 契约，不迁移检索复盘，不接入 SSE/会话，不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
