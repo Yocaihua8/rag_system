@@ -19,7 +19,14 @@ def test_fastapi_app_exposes_health_check(tmp_path):
     assert response.json() == {"status": "ok"}
 
 
-def test_fastapi_app_serves_static_index(tmp_path):
+def test_fastapi_app_serves_static_index(tmp_path, monkeypatch):
+    dist_dir = tmp_path / "static_dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text(
+        "<!doctype html><title>知识岛</title>",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(server, "STATIC_DIST_DIR", dist_dir, raising=False)
     client = _client(tmp_path / "app.db")
 
     response = client.get("/")

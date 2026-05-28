@@ -38,15 +38,10 @@ def test_vite_config_builds_into_webapp_static_dist_and_proxies_api():
 
 def test_fastapi_serves_vite_build_when_it_exists(tmp_path, monkeypatch):
     dist_dir = tmp_path / "static_dist"
-    legacy_dir = tmp_path / "static"
     dist_dir.mkdir()
-    legacy_dir.mkdir()
     (dist_dir / "index.html").write_text("<!doctype html><title>vite-build</title>", encoding="utf-8")
-    (legacy_dir / "index.html").write_text("<!doctype html><title>legacy-static</title>", encoding="utf-8")
 
     monkeypatch.setattr(server, "STATIC_DIST_DIR", dist_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_LEGACY_DIR", legacy_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_DIR", legacy_dir, raising=False)
     client = TestClient(server.create_app(db_path=tmp_path / "app.db"))
 
     response = client.get("/")
@@ -55,18 +50,24 @@ def test_fastapi_serves_vite_build_when_it_exists(tmp_path, monkeypatch):
     assert "vite-build" in response.text
 
 
-def test_fastapi_falls_back_to_legacy_static_when_vite_build_is_missing(tmp_path, monkeypatch):
+def test_fastapi_returns_build_hint_when_vite_build_is_missing(tmp_path, monkeypatch):
     dist_dir = tmp_path / "missing_dist"
     legacy_dir = tmp_path / "static"
     legacy_dir.mkdir()
     (legacy_dir / "index.html").write_text("<!doctype html><title>legacy-static</title>", encoding="utf-8")
 
     monkeypatch.setattr(server, "STATIC_DIST_DIR", dist_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_LEGACY_DIR", legacy_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_DIR", legacy_dir, raising=False)
     client = TestClient(server.create_app(db_path=tmp_path / "app.db"))
 
     response = client.get("/")
 
-    assert response.status_code == 200
-    assert "legacy-static" in response.text
+    assert response.status_code == 503
+    assert "npm run build" in response.text
+    assert "legacy-static" not in response.text
+
+
+def test_server_static_strategy_has_no_legacy_frontend_fallback():
+    server_text = Path("webapp/server.py").read_text(encoding="utf-8")
+
+    assert "STATIC_LEGACY_DIR" not in server_text
+    assert 'WEBAPP_DIR / "static"' not in server_text
