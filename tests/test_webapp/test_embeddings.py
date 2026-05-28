@@ -1,6 +1,6 @@
 import json
 
-from webapp.embeddings import EmbeddingConfig, OpenAICompatibleEmbeddingClient
+from backend.webapp.embeddings import EmbeddingConfig, OpenAICompatibleEmbeddingClient
 
 
 def test_openai_compatible_embedding_client_posts_embeddings_request():

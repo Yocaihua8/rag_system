@@ -5,9 +5,9 @@ import pytest
 
 def _auth_module():
     try:
-        return importlib.import_module("webapp.auth")
+        return importlib.import_module("backend.webapp.auth")
     except ModuleNotFoundError:
-        pytest.fail("webapp.auth must provide authentication helpers")
+        pytest.fail("backend.webapp.auth must provide authentication helpers")
 
 
 def test_auth_settings_are_disabled_by_default():

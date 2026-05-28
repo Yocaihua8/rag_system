@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from webapp.api import dispatch
-from webapp.storage import KnowledgeStore
+from backend.webapp.api import dispatch
+from backend.webapp.storage import KnowledgeStore
 
 
 def test_agent_tools_api_lists_readonly_tools(tmp_path: Path):

@@ -1,10 +1,10 @@
 from pathlib import Path
 from urllib.parse import quote
 
-import webapp.api as api_module
-from webapp.api import dispatch
-from webapp.ingestion import import_directory
-from webapp.storage import KnowledgeStore
+import backend.webapp.api as api_module
+from backend.webapp.api import dispatch
+from backend.webapp.ingestion import import_directory
+from backend.webapp.storage import KnowledgeStore
 
 
 def test_prompt_preset_api_crud_and_project_default(tmp_path: Path):

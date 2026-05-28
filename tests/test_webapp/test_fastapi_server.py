@@ -1,12 +1,12 @@
 from fastapi.testclient import TestClient
 
-import webapp.server as server
-from webapp.storage import KnowledgeStore
+import backend.webapp.server as server
+from backend.webapp.storage import KnowledgeStore
 
 
 def _client(db_path):
     create_app = getattr(server, "create_app", None)
-    assert create_app is not None, "webapp.server.create_app must expose the FastAPI app factory"
+    assert create_app is not None, "backend.webapp.server.create_app must expose the FastAPI app factory"
     return TestClient(create_app(db_path=db_path))
 
 

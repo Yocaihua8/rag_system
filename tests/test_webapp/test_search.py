@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from webapp.chunking import split_into_chunks
-from webapp.import_rules import MAX_TEXT_FILE_BYTES
-from webapp.ingestion import import_directory
-from webapp.search import search_documents
-from webapp.storage import KnowledgeStore
+from backend.webapp.chunking import split_into_chunks
+from backend.webapp.import_rules import MAX_TEXT_FILE_BYTES
+from backend.webapp.ingestion import import_directory
+from backend.webapp.search import search_documents
+from backend.webapp.storage import KnowledgeStore
 
 
 def test_import_directory_indexes_supported_text_files(tmp_path: Path):

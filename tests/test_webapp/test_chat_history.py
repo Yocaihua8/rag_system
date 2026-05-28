@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from webapp.api import dispatch
-from webapp.storage import KnowledgeStore
+from backend.webapp.api import dispatch
+from backend.webapp.storage import KnowledgeStore
 
 
 def test_answer_api_persists_project_chat_message_with_sources(tmp_path: Path):

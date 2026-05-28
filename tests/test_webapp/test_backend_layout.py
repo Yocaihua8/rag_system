@@ -22,3 +22,10 @@ def test_backend_server_import_exposes_app_factory():
     server = import_module("backend.webapp.server")
 
     assert callable(server.create_app)
+
+
+def test_backend_runtime_dir_stays_under_project_root_runtime():
+    config = import_module("backend.webapp.config")
+
+    assert config.runtime_dir() == Path.cwd() / "runtime" / "webapp"
+    assert not Path("backend/runtime").exists()

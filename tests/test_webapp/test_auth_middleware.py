@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from webapp.auth import load_auth_settings, validate_jwt
-from webapp.server import create_app
+import backend.webapp.server as server
+from backend.webapp.auth import load_auth_settings, validate_jwt
 
 
 def _auth_settings():
@@ -16,7 +16,7 @@ def _auth_settings():
 
 
 def _client(tmp_path, settings):
-    return TestClient(create_app(db_path=tmp_path / "app.db", auth_settings=settings))
+    return TestClient(server.create_app(db_path=tmp_path / "app.db", auth_settings=settings))
 
 
 def test_auth_disabled_keeps_existing_api_access(tmp_path):
@@ -28,7 +28,11 @@ def test_auth_disabled_keeps_existing_api_access(tmp_path):
     assert "projects" in response.json()
 
 
-def test_auth_enabled_allows_health_and_static_index_without_credentials(tmp_path):
+def test_auth_enabled_allows_health_and_static_index_without_credentials(tmp_path, monkeypatch):
+    dist_dir = tmp_path / "static_dist"
+    dist_dir.mkdir()
+    (dist_dir / "index.html").write_text("<!doctype html><title>auth-static</title>", encoding="utf-8")
+    monkeypatch.setattr(server, "STATIC_DIST_DIR", dist_dir, raising=False)
     client = _client(tmp_path, _auth_settings())
 
     health_response = client.get("/api/health")

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from webapp.api import dispatch
-from webapp.storage import KnowledgeStore
+from backend.webapp.api import dispatch
+from backend.webapp.storage import KnowledgeStore
 
 
 def test_assessment_start_generates_questions_from_imported_documents(tmp_path: Path):
@@ -38,7 +38,7 @@ def test_assessment_start_generates_question_types_from_project_knowledge(tmp_pa
     store.upsert_document(
         project.id,
         project_dir / "webapp" / "assessment.py",
-        "webapp/assessment.py",
+        "backend/webapp/assessment.py",
         (
             "# 掌握评估\n\n"
             "## 自动出题流程\n\n"
@@ -58,7 +58,7 @@ def test_assessment_start_generates_question_types_from_project_knowledge(tmp_pa
     question_types = {question["question_type"] for question in questions}
     assert {"concept", "flow", "code_location"}.issubset(question_types)
     assert all(question["knowledge_point"] for question in questions)
-    assert all(question["source_path"] == "webapp/assessment.py" for question in questions)
+    assert all(question["source_path"] == "backend/webapp/assessment.py" for question in questions)
     assert any("概念理解" in question["prompt"] for question in questions)
     assert any("流程" in question["prompt"] for question in questions)
     assert any("代码" in question["prompt"] for question in questions)

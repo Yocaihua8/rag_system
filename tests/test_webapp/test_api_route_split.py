@@ -1,19 +1,19 @@
 from pathlib import Path
 
-from webapp.api import dispatch
-from webapp.routes import dispatch_to_routes
-from webapp.routes.agent import handle_agent_route
-from webapp.routes.answers import handle_answer_route
-from webapp.routes.assessment import handle_assessment_route
-from webapp.routes.chat import handle_chat_route
-from webapp.routes.documents import handle_documents_route
-from webapp.routes.export import handle_export_route
-from webapp.routes.health import handle_health_route
-from webapp.routes.imports import handle_imports_route
-from webapp.routes.projects import handle_projects_route
-from webapp.routes.search import handle_search_route
-from webapp.routes.settings import handle_settings_route
-from webapp.storage import KnowledgeStore
+from backend.webapp.api import dispatch
+from backend.webapp.routes import dispatch_to_routes
+from backend.webapp.routes.agent import handle_agent_route
+from backend.webapp.routes.answers import handle_answer_route
+from backend.webapp.routes.assessment import handle_assessment_route
+from backend.webapp.routes.chat import handle_chat_route
+from backend.webapp.routes.documents import handle_documents_route
+from backend.webapp.routes.export import handle_export_route
+from backend.webapp.routes.health import handle_health_route
+from backend.webapp.routes.imports import handle_imports_route
+from backend.webapp.routes.projects import handle_projects_route
+from backend.webapp.routes.search import handle_search_route
+from backend.webapp.routes.settings import handle_settings_route
+from backend.webapp.storage import KnowledgeStore
 
 
 class RouteSplitFakeLlmClient:
@@ -953,7 +953,7 @@ def test_route_registry_dispatches_project_summary_and_agent_tools(tmp_path):
 
 
 def test_migrated_routes_are_removed_from_legacy_dispatch():
-    api_source = Path("webapp/api.py").read_text(encoding="utf-8")
+    api_source = Path("backend/webapp/api.py").read_text(encoding="utf-8")
 
     assert 'path == "/api/health"' not in api_source
     assert 'path == "/api/projects"' not in api_source

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-import webapp.server as server
+import backend.webapp.server as server
 
 
 def test_frontend_package_declares_vue_vite_build_scripts():
