@@ -28,7 +28,7 @@ cp .env .env.local # 按需
 启动默认 Web MVP：
 
 ```bash
-.venv\Scripts\python.exe app.py
+.venv\Scripts\python.exe backend/app.py
 ```
 
 浏览器打开：
@@ -45,7 +45,7 @@ B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
 npm run build
 ```
 
-构建产物输出到 `webapp/static_dist/`，该目录不入库。`python app.py` 只服务 `webapp/static_dist/`；未构建或构建产物缺失时，首页会返回 503 构建提示，需要先运行 `npm run build`。
+构建产物输出到 `backend/webapp/static_dist/`，该目录不入库。`python backend/app.py` 只服务 `backend/webapp/static_dist/`；未构建或构建产物缺失时，首页会返回 503 构建提示，需要先运行 `npm run build`。
 
 启用 API Key + JWT 认证（可选）：
 
@@ -54,7 +54,7 @@ $env:RAG_AUTH_ENABLED = "1"
 $env:RAG_AUTH_API_KEY = "replace-with-your-local-admin-key"
 $env:RAG_AUTH_JWT_SECRET = "replace-with-a-long-random-secret"
 $env:RAG_AUTH_JWT_TTL_SECONDS = "3600" # 可选，最小 60 秒
-.venv\Scripts\python.exe app.py
+.venv\Scripts\python.exe backend/app.py
 ```
 
 默认不设置 `RAG_AUTH_ENABLED` 时认证关闭。认证启用后，`/api/health` 和静态首页仍可无凭证访问，其他 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 需要 `X-API-Key` 或 Bearer JWT。第一版没有登录页；脚本或后续客户端可先用 `POST /api/auth/token` 携带 `X-API-Key` 换取短期 JWT。
@@ -129,7 +129,7 @@ docker compose down
 [System.Environment]::SetEnvironmentVariable("RAG_LLM_PROVIDER", "api", "User")
 ```
 
-重启终端后再运行 `app.py`。未配置 API Key 时，Web 端自动使用本地片段回答。
+重启终端后再运行 `backend/app.py`。未配置 API Key 时，Web 端自动使用本地片段回答。
 
 Windows 上应用会读取 User/Machine 级持久环境变量；如果当前终端没有继承新设置的 `DEEPSEEK_API_KEY`，`load_settings()` 仍会尝试从 Windows 持久环境中读取。
 

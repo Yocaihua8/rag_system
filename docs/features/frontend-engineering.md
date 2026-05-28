@@ -3,12 +3,12 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-05-28
-> Scope：B-141 Vue 3 + Vite 前端工程化；B-142 Vue 工作台 SSE 与会话历史迁移；B-143 legacy 静态前端清理
+> Scope：B-141 Vue 3 + Vite 前端工程化；B-142 Vue 工作台 SSE 与会话历史迁移；B-143 legacy 静态前端清理；B-144 前后端目录结构解耦
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
 ## 1. 功能定位
 
-B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把原 `webapp/static/` 中的原生 HTML/CSS/JS 前端逐步迁移到独立 `frontend/` 工程，使用 Vue 3 组件和 Vite 构建，降低大型单页脚本继续增长带来的维护成本。B-141 收口时已完成 A-Z 页面级迁移薄片；B-142 已补齐 Vue 工作台 SSE/取消和聊天会话/历史迁移；B-143 已移除 legacy 静态前端 fallback，FastAPI 只服务 `webapp/static_dist/` 构建产物。
+B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把原 `webapp/static/` 中的原生 HTML/CSS/JS 前端逐步迁移到独立 `frontend/` 工程，使用 Vue 3 组件和 Vite 构建，降低大型单页脚本继续增长带来的维护成本。B-141 收口时已完成 A-Z 页面级迁移薄片；B-142 已补齐 Vue 工作台 SSE/取消和聊天会话/历史迁移；B-143 已移除 legacy 静态前端 fallback；B-144 后 FastAPI 只服务 `backend/webapp/static_dist/` 构建产物。
 
 ## 2. 用户可见行为
 
@@ -42,7 +42,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141Z 在 Vue 工作台提供检索复盘入口，支持保存当前查询参数和人工备注，查看当前项目复盘历史、单条详情和删除复盘记录；复用既有 `/api/retrieval/reviews*` 契约。
 - B-142 在 Vue 工作台中接入 `GET /api/answer/stream` EventSource 流式输出，回答完成后保留完整响应、来源、来源质量、观察性信息和回答反馈消息 ID；用户可关闭当前 EventSource 取消前端流式渲染。
 - B-142 在 Vue 工作台中接入 `/api/chat/sessions*` 与 `/api/chat/messages`，支持默认会话、自定义会话列表、新建、重命名、删除和当前会话历史恢复；下一轮流式问答会携带当前 `session_id`。
-- B-143 后，`webapp/static/` 不再存在；未生成 `webapp/static_dist/index.html` 时，FastAPI 首页返回 503 构建提示并要求执行 `npm run build`。
+- B-144 后，`webapp/static/` 不再存在，后端源码位于 `backend/webapp/`；未生成 `backend/webapp/static_dist/index.html` 时，FastAPI 首页返回 503 构建提示并要求执行 `npm run build`。
 
 ## 3. 工程目录
 
@@ -64,7 +64,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/state/app-state.js` | Vue 迁移期共享状态模型和基础视图切换 |
 | `frontend/src/components/` | 迁移期布局组件，例如 `AppShell.vue`、`ProjectSpacePanel.vue`、`QuestionPanel.vue`、`AnswerPanel.vue`、`ChatSessionPanel.vue`、`SearchDebugPanel.vue`、`AgentToolsPanel.vue`、`DocumentListPanel.vue`、`DocumentPreviewPanel.vue`、`DocumentImportPanel.vue`、`DocumentCollectionPanel.vue`、`ImportBatchHistoryPanel.vue` |
 | `frontend/src/views/` | 工作台、资料库、评估、设置等页面组件 |
-| `webapp/static_dist/` | Vite 生产构建输出，由 FastAPI 托管 |
+| `backend/webapp/static_dist/` | Vite 生产构建输出，由 FastAPI 托管 |
 
 ## 4. 非目标
 
@@ -95,13 +95,14 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141Z 不迁移普通搜索结果列表、检索健康项目卡、Workbench SSE/取消、聊天会话/历史、评估题库/历史、检索算法、后端 API 或数据库 schema。
 - B-142 不修改后端接口契约、SQLite schema、Agent 工具权限边界或检索算法。
 - B-143 不修改后端接口契约、SQLite schema、Agent 工具权限边界或检索算法，仅清理 legacy 静态前端 fallback。
+- B-144 不修改后端接口契约、SQLite schema、Agent 工具权限边界或检索算法，仅调整后端目录、启动入口和构建产物路径。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
 - 不新增前端登录页；认证启用后的凭证 UI 后续另拆。
 
 ## 5. 架构落点
 
-Vue 3 + Vite 只替代展示层工程组织。后端仍由 `webapp/server.py` 提供 FastAPI 服务，`webapp/api.py` 和 `webapp/routes/*` 保持 API 契约，业务层和数据层不因 B-141 调整。
+Vue 3 + Vite 只替代展示层工程组织。后端仍由 `backend/webapp/server.py` 提供 FastAPI 服务，`backend/webapp/api.py` 和 `backend/webapp/routes/*` 保持 API 契约，业务层和数据层不因 B-141 调整。
 
 B-141B 起，Vue 侧采用轻量 Composition API 结构：API helper 负责请求和错误归一化，共享状态模块保存当前项目、会话、文档、评估、工具、检索等迁移期字段，`AppShell` 管理四个主视图导航。该状态模型只是前端 UI 状态，不新增后端数据规则。
 
@@ -155,7 +156,7 @@ B-141Z 起，Vue 工作台迁移检索复盘薄片：`search.js` 扩展既有 `P
 
 B-142 起，Vue 工作台迁移 SSE 流式问答和聊天会话薄片：`answer.js` 在保留非流式 `/api/answer` helper 的同时新增 `streamQuestion`，通过 `EventSource` 调用既有 `GET /api/answer/stream`，处理 `token`、`done` 和 `answer_error` 事件；`QuestionPanel` 提供取消当前回答按钮，取消仅关闭前端 EventSource 并恢复按钮状态。`chat.js` 封装 `/api/chat/sessions*` 和 `/api/chat/messages`，`ChatSessionPanel` 负责会话列表、默认会话、自定义会话新建/重命名/删除和当前会话历史消息展示。`App.vue` 保存当前会话 ID、会话列表、历史消息、流式回答增量和取消状态；回答完成后刷新当前会话历史，并在下一轮流式问答中携带当前 `session_id` 和用户显式选择的 `tool_run_id`。后端 API、SQLite schema 和 Agent 工具权限不在本片调整。
 
-B-143 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `webapp/static_dist/`。如果构建产物缺失，首页和非 API 路径返回 503 HTML 提示，要求先执行 `npm run build`；系统不再回退到 legacy 原生前端。
+B-144 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/webapp/static_dist/`。如果构建产物缺失，首页和非 API 路径返回 503 HTML 提示，要求先执行 `npm run build`；系统不再回退到 legacy 原生前端。
 
 ## 6. 验收标准
 
@@ -188,8 +189,8 @@ B-143 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `webapp/st
 - Vue 设置页可读取模型 Profile 列表，新增或编辑 Profile，删除 Profile，设置或清空默认 Profile，并测试单个 Profile。
 - Vue 设置页可在已选择项目空间时读取 Prompt 预设和内置模板，新增或编辑 Prompt 预设，删除 Prompt 预设，设置或清空默认 Prompt 预设。
 - Vue 评估页可在已选择项目空间时开始评估、查看当前题目、提交回答、进入下一题或完成本轮，并查看结果概览、答题记录和待复测列表。
-- `npm run build` 可生成 `webapp/static_dist/`。
-- FastAPI 服务 `webapp/static_dist/`；构建产物不存在时返回 503 构建提示，不再回退 legacy 前端。
+- `npm run build` 可生成 `backend/webapp/static_dist/`。
+- FastAPI 服务 `backend/webapp/static_dist/`；构建产物不存在时返回 503 构建提示，不再回退 legacy 前端。
 - Web MVP 后端测试保持通过。
 - 文档说明清楚当前是工程化骨架阶段，不宣称完整 Vue UI 已迁移完成。
-- B-143 完成后，`webapp/static/` legacy fallback 已删除，前端静态断言以 Vue 源码测试和构建服务策略测试为准。
+- B-144 完成后，`webapp/static/` legacy fallback 已删除，后端静态服务目录为 `backend/webapp/static_dist/`，前端静态断言以 Vue 源码测试和构建服务策略测试为准。

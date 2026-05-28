@@ -22,7 +22,7 @@
 7. `design/model-profiles-design.md` — 模型 Profile 多配置设计（B-111/B-112 已落地，接口以 api-spec 为准）
 8. `design/document-collections-design.md` — 文档集合分组设计（B-113/B-114 已落地）
 9. `design/import-batches-design.md` — 导入批次历史设计（B-115/B-116 已落地）
-10. `design/api-route-split-blueprint.md` — `webapp/api.py` 按领域拆分蓝图（B-131）
+10. `design/api-route-split-blueprint.md` — `backend/webapp/api.py` 按领域拆分蓝图（B-131）
 
 **再读（参与开发）：**
 
@@ -132,4 +132,4 @@ ADR 模板见 `adr/ADR-000-template.md`。
 - `architecture/DATA_MODEL.md`
 - `architecture/LLM_PROVIDER_DESIGN.md`
 
-当它们与 `AGENTS.md`、`requirements/`、`design/`、`guides/` 冲突时，以 `AGENTS.md` 与当前 `requirements/`、`design/` 为准。当前默认入口以本地 Web MVP（`app.py`）为准，历史架构文档不定义当前默认启动方式。
+当它们与 `AGENTS.md`、`requirements/`、`design/`、`guides/` 冲突时，以 `AGENTS.md` 与当前 `requirements/`、`design/` 为准。当前默认入口以本地 Web MVP（`backend/app.py`）为准，历史架构文档不定义当前默认启动方式。

@@ -135,10 +135,10 @@ Web 端检索会优先使用 `RAG_EMBED_PROVIDER=api` 对应的 OpenAI-compatibl
 npm run build
 
 # Windows
-.venv\Scripts\python.exe app.py
+.venv\Scripts\python.exe backend/app.py
 
 # macOS / Linux
-.venv/bin/python app.py
+.venv/bin/python backend/app.py
 ```
 
 启动后打开：
@@ -246,25 +246,26 @@ Windows PowerShell 示例：
 
 ```
 knowledage_island/
-├── app.py                    # 默认 Web MVP 程序入口
+├── backend/                  # FastAPI 后端运行时代码
+│   ├── app.py                # 默认 Web MVP 程序入口
+│   └── webapp/               # Web MVP 后端模块
+│       ├── server.py         # FastAPI app + Uvicorn 启动 + 静态文件服务
+│       ├── api.py            # API 路由分发
+│       ├── agent_tools.py    # Agent 只读工具白名单与运行入口
+│       ├── storage.py        # SQLite schema 与读写
+│       ├── ingestion.py      # 本地目录导入
+│       ├── chunking.py       # Web MVP 文档分块
+│       ├── document_processing.py # 文本/DOCX/PDF 导入处理
+│       ├── import_rules.py   # 导入后缀、排除目录、文件大小上限
+│       ├── search.py         # 基于分块的 BM25 关键词召回与排序
+│       ├── answers.py        # LLM 优先回答与本地片段回退
+│       ├── llm.py            # OpenAI-compatible Chat Completions 标准库客户端
+│       ├── models.py         # Web MVP 响应模型、搜索命中和聊天记录模型
+│       ├── assessment.py     # Web 掌握评估最小闭环
+│       └── static_dist/      # Vue/Vite 生产构建输出（本地生成，不入库）
 ├── Dockerfile                # Web MVP 容器镜像
 ├── compose.yaml              # Docker Compose 一键启动
 ├── frontend/                 # Vue 3 + Vite 前端源码
-├── webapp/                   # 默认 Web MVP 技术栈
-│   ├── server.py             # FastAPI app + Uvicorn 启动 + 静态文件服务
-│   ├── api.py                # API 路由分发
-│   ├── agent_tools.py        # Agent 只读工具白名单与运行入口
-│   ├── storage.py            # SQLite schema 与读写
-│   ├── ingestion.py          # 本地目录导入
-│   ├── chunking.py           # Web MVP 文档分块
-│   ├── document_processing.py # 文本/DOCX/PDF 导入处理
-│   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
-│   ├── search.py             # 基于分块的 BM25 关键词召回与排序
-│   ├── answers.py            # LLM 优先回答与本地片段回退
-│   ├── llm.py                # OpenAI-compatible Chat Completions 标准库客户端
-│   ├── models.py             # Web MVP 响应模型、搜索命中和聊天记录模型
-│   ├── assessment.py         # Web 掌握评估最小闭环
-│   └── static_dist/          # Vue/Vite 生产构建输出（本地生成，不入库）
 ├── src/
 │   ├── config/               # 配置层（defaults / settings / paths）
 │   ├── domain/               # 领域层：不可变数据模型 + 业务错误

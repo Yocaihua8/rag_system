@@ -12,7 +12,7 @@
 
 | 角色 | 定义 | 认证方式 |
 |------|------|----------|
-| 本机用户 | 启动 `app.py` 的用户，对所有数据有完整读写权限 | 默认无认证；启用认证后使用 `X-API-Key` 或 Bearer JWT |
+| 本机用户 | 启动 `backend/app.py` 的用户，对所有数据有完整读写权限 | 默认无认证；启用认证后使用 `X-API-Key` 或 Bearer JWT |
 
 多用户 / RBAC 支持列为 P3 研究项（B-118），实施前需重新设计。
 
@@ -32,11 +32,11 @@
 
 | 限制类型 | 规则 | 执行位置 |
 |----------|------|----------|
-| Agent 工具白名单 | 仅允许 `project_overview` 和 `search_sources`，其他工具名一律拒绝 | `webapp/agent_tools.py` |
-| API Key 不回显 | `GET /api/settings/llm` 和 `GET /api/model-profiles` 响应不含 API Key 明文 | `webapp/api.py` |
-| 跨项目工具注入拒绝 | `tool_run_id` 与当前 `project_id` 不匹配时拒绝注入上下文 | `webapp/answers.py` |
-| 跨项目集合操作拒绝 | 文档与集合必须属于同一 `project_id` | `webapp/api.py` |
-| 工具只读约束 | Agent 工具不开放文件写入、shell 执行或任意命令 | `webapp/agent_tools.py` |
+| Agent 工具白名单 | 仅允许 `project_overview` 和 `search_sources`，其他工具名一律拒绝 | `backend/webapp/agent_tools.py` |
+| API Key 不回显 | `GET /api/settings/llm` 和 `GET /api/model-profiles` 响应不含 API Key 明文 | `backend/webapp/api.py` |
+| 跨项目工具注入拒绝 | `tool_run_id` 与当前 `project_id` 不匹配时拒绝注入上下文 | `backend/webapp/answers.py` |
+| 跨项目集合操作拒绝 | 文档与集合必须属于同一 `project_id` | `backend/webapp/api.py` |
+| 工具只读约束 | Agent 工具不开放文件写入、shell 执行或任意命令 | `backend/webapp/agent_tools.py` |
 
 ## 3. 数据级权限规则
 
@@ -49,7 +49,7 @@
 
 | 动作 | 权限要求 |
 |------|----------|
-| 读取本地文件（导入）| 文件系统 ACL 许可（运行 `app.py` 的用户权限）|
+| 读取本地文件（导入）| 文件系统 ACL 许可（运行 `backend/app.py` 的用户权限）|
 | 写入运行时数据库 | `runtime/docker/` 目录可写 |
 | 读取 API Key | 仅从环境变量或 Windows 持久环境读取，不回显 |
 | 执行 Agent 工具 | 白名单内只读工具，审计记录写入 `agent_tool_runs` |

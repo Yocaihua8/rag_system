@@ -8,7 +8,7 @@
 
 ## 1. 发布前检查
 
-- [ ] 主流程可运行：启动 `python app.py`，访问 `http://127.0.0.1:8765` 正常
+- [ ] 主流程可运行：启动 `python backend/app.py`，访问 `http://127.0.0.1:8765` 正常
 - [ ] 健康检查通过：`GET /api/health` 返回 `{"status": "ok"}`
 - [ ] 测试套件通过：`.venv\Scripts\python.exe -m pytest tests/test_webapp -q`
 - [ ] 最小验收完成：导入目录成功 → 问答返回含来源的回答
@@ -28,7 +28,7 @@
 ## 3. 回滚方案
 
 - **回滚条件**：启动失败、导入或问答核心链路出现阻断性错误
-- **回滚步骤**：`git checkout <上一个 tag>`，重新启动 `python app.py`
+- **回滚步骤**：`git checkout <上一个 tag>`，重新启动 `python backend/app.py`
 - **数据回滚**：SQLite 数据库文件（`runtime/docker/knowledge.db`）可手动备份和替换；无自动回滚机制
 
 ## 4. Windows 打包（可选）

@@ -49,7 +49,7 @@ npm run build
 cp .env.example .env
 
 # 3. 启动 Web MVP
-.venv\Scripts\python.exe app.py
+.venv\Scripts\python.exe backend/app.py
 ```
 
 浏览器访问 `http://127.0.0.1:8765`。
@@ -91,7 +91,7 @@ docs(backlog): 新增竞品差距分析待办项
 
 ## 4. 代码规范
 
-### Web MVP（webapp/）
+### Web MVP（backend/webapp/）
 
 - `api.py` 只做参数校验和用例编排，不直接操作 SQLite
 - `storage.py` 是 SQLite 唯一入口，不承载业务规则
@@ -108,7 +108,7 @@ docs(backlog): 新增竞品差距分析待办项
 ### Legacy（src/）
 
 - 保持六边形分层约束：配置 → 领域 → 端口 → 适配器 → 应用 → 表现
-- 新任务不应同时修改 `webapp/` 和 `src/desktop/`，除非明确为迁移任务
+- 新任务不应同时修改 `backend/webapp/` 和 `src/desktop/`，除非明确为迁移任务
 
 ---
 
@@ -118,7 +118,7 @@ docs(backlog): 新增竞品差距分析待办项
 
 | 变更类型 | 必须通过的测试 |
 |----------|---------------|
-| `webapp/api.py` 路由变更 | `tests/test_webapp/test_api.py` |
+| `backend/webapp/api.py` 路由变更 | `tests/test_webapp/test_api.py` |
 | 检索 / 向量 / 分块变更 | `tests/test_webapp/test_search.py` / `test_embeddings.py` |
 | 导入管线变更 | `tests/test_webapp/test_document_processing.py` |
 | 聊天 / 会话变更 | `tests/test_webapp/test_chat_history.py` |
