@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">工作台</p>
         <h2>项目问答</h2>
-        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试，B-141W 已迁移 Agent 只读工具，B-141X 已迁移工具建议与来源上下文，B-141Y 已迁移项目级检索默认值；SSE 和会话后续迁移。</p>
+        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试，B-141W 已迁移 Agent 只读工具，B-141X 已迁移工具建议与来源上下文，B-141Y 已迁移项目级检索默认值，B-141Z 已迁移检索复盘；SSE 和会话后续迁移。</p>
       </div>
     </header>
 
@@ -45,8 +45,21 @@
         :retrieval-settings-saving="retrievalSettingsSaving"
         :retrieval-settings-status="retrievalSettingsStatus"
         :retrieval-settings-error="retrievalSettingsError"
+        :retrieval-reviews="retrievalReviews"
+        :retrieval-reviews-loading="retrievalReviewsLoading"
+        :retrieval-reviews-error="retrievalReviewsError"
+        :retrieval-review-saving="retrievalReviewSaving"
+        :retrieval-review-error="retrievalReviewError"
+        :retrieval-review-status="retrievalReviewStatus"
+        :selected-retrieval-review="selectedRetrievalReview"
+        :retrieval-review-detail-loading="retrievalReviewDetailLoading"
+        :retrieval-review-detail-error="retrievalReviewDetailError"
+        :deleting-retrieval-review-id="deletingRetrievalReviewId"
         @run-search-debug="(payload) => $emit('run-search-debug', payload)"
         @save-retrieval-settings="(payload) => $emit('save-retrieval-settings', payload)"
+        @save-retrieval-review="(payload) => $emit('save-retrieval-review', payload)"
+        @select-retrieval-review="(reviewId) => $emit('select-retrieval-review', reviewId)"
+        @delete-retrieval-review="(reviewId) => $emit('delete-retrieval-review', reviewId)"
       />
       <AgentToolsPanel
         :selected-project-id="selectedProjectId"
@@ -167,6 +180,46 @@ defineProps({
     type: String,
     default: "",
   },
+  retrievalReviews: {
+    type: Array,
+    default: () => [],
+  },
+  retrievalReviewsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalReviewsError: {
+    type: String,
+    default: "",
+  },
+  retrievalReviewSaving: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalReviewError: {
+    type: String,
+    default: "",
+  },
+  retrievalReviewStatus: {
+    type: String,
+    default: "",
+  },
+  selectedRetrievalReview: {
+    type: Object,
+    default: null,
+  },
+  retrievalReviewDetailLoading: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalReviewDetailError: {
+    type: String,
+    default: "",
+  },
+  deletingRetrievalReviewId: {
+    type: String,
+    default: "",
+  },
   agentTools: {
     type: Array,
     default: () => [],
@@ -221,5 +274,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

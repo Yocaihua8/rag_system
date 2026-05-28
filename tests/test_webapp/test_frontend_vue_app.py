@@ -486,7 +486,7 @@ def test_vue_search_debug_api_helper_uses_existing_debug_contract():
     search_js = _read(str(search_path))
 
     for marker in [
-        'import { apiPost } from "./client.js";',
+        'import { apiGet, apiPost } from "./client.js";',
         "export async function runSearchDebug({ projectId, query, topK = 5, minScore = 0, useKeyword = true, useVector = true })",
         'throw new Error("请先创建或选择项目空间")',
         'throw new Error("请输入检索诊断查询")',

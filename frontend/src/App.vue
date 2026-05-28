@@ -41,6 +41,16 @@
       :retrieval-settings-saving="appState.retrievalSettingsSaving"
       :retrieval-settings-status="appState.retrievalSettingsStatus"
       :retrieval-settings-error="appState.retrievalSettingsError"
+      :retrieval-reviews="appState.retrievalReviews"
+      :retrieval-reviews-loading="appState.retrievalReviewsLoading"
+      :retrieval-reviews-error="appState.retrievalReviewsError"
+      :retrieval-review-saving="appState.retrievalReviewSaving"
+      :retrieval-review-error="appState.retrievalReviewError"
+      :retrieval-review-status="appState.retrievalReviewStatus"
+      :selected-retrieval-review="appState.selectedRetrievalReview"
+      :retrieval-review-detail-loading="appState.retrievalReviewDetailLoading"
+      :retrieval-review-detail-error="appState.retrievalReviewDetailError"
+      :deleting-retrieval-review-id="appState.deletingRetrievalReviewId"
       :agent-tools="appState.agentTools"
       :agent-tools-loading="appState.agentToolsLoading"
       :agent-tools-error="appState.agentToolsError"
@@ -134,6 +144,9 @@
       @clear-tool-context="clearToolContextState"
       @run-search-debug="handleRunSearchDebug"
       @save-retrieval-settings="handleSaveRetrievalSettings"
+      @save-retrieval-review="handleSaveRetrievalReview"
+      @select-retrieval-review="handleSelectRetrievalReview"
+      @delete-retrieval-review="handleDeleteRetrievalReview"
       @load-agent-tools="loadAgentTools"
       @run-agent-tool="handleRunAgentTool"
       @load-agent-tool-runs="loadAgentToolRuns"
@@ -231,7 +244,13 @@ import {
   testLlmSettings,
   testModelProfile,
 } from "./api/settings.js";
-import { runSearchDebug } from "./api/search.js";
+import {
+  deleteRetrievalReview,
+  getRetrievalReviewDetail,
+  listRetrievalReviews,
+  runSearchDebug,
+  saveRetrievalReview,
+} from "./api/search.js";
 import AppShell from "./components/AppShell.vue";
 import { appState, showView } from "./state/app-state.js";
 import AssessmentView from "./views/AssessmentView.vue";
@@ -577,6 +596,7 @@ async function loadProjectSpaces() {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
     await loadRetrievalSettings();
+    await loadRetrievalReviews();
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
@@ -598,6 +618,7 @@ async function handleSelectProject(projectId) {
   clearAnswerFeedbackState();
   clearSearchDebugState();
   clearRetrievalSettingsState();
+  clearRetrievalReviewState();
   clearAgentToolState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
@@ -606,6 +627,7 @@ async function handleSelectProject(projectId) {
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
   await loadDocumentCollections();
   await loadRetrievalSettings();
+  await loadRetrievalReviews();
   await loadLibraryDocuments();
   await loadImportBatches();
   await loadPromptPresets();
@@ -627,11 +649,13 @@ async function handleCreateProject(payload) {
     clearAnswerFeedbackState();
     clearSearchDebugState();
     clearRetrievalSettingsState();
+    clearRetrievalReviewState();
     clearAgentToolState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadRetrievalSettings();
+    await loadRetrievalReviews();
     await loadLibraryDocuments();
     await loadImportBatches();
     await loadPromptPresets();
@@ -702,6 +726,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearAnswerFeedbackState();
   clearSearchDebugState();
   clearRetrievalSettingsState();
+  clearRetrievalReviewState();
   clearAgentToolState();
   resetAssessmentState();
   clearImportPreview();
@@ -861,6 +886,19 @@ function clearRetrievalSettingsState() {
   appState.retrievalSettingsSaving = false;
   appState.retrievalSettingsError = "";
   appState.retrievalSettingsStatus = "";
+}
+
+function clearRetrievalReviewState() {
+  appState.retrievalReviews = [];
+  appState.retrievalReviewsLoading = false;
+  appState.retrievalReviewsError = "";
+  appState.retrievalReviewSaving = false;
+  appState.retrievalReviewError = "";
+  appState.retrievalReviewStatus = "";
+  appState.selectedRetrievalReview = null;
+  appState.retrievalReviewDetailLoading = false;
+  appState.retrievalReviewDetailError = "";
+  appState.deletingRetrievalReviewId = "";
 }
 
 function clearAgentToolState() {
@@ -1044,6 +1082,87 @@ async function handleSaveRetrievalSettings(payload) {
     appState.retrievalSettingsStatus = "检索默认值保存失败";
   } finally {
     appState.retrievalSettingsSaving = false;
+  }
+}
+
+async function loadRetrievalReviews() {
+  appState.retrievalReviews = [];
+  appState.retrievalReviewsError = "";
+  appState.selectedRetrievalReview = null;
+  appState.retrievalReviewDetailError = "";
+  if (!appState.selectedProjectId) {
+    appState.retrievalReviewStatus = "请选择项目空间后查看检索复盘";
+    return;
+  }
+
+  appState.retrievalReviewsLoading = true;
+  try {
+    const reviews = await listRetrievalReviews(appState.selectedProjectId);
+    appState.retrievalReviews = reviews;
+    if (!appState.retrievalReviewStatus) {
+      appState.retrievalReviewStatus = "已加载检索复盘";
+    }
+  } catch (error) {
+    appState.retrievalReviewsError = error.message || "检索复盘读取失败";
+    appState.retrievalReviewStatus = "检索复盘读取失败";
+  } finally {
+    appState.retrievalReviewsLoading = false;
+  }
+}
+
+async function handleSaveRetrievalReview(payload) {
+  appState.retrievalReviewSaving = true;
+  appState.retrievalReviewError = "";
+  appState.retrievalReviewStatus = "正在保存检索复盘...";
+  try {
+    const review = await saveRetrievalReview({
+      projectId: appState.selectedProjectId,
+      ...payload,
+    });
+    await loadRetrievalReviews();
+    appState.selectedRetrievalReview = review;
+    appState.retrievalReviewStatus = "检索复盘已保存";
+  } catch (error) {
+    appState.retrievalReviewError = error.message || "检索复盘保存失败";
+    appState.retrievalReviewStatus = "检索复盘保存失败";
+  } finally {
+    appState.retrievalReviewSaving = false;
+  }
+}
+
+async function handleSelectRetrievalReview(reviewId) {
+  appState.retrievalReviewDetailLoading = true;
+  appState.retrievalReviewDetailError = "";
+  try {
+    const review = await getRetrievalReviewDetail(reviewId);
+    appState.selectedRetrievalReview = review;
+  } catch (error) {
+    appState.retrievalReviewDetailError = error.message || "检索复盘详情读取失败";
+  } finally {
+    appState.retrievalReviewDetailLoading = false;
+  }
+}
+
+async function handleDeleteRetrievalReview(reviewId) {
+  if (!confirm("确认删除这条检索复盘吗？")) {
+    return;
+  }
+
+  appState.deletingRetrievalReviewId = reviewId;
+  appState.retrievalReviewError = "";
+  appState.retrievalReviewStatus = "正在删除检索复盘...";
+  try {
+    const reviews = await deleteRetrievalReview(reviewId);
+    appState.retrievalReviews = reviews;
+    if (appState.selectedRetrievalReview?.id === reviewId) {
+      appState.selectedRetrievalReview = null;
+    }
+    appState.retrievalReviewStatus = "检索复盘已删除";
+  } catch (error) {
+    appState.retrievalReviewError = error.message || "检索复盘删除失败";
+    appState.retrievalReviewStatus = "检索复盘删除失败";
+  } finally {
+    appState.deletingRetrievalReviewId = "";
   }
 }
 

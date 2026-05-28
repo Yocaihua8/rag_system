@@ -95,6 +95,91 @@
         </div>
       </template>
     </div>
+
+    <div class="retrieval-review-panel">
+      <div class="section-title-row">
+        <div>
+          <p class="section-kicker">检索复盘</p>
+          <h3>检索复盘</h3>
+          <p>保存本次查询参数、来源质量和人工备注。</p>
+        </div>
+        <button
+          type="button"
+          :disabled="retrievalReviewSaving || !selectedProjectId || !searchDebugQuery.trim()"
+          @click="saveRetrievalReview"
+        >
+          {{ retrievalReviewSaving ? "保存中..." : "保存复盘" }}
+        </button>
+      </div>
+      <label>
+        复盘备注
+        <textarea v-model.trim="retrievalReviewNote" placeholder="例如：命中正确、来源不足、需要调低最低分"></textarea>
+      </label>
+      <p v-if="retrievalReviewStatus" class="status-line">{{ retrievalReviewStatus }}</p>
+      <p v-if="retrievalReviewError" class="status-line error">{{ retrievalReviewError }}</p>
+
+      <div class="retrieval-review-layout">
+        <div>
+          <div class="section-title-row compact-row">
+            <div>
+              <p class="section-kicker">复盘历史</p>
+              <h3>复盘历史</h3>
+            </div>
+          </div>
+          <p v-if="retrievalReviewsLoading" class="muted-line">正在读取检索复盘...</p>
+          <p v-if="retrievalReviewsError" class="status-line error">{{ retrievalReviewsError }}</p>
+          <ul v-if="retrievalReviews.length" class="retrieval-review-list">
+            <li v-for="review in retrievalReviews" :key="review.id">
+              <strong>{{ review.query || "未命名查询" }}</strong>
+              <small>{{ review.source_quality?.label || review.source_quality?.level || "来源质量未知" }} / 命中 {{ review.hit_count ?? 0 }}</small>
+              <small>top_k={{ review.parameters?.top_k ?? "" }} min_score={{ review.parameters?.min_score ?? "" }}</small>
+              <p>{{ review.note ? `备注：${review.note}` : "备注：无" }}</p>
+              <div class="actions">
+                <button type="button" @click="selectRetrievalReview(review.id)">查看详情</button>
+                <button
+                  type="button"
+                  class="danger-link"
+                  :disabled="deletingRetrievalReviewId === review.id"
+                  @click="deleteRetrievalReview(review.id)"
+                >
+                  {{ deletingRetrievalReviewId === review.id ? "删除中..." : "删除" }}
+                </button>
+              </div>
+            </li>
+          </ul>
+          <p v-else-if="!retrievalReviewsLoading" class="muted-line">暂无检索复盘</p>
+        </div>
+
+        <article class="retrieval-review-detail" aria-label="检索复盘详情">
+          <p class="section-kicker">复盘详情</p>
+          <p v-if="retrievalReviewDetailLoading" class="muted-line">正在读取详情...</p>
+          <p v-if="retrievalReviewDetailError" class="status-line error">{{ retrievalReviewDetailError }}</p>
+          <template v-if="selectedRetrievalReview">
+            <h3>{{ selectedRetrievalReview.query || "未命名查询" }}</h3>
+            <p>时间：{{ selectedRetrievalReview.created_at || "" }}</p>
+            <p>来源质量：{{ selectedRetrievalReview.source_quality?.label || selectedRetrievalReview.source_quality?.level || "未知" }}</p>
+            <p>{{ selectedRetrievalReview.source_quality?.reason || "暂无来源质量说明" }}</p>
+            <p>
+              参数：top_k={{ selectedReviewParameters.top_k ?? "" }}
+              min_score={{ selectedReviewParameters.min_score ?? "" }}
+              keyword={{ selectedReviewParameters.use_keyword ? "on" : "off" }}
+              vector={{ selectedReviewParameters.use_vector ? "on" : "off" }}
+            </p>
+            <p>备注：{{ selectedRetrievalReview.note || "无" }}</p>
+            <p class="section-kicker">命中来源</p>
+            <ol v-if="selectedReviewHits.length">
+              <li v-for="hit in selectedReviewHits" :key="hit.chunk_id || hit.document_id || hit.path">
+                <strong>{{ hit.path || "未知来源" }}</strong>
+                <small>score={{ formatScore(hit.score) }} keyword={{ formatScore(hit.keyword_score) }} vector={{ formatScore(hit.vector_score) }} retrieval={{ hit.retrieval || "" }}</small>
+                <p>{{ hit.snippet || "无片段预览" }}</p>
+              </li>
+            </ol>
+            <p v-else class="muted-line">暂无命中来源</p>
+          </template>
+          <p v-else-if="!retrievalReviewDetailLoading" class="muted-line">请选择一条检索复盘查看详情</p>
+        </article>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -142,11 +227,52 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  retrievalReviews: {
+    type: Array,
+    default: () => [],
+  },
+  retrievalReviewsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalReviewsError: {
+    type: String,
+    default: "",
+  },
+  retrievalReviewSaving: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalReviewError: {
+    type: String,
+    default: "",
+  },
+  retrievalReviewStatus: {
+    type: String,
+    default: "",
+  },
+  selectedRetrievalReview: {
+    type: Object,
+    default: null,
+  },
+  retrievalReviewDetailLoading: {
+    type: Boolean,
+    default: false,
+  },
+  retrievalReviewDetailError: {
+    type: String,
+    default: "",
+  },
+  deletingRetrievalReviewId: {
+    type: String,
+    default: "",
+  },
 });
 
-const emit = defineEmits(["run-search-debug", "save-retrieval-settings"]);
+const emit = defineEmits(["run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review"]);
 
 const searchDebugQuery = ref("");
+const retrievalReviewNote = ref("");
 const searchDebugParameters = reactive({
   topK: 5,
   minScore: 0,
@@ -158,6 +284,8 @@ const debug = computed(() => props.searchDebugResult?.debug || {});
 const sourceQuality = computed(() => debug.value.quality || props.searchDebugResult?.source_quality || {});
 const parameters = computed(() => debug.value.parameters || {});
 const hits = computed(() => props.searchDebugResult?.hits || []);
+const selectedReviewParameters = computed(() => props.selectedRetrievalReview?.parameters || {});
+const selectedReviewHits = computed(() => props.selectedRetrievalReview?.hits || []);
 const defaultSettingsText = computed(() => (
   props.retrievalSettingsLoading ? "正在读取当前项目默认值..." : "未保存项目默认值，使用本地默认参数。"
 ));
@@ -185,6 +313,25 @@ function saveRetrievalSettings() {
     useKeyword: searchDebugParameters.useKeyword,
     useVector: searchDebugParameters.useVector,
   });
+}
+
+function saveRetrievalReview() {
+  emit("save-retrieval-review", {
+    query: searchDebugQuery.value,
+    note: retrievalReviewNote.value,
+    topK: searchDebugParameters.topK,
+    minScore: searchDebugParameters.minScore,
+    useKeyword: searchDebugParameters.useKeyword,
+    useVector: searchDebugParameters.useVector,
+  });
+}
+
+function selectRetrievalReview(reviewId) {
+  emit("select-retrieval-review", reviewId);
+}
+
+function deleteRetrievalReview(reviewId) {
+  emit("delete-retrieval-review", reviewId);
 }
 
 function applyRetrievalSettings(settings) {
