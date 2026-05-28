@@ -13,7 +13,7 @@
 | 来源文档 | 归口 |
 |---|---|
 | `.github` 协作要求、`README`、`CHANGELOG`、`CONTRIBUTING`（如存在） | 根文档与 `docs/guides/*` |
-| `docs/DEVLOG.md`（历史） | 历史归档；增量行为记录迁移到 `docs/devlog/*.md` |
+| `docs/DEVLOG.md`（已删除） | 已拆分并迁移至 `docs/devlog/*.md` 各日报文件 |
 | `docs/TEST*`、`pytest` 输出 | `docs/guides/testing.md` |
 
 ### 1.2 需求与边界
@@ -57,6 +57,8 @@
 | 来源文档 | 归口 |
 |---|---|
 | 过程日志、调试记录、临时决策 | `docs/devlog/*.md` |
+| AI 任务计划（主动创建）| `docs/plans/{B-ID}-{slug}.md` |
+| AI 任务计划（工具自动生成）| `docs/superpowers/plans/{YYYY-MM-DD}-{slug}.md` |
 
 ## 2. 历史文档归口
 
