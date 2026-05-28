@@ -32,6 +32,7 @@
 - **Vue 工作台回答反馈薄片**：工作台视图在回答返回后新增“有用 / 无用 / 来源不准 / 需要更多上下文”反馈入口，复用既有 `/api/answer/feedback` 契约
 - **Vue 工作台检索调试薄片**：工作台视图新增检索诊断查询、`top_k` / `min_score` / 关键词 / 向量临时参数和命中片段展示，复用既有 `/api/search/debug` 契约
 - **Vue 工作台检索默认值薄片**：工作台视图新增项目级检索默认值读取/保存入口，可把 `top_k` / `min_score` / 关键词 / 向量开关保存为当前项目默认值，复用既有 `/api/projects/retrieval-settings` 契约
+- **Vue 工作台检索复盘薄片**：工作台视图新增复盘备注、保存复盘、复盘历史、详情和删除入口，复用既有 `/api/retrieval/reviews*` 契约
 - **Vue 工作台 Agent 只读工具薄片**：工作台视图新增只读工具元数据、`project_overview` / `search_sources` 手动运行、工具结果、运行历史和详情展示，复用既有 `/api/agent/tools*` 契约
 - **Vue 工作台工具来源上下文薄片**：工作台回答区新增工具建议展示、建议 `search_sources` 手动运行、工具结果标记为下一问上下文和 `tool_context` 展示，复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
