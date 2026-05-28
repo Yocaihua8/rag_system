@@ -35,7 +35,7 @@
 - **Vue 工作台检索复盘薄片**：工作台视图新增复盘备注、保存复盘、复盘历史、详情和删除入口，复用既有 `/api/retrieval/reviews*` 契约
 - **Vue 工作台 Agent 只读工具薄片**：工作台视图新增只读工具元数据、`project_overview` / `search_sources` 手动运行、工具结果、运行历史和详情展示，复用既有 `/api/agent/tools*` 契约
 - **Vue 工作台工具来源上下文薄片**：工作台回答区新增工具建议展示、建议 `search_sources` 手动运行、工具结果标记为下一问上下文和 `tool_context` 展示，复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约
-- **B-141 Vue 前端工程化收口**：B-141A-Z 页面级迁移薄片已完成并通过收口验证；Workbench SSE/会话迁移拆为后续 B-142，legacy 静态前端继续作为 fallback
+- **B-141 Vue 前端工程化收口**：B-141A-Z 页面级迁移薄片已完成并通过收口验证；Workbench SSE/会话迁移拆为后续 B-142
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
 - **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
@@ -47,7 +47,7 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
-- **静态前端托管策略**：FastAPI 优先服务 Vite 构建产物；构建产物缺失时回退 legacy `webapp/static/`
+- **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时返回 503 构建提示，要求先运行 `npm run build`
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示
@@ -57,6 +57,9 @@
 
 ### Fixed
 -
+
+### Removed
+- **legacy 静态前端 fallback**：删除 `webapp/static/` 原生 HTML/CSS/JS 前端和对应 `tests/test_webapp/test_frontend_static.py` 断言，前端入口统一为 Vue/Vite 构建产物
 
 ### Security
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥

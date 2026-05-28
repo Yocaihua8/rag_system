@@ -1,3 +1,13 @@
+FROM node:20-slim AS frontend-build
+
+WORKDIR /app
+
+COPY package.json package-lock.json vite.config.js ./
+COPY frontend ./frontend
+
+RUN npm ci
+RUN npm run build
+
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -9,6 +19,7 @@ RUN python -m pip install --no-cache-dir "fastapi>=0.115.0" "uvicorn[standard]>=
 
 COPY app.py ./app.py
 COPY webapp ./webapp
+COPY --from=frontend-build /app/webapp/static_dist ./webapp/static_dist
 COPY src/__init__.py ./src/__init__.py
 COPY src/config ./src/config
 

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-05-28
 > Scope：Knowledge Island Web MVP 系统级设计
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/requirements/functional-modules.md
 
@@ -34,7 +34,7 @@
 | LLM 客户端（webapp/llm.py）| OpenAI-compatible Chat Completions | Prompt | 回答文本 |
 | 模型 Profile（webapp/model_profiles.py）| Profile CRUD 与 Key 引用管理 | Profile 配置 | 有效配置 |
 | Agent 工具（webapp/agent_tools.py）| 只读工具执行与审计 | 工具名 + 参数 | 工具结果 + 审计记录 |
-| 静态前端（webapp/static/）| 浏览器 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
+| Vue 前端（frontend/ → webapp/static_dist/）| 浏览器 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
 
 ## 4. 核心流程
 

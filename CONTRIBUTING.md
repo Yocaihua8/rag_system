@@ -23,6 +23,7 @@
 |------|------|------|----------|
 | Python | 3.10+ | 后端运行时 | 是 |
 | pip / venv | 随 Python | 依赖管理 | 是 |
+| Node.js / npm | Node 20+ / npm 10+ | Vue/Vite 前端构建 | 是 |
 | Git | 任意现代版本 | 版本控制 | 是 |
 | Docker Desktop | 任意现代版本 | 容器化启动验证 | 按需 |
 | pymupdf | 1.20+ | PDF 文本提取 | 可选 |
@@ -41,6 +42,8 @@
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
+npm install
+npm run build
 
 # 2. 复制环境变量模板
 cp .env.example .env
@@ -96,11 +99,11 @@ docs(backlog): 新增竞品差距分析待办项
 - Agent 工具只允许只读操作，白名单硬编码在 `agent_tools.py`
 - API Key 只保存引用（`env:*` / `saved:*`），任何接口响应不得包含明文 Key
 
-### 前端（webapp/static/）
+### 前端（frontend/）
 
 - 所有业务规则在后端实现，前端只负责展示和 API 调用
-- 新的 JS 逻辑按职责放入对应文件（api.js / state.js / ui.js / projects.js）
-- 提交前验证语法：`node --check webapp\static\js\<file>.js`
+- Vue 前端源码放在 `frontend/src/`，组件、API helper 和共享状态按既有目录组织
+- 提交前运行 `tests/test_webapp/test_frontend_vue_app.py`、`tests/test_webapp/test_frontend_build.py` 和 `npm run build`
 
 ### Legacy（src/）
 
@@ -121,7 +124,7 @@ docs(backlog): 新增竞品差距分析待办项
 | 聊天 / 会话变更 | `tests/test_webapp/test_chat_history.py` |
 | Agent 工具变更 | `tests/test_webapp/test_agent_tools.py` |
 | 任何 API 变更 | `tests/test_webapp/test_docs_contract.py` |
-| 前端静态文件变更 | `tests/test_webapp/test_frontend_static.py` |
+| Vue 前端或静态服务变更 | `tests/test_webapp/test_frontend_vue_app.py` / `tests/test_webapp/test_frontend_build.py` |
 
 运行全量 Web MVP 测试：
 

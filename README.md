@@ -1,6 +1,6 @@
 # 知识岛 Knowledge Island
 
-知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口已切换为本地 Web MVP（FastAPI + Uvicorn + SQLite + 原生 HTML/CSS/JS），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
+知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口是本地 Web MVP（FastAPI + Uvicorn + SQLite + Vue 3/Vite），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
 
 旧 PySide6 桌面端代码暂时保留在 `src/desktop/` 作为 legacy 参考，不再是默认启动入口。
 
@@ -70,6 +70,7 @@
 ### 前置要求
 
 - Python 3.10+
+- Node.js 20+ / npm 10+（生成 Vue/Vite 前端构建产物）
 - [Ollama](https://ollama.com)（本地推理，可选）
 
 ### 1. 克隆并创建虚拟环境
@@ -90,6 +91,8 @@ source .venv/bin/activate
 
 ```bash
 pip install -r requirements.txt
+npm install
+npm run build
 ```
 
 > **Web MVP 最小依赖**：需要 FastAPI + Uvicorn 作为 HTTP 运行时，核心存储仍使用 Python 标准库 SQLite。
@@ -129,6 +132,8 @@ Web 端检索会优先使用 `RAG_EMBED_PROVIDER=api` 对应的 OpenAI-compatibl
 ## 启动
 
 ```bash
+npm run build
+
 # Windows
 .venv\Scripts\python.exe app.py
 
@@ -244,6 +249,7 @@ knowledage_island/
 ├── app.py                    # 默认 Web MVP 程序入口
 ├── Dockerfile                # Web MVP 容器镜像
 ├── compose.yaml              # Docker Compose 一键启动
+├── frontend/                 # Vue 3 + Vite 前端源码
 ├── webapp/                   # 默认 Web MVP 技术栈
 │   ├── server.py             # FastAPI app + Uvicorn 启动 + 静态文件服务
 │   ├── api.py                # API 路由分发
@@ -258,7 +264,7 @@ knowledage_island/
 │   ├── llm.py                # OpenAI-compatible Chat Completions 标准库客户端
 │   ├── models.py             # Web MVP 响应模型、搜索命中和聊天记录模型
 │   ├── assessment.py         # Web 掌握评估最小闭环
-│   └── static/               # 原生 HTML/CSS/JS 前端
+│   └── static_dist/          # Vue/Vite 生产构建输出（本地生成，不入库）
 ├── src/
 │   ├── config/               # 配置层（defaults / settings / paths）
 │   ├── domain/               # 领域层：不可变数据模型 + 业务错误
@@ -289,7 +295,7 @@ knowledage_island/
 │   ├── test_domain/          # 领域模型测试
 │   ├── test_adapters/        # SQLite Store 测试
 │   ├── test_application/     # 用例测试（项目空间兼容层 / 摄入 / 查询）
-│   └── test_webapp/          # Web MVP API、导入、检索与前端静态约束测试
+│   └── test_webapp/          # Web MVP API、导入、检索与 Vue 构建/入口约束测试
 ├── docs/
 │   ├── BACKLOG.md
 │   ├── DEVLOG.md
