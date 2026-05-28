@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-28（完成 B-145 目录命名阶段对齐）
+> Last Updated：2026-05-28（启动 B-146 根目录结构收敛）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -71,6 +71,7 @@
 | B-143 | tech-debt | 移除 legacy 静态前端 fallback | done | P2 | M | v0.12.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md, docs/guides/testing.md | 已完成：删除 `webapp/static/` legacy 原生前端；FastAPI 只服务 `backend/knowledge_island/static_dist/`，缺失构建产物时返回 503 构建提示；删除 legacy 静态前端测试断言并同步前端工程、启动和测试文档 |
 | B-144 | tech-debt | 前后端目录结构解耦 | done | P2 | M | v0.12.0 | RAG 团队 | docs/features/fastapi-runtime.md, docs/features/frontend-engineering.md, docs/design/architecture-overview.md | 已完成：FastAPI 后端运行时代码聚合到 `backend/knowledge_island/`，默认启动入口为 `backend/app.py`；Vite 构建输出调整为 `backend/knowledge_island/static_dist/`；同步 Docker、测试 import 和正式文档 |
 | B-145 | tech-debt | 目录命名与当前 Web MVP 阶段对齐 | done | P2 | M | v0.12.0 | RAG 团队 | docs/features/fastapi-runtime.md, docs/features/frontend-engineering.md, docs/design/architecture-overview.md | 已完成：后端包统一为 `backend/knowledge_island/`，Web 测试拆为 `tests/backend/` 与 `tests/frontend/`，legacy 桌面端归档为 `legacy/desktop/`，历史架构/发布文档归入 `docs/archive/`；已按 plan 生命周期删除 B-145 临时计划文件 |
+| B-146 | tech-debt | 根目录结构收敛 | doing | P2 | M | v0.12.0 | RAG 团队 | docs/features/fastapi-runtime.md, docs/features/frontend-engineering.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md | 将根目录中仍混放的前端构建文件、Docker 运维入口和文档映射移动到当前职责目录：前端 npm 配置归入 `frontend/`，Docker 入口归入 `ops/docker/`，文档映射归入 `docs/`；保留标准根文档、依赖清单和环境模板；plan：docs/plans/B-146-root-directory-layout.md |
 | B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
 | B-125 | feature | Reranker 重排序接入 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/architecture-overview.md | 向量检索 top_k 候选后增加 Cross-Encoder reranker；优先对接 Cohere Rerank API（可选依赖），本地 cross-encoder 作为后备；预估 5 天 |
 | B-128 | feature | 对话分支与历史消息编辑重发 | todo | P2 | M | v0.11.0 | RAG 团队 | docs/design/api-spec.md | 支持在某条历史消息上编辑并重发，派生新对话分支；Claude.ai / ChatGPT 标配交互；预估 3 天 |
