@@ -80,11 +80,10 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
     assert "项目问答" in workbench_vue
-    assert "B-141D 已迁移非流式问答入口" in workbench_vue
-    assert "B-141V 已迁移检索调试" in workbench_vue
-    assert "B-141W 已迁移 Agent 只读工具" in workbench_vue
-    assert "B-141X 已迁移工具建议与来源上下文" in workbench_vue
-    assert "SSE 和会话后续迁移" in workbench_vue
+    assert "B-142 已迁移 SSE 流式问答、取消当前回答、聊天会话和历史恢复" in workbench_vue
+    assert "检索调试" in workbench_vue
+    assert "Agent 只读工具" in workbench_vue
+    assert "工具来源上下文" in workbench_vue
 
     library_vue = _read("frontend/src/views/LibraryView.vue")
     assert "资料库" in library_vue
