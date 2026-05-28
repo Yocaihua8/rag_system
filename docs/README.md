@@ -66,7 +66,7 @@
 | `archive/release/` | 历史发布说明与快照 | 按需 |
 | `archive/architecture/` | Legacy 企业基线架构文档（历史参考，非当前默认）| 否 |
 
-仓库根目录保留 `template-mapping.md`，定义历史文档与新结构的归类关系。
+`docs/template-mapping.md` 定义历史文档与新结构的归类关系。
 
 ---
 

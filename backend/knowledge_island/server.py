@@ -150,7 +150,7 @@ def _register_frontend_build_missing_routes(app: FastAPI) -> None:
                 "<head><meta charset=\"utf-8\"><title>Knowledge Island</title></head>"
                 "<body>"
                 "<h1>前端构建产物不存在</h1>"
-                "<p>请先在项目根目录运行 <code>npm run build</code>，"
+                "<p>请先运行 <code>npm --prefix frontend run build</code>，"
                 "生成 <code>backend/knowledge_island/static_dist/index.html</code> 后再启动 Web MVP。</p>"
                 "</body></html>"
             ),

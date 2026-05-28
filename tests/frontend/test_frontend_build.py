@@ -67,7 +67,7 @@ def test_fastapi_returns_build_hint_when_vite_build_is_missing(tmp_path, monkeyp
     response = client.get("/")
 
     assert response.status_code == 503
-    assert "npm run build" in response.text
+    assert "npm --prefix frontend run build" in response.text
     assert "legacy-static" not in response.text
 
 

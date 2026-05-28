@@ -9,7 +9,7 @@
 ## [Unreleased]
 
 ### Added
-- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `backend/knowledge_island/static_dist/`
+- **Vue/Vite 前端工程骨架**：新增 `frontend/` 前端工程配置和 Vite 构建链，生产构建输出到 `backend/knowledge_island/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
 - **Vue 项目空间薄片**：资料库视图新增项目空间列表、选择、最近项目恢复和新建项目空间表单，复用既有 `/api/projects` 契约
 - **Vue 项目空间改名/删除薄片**：资料库视图新增当前项目改名和删除入口，复用既有 `/api/projects/rename` 与 `/api/projects/delete` 契约；删除前提示项目内文档记录也会被删除
@@ -48,8 +48,9 @@
 
 ### Changed
 - **目录命名阶段对齐**：后端包名统一为 `backend/knowledge_island/`，Web MVP 测试拆为 `tests/backend/` 与 `tests/frontend/`，legacy 桌面端归档到 `legacy/desktop/`，历史架构/发布快照归入 `docs/archive/`
+- **根目录结构收敛**：前端 npm 配置归入 `frontend/`，Docker 运维入口归入 `ops/docker/`，历史文档映射归入 `docs/template-mapping.md`
 - **前后端目录结构**：FastAPI 后端运行时代码从仓库根 `webapp/` 聚合到 `backend/knowledge_island/`，默认启动入口调整为 `backend/app.py`，Vue/Vite 构建输出调整到 `backend/knowledge_island/static_dist/`
-- **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时返回 503 构建提示，要求先运行 `npm run build`
+- **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时返回 503 构建提示，要求先运行 `npm --prefix frontend run build`
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示

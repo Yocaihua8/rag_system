@@ -1,7 +1,7 @@
 param(
     [string]$PythonExe = ".venv\Scripts\python.exe",
     [string]$ProductName = "KnowledgeIsland",
-    [string]$EntryPoint = "app.py",
+    [string]$EntryPoint = "backend/app.py",
     [string]$CacheRoot = "release-cache",
     [switch]$InstallPyInstaller,
     [switch]$SkipCheck,
@@ -17,13 +17,13 @@ Set-Location $projectRoot
 $releaseRoot = Join-Path $projectRoot "release"
 $buildDir = Join-Path $releaseRoot "build"
 $distDir = Join-Path $releaseRoot "dist"
-$specFile = Join-Path $projectRoot ("{0}.spec" -f $ProductName)
 
 $cacheRoot = Join-Path $projectRoot $CacheRoot
 $pyiConfigDir = Join-Path $cacheRoot "pyinstaller-config"
 $pyiPycacheDir = Join-Path $cacheRoot "pycache"
 $tempDir = Join-Path $cacheRoot "tmp"
 $xdgCacheDir = Join-Path $cacheRoot "xdg-cache"
+$specFile = Join-Path $pyiConfigDir ("{0}.spec" -f $ProductName)
 
 function Set-LocalBuildEnv {
     param()
@@ -127,7 +127,8 @@ try {
         --collect-all "PySide6" `
         --collect-all "chromadb" `
         --collect-all "chromadb_rust_bindings" `
-        --collect-submodules "src" `
+        --collect-submodules "legacy.desktop" `
+        --specpath "$pyiConfigDir" `
         --distpath "$distDir" `
         --workpath "$buildDir" `
         $entryPath

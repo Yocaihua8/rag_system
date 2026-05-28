@@ -10,7 +10,7 @@
 4. 如果要使用真实 Embedding，Windows User 环境变量里已经配置 RAG_EMBED_PROVIDER、RAG_EMBED_API_BASE、RAG_EMBED_API_MODEL、RAG_EMBED_API_KEY。
 
 启动：
-1. 双击 Start-KnowledgeIsland-Docker.bat。
+1. 双击 ops/docker/Start-KnowledgeIsland-Docker.bat。
 2. 首次启动会构建镜像并生成 Vue 前端产物，可能需要等待几分钟。
 3. 等待命令窗口显示 Docker Web 已启动。
 4. 浏览器打开 http://127.0.0.1:8765。
@@ -29,7 +29,7 @@
 4. 点击“同步当前项目目录”。
 
 停止：
-双击 Stop-KnowledgeIsland-Docker.bat。
+双击 ops/docker/Stop-KnowledgeIsland-Docker.bat。
 
 数据位置：
 - 导入目录：docker-workspace

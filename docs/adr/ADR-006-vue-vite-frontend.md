@@ -80,8 +80,8 @@ B-141A 不重写业务交互，不改变 `/api/*` 路径、字段或错误格式
 
 ## 8. 验证方式
 
-- `npm install` 或 `npm ci` 能安装前端依赖。
-- `npm run build` 能生成 `backend/knowledge_island/static_dist/`。
+- `npm --prefix frontend install` 或 `npm ci` 能安装前端依赖。
+- `npm --prefix frontend run build` 能生成 `backend/knowledge_island/static_dist/`。
 - `python backend/app.py` 仍能访问首页。
 - `tests/backend/` 与 `tests/frontend/` 后端和前端回归保持通过。
 - 新增前端构建测试验证 `package.json`、Vite 配置和构建产物入口。

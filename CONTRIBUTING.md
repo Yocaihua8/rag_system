@@ -42,8 +42,8 @@
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-npm install
-npm run build
+npm --prefix frontend install
+npm --prefix frontend run build
 
 # 2. 复制环境变量模板
 cp .env.example .env
@@ -103,7 +103,7 @@ docs(backlog): 新增竞品差距分析待办项
 
 - 所有业务规则在后端实现，前端只负责展示和 API 调用
 - Vue 前端源码放在 `frontend/src/`，组件、API helper 和共享状态按既有目录组织
-- 提交前运行 `tests/frontend/test_frontend_vue_app.py`、`tests/frontend/test_frontend_build.py` 和 `npm run build`
+- 提交前运行 `tests/frontend/test_frontend_vue_app.py`、`tests/frontend/test_frontend_build.py` 和 `npm --prefix frontend run build`
 
 ### Legacy（legacy/desktop/）
 

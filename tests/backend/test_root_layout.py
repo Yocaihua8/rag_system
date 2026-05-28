@@ -52,3 +52,14 @@ def test_frontend_docker_and_docs_assets_live_under_their_own_directories():
 
     assert not Path("scripts/docker_up.ps1").exists()
     assert not Path("scripts/docker_down.ps1").exists()
+
+
+def test_windows_release_script_uses_backend_entrypoint_and_cache_spec_path():
+    release_script = Path("scripts/release_windows.ps1").read_text(encoding="utf-8")
+
+    assert '[string]$EntryPoint = "backend/app.py"' in release_script
+    assert '$specFile = Join-Path $pyiConfigDir ("{0}.spec" -f $ProductName)' in release_script
+    assert '--collect-submodules "legacy.desktop"' in release_script
+    assert '--specpath "$pyiConfigDir"' in release_script
+    assert '[string]$EntryPoint = "app.py"' not in release_script
+    assert '--collect-submodules "src"' not in release_script

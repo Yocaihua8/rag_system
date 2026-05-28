@@ -91,8 +91,8 @@ source .venv/bin/activate
 
 ```bash
 pip install -r requirements.txt
-npm install
-npm run build
+npm --prefix frontend install
+npm --prefix frontend run build
 ```
 
 > **Web MVP 最小依赖**：需要 FastAPI + Uvicorn 作为 HTTP 运行时，核心存储仍使用 Python 标准库 SQLite。
@@ -132,7 +132,7 @@ Web 端检索会优先使用 `RAG_EMBED_PROVIDER=api` 对应的 OpenAI-compatibl
 ## 启动
 
 ```bash
-npm run build
+npm --prefix frontend run build
 
 # Windows
 .venv\Scripts\python.exe backend/app.py
@@ -149,31 +149,31 @@ http://127.0.0.1:8765
 
 ## Docker 一键启动
 
-非技术用户可先阅读根目录：
+非技术用户可先阅读 Docker 快速开始：
 
 ```text
-README-Docker-Quickstart.txt
+docs/guides/docker-quickstart.txt
 ```
 
 然后双击启动：
 
 ```text
-Start-KnowledgeIsland-Docker.bat
+ops/docker/Start-KnowledgeIsland-Docker.bat
 ```
 
 停止服务：
 
 ```text
-Stop-KnowledgeIsland-Docker.bat
+ops/docker/Stop-KnowledgeIsland-Docker.bat
 ```
 
 Windows PowerShell：
 
 ```powershell
-.\scripts\docker_up.ps1
+.\ops\docker\docker_up.ps1
 ```
 
-脚本会执行 `docker compose up --build -d`，启动后打开：
+脚本会执行 `docker compose --project-directory . -f ops/docker/compose.yaml up --build -d`，启动后打开：
 
 ```text
 http://127.0.0.1:8765
@@ -263,8 +263,6 @@ knowledage_island/
 │       ├── models.py         # Web MVP 响应模型、搜索命中和聊天记录模型
 │       ├── assessment.py     # Web 掌握评估最小闭环
 │       └── static_dist/      # Vue/Vite 生产构建输出（本地生成，不入库）
-├── Dockerfile                # Web MVP 容器镜像
-├── compose.yaml              # Docker Compose 一键启动
 ├── frontend/                 # Vue 3 + Vite 前端源码
 ├── legacy/
 │   └── desktop/              # legacy PySide6 桌面端与六边形架构代码
@@ -288,7 +286,10 @@ knowledage_island/
 │   ├── design/api-spec.md
 │   ├── devlog/2026-05-20.md
 │   ├── guides/setup.md
-│   └── guides/testing.md
+│   ├── guides/testing.md
+│   └── template-mapping.md   # 历史文档与当前结构映射
+├── ops/
+│   └── docker/               # Dockerfile、Compose 和一键启停脚本
 ├── data/                     # 示例数据 / 输出目录
 ├── runtime/                  # 运行时产物（db / vector store / logs）
 ├── docker-workspace/         # Docker 模式默认导入目录（本地忽略）

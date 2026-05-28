@@ -42,7 +42,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141Z 在 Vue 工作台提供检索复盘入口，支持保存当前查询参数和人工备注，查看当前项目复盘历史、单条详情和删除复盘记录；复用既有 `/api/retrieval/reviews*` 契约。
 - B-142 在 Vue 工作台中接入 `GET /api/answer/stream` EventSource 流式输出，回答完成后保留完整响应、来源、来源质量、观察性信息和回答反馈消息 ID；用户可关闭当前 EventSource 取消前端流式渲染。
 - B-142 在 Vue 工作台中接入 `/api/chat/sessions*` 与 `/api/chat/messages`，支持默认会话、自定义会话列表、新建、重命名、删除和当前会话历史恢复；下一轮流式问答会携带当前 `session_id`。
-- B-145 后，legacy 静态前端 fallback 不再存在，后端源码位于 `backend/knowledge_island/`；未生成 `backend/knowledge_island/static_dist/index.html` 时，FastAPI 首页返回 503 构建提示并要求执行 `npm run build`。
+- B-145 后，legacy 静态前端 fallback 不再存在，后端源码位于 `backend/knowledge_island/`；未生成 `backend/knowledge_island/static_dist/index.html` 时，FastAPI 首页返回 503 构建提示并要求执行 `npm --prefix frontend run build`。
 
 ## 3. 工程目录
 
@@ -156,7 +156,7 @@ B-141Z 起，Vue 工作台迁移检索复盘薄片：`search.js` 扩展既有 `P
 
 B-142 起，Vue 工作台迁移 SSE 流式问答和聊天会话薄片：`answer.js` 在保留非流式 `/api/answer` helper 的同时新增 `streamQuestion`，通过 `EventSource` 调用既有 `GET /api/answer/stream`，处理 `token`、`done` 和 `answer_error` 事件；`QuestionPanel` 提供取消当前回答按钮，取消仅关闭前端 EventSource 并恢复按钮状态。`chat.js` 封装 `/api/chat/sessions*` 和 `/api/chat/messages`，`ChatSessionPanel` 负责会话列表、默认会话、自定义会话新建/重命名/删除和当前会话历史消息展示。`App.vue` 保存当前会话 ID、会话列表、历史消息、流式回答增量和取消状态；回答完成后刷新当前会话历史，并在下一轮流式问答中携带当前 `session_id` 和用户显式选择的 `tool_run_id`。后端 API、SQLite schema 和 Agent 工具权限不在本片调整。
 
-B-145 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/knowledge_island/static_dist/`。如果构建产物缺失，首页和非 API 路径返回 503 HTML 提示，要求先执行 `npm run build`；系统不再回退到 legacy 原生前端。
+B-145 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/knowledge_island/static_dist/`。如果构建产物缺失，首页和非 API 路径返回 503 HTML 提示，要求先执行 `npm --prefix frontend run build`；系统不再回退到 legacy 原生前端。
 
 ## 6. 验收标准
 
@@ -189,7 +189,7 @@ B-145 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/k
 - Vue 设置页可读取模型 Profile 列表，新增或编辑 Profile，删除 Profile，设置或清空默认 Profile，并测试单个 Profile。
 - Vue 设置页可在已选择项目空间时读取 Prompt 预设和内置模板，新增或编辑 Prompt 预设，删除 Prompt 预设，设置或清空默认 Prompt 预设。
 - Vue 评估页可在已选择项目空间时开始评估、查看当前题目、提交回答、进入下一题或完成本轮，并查看结果概览、答题记录和待复测列表。
-- `npm run build` 可生成 `backend/knowledge_island/static_dist/`。
+- `npm --prefix frontend run build` 可生成 `backend/knowledge_island/static_dist/`。
 - FastAPI 服务 `backend/knowledge_island/static_dist/`；构建产物不存在时返回 503 构建提示，不再回退 legacy 前端。
 - Web MVP 后端测试保持通过。
 - 文档说明清楚当前是工程化骨架阶段，不宣称完整 Vue UI 已迁移完成。
