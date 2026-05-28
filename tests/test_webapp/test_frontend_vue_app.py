@@ -536,6 +536,57 @@ def test_vue_search_debug_panel_renders_rag_diagnostics_controls():
     assert ":search-debug-status=\"searchDebugStatus\"" in workbench_vue
 
 
+def test_vue_project_api_helper_uses_existing_retrieval_settings_contract():
+    projects_js = _read("frontend/src/api/projects.js")
+
+    for marker in [
+        "export async function getRetrievalSettings(projectId)",
+        'apiGet(`/api/projects/retrieval-settings?project_id=${encodeURIComponent(projectId)}`)',
+        "return data.settings || null",
+        "export async function saveRetrievalSettings({ projectId, topK, minScore, useKeyword, useVector })",
+        'throw new Error("请先创建或选择项目空间")',
+        'apiPost("/api/projects/retrieval-settings"',
+        "project_id: projectId",
+        "top_k: Number(topK)",
+        "min_score: Number(minScore)",
+        "use_keyword: Boolean(useKeyword)",
+        "use_vector: Boolean(useVector)",
+        "return data.settings || null",
+    ]:
+        assert marker in projects_js
+
+
+def test_vue_search_debug_panel_renders_retrieval_settings_defaults_and_save_control():
+    panel_vue = _read("frontend/src/components/SearchDebugPanel.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "retrievalSettings",
+        "retrievalSettingsLoading",
+        "retrievalSettingsSaving",
+        "retrievalSettingsStatus",
+        "retrievalSettingsError",
+        "applyRetrievalSettings",
+        "watch(",
+        "保存为默认",
+        "默认值",
+        "检索默认值",
+        "saveRetrievalSettings",
+        'defineEmits(["run-search-debug", "save-retrieval-settings"])',
+    ]:
+        assert marker in panel_vue
+
+    for marker in [
+        ":retrieval-settings=\"retrievalSettings\"",
+        ":retrieval-settings-loading=\"retrievalSettingsLoading\"",
+        ":retrieval-settings-saving=\"retrievalSettingsSaving\"",
+        ":retrieval-settings-status=\"retrievalSettingsStatus\"",
+        ":retrieval-settings-error=\"retrievalSettingsError\"",
+        "@save-retrieval-settings",
+    ]:
+        assert marker in workbench_vue
+
+
 def test_vue_app_handles_search_debug_state_and_events():
     app_vue = _read("frontend/src/App.vue")
     state_js = _read("frontend/src/state/app-state.js")
@@ -559,6 +610,38 @@ def test_vue_app_handles_search_debug_state_and_events():
         "searchDebugLoading",
         "searchDebugError",
         "searchDebugStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_loads_and_saves_project_retrieval_settings():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for marker in [
+        "getRetrievalSettings",
+        "saveRetrievalSettings",
+        "loadRetrievalSettings",
+        "handleSaveRetrievalSettings",
+        "@save-retrieval-settings=\"handleSaveRetrievalSettings\"",
+        ":retrieval-settings=\"appState.retrievalSettings\"",
+        ":retrieval-settings-loading=\"appState.retrievalSettingsLoading\"",
+        ":retrieval-settings-saving=\"appState.retrievalSettingsSaving\"",
+        ":retrieval-settings-status=\"appState.retrievalSettingsStatus\"",
+        ":retrieval-settings-error=\"appState.retrievalSettingsError\"",
+        "appState.retrievalSettings = settings",
+        "appState.retrievalSettingsStatus = \"检索默认值已保存\"",
+        "await loadRetrievalSettings()",
+        "clearRetrievalSettingsState",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "retrievalSettings",
+        "retrievalSettingsLoading",
+        "retrievalSettingsSaving",
+        "retrievalSettingsError",
+        "retrievalSettingsStatus",
     ]:
         assert f"{state_field}:" in state_js
 
