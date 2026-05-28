@@ -29,7 +29,7 @@
 - [x] 实现 `projects.js` 检索默认值 helper、`SearchDebugPanel.vue` 默认值回填/保存入口、`WorkbenchView.vue` 透传和 `App.vue` 读取/保存状态。
 - [x] 运行聚焦 Vue 测试和 Vite build，确认本片前端实现通过。
 - [x] 同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog。
-- [ ] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
+- [x] 完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照。
 
 ## 4. 影响范围
 
@@ -71,14 +71,14 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141Y 业务规则。
-- [ ] Vue `projects.js` 可读取和保存当前项目 `retrieval-settings`，未选择项目时给出明确前端错误或空状态。
-- [ ] Vue 检索调试区会把已加载默认值回填到 `top_k`、`min_score`、关键词和向量控件。
-- [ ] 用户点击“保存为默认”后调用既有 `POST /api/projects/retrieval-settings`，成功后显示保存状态并继续保留当前参数。
-- [ ] 项目切换、项目创建和项目删除时检索默认值状态不会串到其他项目。
-- [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
-- [ ] 相关文档已同步（见下方"回流清单"）。
-- [ ] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
+- [x] 功能行为符合 `docs/features/frontend-engineering.md` 的 B-141Y 业务规则。
+- [x] Vue `projects.js` 可读取和保存当前项目 `retrieval-settings`，未选择项目时给出明确前端错误或空状态。
+- [x] Vue 检索调试区会把已加载默认值回填到 `top_k`、`min_score`、关键词和向量控件。
+- [x] 用户点击“保存为默认”后调用既有 `POST /api/projects/retrieval-settings`，成功后显示保存状态并继续保留当前参数。
+- [x] 项目切换、项目创建和项目删除时检索默认值状态不会串到其他项目。
+- [x] 测试通过（参照 `docs/guides/testing.md` 最低要求）。
+- [x] 相关文档已同步（见下方"回流清单"）。
+- [x] B-141 保持 `doing`；本片完成后不删除 B-141 总任务。
 
 ## 7. 回流清单
 
@@ -99,12 +99,14 @@
 - 2026-05-28：实现 Vue 检索默认值读取/保存状态流；`projects.js` 复用既有 `GET/POST /api/projects/retrieval-settings`，`SearchDebugPanel` 根据已加载默认值回填诊断参数并提供“保存为默认”入口，`App.vue` 在项目加载、切换和创建时读取当前项目默认值。
 - 2026-05-28：聚焦验证通过：`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q` 为 66 passed，`npm run build` 成功。
 - 2026-05-28：同步功能文档、架构说明、测试指南、CHANGELOG 和 devlog；B-141Y 明确不迁移检索复盘、普通搜索结果、Workbench SSE/取消、聊天会话/历史、检索算法、后端 API 或数据库 schema。
+- 2026-05-28：补跑 Web MVP 全量 `.venv\Scripts\python.exe -m pytest tests\test_webapp -q` 为 337 passed；legacy 回归 `.venv\Scripts\python.exe -m pytest tests\test_application tests\test_domain tests\test_adapters -q` 为 179 passed；最终 `npm run build` 成功。
+- 2026-05-28：使用 Codex in-app browser 完成 B-141Y 浏览器烟测：临时项目 `B-141Y smoke` 保存 `top_k=2`、`min_score=0.2`、关键词开启、向量关闭后显示“检索默认值已保存”，刷新后控件恢复保存值，运行诊断命中 `api.md` 且本次参数为 `top_k=2 min_score=0.2 keyword=on vector=off`；控制台 error 为 0。截图保存到 `runtime/b141y-retrieval-settings-smoke.png`，烟测后已删除临时项目并停止本地服务。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 12:39
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — docs: 同步 B-141Y 检索默认值说明
+- **最后更新**：2026-05-28 13:04
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — docs: 更新 B-141Y 验证快照
 - **代码状态**：`fix/url-virtual-source-preserve`；工作区存在多项用户/历史未提交改动，本片仅允许暂存 B-141Y 相关文件
-- **下一步**：完成 Web MVP 全量、legacy 回归与浏览器烟测，并回写 plan 状态快照
+- **下一步**：B-141 后续可继续 Workbench SSE/会话、检索复盘或评估题库/历史列表迁移
 - **续任务须知**：不修改后端 `/api/projects/retrieval-settings`、`/api/search/debug`、`/api/answer` 契约，不迁移检索复盘，不接入 SSE/会话，不修改数据库 schema；不要清理既有 B-141 历史 plan 文件
