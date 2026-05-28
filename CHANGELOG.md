@@ -35,6 +35,7 @@
 - **Vue 工作台检索复盘薄片**：工作台视图新增复盘备注、保存复盘、复盘历史、详情和删除入口，复用既有 `/api/retrieval/reviews*` 契约
 - **Vue 工作台 Agent 只读工具薄片**：工作台视图新增只读工具元数据、`project_overview` / `search_sources` 手动运行、工具结果、运行历史和详情展示，复用既有 `/api/agent/tools*` 契约
 - **Vue 工作台工具来源上下文薄片**：工作台回答区新增工具建议展示、建议 `search_sources` 手动运行、工具结果标记为下一问上下文和 `tool_context` 展示，复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约
+- **B-141 Vue 前端工程化收口**：B-141A-Z 页面级迁移薄片已完成并通过收口验证；Workbench SSE/会话迁移拆为后续 B-142，legacy 静态前端继续作为 fallback
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
 - **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`

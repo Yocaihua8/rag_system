@@ -3,12 +3,12 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-05-28
-> Scope：B-141 Vue 3 + Vite 前端工程化
+> Scope：B-141 Vue 3 + Vite 前端工程化（已完成 A-Z 页面级迁移收口）
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
 ## 1. 功能定位
 
-B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把当前 `webapp/static/` 中的原生 HTML/CSS/JS 前端逐步迁移到独立 `frontend/` 工程，使用 Vue 3 组件和 Vite 构建，降低大型单页脚本继续增长带来的维护成本。
+B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把当前 `webapp/static/` 中的原生 HTML/CSS/JS 前端逐步迁移到独立 `frontend/` 工程，使用 Vue 3 组件和 Vite 构建，降低大型单页脚本继续增长带来的维护成本。B-141 收口时已完成 A-Z 页面级迁移薄片；Workbench SSE/取消和聊天会话/历史迁移拆为 B-142 继续跟进。
 
 ## 2. 用户可见行为
 
@@ -40,7 +40,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141X 在 Vue 工作台提供回答区工具建议与工具来源上下文闭环，支持展示后端 `tool_suggestion`、手动运行建议的 `search_sources`、把成功工具运行标记为下一问 `tool_run_id`，并在回答完成后展示 `tool_context`；复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约。
 - B-141Y 在 Vue 工作台提供项目级检索默认值读取和保存入口，支持把 `top_k`、`min_score`、关键词和向量开关保存为当前项目默认值；复用既有 `GET/POST /api/projects/retrieval-settings` 契约。
 - B-141Z 在 Vue 工作台提供检索复盘入口，支持保存当前查询参数和人工备注，查看当前项目复盘历史、单条详情和删除复盘记录；复用既有 `/api/retrieval/reviews*` 契约。
-- 在迁移完成前，`webapp/static/` 保留为 legacy fallback。
+- B-141 收口后，`webapp/static/` 继续保留为 legacy fallback，用于尚未迁移的高级交互和回滚。
 
 ## 3. 工程目录
 
@@ -91,6 +91,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-141X 不迁移 Workbench SSE/取消、聊天会话/历史、Agent 自动编排、工具白名单权限逻辑、检索复盘、后端 API 或数据库 schema。
 - B-141Y 不迁移检索复盘保存/列表/详情/删除、普通搜索结果列表、Workbench SSE/取消、聊天会话/历史、检索算法、后端 API 或数据库 schema。
 - B-141Z 不迁移普通搜索结果列表、检索健康项目卡、Workbench SSE/取消、聊天会话/历史、评估题库/历史、检索算法、后端 API 或数据库 schema。
+- Workbench SSE/取消和聊天会话/历史已拆为 B-142，不作为 B-141 完成条件。
 - 不删除 legacy `webapp/static/`。
 - 不修改 SQLite schema。
 - 不改变 Agent 工具权限边界。
@@ -183,3 +184,4 @@ B-141Z 起，Vue 工作台迁移检索复盘薄片：`search.js` 扩展既有 `P
 - FastAPI 优先服务 `webapp/static_dist/`；构建产物不存在时回退 `webapp/static/`。
 - Web MVP 后端测试保持通过。
 - 文档说明清楚当前是工程化骨架阶段，不宣称完整 Vue UI 已迁移完成。
+- B-141 收口后，未纳入本任务的 Workbench SSE/会话等能力已在 BACKLOG 中拆为后续条目，不阻塞本任务完成。
