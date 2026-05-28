@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from src.application.container import AppContainer
-from src.application.project_analysis_usecases import ProjectAnalysisUseCase
-from src.application.workspace_usecases import WorkspaceUseCases
-from src.config.settings import load_settings
-from src.domain.errors import NotFoundError
-from src.domain.models.document import Document
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.application.project_analysis_usecases import ProjectAnalysisUseCase
+from legacy.desktop.application.workspace_usecases import WorkspaceUseCases
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.domain.errors import NotFoundError
+from legacy.desktop.domain.models.document import Document
 
 
 def _build_container(tmp_path) -> AppContainer:

@@ -19,8 +19,9 @@ RUN python -m pip install --no-cache-dir "fastapi>=0.115.0" "uvicorn[standard]>=
 
 COPY backend ./backend
 COPY --from=frontend-build /app/backend/knowledge_island/static_dist ./backend/knowledge_island/static_dist
-COPY src/__init__.py ./src/__init__.py
-COPY src/config ./src/config
+COPY legacy/__init__.py ./legacy/__init__.py
+COPY legacy/desktop/__init__.py ./legacy/desktop/__init__.py
+COPY legacy/desktop/config ./legacy/desktop/config
 
 EXPOSE 8765
 

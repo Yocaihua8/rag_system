@@ -21,7 +21,7 @@
 
 - [x] 创建红灯测试，锁定 `backend/knowledge_island/`、新测试目录和 legacy/archive 目录边界。
 - [x] 迁移后端包目录与测试目录命名，同步 import、Vite 输出、Docker 和构建提示。
-- [ ] 归档 legacy 桌面端与历史文档目录，同步 Docker/测试/脚本引用。
+- [x] 归档 legacy 桌面端与历史文档目录，同步 Docker/测试/脚本引用。
 - [ ] 同步正式文档、运行验证、更新 BACKLOG 并删除本 plan。
 
 ## 4. 影响范围
@@ -74,12 +74,13 @@
 - 2026-05-28：用户确认按当前 Web MVP 阶段统一目录命名；本任务只做路径和引用迁移，不改变业务契约。
 - 2026-05-28：红灯验证命令 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_backend_layout.py tests\test_webapp\test_app_entrypoint.py tests\test_webapp\test_frontend_build.py::test_vite_config_builds_into_backend_knowledge_island_static_dist_and_proxies_api tests\test_webapp\test_docker_startup.py::test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies -q`，结果 6 failed / 2 passed；失败原因均为旧目录名仍存在或新目录/import/output 尚未落地。
 - 2026-05-28：后端包迁移到 `backend/knowledge_island/`，Web MVP 测试目录拆为 `tests/backend/` 与 `tests/frontend/`；聚焦验证 `.venv\Scripts\python.exe -m pytest tests\backend\test_backend_layout.py::test_backend_runtime_is_grouped_under_backend_directory tests\backend\test_backend_layout.py::test_backend_app_import_exposes_fastapi_app tests\backend\test_backend_layout.py::test_backend_server_import_exposes_app_factory tests\backend\test_backend_layout.py::test_backend_runtime_dir_stays_under_project_root_runtime tests\backend\test_app_entrypoint.py tests\frontend\test_frontend_build.py::test_vite_config_builds_into_backend_knowledge_island_static_dist_and_proxies_api tests\backend\test_docker_startup.py::test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies -q`，7 passed。
+- 2026-05-28：legacy 桌面端迁移到 `legacy/desktop/`，历史 `docs/architecture/` 与 `docs/release/` 归档到 `docs/archive/`；验证 `.venv\Scripts\python.exe -m pytest tests\test_application tests\test_domain tests\test_adapters -q`，179 passed；验证 `.venv\Scripts\python.exe -m pytest tests\test_desktop -q`，10 passed。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 00:00
-- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — migrate backend package and web tests
-- **代码状态**：`fix/b-145-directory-naming`；后端包和 Web MVP 测试目录已迁移，legacy/archive 目录尚未迁移
-- **下一步**：归档 legacy 桌面端与历史文档目录，同步 Docker/测试/脚本引用
+- **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — archive legacy desktop and historical docs
+- **代码状态**：`fix/b-145-directory-naming`；代码目录已迁移，正式文档尚未全面同步
+- **下一步**：同步正式文档、运行验证、更新 BACKLOG 并删除本 plan
 - **续任务须知**：每完成 § 3 一项后按项目规则提交一次；不要修改 API 契约、数据库 schema 或 Agent 工具权限。

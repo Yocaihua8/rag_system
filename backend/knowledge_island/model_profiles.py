@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from src.config.settings import _persistent_env, load_settings
+from legacy.desktop.config.settings import _persistent_env, load_settings
 from backend.knowledge_island.llm import LlmConfig
 from backend.knowledge_island.models import ModelProfile
 

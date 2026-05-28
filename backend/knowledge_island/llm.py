@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Callable, Iterator
 from urllib.request import Request, urlopen
 
-from src.config.settings import AppSettings, load_settings
+from legacy.desktop.config.settings import AppSettings, load_settings
 from backend.knowledge_island.models import ChatMessage, PromptPreset, SearchHit
 
 

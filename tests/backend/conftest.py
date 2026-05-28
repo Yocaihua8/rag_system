@@ -1,6 +1,6 @@
 import pytest
 
-import src.config.settings as settings_module
+import legacy.desktop.config.settings as settings_module
 
 
 @pytest.fixture(autouse=True)

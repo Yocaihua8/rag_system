@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from src.application.container import AppContainer
-from src.config.settings import load_settings
-from src.ports.vector_store import VectorSearchResult
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.ports.vector_store import VectorSearchResult
 
 
 def test_container_build_uses_settings_vector_dir_for_chroma(
@@ -40,7 +40,7 @@ def test_container_build_uses_settings_vector_dir_for_chroma(
             raise AssertionError("not used")
 
     monkeypatch.setattr(
-        "src.adapters.vector_store.chroma_store.ChromaVectorStore",
+        "legacy.desktop.adapters.vector_store.chroma_store.ChromaVectorStore",
         FakeChromaVectorStore,
     )
 

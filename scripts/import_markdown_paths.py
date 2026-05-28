@@ -15,8 +15,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.config.settings import load_settings
-from src.config.paths import kb_domain_dir
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.config.paths import kb_domain_dir
 
 
 @dataclass

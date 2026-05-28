@@ -14,13 +14,13 @@ from pathlib import Path
 
 import pytest
 
-from src.application import ingestion_usecases
-from src.application.container import AppContainer
-from src.application.ingestion_usecases import IngestWorkspaceUseCase, IngestProgress
-from src.application.workspace_usecases import WorkspaceUseCases
-from src.config.settings import load_settings
-from src.domain.errors import NotFoundError
-from src.ports.retriever import RetrievalResult
+from legacy.desktop.application import ingestion_usecases
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.application.ingestion_usecases import IngestWorkspaceUseCase, IngestProgress
+from legacy.desktop.application.workspace_usecases import WorkspaceUseCases
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.domain.errors import NotFoundError
+from legacy.desktop.ports.retriever import RetrievalResult
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ class TestIngestWorkspaceUseCase:
         self._run(ingest_uc, ws.id)
 
         # KeywordRetriever 索引已建立，应能搜到 chunk
-        from src.ports.retriever import RetrievalQuery
+        from legacy.desktop.ports.retriever import RetrievalQuery
         result = container.retriever.search(
             RetrievalQuery(question="Python RAG", workspace_id=ws.id)
         )
@@ -239,7 +239,7 @@ class TestIngestWorkspaceUseCase:
         assert all(c.document_id != deleted_doc_id for c in container.chunk_store.list_by_workspace(ws.id))
         assert container.source_store.get_by_document(deleted_doc_id) is None
 
-        from src.ports.retriever import RetrievalQuery
+        from legacy.desktop.ports.retriever import RetrievalQuery
         result = container.retriever.search(
             RetrievalQuery(question="项目经历", workspace_id=ws.id, top_k=5)
         )

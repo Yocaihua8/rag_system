@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from src.application.container import AppContainer
-from src.application.workspace_usecases import WorkspaceUseCases
-from src.config.settings import load_settings
-from src.domain.errors import NotFoundError
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.application.workspace_usecases import WorkspaceUseCases
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.domain.errors import NotFoundError
 
 
 @pytest.fixture

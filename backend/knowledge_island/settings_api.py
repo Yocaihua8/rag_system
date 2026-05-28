@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.config.settings import AppSettings, get_api_key_env_name, load_settings, save_setting
+from legacy.desktop.config.settings import AppSettings, get_api_key_env_name, load_settings, save_setting
 from backend.knowledge_island.llm import OpenAICompatibleChatClient, load_llm_config
 from backend.knowledge_island.models import Document, SearchHit
 
