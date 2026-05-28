@@ -23,7 +23,7 @@
 ## 3. 任务拆解
 
 - [x] 补充文档一致性回归测试并确认当前失败
-- [ ] 修复 devlog 目录一致性脚本与根 README 入口
+- [x] 修复 devlog 目录一致性脚本与根 README 入口
 - [ ] 完成验证并收口 B-147 文档状态
 
 ## 4. 影响范围
@@ -64,7 +64,7 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 文档过程日志入口从 `docs/DEVLOG.md` 改为 `docs/devlog/` | `README.md` | [ ] |
+| 文档过程日志入口从 `docs/DEVLOG.md` 改为 `docs/devlog/` | `README.md` | [x] |
 | B-147 修复状态 | `docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
@@ -74,8 +74,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 00:00
-- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 补充 B-147 回归测试
-- **代码状态**：`fix/b-147-docs-consistency`；已建立 B-147 plan 和红灯测试
-- **下一步**：修复 devlog 目录一致性脚本与根 README 入口
-- **续任务须知**：红灯命令 `.venv\Scripts\python.exe -m pytest tests\backend\test_docs_consistency.py -q` 失败 2 项，分别指向 `docs/DEVLOG.md` 旧聚合文件依赖和 README 旧入口。
+- **进度**：已完成 2 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：`f69be17` — test: 覆盖 devlog 文档一致性漂移
+- **代码状态**：`fix/b-147-docs-consistency`；脚本和 README 修复已通过聚焦验证，待提交
+- **下一步**：完成验证并收口 B-147 文档状态
+- **续任务须知**：聚焦验证命令 `.venv\Scripts\python.exe -m pytest tests\backend\test_docs_consistency.py -q` 与 `.venv\Scripts\python.exe scripts\check_docs_consistency.py` 已通过。

@@ -325,5 +325,5 @@ knowledage_island/
 | `docs/archive/architecture/SYSTEM_ARCHITECTURE.md` | 整体架构说明 |
 | `docs/archive/architecture/LLM_PROVIDER_DESIGN.md` | LLM 提供商路由 + API Key 安全设计 |
 | `docs/archive/architecture/RAG_PIPELINE.md` | RAG 检索增强生成流程 |
-| `docs/DEVLOG.md` | 逐步开发日志 |
+| `docs/devlog/` | 逐步开发日志 |
 | `docs/BACKLOG.md` | 待办事项与优先级 |

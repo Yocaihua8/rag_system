@@ -2,9 +2,8 @@
 check_docs_consistency.py — 轻量文档一致性检查。
 
 当前检查项：
-1. docs/DEVLOG.md 中的 devlog/日期 日志链接是否存在。
-2. docs/devlog/*.md 的日期日志文件是否都出现在 DEVLOG 索引中。
-3. docs/README.md 存在时，校验其目录说明与实际路径是否一致。
+1. docs/devlog/ 目录是否存在，且日期日志文件命名符合 YYYY-MM-DD.md。
+2. docs/README.md 存在时，校验其目录说明与实际路径是否一致。
 
 退出码：
     0  - 通过
@@ -16,14 +15,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-DEVLOG_AGG = DOCS_ROOT / "DEVLOG.md"
 DEVLOG_DIR = DOCS_ROOT / "devlog"
 DOCS_README = DOCS_ROOT / "README.md"
+DAILY_DEVLOG_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}\.md")
 
 
 @dataclass
@@ -40,65 +38,22 @@ def _iter_daily_devlog_files() -> list[Path]:
     return sorted(
         p
         for p in DEVLOG_DIR.glob("*.md")
-        if p.name != "README.md" and p.is_file()
+        if DAILY_DEVLOG_PATTERN.fullmatch(p.name) and p.is_file()
     )
 
 
-def _extract_devlog_links(lines: Iterable[str]) -> list[tuple[str, str, int]]:
-    pattern = re.compile(r"\[(\d{4}-\d{2}-\d{2})\]\(([^)]+)\)")
-    links: list[tuple[str, str, int]] = []
-    for idx, line in enumerate(lines, start=1):
-        for match in pattern.finditer(line):
-            date, rel_path = match.group(1), match.group(2)
-            links.append((date, rel_path, idx))
-    return links
-
-
-def _check_devlog_links() -> list[Issue]:
+def _check_devlog_directory() -> list[Issue]:
     issues: list[Issue] = []
-    if not DEVLOG_AGG.exists():
+    if not DEVLOG_DIR.exists():
         return [
             Issue(
-                "docs/DEVLOG.md",
-                "docs/DEVLOG.md 不存在，无法校验聚合索引。",
+                "docs/devlog/",
+                "docs/devlog/ 不存在，无法校验开发过程日志目录。",
             )
         ]
 
-    lines = DEVLOG_AGG.read_text(encoding="utf-8").splitlines()
-    links = _extract_devlog_links(lines)
-    if not links:
-        issues.append(Issue("docs/DEVLOG.md", "未检测到 devlog 日志链接。"))
-
-    linked_files = set[str]()
-    for date, rel_path, line_no in links:
-        target = (DOCS_ROOT / rel_path).resolve()
-        rel_name = f"devlog/{Path(rel_path).name}"
-        if not target.exists():
-            issues.append(
-                Issue(
-                    f"docs/DEVLOG.md:{line_no}",
-                    f"日期文件缺失：{rel_name}（{target}）",
-                )
-            )
-        else:
-            linked_files.add(Path(rel_path).name)
-        if date not in rel_path:
-            issues.append(
-                Issue(
-                    f"docs/DEVLOG.md:{line_no}",
-                    f"链接名称与日期不一致：{date} -> {rel_path}",
-                )
-            )
-
-    # 校验 devlog 目录中每个日期文件都有索引条目
-    for p in _iter_daily_devlog_files():
-        if p.name not in linked_files:
-            issues.append(
-                Issue(
-                    str(p.relative_to(PROJECT_ROOT)),
-                    f"未在 DEVLOG 索引中链接：{p.relative_to(PROJECT_ROOT)}",
-                )
-            )
+    if not _iter_daily_devlog_files():
+        issues.append(Issue("docs/devlog/", "未检测到 YYYY-MM-DD.md 日期日志文件。"))
 
     return issues
 
@@ -145,7 +100,7 @@ def _check_docs_readme_paths() -> list[Issue]:
 
 def run_checks() -> tuple[int, list[Issue]]:
     """执行文档一致性检查，返回 (exit_code, issues)。"""
-    devlog_issues = _check_devlog_links()
+    devlog_issues = _check_devlog_directory()
     docs_readme_issues = _check_docs_readme_paths()
     all_issues = [*devlog_issues, *docs_readme_issues]
     return (2 if all_issues else 0), all_issues
