@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-05-28
 > Scope：Knowledge Island 整体项目定位与边界
 > Related：docs/requirements/functional-modules.md, docs/design/system-design-overview.md
 
@@ -69,7 +69,7 @@ Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二
 - 语音输入输出
 - 图片理解 / 图片生成
 
-旧 PySide6 桌面端代码保留在 `src/desktop/` 作为 legacy 参考，不是当前默认入口。
+旧 PySide6 桌面端代码保留在 `legacy/desktop/` 作为 legacy 参考，不是当前默认入口。
 
 ## 5. 成功标准
 

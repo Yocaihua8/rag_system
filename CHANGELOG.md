@@ -9,7 +9,7 @@
 ## [Unreleased]
 
 ### Added
-- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `backend/webapp/static_dist/`
+- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `backend/knowledge_island/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
 - **Vue 项目空间薄片**：资料库视图新增项目空间列表、选择、最近项目恢复和新建项目空间表单，复用既有 `/api/projects` 契约
 - **Vue 项目空间改名/删除薄片**：资料库视图新增当前项目改名和删除入口，复用既有 `/api/projects/rename` 与 `/api/projects/delete` 契约；删除前提示项目内文档记录也会被删除
@@ -47,20 +47,21 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
-- **前后端目录结构**：FastAPI 后端运行时代码从仓库根 `webapp/` 聚合到 `backend/webapp/`，默认启动入口调整为 `backend/app.py`，Vue/Vite 构建输出调整到 `backend/webapp/static_dist/`
+- **目录命名阶段对齐**：后端包名统一为 `backend/knowledge_island/`，Web MVP 测试拆为 `tests/backend/` 与 `tests/frontend/`，legacy 桌面端归档到 `legacy/desktop/`，历史架构/发布快照归入 `docs/archive/`
+- **前后端目录结构**：FastAPI 后端运行时代码从仓库根 `webapp/` 聚合到 `backend/knowledge_island/`，默认启动入口调整为 `backend/app.py`，Vue/Vite 构建输出调整到 `backend/knowledge_island/static_dist/`
 - **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时返回 503 构建提示，要求先运行 `npm run build`
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示
 - **关键词检索评分**：Web MVP 关键词召回从 regex 词频累加改为内置 BM25 评分，降低重复常见词压过稀有命中的风险
-- **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到 `backend/webapp/routes/*` 时保持 HTTP 契约和 `dispatch()` 入口不变
-- **API 路由拆分实施**：新增 `backend/webapp/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`backend/webapp/api.py` 仅保留兼容入口和 SSE 入口
+- **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到 `backend/knowledge_island/routes/*` 时保持 HTTP 契约和 `dispatch()` 入口不变
+- **API 路由拆分实施**：新增 `backend/knowledge_island/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`backend/knowledge_island/api.py` 仅保留兼容入口和 SSE 入口
 
 ### Fixed
 -
 
 ### Removed
-- **legacy 静态前端 fallback**：删除 `webapp/static/` 原生 HTML/CSS/JS 前端和对应 `tests/test_webapp/test_frontend_static.py` 断言，前端入口统一为 Vue/Vite 构建产物
+- **legacy 静态前端 fallback**：删除原生 HTML/CSS/JS 前端和对应旧静态前端断言，前端入口统一为 Vue/Vite 构建产物
 
 ### Security
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥
@@ -130,7 +131,7 @@
 - **Docker 双击入口**：`Start-KnowledgeIsland-Docker.bat` / `Stop-KnowledgeIsland-Docker.bat`，面向非技术用户
 
 ### Changed
-- 默认入口从 PySide6 桌面端切换为本地 Web MVP（`backend/app.py` → `backend.webapp.server.run_server()`）；旧桌面端保留为 legacy
+- 默认入口从 PySide6 桌面端切换为本地 Web MVP（`backend/app.py` → `backend.knowledge_island.server.run_server()`）；旧桌面端保留为 legacy
 
 ---
 

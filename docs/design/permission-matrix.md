@@ -32,11 +32,11 @@
 
 | 限制类型 | 规则 | 执行位置 |
 |----------|------|----------|
-| Agent 工具白名单 | 仅允许 `project_overview` 和 `search_sources`，其他工具名一律拒绝 | `backend/webapp/agent_tools.py` |
-| API Key 不回显 | `GET /api/settings/llm` 和 `GET /api/model-profiles` 响应不含 API Key 明文 | `backend/webapp/api.py` |
-| 跨项目工具注入拒绝 | `tool_run_id` 与当前 `project_id` 不匹配时拒绝注入上下文 | `backend/webapp/answers.py` |
-| 跨项目集合操作拒绝 | 文档与集合必须属于同一 `project_id` | `backend/webapp/api.py` |
-| 工具只读约束 | Agent 工具不开放文件写入、shell 执行或任意命令 | `backend/webapp/agent_tools.py` |
+| Agent 工具白名单 | 仅允许 `project_overview` 和 `search_sources`，其他工具名一律拒绝 | `backend/knowledge_island/agent_tools.py` |
+| API Key 不回显 | `GET /api/settings/llm` 和 `GET /api/model-profiles` 响应不含 API Key 明文 | `backend/knowledge_island/api.py` |
+| 跨项目工具注入拒绝 | `tool_run_id` 与当前 `project_id` 不匹配时拒绝注入上下文 | `backend/knowledge_island/answers.py` |
+| 跨项目集合操作拒绝 | 文档与集合必须属于同一 `project_id` | `backend/knowledge_island/api.py` |
+| 工具只读约束 | Agent 工具不开放文件写入、shell 执行或任意命令 | `backend/knowledge_island/agent_tools.py` |
 
 ## 3. 数据级权限规则
 

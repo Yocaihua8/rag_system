@@ -10,7 +10,7 @@
 
 - [ ] 主流程可运行：启动 `python backend/app.py`，访问 `http://127.0.0.1:8765` 正常
 - [ ] 健康检查通过：`GET /api/health` 返回 `{"status": "ok"}`
-- [ ] 测试套件通过：`.venv\Scripts\python.exe -m pytest tests/test_webapp -q`
+- [ ] 测试套件通过：`.venv\Scripts\python.exe -m pytest tests/backend tests/frontend -q`
 - [ ] 最小验收完成：导入目录成功 → 问答返回含来源的回答
 - [ ] 文档同步完成：`requirements/*` / `design/*` / `BACKLOG.md` 与实现一致
 - [ ] `CHANGELOG.md` 已整理当前版本变更条目

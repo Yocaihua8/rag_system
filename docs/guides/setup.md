@@ -37,7 +37,7 @@ cp .env .env.local # 按需
 http://127.0.0.1:8765
 ```
 
-当前默认入口使用 FastAPI + Uvicorn、SQLite 和 Vue/Vite 构建产物；`pip install -r requirements.txt` 会安装必需 Web 运行时，`npm run build` 会生成本地浏览器 UI。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码仍保留在 `src/desktop/`，后续按功能迁移。
+当前默认入口使用 FastAPI + Uvicorn、SQLite 和 Vue/Vite 构建产物；`pip install -r requirements.txt` 会安装必需 Web 运行时，`npm run build` 会生成本地浏览器 UI。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码仍保留在 `legacy/desktop/`，后续按功能迁移。
 
 B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
 
@@ -45,7 +45,7 @@ B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
 npm run build
 ```
 
-构建产物输出到 `backend/webapp/static_dist/`，该目录不入库。`python backend/app.py` 只服务 `backend/webapp/static_dist/`；未构建或构建产物缺失时，首页会返回 503 构建提示，需要先运行 `npm run build`。
+构建产物输出到 `backend/knowledge_island/static_dist/`，该目录不入库。`python backend/app.py` 只服务 `backend/knowledge_island/static_dist/`；未构建或构建产物缺失时，首页会返回 503 构建提示，需要先运行 `npm run build`。
 
 启用 API Key + JWT 认证（可选）：
 

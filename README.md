@@ -2,7 +2,7 @@
 
 知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口是本地 Web MVP（FastAPI + Uvicorn + SQLite + Vue 3/Vite），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
 
-旧 PySide6 桌面端代码暂时保留在 `src/desktop/` 作为 legacy 参考，不再是默认启动入口。
+旧 PySide6 桌面端代码暂时保留在 `legacy/desktop/` 作为 legacy 参考，不再是默认启动入口。
 
 ---
 
@@ -248,7 +248,7 @@ Windows PowerShell 示例：
 knowledage_island/
 ├── backend/                  # FastAPI 后端运行时代码
 │   ├── app.py                # 默认 Web MVP 程序入口
-│   └── webapp/               # Web MVP 后端模块
+│   └── knowledge_island/     # Web MVP 后端模块
 │       ├── server.py         # FastAPI app + Uvicorn 启动 + 静态文件服务
 │       ├── api.py            # API 路由分发
 │       ├── agent_tools.py    # Agent 只读工具白名单与运行入口
@@ -266,46 +266,29 @@ knowledage_island/
 ├── Dockerfile                # Web MVP 容器镜像
 ├── compose.yaml              # Docker Compose 一键启动
 ├── frontend/                 # Vue 3 + Vite 前端源码
-├── src/
-│   ├── config/               # 配置层（defaults / settings / paths）
-│   ├── domain/               # 领域层：不可变数据模型 + 业务错误
-│   │   ├── models/           #   Project / Document / Chunk / Tag / Source / Workspace / Task / Mastery
-│   │   └── errors.py         #   NotFoundError / ValidationError / ...
-│   ├── ports/                # 端口层：接口定义（IWorkspaceStore 兼容层 / ILLMClient / ...）
-│   ├── adapters/             # 适配器层：具体实现
-│   │   ├── storage/          #   SQLite（5 个 Store）
-│   │   ├── llm/              #   OllamaAdapter / OpenAICompatAdapter
-│   │   ├── embedding/        #   OllamaEmbedder / DummyEmbedder
-│   │   ├── retrieval/        #   VectorRetriever / KeywordRetriever
-│   │   └── vector_store/     #   ChromaVectorStore / NumpyVectorStore
-│   ├── application/          # 应用层：用例 + 依赖组装
-│   │   ├── container.py      #   AppContainer（唯一 Composition Root）
-│   │   ├── workspace_usecases.py
-│   │   ├── ingestion_usecases.py
-│   │   ├── query_usecases.py
-│   │   ├── generation_usecases.py
-│   │   └── settings_usecases.py
-│   └── desktop/              # legacy 桌面层：PySide6 UI
-│       ├── bootstrap.py      #   程序启动入口
-│       ├── style.py          #   全局 QSS 主题（Codex 暗色风格）
-│       ├── views/            #   MainWindow / 各功能视图 / 使用指引
-│       ├── controllers/      #   Controller（UI → UseCase 桥接）
-│       └── workers/          #   QThread Worker（I/O 异步化）
+├── legacy/
+│   └── desktop/              # legacy PySide6 桌面端与六边形架构代码
+│       ├── config/           # 配置层（defaults / settings / paths）
+│       ├── domain/           # 领域层：不可变数据模型 + 业务错误
+│       ├── ports/            # 端口层：接口定义
+│       ├── adapters/         # 适配器层：SQLite / LLM / embedding / retrieval
+│       ├── application/      # 应用层：用例 + 依赖组装
+│       └── desktop/          # PySide6 UI、controllers 和 workers
 ├── tests/
 │   ├── conftest.py           # 共用 Fixtures（内存 SQLite + FakeLLM）
+│   ├── backend/              # Web MVP 后端 API、导入、检索、运行时约束测试
+│   ├── frontend/             # Vue 源码、Vite 构建与前端入口约束测试
 │   ├── test_domain/          # 领域模型测试
 │   ├── test_adapters/        # SQLite Store 测试
 │   ├── test_application/     # 用例测试（项目空间兼容层 / 摄入 / 查询）
-│   └── test_webapp/          # Web MVP API、导入、检索与 Vue 构建/入口约束测试
+│   └── test_desktop/         # legacy PySide6 桌面端轻量约束测试
 ├── docs/
 │   ├── BACKLOG.md
-│   ├── DEVLOG.md
+│   ├── archive/              # 历史架构与发布快照
 │   ├── design/api-spec.md
 │   ├── devlog/2026-05-20.md
 │   ├── guides/setup.md
-│   ├── guides/testing.md
-│   ├── release/WEB_MVP_READINESS_2026-05-20.md
-│   └── architecture/              # 历史架构文档（兼容保留）
+│   └── guides/testing.md
 ├── data/                     # 示例数据 / 输出目录
 ├── runtime/                  # 运行时产物（db / vector store / logs）
 ├── docker-workspace/         # Docker 模式默认导入目录（本地忽略）
@@ -324,7 +307,7 @@ knowledage_island/
 ## 运行测试
 
 ```bash
-.venv/Scripts/python.exe -m pytest tests/test_webapp -q
+.venv/Scripts/python.exe -m pytest tests/backend tests/frontend -q
 # 当前测试基线以实际运行结果为准
 ```
 
@@ -337,9 +320,9 @@ knowledage_island/
 | `docs/design/api-spec.md` | 本地 Web MVP HTTP API 与 legacy 进程内接口契约 |
 | `docs/guides/setup.md` | 环境启动指引 |
 | `docs/guides/testing.md` | 测试与验证方式 |
-| `docs/release/WEB_MVP_READINESS_2026-05-20.md` | 本地 Web MVP 收口与浏览器验收清单 |
-| `docs/architecture/SYSTEM_ARCHITECTURE.md` | 整体架构说明 |
-| `docs/architecture/LLM_PROVIDER_DESIGN.md` | LLM 提供商路由 + API Key 安全设计 |
-| `docs/architecture/RAG_PIPELINE.md` | RAG 检索增强生成流程 |
+| `docs/archive/release/WEB_MVP_READINESS_2026-05-20.md` | 本地 Web MVP 收口与浏览器验收清单 |
+| `docs/archive/architecture/SYSTEM_ARCHITECTURE.md` | 整体架构说明 |
+| `docs/archive/architecture/LLM_PROVIDER_DESIGN.md` | LLM 提供商路由 + API Key 安全设计 |
+| `docs/archive/architecture/RAG_PIPELINE.md` | RAG 检索增强生成流程 |
 | `docs/DEVLOG.md` | 逐步开发日志 |
 | `docs/BACKLOG.md` | 待办事项与优先级 |

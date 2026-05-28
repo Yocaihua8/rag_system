@@ -35,7 +35,7 @@
 
 新增功能文档时，优先复制 `feature-template.md`。
 
-若功能涉及**三层架构**中的层职责变化（如业务规则下沉至 `storage.py`、接口职责外溢），或**六边形架构**中的端口 / 适配器变化（如 `src/` 新增适配器），**必须**填写 `feature-template.md § 7 "架构落点"`，并按需关联 `../design/architecture-overview.md` 与对应 ADR。
+若功能涉及**三层架构**中的层职责变化（如业务规则下沉至 `storage.py`、接口职责外溢），或**六边形架构**中的端口 / 适配器变化（如 `legacy/desktop/` 新增适配器），**必须**填写 `feature-template.md § 7 "架构落点"`，并按需关联 `../design/architecture-overview.md` 与对应 ADR。
 
 ## 现有功能文档
 

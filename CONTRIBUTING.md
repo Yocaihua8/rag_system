@@ -91,7 +91,7 @@ docs(backlog): 新增竞品差距分析待办项
 
 ## 4. 代码规范
 
-### Web MVP（backend/webapp/）
+### Web MVP（backend/knowledge_island/）
 
 - `api.py` 只做参数校验和用例编排，不直接操作 SQLite
 - `storage.py` 是 SQLite 唯一入口，不承载业务规则
@@ -103,12 +103,12 @@ docs(backlog): 新增竞品差距分析待办项
 
 - 所有业务规则在后端实现，前端只负责展示和 API 调用
 - Vue 前端源码放在 `frontend/src/`，组件、API helper 和共享状态按既有目录组织
-- 提交前运行 `tests/test_webapp/test_frontend_vue_app.py`、`tests/test_webapp/test_frontend_build.py` 和 `npm run build`
+- 提交前运行 `tests/frontend/test_frontend_vue_app.py`、`tests/frontend/test_frontend_build.py` 和 `npm run build`
 
-### Legacy（src/）
+### Legacy（legacy/desktop/）
 
 - 保持六边形分层约束：配置 → 领域 → 端口 → 适配器 → 应用 → 表现
-- 新任务不应同时修改 `backend/webapp/` 和 `src/desktop/`，除非明确为迁移任务
+- 新任务不应同时修改 `backend/knowledge_island/` 和 `legacy/desktop/`，除非明确为迁移任务
 
 ---
 
@@ -118,18 +118,18 @@ docs(backlog): 新增竞品差距分析待办项
 
 | 变更类型 | 必须通过的测试 |
 |----------|---------------|
-| `backend/webapp/api.py` 路由变更 | `tests/test_webapp/test_api.py` |
-| 检索 / 向量 / 分块变更 | `tests/test_webapp/test_search.py` / `test_embeddings.py` |
-| 导入管线变更 | `tests/test_webapp/test_document_processing.py` |
-| 聊天 / 会话变更 | `tests/test_webapp/test_chat_history.py` |
-| Agent 工具变更 | `tests/test_webapp/test_agent_tools.py` |
-| 任何 API 变更 | `tests/test_webapp/test_docs_contract.py` |
-| Vue 前端或静态服务变更 | `tests/test_webapp/test_frontend_vue_app.py` / `tests/test_webapp/test_frontend_build.py` |
+| `backend/knowledge_island/api.py` 路由变更 | `tests/backend/test_api.py` |
+| 检索 / 向量 / 分块变更 | `tests/backend/test_search.py` / `test_embeddings.py` |
+| 导入管线变更 | `tests/backend/test_document_processing.py` |
+| 聊天 / 会话变更 | `tests/backend/test_chat_history.py` |
+| Agent 工具变更 | `tests/backend/test_agent_tools.py` |
+| 任何 API 变更 | `tests/backend/test_docs_contract.py` |
+| Vue 前端或静态服务变更 | `tests/frontend/test_frontend_vue_app.py` / `tests/frontend/test_frontend_build.py` |
 
 运行全量 Web MVP 测试：
 
 ```bash
-.venv\Scripts\python.exe -m pytest tests/test_webapp -q
+.venv\Scripts\python.exe -m pytest tests/backend tests/frontend -q
 ```
 
 ---
