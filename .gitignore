@@ -22,7 +22,7 @@ Thumbs.db
 node_modules/
 frontend/dist/
 frontend/build/
-backend/webapp/static_dist/
+backend/knowledge_island/static_dist/
 
 # Runtime outputs
 runtime/**
