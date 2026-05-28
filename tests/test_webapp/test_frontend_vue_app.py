@@ -328,6 +328,34 @@ def test_vue_answer_api_helper_uses_existing_feedback_contract():
         assert marker in answer_js
 
 
+def test_vue_chat_api_helper_uses_existing_session_and_message_contracts():
+    chat_path = Path("frontend/src/api/chat.js")
+    assert chat_path.exists(), "B-142 should add a Vue chat API helper"
+    chat_js = _read(str(chat_path))
+
+    for marker in [
+        'import { apiGet, apiPost } from "./client.js";',
+        "export async function listChatSessions(projectId)",
+        'apiGet(`/api/chat/sessions?project_id=${encodeURIComponent(projectId)}`)',
+        "return data.sessions || []",
+        "export async function createChatSession({ projectId, title = \"\" })",
+        'apiPost("/api/chat/sessions"',
+        "project_id: projectId",
+        "title: title.trim()",
+        "export async function renameChatSession({ sessionId, title })",
+        'apiPost("/api/chat/sessions/rename"',
+        "session_id: sessionId",
+        "export async function deleteChatSession(sessionId)",
+        'apiPost("/api/chat/sessions/delete", { session_id: sessionId })',
+        "export async function listChatMessages({ projectId, sessionId = \"\" })",
+        "new URLSearchParams({ project_id: projectId })",
+        'params.set("session_id", sessionId)',
+        "apiGet(`/api/chat/messages?${params.toString()}`)",
+        "return data.messages || []",
+    ]:
+        assert marker in chat_js
+
+
 def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     question_panel_vue = _read("frontend/src/components/QuestionPanel.vue")
     answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
@@ -358,6 +386,55 @@ def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     assert "@submit-question" in workbench_vue
     assert "@cancel-answer" in workbench_vue
     assert ":answer-result=\"answerResult\"" in workbench_vue
+
+
+def test_vue_chat_session_panel_renders_sessions_and_history():
+    panel_path = Path("frontend/src/components/ChatSessionPanel.vue")
+    assert panel_path.exists(), "B-142 should add ChatSessionPanel"
+    panel_vue = _read(str(panel_path))
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "聊天会话",
+        "默认会话",
+        "新建会话",
+        "历史消息",
+        "重命名",
+        "删除会话",
+        "暂无聊天记录",
+        'v-for="session in chatSessions"',
+        'v-for="message in chatMessages"',
+        'defineEmits(["refresh-chat-sessions", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "refresh-chat-messages"])',
+    ]:
+        assert marker in panel_vue
+
+    for prop_name in [
+        "selectedProjectId",
+        "chatSessions",
+        "selectedChatSessionId",
+        "chatMessages",
+        "chatSessionsLoading",
+        "chatSessionsError",
+        "chatMessagesLoading",
+        "chatMessagesError",
+        "chatSessionMutationSubmitting",
+        "chatSessionMutationStatus",
+        "chatSessionMutationError",
+        "deletingChatSessionId",
+    ]:
+        assert f"{prop_name}:" in panel_vue
+
+    for marker in [
+        "ChatSessionPanel",
+        ":chat-sessions=\"chatSessions\"",
+        ":selected-chat-session-id=\"selectedChatSessionId\"",
+        ":chat-messages=\"chatMessages\"",
+        "@select-chat-session",
+        "@create-chat-session",
+        "@rename-chat-session",
+        "@delete-chat-session",
+    ]:
+        assert marker in workbench_vue
 
 
 def test_vue_answer_panel_renders_answer_feedback_controls():
@@ -419,6 +496,59 @@ def test_vue_app_handles_streaming_workbench_question_state_and_cancel():
         "answerStatus",
         "currentAnswerSource",
         "streamedAnswerText",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_handles_chat_sessions_and_history_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "listChatSessions",
+        "createChatSession",
+        "renameChatSession",
+        "deleteChatSession",
+        "listChatMessages",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":chat-sessions=\"appState.chatSessions\"",
+        ":selected-chat-session-id=\"appState.selectedChatSessionId\"",
+        ":chat-messages=\"appState.chatMessages\"",
+        ":chat-sessions-loading=\"appState.chatSessionsLoading\"",
+        ":chat-messages-loading=\"appState.chatMessagesLoading\"",
+        "@refresh-chat-sessions=\"loadChatSessions\"",
+        "@select-chat-session=\"handleSelectChatSession\"",
+        "@create-chat-session=\"handleCreateChatSession\"",
+        "@rename-chat-session=\"handleRenameChatSession\"",
+        "@delete-chat-session=\"handleDeleteChatSession\"",
+        "@refresh-chat-messages=\"loadChatMessages\"",
+        "loadChatSessions",
+        "loadChatMessages",
+        "handleSelectChatSession",
+        "handleCreateChatSession",
+        "handleRenameChatSession",
+        "handleDeleteChatSession",
+        "clearChatState",
+        "await loadChatMessages()",
+        "appState.selectedChatSessionId = session.id",
+        "appState.chatSessionMutationStatus = \"聊天会话已创建\"",
+        "appState.chatSessionMutationStatus = \"聊天会话已重命名\"",
+        "appState.chatSessionMutationStatus = \"聊天会话已删除\"",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "chatSessionsLoading",
+        "chatSessionsError",
+        "chatMessagesLoading",
+        "chatMessagesError",
+        "chatSessionMutationSubmitting",
+        "chatSessionMutationStatus",
+        "chatSessionMutationError",
+        "deletingChatSessionId",
     ]:
         assert f"{state_field}:" in state_js
 

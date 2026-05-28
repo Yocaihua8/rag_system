@@ -32,6 +32,17 @@
       :current-tool-suggestion="appState.currentToolSuggestion"
       :last-usable-tool-run="appState.lastUsableToolRun"
       :current-tool-context-run-id="appState.currentToolContextRunId"
+      :chat-sessions="appState.chatSessions"
+      :selected-chat-session-id="appState.selectedChatSessionId"
+      :chat-messages="appState.chatMessages"
+      :chat-sessions-loading="appState.chatSessionsLoading"
+      :chat-sessions-error="appState.chatSessionsError"
+      :chat-messages-loading="appState.chatMessagesLoading"
+      :chat-messages-error="appState.chatMessagesError"
+      :chat-session-mutation-submitting="appState.chatSessionMutationSubmitting"
+      :chat-session-mutation-status="appState.chatSessionMutationStatus"
+      :chat-session-mutation-error="appState.chatSessionMutationError"
+      :deleting-chat-session-id="appState.deletingChatSessionId"
       :search-debug-result="appState.searchDebugResult"
       :search-debug-loading="appState.searchDebugLoading"
       :search-debug-error="appState.searchDebugError"
@@ -143,6 +154,12 @@
       @run-tool-suggestion="handleRunToolSuggestion"
       @use-tool-result-context="handleUseToolResultContext"
       @clear-tool-context="clearToolContextState"
+      @refresh-chat-sessions="loadChatSessions"
+      @select-chat-session="handleSelectChatSession"
+      @create-chat-session="handleCreateChatSession"
+      @rename-chat-session="handleRenameChatSession"
+      @delete-chat-session="handleDeleteChatSession"
+      @refresh-chat-messages="loadChatMessages"
       @run-search-debug="handleRunSearchDebug"
       @save-retrieval-settings="handleSaveRetrievalSettings"
       @save-retrieval-review="handleSaveRetrievalReview"
@@ -201,6 +218,13 @@ import {
 } from "./api/agent.js";
 import { askQuestion, streamQuestion, submitAnswerFeedback } from "./api/answer.js";
 import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
+import {
+  createChatSession,
+  deleteChatSession,
+  listChatMessages,
+  listChatSessions,
+  renameChatSession,
+} from "./api/chat.js";
 import { apiGet } from "./api/client.js";
 import {
   addDocumentToCollection,
@@ -603,6 +627,8 @@ async function loadProjectSpaces() {
     await loadImportBatches();
     await loadPromptPresets();
     await loadAgentToolRuns();
+    await loadChatSessions();
+    await loadChatMessages();
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
@@ -621,6 +647,7 @@ async function handleSelectProject(projectId) {
   clearRetrievalSettingsState();
   clearRetrievalReviewState();
   clearAgentToolState();
+  clearChatState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
@@ -633,6 +660,8 @@ async function handleSelectProject(projectId) {
   await loadImportBatches();
   await loadPromptPresets();
   await loadAgentToolRuns();
+  await loadChatSessions();
+  await loadChatMessages();
 }
 
 async function handleCreateProject(payload) {
@@ -652,6 +681,7 @@ async function handleCreateProject(payload) {
     clearRetrievalSettingsState();
     clearRetrievalReviewState();
     clearAgentToolState();
+    clearChatState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
@@ -661,6 +691,8 @@ async function handleCreateProject(payload) {
     await loadImportBatches();
     await loadPromptPresets();
     await loadAgentToolRuns();
+    await loadChatSessions();
+    await loadChatMessages();
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -729,6 +761,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearRetrievalSettingsState();
   clearRetrievalReviewState();
   clearAgentToolState();
+  clearChatState();
   resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
@@ -917,6 +950,20 @@ function clearAgentToolState() {
   appState.lastUsableToolRun = null;
 }
 
+function clearChatState() {
+  appState.chatSessions = [];
+  appState.chatSessionsLoading = false;
+  appState.chatSessionsError = "";
+  appState.chatMessages = [];
+  appState.chatMessagesLoading = false;
+  appState.chatMessagesError = "";
+  appState.selectedChatSessionId = "";
+  appState.chatSessionMutationSubmitting = false;
+  appState.chatSessionMutationStatus = "";
+  appState.chatSessionMutationError = "";
+  appState.deletingChatSessionId = "";
+}
+
 function clearToolSuggestionState() {
   appState.currentToolSuggestion = null;
 }
@@ -967,6 +1014,113 @@ async function loadAgentToolRuns() {
     appState.agentToolRunsError = error.message || "工具运行历史读取失败";
   } finally {
     appState.agentToolRunsLoading = false;
+  }
+}
+
+async function loadChatSessions() {
+  appState.chatSessions = [];
+  appState.chatSessionsError = "";
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.chatSessionsLoading = true;
+  try {
+    const sessions = await listChatSessions(appState.selectedProjectId);
+    appState.chatSessions = sessions;
+    if (
+      appState.selectedChatSessionId
+      && !sessions.some((session) => session.id === appState.selectedChatSessionId)
+    ) {
+      appState.selectedChatSessionId = "";
+    }
+  } catch (error) {
+    appState.chatSessionsError = error.message || "聊天会话读取失败";
+  } finally {
+    appState.chatSessionsLoading = false;
+  }
+}
+
+async function loadChatMessages() {
+  appState.chatMessages = [];
+  appState.chatMessagesError = "";
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.chatMessagesLoading = true;
+  try {
+    const messages = await listChatMessages({
+      projectId: appState.selectedProjectId,
+      sessionId: appState.selectedChatSessionId,
+    });
+    appState.chatMessages = messages;
+  } catch (error) {
+    appState.chatMessagesError = error.message || "聊天历史读取失败";
+  } finally {
+    appState.chatMessagesLoading = false;
+  }
+}
+
+async function handleSelectChatSession(sessionId) {
+  appState.selectedChatSessionId = sessionId || "";
+  await loadChatMessages();
+}
+
+async function handleCreateChatSession(title) {
+  appState.chatSessionMutationSubmitting = true;
+  appState.chatSessionMutationError = "";
+  appState.chatSessionMutationStatus = "";
+  try {
+    const session = await createChatSession({
+      projectId: appState.selectedProjectId,
+      title,
+    });
+    appState.selectedChatSessionId = session.id;
+    await loadChatSessions();
+    await loadChatMessages();
+    appState.chatSessionMutationStatus = "聊天会话已创建";
+  } catch (error) {
+    appState.chatSessionMutationError = error.message || "聊天会话创建失败";
+  } finally {
+    appState.chatSessionMutationSubmitting = false;
+  }
+}
+
+async function handleRenameChatSession(payload) {
+  appState.chatSessionMutationSubmitting = true;
+  appState.chatSessionMutationError = "";
+  appState.chatSessionMutationStatus = "";
+  try {
+    await renameChatSession(payload);
+    await loadChatSessions();
+    appState.chatSessionMutationStatus = "聊天会话已重命名";
+  } catch (error) {
+    appState.chatSessionMutationError = error.message || "聊天会话重命名失败";
+  } finally {
+    appState.chatSessionMutationSubmitting = false;
+  }
+}
+
+async function handleDeleteChatSession(sessionId) {
+  if (!window.confirm("确认删除这个聊天会话？会话内聊天记录也会被删除。")) {
+    return;
+  }
+  appState.deletingChatSessionId = sessionId;
+  appState.chatSessionMutationError = "";
+  appState.chatSessionMutationStatus = "";
+  try {
+    await deleteChatSession(sessionId);
+    if (appState.selectedChatSessionId === sessionId) {
+      appState.selectedChatSessionId = "";
+    }
+    await loadChatSessions();
+    await loadChatMessages();
+    appState.chatSessionMutationStatus = "聊天会话已删除";
+  } catch (error) {
+    appState.chatSessionMutationError = error.message || "聊天会话删除失败";
+  } finally {
+    appState.deletingChatSessionId = "";
   }
 }
 
@@ -1205,7 +1359,7 @@ function appendStreamToken(token) {
   };
 }
 
-function finishStreamAnswer(data) {
+async function finishStreamAnswer(data) {
   closeCurrentAnswerSource();
   appState.answerResult = data;
   appState.currentToolSuggestion = data.tool_suggestion || null;
@@ -1216,6 +1370,7 @@ function finishStreamAnswer(data) {
   appState.streamedAnswerText = data.answer || appState.streamedAnswerText;
   appState.answerStatus = "回答已生成";
   appState.answerLoading = false;
+  await loadChatMessages();
 }
 
 function failStreamAnswer(error) {

@@ -20,7 +20,7 @@
 ## 3. 任务拆解
 
 - [x] Vue 工作台接入流式问答和取消按钮：先补 `tests/test_webapp/test_frontend_vue_app.py` 红灯断言，再实现 `frontend/src/api/answer.js`、`QuestionPanel.vue`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 和 `app-state.js` 中的 EventSource 状态流。
-- [ ] Vue 工作台接入会话列表和历史恢复：先补 Vue 源码测试红灯断言，再新增/实现 `frontend/src/api/chat.js`、会话面板组件、`WorkbenchView.vue`、`App.vue` 和 `app-state.js` 中的会话状态流。
+- [x] Vue 工作台接入会话列表和历史恢复：先补 Vue 源码测试红灯断言，再新增/实现 `frontend/src/api/chat.js`、会话面板组件、`WorkbenchView.vue`、`App.vue` 和 `app-state.js` 中的会话状态流。
 - [ ] 文档回流和收口验证：更新 `docs/features/frontend-engineering.md`、`docs/guides/testing.md`、`docs/BACKLOG.md`，运行指定验证，完成后删除本 plan。
 
 ## 4. 影响范围
@@ -75,12 +75,13 @@
 
 - 2026-05-28 15:22：确认用户已同意执行；创建 `fix/b-142-vue-workbench-sse-sessions` 分支；冲突扫描未发现覆盖本任务影响范围的 Active/Interrupted plan。
 - 2026-05-28 15:31：完成 Vue 工作台流式问答和取消按钮薄片；红灯先失败于缺少 `streamQuestion`、取消入口和 App 状态流；实现后 `tests/test_webapp/test_frontend_vue_app.py -q` 与 `npm run build` 通过。
+- 2026-05-28 15:41：完成 Vue 工作台会话列表和历史恢复薄片；红灯先失败于缺少 `chat.js`、`ChatSessionPanel.vue` 和 App 会话状态流；实现后 `tests/test_webapp/test_frontend_vue_app.py -q` 与 `npm run build` 通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 15:31
-- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — Vue 工作台流式问答和取消按钮
-- **代码状态**：`fix/b-142-vue-workbench-sse-sessions`；流式问答薄片待提交
-- **下一步**：Vue 工作台接入会话列表和历史恢复
-- **续任务须知**：`streamQuestion` 已接入 EventSource；取消只关闭前端 EventSource 并恢复按钮状态，不改变后端契约。
+- **最后更新**：2026-05-28 15:41
+- **进度**：已完成 2 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — Vue 工作台会话列表和历史恢复
+- **代码状态**：`fix/b-142-vue-workbench-sse-sessions`；会话/历史恢复薄片待提交
+- **下一步**：文档回流和收口验证
+- **续任务须知**：`chat.js` 已封装既有 `/api/chat/*`；`ChatSessionPanel` 只做前端状态和已有 API 调用，不新增后端契约。

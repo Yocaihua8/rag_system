@@ -35,6 +35,26 @@
         @use-tool-result-context="(runId) => $emit('use-tool-result-context', runId)"
         @clear-tool-context="$emit('clear-tool-context')"
       />
+      <ChatSessionPanel
+        :selected-project-id="selectedProjectId"
+        :chat-sessions="chatSessions"
+        :selected-chat-session-id="selectedChatSessionId"
+        :chat-messages="chatMessages"
+        :chat-sessions-loading="chatSessionsLoading"
+        :chat-sessions-error="chatSessionsError"
+        :chat-messages-loading="chatMessagesLoading"
+        :chat-messages-error="chatMessagesError"
+        :chat-session-mutation-submitting="chatSessionMutationSubmitting"
+        :chat-session-mutation-status="chatSessionMutationStatus"
+        :chat-session-mutation-error="chatSessionMutationError"
+        :deleting-chat-session-id="deletingChatSessionId"
+        @refresh-chat-sessions="$emit('refresh-chat-sessions')"
+        @select-chat-session="(sessionId) => $emit('select-chat-session', sessionId)"
+        @create-chat-session="(title) => $emit('create-chat-session', title)"
+        @rename-chat-session="(payload) => $emit('rename-chat-session', payload)"
+        @delete-chat-session="(sessionId) => $emit('delete-chat-session', sessionId)"
+        @refresh-chat-messages="$emit('refresh-chat-messages')"
+      />
       <SearchDebugPanel
         :selected-project-id="selectedProjectId"
         :search-debug-result="searchDebugResult"
@@ -89,6 +109,7 @@
 <script setup>
 import AnswerPanel from "../components/AnswerPanel.vue";
 import AgentToolsPanel from "../components/AgentToolsPanel.vue";
+import ChatSessionPanel from "../components/ChatSessionPanel.vue";
 import QuestionPanel from "../components/QuestionPanel.vue";
 import SearchDebugPanel from "../components/SearchDebugPanel.vue";
 
@@ -142,6 +163,50 @@ defineProps({
     default: null,
   },
   currentToolContextRunId: {
+    type: String,
+    default: "",
+  },
+  chatSessions: {
+    type: Array,
+    default: () => [],
+  },
+  selectedChatSessionId: {
+    type: String,
+    default: "",
+  },
+  chatMessages: {
+    type: Array,
+    default: () => [],
+  },
+  chatSessionsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  chatSessionsError: {
+    type: String,
+    default: "",
+  },
+  chatMessagesLoading: {
+    type: Boolean,
+    default: false,
+  },
+  chatMessagesError: {
+    type: String,
+    default: "",
+  },
+  chatSessionMutationSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  chatSessionMutationStatus: {
+    type: String,
+    default: "",
+  },
+  chatSessionMutationError: {
+    type: String,
+    default: "",
+  },
+  deletingChatSessionId: {
     type: String,
     default: "",
   },
@@ -275,5 +340,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "cancel-answer", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "cancel-answer", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "refresh-chat-sessions", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "refresh-chat-messages", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>
