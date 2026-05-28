@@ -27,8 +27,8 @@
 
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
-- [ ] 用测试锁定新的静态服务策略：存在 `static_dist/index.html` 时服务 Vue 构建；缺失时返回构建提示；不再读取 legacy 静态目录。
-- [ ] 调整 `webapp/server.py` 并删除 `webapp/static/` legacy 原生前端文件。
+- [x] 用测试锁定新的静态服务策略：存在 `static_dist/index.html` 时服务 Vue 构建；缺失时返回构建提示；不再读取 legacy 静态目录。
+- [x] 调整 `webapp/server.py` 并删除 `webapp/static/` legacy 原生前端文件。
 - [ ] 清理仅针对 legacy 静态前端的测试断言，保留 Vue 源码和构建链测试。
 - [ ] 同步前端工程、运行时、启动和测试文档，完成 BACKLOG 回流并删除本 plan。
 
@@ -90,12 +90,14 @@
 ## 8. 执行记录
 
 - 2026-05-28：启动 plan。`git status --short` 为空；未发现与 B-143 范围重叠的 Active/Interrupted plan。
+- 2026-05-28：新增 red-light 测试，确认当前实现仍回退 `webapp/static/`，B-143 目标未满足。
+- 2026-05-28：`server.py` 改为只服务 `static_dist`；构建缺失时返回 503 构建提示；已执行 `git rm -r webapp/static`。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-05-28 00:00
-- **进度**：已完成 0 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：N/A
-- **代码状态**：分支 `fix/b-142-vue-workbench-sse-sessions`；计划创建中；无未提交改动
-- **下一步**：用测试锁定新的静态服务策略
+- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`40f76d9` — test: 锁定 B-143 静态服务策略
+- **代码状态**：分支 `fix/b-142-vue-workbench-sse-sessions`；server 调整和 legacy 删除待提交
+- **下一步**：清理仅针对 legacy 静态前端的测试断言
 - **续任务须知**：B-143 不改 API 契约、不改 SQLite schema、不改 Agent 工具权限；构建产物 `webapp/static_dist/` 仍不入库

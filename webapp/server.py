@@ -6,7 +6,7 @@ from typing import Any, Iterable
 
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from webapp.api import answer_stream_events, dispatch
@@ -16,9 +16,7 @@ from webapp.storage import KnowledgeStore
 
 
 WEBAPP_DIR = Path(__file__).resolve().parent
-STATIC_LEGACY_DIR = WEBAPP_DIR / "static"
 STATIC_DIST_DIR = WEBAPP_DIR / "static_dist"
-STATIC_DIR = STATIC_LEGACY_DIR
 AUTHENTICATION_REQUIRED = {"error": "authentication required"}
 INVALID_CREDENTIALS = {"error": "invalid credentials"}
 
@@ -78,7 +76,11 @@ def create_app(
         )
         return JSONResponse(status_code=response.status, content=response.body)
 
-    app.mount("/", StaticFiles(directory=_frontend_static_dir(), html=True), name="static")
+    static_dir = _frontend_static_dir()
+    if static_dir is None:
+        _register_frontend_build_missing_routes(app)
+    else:
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
     return app
 
 
@@ -130,10 +132,29 @@ def _auth_error_response(content: dict[str, str]) -> JSONResponse:
     )
 
 
-def _frontend_static_dir() -> Path:
+def _frontend_static_dir() -> Path | None:
     if (STATIC_DIST_DIR / "index.html").exists():
         return STATIC_DIST_DIR
-    return STATIC_LEGACY_DIR
+    return None
+
+
+def _register_frontend_build_missing_routes(app: FastAPI) -> None:
+    @app.get("/", include_in_schema=False)
+    @app.get("/{path:path}", include_in_schema=False)
+    async def frontend_build_missing(path: str = "") -> HTMLResponse:
+        return HTMLResponse(
+            status_code=503,
+            content=(
+                "<!doctype html>"
+                "<html lang=\"zh-CN\">"
+                "<head><meta charset=\"utf-8\"><title>Knowledge Island</title></head>"
+                "<body>"
+                "<h1>前端构建产物不存在</h1>"
+                "<p>请先在项目根目录运行 <code>npm run build</code>，"
+                "生成 <code>webapp/static_dist/index.html</code> 后再启动 Web MVP。</p>"
+                "</body></html>"
+            ),
+        )
 
 
 app = create_app()
