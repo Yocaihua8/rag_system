@@ -18,9 +18,30 @@ from src.application.container import AppContainer
 from src.application.workspace_usecases import WorkspaceUseCases
 from src.application.ingestion_usecases import IngestWorkspaceUseCase
 from src.application.query_usecases import QueryKnowledgeBaseUseCase, QueryRequest
+from src.domain.models.conversation import ConversationRecord
+from src.ports.llm_client import LLMResponse
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
+class CapturingLLM:
+    def __init__(self):
+        self.prompts: list[str] = []
+
+    def generate(self, request):
+        self.prompts.append(request.prompt)
+        return LLMResponse(content="[captured answer]", model="captured")
+
+    def stream(self, request):
+        self.prompts.append(request.prompt)
+        yield "[captured answer]"
+
+    def is_available(self):
+        return True
+
+    def list_models(self):
+        return ["captured"]
+
 
 @pytest.fixture
 def setup(tmp_path, container: AppContainer):
@@ -202,6 +223,78 @@ class TestQueryHistory:
         assert "工作区B的问题" in b_questions
         assert "工作区A的问题" not in b_questions
 
+    def test_execute_injects_only_current_session_recent_history(self, setup):
+        container = setup["container"]
+        ws_id = setup["ws_id"]
+        llm = CapturingLLM()
+        query_uc = QueryKnowledgeBaseUseCase(
+            retriever=container.retriever,
+            llm_client=llm,
+            conversation_store=container.conversation_store,
+        )
+        container.conversation_store.save(
+            ConversationRecord.create(
+                ws_id,
+                "会话旧问题",
+                "会话旧回答",
+                session_id="session-a",
+            )
+        )
+        container.conversation_store.save(
+            ConversationRecord.create(
+                ws_id,
+                "其他会话问题",
+                "其他会话回答",
+                session_id="session-b",
+            )
+        )
+
+        query_uc.execute(
+            QueryRequest(
+                workspace_id=ws_id,
+                question="继续说明",
+                session_id="session-a",
+            )
+        )
+
+        prompt = llm.prompts[-1]
+        assert "最近对话" in prompt
+        assert "用户：会话旧问题" in prompt
+        assert "助手：会话旧回答" in prompt
+        assert "其他会话问题" not in prompt
+
+    def test_execute_saves_history_with_session_id(self, setup):
+        query_uc = setup["query_uc"]
+        ws_id = setup["ws_id"]
+
+        query_uc.execute(
+            QueryRequest(
+                workspace_id=ws_id,
+                question="保存会话问题",
+                session_id="session-save",
+            )
+        )
+
+        history = query_uc.get_history(ws_id, session_id="session-save")
+        assert any(record.question == "保存会话问题" for record in history)
+        assert all(record.session_id == "session-save" for record in history)
+
+    def test_streaming_saves_history_with_session_id(self, setup):
+        query_uc = setup["query_uc"]
+        ws_id = setup["ws_id"]
+
+        query_uc.execute_streaming(
+            QueryRequest(
+                workspace_id=ws_id,
+                question="流式会话问题",
+                session_id="session-stream",
+            ),
+            on_token=lambda token: None,
+        )
+
+        history = query_uc.get_history(ws_id, session_id="session-stream")
+        assert any(record.question == "流式会话问题" for record in history)
+
 
 # ── execute_streaming 测试 ────────────────────────────────────────────────────
 
@@ -298,3 +391,33 @@ class TestBuildPrompt:
         assert "来源 1" in prompt
         assert "来源 2" in prompt
         assert "来源 3" in prompt
+
+    def test_history_is_included_after_sources_before_question(self):
+        from src.domain.models.chunk import Chunk
+        chunk = Chunk.create(
+            document_id="doc1",
+            workspace_id="ws1",
+            content="资料片段",
+            order=0,
+            domain="notes",
+        )
+        history = [
+            ConversationRecord.create("ws1", "旧问题", "旧回答", session_id="s1")
+        ]
+
+        prompt = QueryKnowledgeBaseUseCase._build_prompt(
+            "新问题",
+            [chunk],
+            history=history,
+        )
+
+        assert "参考资料" in prompt
+        assert "资料片段" in prompt
+        assert "最近对话" in prompt
+        assert "用户：旧问题" in prompt
+        assert "助手：旧回答" in prompt
+        assert (
+            prompt.index("资料片段")
+            < prompt.index("最近对话")
+            < prompt.index("问题：新问题")
+        )

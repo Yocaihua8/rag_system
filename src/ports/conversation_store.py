@@ -16,6 +16,7 @@ class IConversationStore(ABC):
         self,
         workspace_id: str,
         limit: int = 20,
+        session_id: str = "",
     ) -> List[ConversationRecord]: ...
 
     @abstractmethod

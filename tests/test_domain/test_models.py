@@ -300,6 +300,33 @@ class TestConversationRecord:
         restored = ConversationRecord.from_dict(rec.to_dict())
         assert restored == rec
 
+    def test_default_session_id_is_empty_string(self):
+        rec = ConversationRecord.create("ws", "q", "a")
+        assert rec.session_id == ""
+
+    def test_session_id_roundtrip_serialization(self):
+        rec = ConversationRecord.create(
+            workspace_id="ws",
+            question="q",
+            answer="a",
+            session_id="session-a",
+        )
+        restored = ConversationRecord.from_dict(rec.to_dict())
+        assert restored == rec
+        assert restored.session_id == "session-a"
+
+    def test_from_dict_accepts_legacy_records_without_session_id(self):
+        rec = ConversationRecord.create("ws", "q", "a")
+        data = rec.to_dict()
+        data.pop("session_id", None)
+
+        restored = ConversationRecord.from_dict(data)
+
+        assert restored.session_id == ""
+        assert restored.workspace_id == "ws"
+        assert restored.question == "q"
+        assert restored.answer == "a"
+
 
 # ── Errors ───────────────────────────────────────────────────────────────────
 

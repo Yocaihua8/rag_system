@@ -15,24 +15,35 @@ class SqliteConversationStore(IConversationStore):
     def save(self, record: ConversationRecord) -> ConversationRecord:
         self._conn.execute(
             """
-            INSERT INTO conversations (id, workspace_id, question, answer, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO conversations (id, workspace_id, question, answer, created_at, session_id)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (record.id, record.workspace_id, record.question,
-             record.answer, record.created_at),
+            (
+                record.id,
+                record.workspace_id,
+                record.question,
+                record.answer,
+                record.created_at,
+                record.session_id,
+            ),
         )
         self._conn.commit()
         return record
 
-    def list_recent(self, workspace_id: str, limit: int = 20) -> List[ConversationRecord]:
+    def list_recent(
+        self,
+        workspace_id: str,
+        limit: int = 20,
+        session_id: str = "",
+    ) -> List[ConversationRecord]:
         rows = self._conn.execute(
             """
             SELECT * FROM conversations
-            WHERE workspace_id = ?
+            WHERE workspace_id = ? AND session_id = ?
             ORDER BY created_at DESC
             LIMIT ?
             """,
-            (workspace_id, limit),
+            (workspace_id, session_id, limit),
         ).fetchall()
         return [_row_to_record(r) for r in rows]
 
@@ -50,4 +61,5 @@ def _row_to_record(row: sqlite3.Row) -> ConversationRecord:
         question=row["question"],
         answer=row["answer"],
         created_at=row["created_at"],
+        session_id=row["session_id"] or "",
     )

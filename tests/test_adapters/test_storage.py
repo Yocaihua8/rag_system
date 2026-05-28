@@ -113,6 +113,12 @@ class TestKnowledgeIslandSchema:
             "updated_at",
         }.issubset(chunk_columns)
 
+        conversation_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(conversations)").fetchall()
+        }
+        assert "session_id" in conversation_columns
+
         graph_node_columns = {
             row["name"] for row in conn.execute("PRAGMA table_info(graph_nodes)")
         }
@@ -277,6 +283,16 @@ class TestChunkStore:
         stores["chunk"].save_batch(chunks)
         result = stores["chunk"].list_by_workspace(ws_id)
         assert len(result) == 4
+
+    def test_list_by_ids_preserves_input_order_and_ignores_missing_ids(self, stores):
+        ws_id, doc_id = self._setup(stores)
+        chunks = [Chunk.create(doc_id, ws_id, f"c{i}", i, "general") for i in range(3)]
+        stores["chunk"].save_batch(chunks)
+
+        result = stores["chunk"].list_by_ids([chunks[2].id, "missing-id", chunks[0].id])
+
+        assert [chunk.id for chunk in result] == [chunks[2].id, chunks[0].id]
+        assert stores["chunk"].list_by_ids([]) == []
 
     def test_delete_by_workspace(self, stores):
         ws_id, doc_id = self._setup(stores)
@@ -471,6 +487,36 @@ class TestConversationStore:
             )
         result = stores["conv"].list_recent(ws_id, limit=5)
         assert len(result) == 5
+
+    def test_list_recent_filters_by_session_id(self, stores):
+        ws_id = self._make_ws(stores, "ws-sessions")
+        default_record = ConversationRecord.create(ws_id, "默认问题", "默认答案")
+        session_a = ConversationRecord.create(
+            ws_id,
+            "会话A问题",
+            "会话A答案",
+            session_id="session-a",
+        )
+        session_b = ConversationRecord.create(
+            ws_id,
+            "会话B问题",
+            "会话B答案",
+            session_id="session-b",
+        )
+
+        stores["conv"].save(default_record)
+        stores["conv"].save(session_a)
+        stores["conv"].save(session_b)
+
+        default_history = stores["conv"].list_recent(ws_id, limit=10)
+        session_a_history = stores["conv"].list_recent(
+            ws_id,
+            limit=10,
+            session_id="session-a",
+        )
+
+        assert [record.question for record in default_history] == ["默认问题"]
+        assert [record.question for record in session_a_history] == ["会话A问题"]
 
     def test_delete_by_workspace(self, stores):
         ws_id = self._make_ws(stores, "ws-del")

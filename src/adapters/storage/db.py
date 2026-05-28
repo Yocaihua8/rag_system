@@ -252,6 +252,9 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         "created_at": "TEXT NOT NULL DEFAULT ''",
         "updated_at": "TEXT NOT NULL DEFAULT ''",
     })
+    _add_missing_columns(conn, "conversations", {
+        "session_id": "TEXT NOT NULL DEFAULT ''",
+    })
     conn.commit()
 
 
@@ -308,6 +311,8 @@ def _ensure_indexes(conn: sqlite3.Connection) -> None:
             ON mastery_records(status);
         CREATE INDEX IF NOT EXISTS idx_conversations_workspace
             ON conversations(workspace_id);
+        CREATE INDEX IF NOT EXISTS idx_conversations_workspace_session_created
+            ON conversations(workspace_id, session_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_graph_nodes_workspace
             ON graph_nodes(workspace_id);
         CREATE INDEX IF NOT EXISTS idx_graph_nodes_type

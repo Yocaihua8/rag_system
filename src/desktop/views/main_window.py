@@ -23,10 +23,10 @@ from src.application.ingestion_usecases import IngestWorkspaceUseCase
 from src.application.query_usecases import QueryKnowledgeBaseUseCase
 from src.application.knowledge_mastery_usecases import KnowledgeMasteryUseCase
 from src.application.workspace_usecases import WorkspaceUseCases
-from src.application.settings_usecases import SettingsUseCases
 from src.desktop.controllers.assessment_controller import AssessmentController
 from src.desktop.controllers.ingestion_controller import IngestionController
 from src.desktop.controllers.query_controller import QueryController
+from src.desktop.controllers.settings_controller import SettingsController
 from src.desktop.controllers.workspace_controller import WorkspaceController
 from src.desktop.style import (
     BG_PRIMARY, BG_SECONDARY, BORDER, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT,
@@ -358,7 +358,14 @@ class MainWindow(QMainWindow):
         )
 
         # SettingsView
-        self._settings_view.save_requested.connect(self._on_settings_save)
+        self._settings_controller = SettingsController(self._container.settings, self)
+        self._settings_view.save_requested.connect(self._settings_controller.save)
+        self._settings_controller.settings_saved.connect(
+            lambda _: self._status_bar.show_message("✅ 设置已保存（部分设置重启后生效）")
+        )
+        self._settings_controller.error_occurred.connect(
+            lambda e: self._status_bar.show_message(f"⚠️ {e}")
+        )
 
     # ── 项目空间事件 ──────────────────────────────────────────────────────
 
@@ -384,28 +391,3 @@ class MainWindow(QMainWindow):
         # 如果当前问答页正显示「未索引」状态，切换为就绪
         self._query_view.mark_indexed()
         self._status_bar.show_message(f"✅ {result.message}")
-
-    # ── 设置保存 ──────────────────────────────────────────────────────────
-
-    def _on_settings_save(self, data: dict) -> None:
-        uc = SettingsUseCases(self._container.settings)
-        _save_map = {
-            "kb_root":         uc.save_kb_root,
-            "ollama_host":     uc.save_ollama_host,
-            "ollama_model":    uc.save_ollama_model,
-            "embedding_model": uc.save_embedding_model,
-            "llm_provider":    uc.save_llm_provider,
-            "llm_api_base":    uc.save_llm_api_base,
-            "llm_api_key":     uc.save_llm_api_key,
-            "llm_api_model":   uc.save_llm_api_model,
-            "embed_provider":  uc.save_embed_provider,
-        }
-        for field, save_fn in _save_map.items():
-            if data.get(field):
-                save_fn(data[field])
-        # P5: 数值型字段需单独处理（0.0 也是有效值，不能用 if data.get() 判断）
-        if "llm_temperature" in data:
-            uc.save_llm_temperature(data["llm_temperature"])
-        if "llm_max_tokens" in data:
-            uc.save_llm_max_tokens(data["llm_max_tokens"])
-        self._status_bar.show_message("✅ 设置已保存（部分设置重启后生效）")
