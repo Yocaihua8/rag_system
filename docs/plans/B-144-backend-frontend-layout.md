@@ -19,7 +19,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 建立目录解耦红灯测试，覆盖后端源码归属、Vite 输出、Docker 启动和 Python import 路径。
+- [x] 建立目录解耦红灯测试，覆盖后端源码归属、Vite 输出、Docker 启动和 Python import 路径。
 - [ ] 迁移后端目录与启动链路，更新 imports、Vite 构建输出、Docker COPY/CMD 和测试引用。
 - [ ] 同步正式文档，更新 BACKLOG/CHANGELOG/devlog，完成全量验证并删除本 plan。
 
@@ -71,9 +71,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-05-28 15:30
-- **进度**：已完成 0 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：`N/A` — plan 刚创建
-- **代码状态**：fix/b-142-vue-workbench-sse-sessions；有未提交 plan/BACKLOG 改动
-- **下一步**：建立目录解耦红灯测试，覆盖后端源码归属、Vite 输出、Docker 启动和 Python import 路径
-- **续任务须知**：保持 HTTP API 与数据库 schema 不变；只迁移目录和运行/构建引用。
+- **最后更新**：2026-05-28 15:40
+- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：`待本次提交生成` — 红灯测试覆盖 backend 目录、Vite 输出与 Docker 启动路径
+- **代码状态**：fix/b-142-vue-workbench-sse-sessions；有未提交红灯测试和 plan 更新
+- **下一步**：迁移后端目录与启动链路，更新 imports、Vite 构建输出、Docker COPY/CMD 和测试引用
+- **续任务须知**：红灯命令为 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_backend_layout.py tests\test_webapp\test_app_entrypoint.py tests\test_webapp\test_frontend_build.py::test_vite_config_builds_into_backend_webapp_static_dist_and_proxies_api tests\test_webapp\test_docker_startup.py::test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies -q`，当前 6 failed，失败原因均为旧目录结构。

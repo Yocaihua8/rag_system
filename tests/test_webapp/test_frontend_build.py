@@ -21,7 +21,7 @@ def test_frontend_package_declares_vue_vite_build_scripts():
     assert package_data["dependencies"]["vue"]
 
 
-def test_vite_config_builds_into_webapp_static_dist_and_proxies_api():
+def test_vite_config_builds_into_backend_webapp_static_dist_and_proxies_api():
     vite_config = Path("frontend/vite.config.js")
 
     assert vite_config.exists(), "frontend/vite.config.js must configure the Vite build"
@@ -30,7 +30,7 @@ def test_vite_config_builds_into_webapp_static_dist_and_proxies_api():
     assert "defineConfig" in config_text
     assert "vue()" in config_text
     assert "base: \"./\"" in config_text
-    assert "outDir: path.resolve(__dirname, \"../webapp/static_dist\")" in config_text
+    assert "outDir: path.resolve(__dirname, \"../backend/webapp/static_dist\")" in config_text
     assert "emptyOutDir: true" in config_text
     assert "\"/api\"" in config_text
     assert "target: \"http://127.0.0.1:8765\"" in config_text
@@ -67,7 +67,7 @@ def test_fastapi_returns_build_hint_when_vite_build_is_missing(tmp_path, monkeyp
 
 
 def test_server_static_strategy_has_no_legacy_frontend_fallback():
-    server_text = Path("webapp/server.py").read_text(encoding="utf-8")
+    server_text = Path("backend/webapp/server.py").read_text(encoding="utf-8")
 
     assert "STATIC_LEGACY_DIR" not in server_text
     assert 'WEBAPP_DIR / "static"' not in server_text

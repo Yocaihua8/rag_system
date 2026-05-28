@@ -4,6 +4,6 @@ from fastapi import FastAPI
 
 
 def test_root_launcher_exposes_asgi_app_for_uvicorn():
-    launcher = import_module("app")
+    launcher = import_module("backend.app")
 
     assert isinstance(launcher.app, FastAPI)
