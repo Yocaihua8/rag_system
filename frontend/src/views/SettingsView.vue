@@ -1,10 +1,11 @@
 <template>
-  <section class="view-panel settings-view">
-    <header class="topbar">
+  <div class="page full">
+    <div class="settings-frame">
+    <header class="section">
       <div>
         <p class="section-kicker">设置</p>
         <h2>设置</h2>
-        <p>B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设；Workbench SSE/会话后续迁移。</p>
+        <p>管理模型连接、常用 Profile 和项目 Prompt 预设。</p>
       </div>
       <button type="button" :disabled="llmSettingsLoading || modelProfilesLoading || promptPresetsLoading" @click="$emit('load-settings')">
         {{ llmSettingsLoading || modelProfilesLoading || promptPresetsLoading ? "刷新中..." : "刷新设置" }}
@@ -12,7 +13,7 @@
     </header>
 
     <div class="settings-grid">
-      <section class="settings-panel">
+      <section class="section settings-panel">
         <div class="section-title-row">
           <div>
             <p class="section-kicker">模型设置</p>
@@ -23,7 +24,7 @@
           </button>
         </div>
 
-        <form class="project-form" @submit.prevent="submitLlmSettings">
+        <form class="field-grid" @submit.prevent="submitLlmSettings">
           <label>
             模型提供商
             <select v-model="llmForm.provider" name="provider" :disabled="llmSettingsSubmitting">
@@ -64,14 +65,14 @@
           <p v-if="llmSettingsError" class="status-line error">{{ llmSettingsError }}</p>
           <p class="status-line">{{ llmSettingsStatus || llmSettingsSummary }}</p>
           <div class="actions">
-            <button type="submit" :disabled="llmSettingsSubmitting">
+            <button type="submit" class="btn-ink" :disabled="llmSettingsSubmitting">
               {{ llmSettingsSubmitting ? "保存中..." : "保存模型设置" }}
             </button>
           </div>
         </form>
       </section>
 
-      <section class="settings-panel">
+      <section class="section settings-panel">
         <div class="section-title-row">
           <div>
             <p class="section-kicker">模型 Profile</p>
@@ -169,7 +170,7 @@
         </form>
       </section>
 
-      <section class="settings-panel">
+      <section class="section settings-panel">
         <div class="section-title-row">
           <div>
             <p class="section-kicker">Prompt 预设</p>
@@ -277,7 +278,8 @@
         </ul>
       </section>
     </div>
-  </section>
+    </div>
+  </div>
 </template>
 
 <script setup>

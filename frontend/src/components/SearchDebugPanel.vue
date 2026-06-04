@@ -1,15 +1,13 @@
 <template>
-  <section class="search-debug-panel" aria-labelledby="search-debug-title">
-    <div class="section-title-row">
-      <div>
-        <p class="section-kicker">检索调试</p>
-        <h2 id="search-debug-title">检索调试</h2>
-        <p>查看命中片段、分数和实际上下文。</p>
-      </div>
+  <section class="search-debug-panel aside-block" aria-labelledby="search-debug-title">
+    <div class="col-head">
+      <span id="search-debug-title">检索调试</span>
+      <span class="num">params</span>
       <button type="submit" form="search-debug-form" :disabled="searchDebugLoading || !selectedProjectId">
         {{ searchDebugLoading ? "诊断中..." : "运行诊断" }}
       </button>
     </div>
+    <p class="muted-line">查看命中片段、分数和实际上下文。</p>
 
     <div class="retrieval-settings-row">
       <div>
@@ -26,27 +24,34 @@
     </div>
     <p v-if="retrievalSettingsError" class="status-line error">{{ retrievalSettingsError }}</p>
 
-    <form id="search-debug-form" class="search-debug-form" @submit.prevent="runSearchDebug">
-      <label>
-        诊断查询
-        <input v-model="searchDebugQuery" placeholder="例如：默认入口、API endpoint" />
-      </label>
-      <label>
-        Top K
-        <input v-model.number="searchDebugParameters.topK" type="number" min="1" max="20" />
-      </label>
-      <label>
-        最低分
-        <input v-model.number="searchDebugParameters.minScore" type="number" min="0" step="0.1" />
-      </label>
-      <label class="check-row">
-        <input v-model="searchDebugParameters.useKeyword" type="checkbox" />
-        关键词
-      </label>
-      <label class="check-row">
-        <input v-model="searchDebugParameters.useVector" type="checkbox" />
-        向量
-      </label>
+    <form id="search-debug-form" class="debug" @submit.prevent="runSearchDebug">
+      <div class="grid">
+        <label>
+          诊断查询
+          <input v-model="searchDebugQuery" type="text" placeholder="默认入口、API endpoint" />
+        </label>
+        <label>
+          Top K / top_k
+          <input v-model.number="searchDebugParameters.topK" type="number" min="1" max="20" />
+        </label>
+        <label>
+          最低分 / min_score
+          <input v-model.number="searchDebugParameters.minScore" type="text" min="0" step="0.1" />
+        </label>
+        <div class="checks">
+          <label>
+            <input v-model="searchDebugParameters.useKeyword" type="checkbox" />
+            关键词
+          </label>
+          <label>
+            <input v-model="searchDebugParameters.useVector" type="checkbox" />
+            向量
+          </label>
+        </div>
+      </div>
+      <button type="button" class="save" :disabled="retrievalSettingsLoading || retrievalSettingsSaving || !selectedProjectId" @click="saveRetrievalSettings">
+        {{ retrievalSettingsSaving ? "保存中..." : "保存为项目默认 ↩" }}
+      </button>
     </form>
 
     <p v-if="!selectedProjectId" class="muted-line">请选择项目空间后运行检索诊断。</p>
@@ -97,12 +102,12 @@
     </div>
 
     <div class="retrieval-review-panel">
-      <div class="section-title-row">
-        <div>
-          <p class="section-kicker">检索复盘</p>
-          <h3>检索复盘</h3>
-          <p>保存本次查询参数、来源质量和人工备注。</p>
-        </div>
+        <div class="col-head">
+          <div>
+            <p class="section-kicker">检索复盘</p>
+            <h3>检索复盘</h3>
+            <p>保存本次查询参数、来源质量和人工备注。</p>
+          </div>
         <button
           type="button"
           :disabled="retrievalReviewSaving || !selectedProjectId || !searchDebugQuery.trim()"

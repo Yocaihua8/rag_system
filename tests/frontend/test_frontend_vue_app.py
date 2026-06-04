@@ -65,22 +65,28 @@ def test_vue_layout_components_define_four_primary_views():
     assert "AppShell" in app_vue
     assert "currentViewComponent" in app_vue
     assert "computed" in app_vue
-    assert "B-141 已按薄片迁移" in shell_vue
+    assert "本地优先的个人 AI 知识库" in shell_vue
+    assert "导入资料、检索来源、提问和评估掌握情况" in shell_vue
+    assert "B-141" not in shell_vue
+    assert "Vue 前端迁移工作台" not in shell_vue
     assert "完整业务流程仍由 legacy 静态前端承载" not in shell_vue
 
 
-def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
+def test_vue_primary_views_use_product_copy_instead_of_migration_notes():
     assessment_vue = _read("frontend/src/views/AssessmentView.vue")
     assert "评估" in assessment_vue
-    assert "B-141T 已迁移评估最小闭环" in assessment_vue
+    assert "从已导入资料生成题目" in assessment_vue
+    assert "B-141" not in assessment_vue
 
     settings_vue = _read("frontend/src/views/SettingsView.vue")
     assert "设置" in settings_vue
-    assert "B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设" in settings_vue
+    assert "管理模型连接、常用 Profile 和项目 Prompt 预设" in settings_vue
+    assert "B-141" not in settings_vue
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
     assert "项目问答" in workbench_vue
-    assert "B-142 已迁移 SSE 流式问答、取消当前回答、聊天会话和历史恢复" in workbench_vue
+    assert "围绕当前项目资料提问" in workbench_vue
+    assert "B-142" not in workbench_vue
     assert "检索调试" in workbench_vue
     assert "Agent 只读工具" in workbench_vue
     assert "工具来源上下文" in workbench_vue
@@ -88,8 +94,129 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     library_vue = _read("frontend/src/views/LibraryView.vue")
     assert "资料库" in library_vue
     assert "ProjectSpacePanel" in library_vue
-    assert "B-141C" in library_vue
-    assert "B-141C 至 B-141Q" in library_vue
+    assert "创建项目空间、导入本地资料、管理文档集合并查看导入历史" in library_vue
+    assert "B-141" not in library_vue
+
+
+def test_vue_frontend_uses_atlas_global_foundation():
+    index_html = _read("frontend/index.html")
+    styles_css = _read("frontend/src/styles.css")
+
+    for marker in [
+        "fonts.googleapis.com",
+        "Fraunces",
+        "Source+Serif+4",
+        "IBM+Plex+Mono",
+    ]:
+        assert marker in index_html
+
+    for marker in [
+        "Prototype D · 海图志",
+        "--paper:",
+        "--surface:",
+        "--accent:",
+        "--serif-font:",
+        '[data-theme="dark"]',
+        '[data-rule="strong"]',
+        ".masthead",
+        ".nav button.active",
+        ".page",
+        ".col-head",
+        ".session-item",
+        ".turn.assistant",
+        ".obs",
+        ".sources",
+        ".composer",
+        ".dashboard",
+        ".doc-table",
+        ".eval-frame",
+        ".settings-frame",
+        ".field-grid",
+        ".debug",
+    ]:
+        assert marker in styles_css
+
+
+def test_vue_app_shell_renders_atlas_masthead_with_project_context():
+    app_vue = _read("frontend/src/App.vue")
+    shell_vue = _read("frontend/src/components/AppShell.vue")
+
+    for marker in [
+        ":projects=\"appState.projects\"",
+        ":selected-project-id=\"appState.selectedProjectId\"",
+    ]:
+        assert marker in app_vue
+
+    for marker in [
+        "masthead",
+        "brand-mark",
+        "island-mark",
+        "知识岛 · Knowledge Island",
+        "海图志 · Vol. I · 2026",
+        "currentProjectName",
+        "folioNumber",
+        "FOL.",
+        "data-view-key=\"workbench\"",
+        "data-view-key=\"library\"",
+        "data-view-key=\"assessment\"",
+        "data-view-key=\"settings\"",
+        ':data-theme="isDark ? \'dark\' : undefined"',
+    ]:
+        assert marker in shell_vue
+
+
+def test_vue_primary_views_use_atlas_layout_classes():
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+    document_list_vue = _read("frontend/src/components/DocumentListPanel.vue")
+    assessment_vue = _read("frontend/src/views/AssessmentView.vue")
+    settings_vue = _read("frontend/src/views/SettingsView.vue")
+
+    for marker in [
+        'class="page"',
+        'class="conv-col"',
+        "ChatSessionPanel",
+        "QuestionPanel",
+        "AnswerPanel",
+        "AgentToolsPanel",
+        "SearchDebugPanel",
+    ]:
+        assert marker in workbench_vue
+
+    for marker in [
+        'class="page full"',
+        'class="dashboard"',
+        'class="import-row"',
+        'class="coll-tabs"',
+        "DocumentImportPanel",
+        "DocumentCollectionPanel",
+        "DocumentListPanel",
+        "ImportBatchHistoryPanel",
+    ]:
+        assert marker in library_vue
+    assert 'class="doc-table"' in document_list_vue
+
+    for marker in [
+        'class="page full"',
+        'class="eval-frame"',
+        'class="eval-head"',
+        'class="eval-summary"',
+        'class="question"',
+        'class="answer-box"',
+        "verdict",
+    ]:
+        assert marker in assessment_vue
+
+    for marker in [
+        'class="page full"',
+        'class="settings-frame"',
+        'class="section"',
+        'class="field-grid"',
+        "模型设置",
+        "模型 Profile",
+        "Prompt 预设",
+    ]:
+        assert marker in settings_vue
 
 
 def test_vue_assessment_api_helper_uses_existing_assessment_contracts():
@@ -237,10 +364,24 @@ def test_vue_project_space_panel_renders_project_selection_and_creation_form():
 
     assert 'v-for="project in projects"' in panel_vue
     assert ':value="project.id"' in panel_vue
+    assert "selectedProject.value.root_path" in panel_vue
     assert "@change=" in panel_vue
     assert '@submit.prevent="submitProject"' in panel_vue
     assert 'defineEmits(["refresh-projects", "select-project", "create-project", "rename-project", "delete-project"])' in panel_vue
     assert "ProjectSpacePanel" in library_vue
+
+
+def test_vue_workbench_warns_before_cloud_model_submission():
+    app_vue = _read("frontend/src/App.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+    question_panel_vue = _read("frontend/src/components/QuestionPanel.vue")
+
+    assert "cloudModelNotice" in app_vue
+    assert ':cloud-model-notice="cloudModelNotice"' in app_vue
+    assert ":cloud-model-notice=\"cloudModelNotice\"" in workbench_vue
+    assert "本轮会把检索到的来源片段发送给云端模型" in question_panel_vue
+    assert "DeepSeek / OpenAI-compatible API" in question_panel_vue
+    assert "cloudModelNotice:" in workbench_vue
 
 
 def test_vue_app_loads_project_spaces_on_startup_and_handles_panel_events():

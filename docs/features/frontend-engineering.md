@@ -2,13 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-28
-> Scope：B-141 Vue 3 + Vite 前端工程化；B-142 Vue 工作台 SSE 与会话历史迁移；B-143 legacy 静态前端清理；B-145 目录命名阶段对齐
+> Last Updated：2026-06-04
+> Scope：B-141 Vue 3 + Vite 前端工程化；B-142 Vue 工作台 SSE 与会话历史迁移；B-143 legacy 静态前端清理；B-145 目录命名阶段对齐；B-149 Vue 海图志视觉重构
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
 ## 1. 功能定位
 
-B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把 legacy 原生 HTML/CSS/JS 前端逐步迁移到独立 `frontend/` 工程，使用 Vue 3 组件和 Vite 构建，降低大型单页脚本继续增长带来的维护成本。B-141 收口时已完成 A-Z 页面级迁移薄片；B-142 已补齐 Vue 工作台 SSE/取消和聊天会话/历史迁移；B-143 已移除 legacy 静态前端 fallback；B-145 后 FastAPI 只服务 `backend/knowledge_island/static_dist/` 构建产物。
+B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把 legacy 原生 HTML/CSS/JS 前端逐步迁移到独立 `frontend/` 工程，使用 Vue 3 组件和 Vite 构建，降低大型单页脚本继续增长带来的维护成本。B-141 收口时已完成 A-Z 页面级迁移薄片；B-142 已补齐 Vue 工作台 SSE/取消和聊天会话/历史迁移；B-143 已移除 legacy 静态前端 fallback；B-145 后 FastAPI 只服务 `backend/knowledge_island/static_dist/` 构建产物；B-149 后 Vue 四个主视图采用“海图志”视觉风格。
 
 ## 2. 用户可见行为
 
@@ -43,6 +43,8 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-142 在 Vue 工作台中接入 `GET /api/answer/stream` EventSource 流式输出，回答完成后保留完整响应、来源、来源质量、观察性信息和回答反馈消息 ID；用户可关闭当前 EventSource 取消前端流式渲染。
 - B-142 在 Vue 工作台中接入 `/api/chat/sessions*` 与 `/api/chat/messages`，支持默认会话、自定义会话列表、新建、重命名、删除和当前会话历史恢复；下一轮流式问答会携带当前 `session_id`。
 - B-145 后，legacy 静态前端 fallback 不再存在，后端源码位于 `backend/knowledge_island/`；未生成 `backend/knowledge_island/static_dist/index.html` 时，FastAPI 首页返回 503 构建提示并要求执行 `npm --prefix frontend run build`。
+- B-148 后，Vue Web MVP 首屏和四个主视图使用产品化文案，不再向用户展示 B-141/B-142 迁移说明；资料库项目空间面板显示后端返回的 `root_path`，避免创建项目后误报“未记录本地目录”；工作台在检测到 API 模式且 Key 已配置时，会在提问前提示本轮会把检索到的来源片段发送给云端模型。
+- B-149 后，Vue Web MVP 使用海图志视觉系统：顶部为 `masthead`、IslandMark、四个主导航和 `FOL.` 页码；工作台为会话 / 对话 / 工具三列；资料库有 `dashboard`、导入区、集合 tabs 和文档表格；评估页使用 `eval-frame`；设置页使用 `settings-frame` 与 `field-grid`。本次仅调整视觉层，不修改 `/api/*` 契约、`frontend/src/api/`、`frontend/src/state/`、SQLite schema 或 Agent 工具权限。
 
 ## 3. 工程目录
 
@@ -158,6 +160,8 @@ B-142 起，Vue 工作台迁移 SSE 流式问答和聊天会话薄片：`answer.
 
 B-145 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/knowledge_island/static_dist/`。如果构建产物缺失，首页和非 API 路径返回 503 HTML 提示，要求先执行 `npm --prefix frontend run build`；系统不再回退到 legacy 原生前端。
 
+B-149 起，Vue 展示层使用原型 `知识岛/prototypes/D-atlas/` 的样式语言。`frontend/src/styles.css` 提供全局 CSS 变量、明暗主题变量、海图志排版和页面结构 class；各 Vue 组件继续通过既有 props/emits 对接 `App.vue` 状态流，API helper 和共享状态模块不承载视觉重构逻辑。
+
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
@@ -169,6 +173,12 @@ B-145 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/k
 - Vue 工作台可保存当前查询的检索复盘，查看当前项目复盘历史、单条详情和删除复盘记录。
 - Vue 工作台可通过 EventSource 流式渲染回答，并可取消当前前端流式请求。
 - Vue 工作台可读取默认会话和自定义会话历史，创建、重命名、删除自定义会话，并在当前会话内继续提问。
+- Vue 工作台在云端 API 模型可用时，会在问题输入区展示发送前提示，说明检索来源片段将被发送给云端模型；未配置 API Key 或使用本地模式时不展示该提示。
+- Vue 首屏显示海图志 masthead、IslandMark SVG、`知识岛 · Knowledge Island` 标题、当前项目名、四个主导航和 `FOL.` 页码。
+- Vue 工作台使用三列布局，左列为会话列表，中列为提问 composer 与回答 turn，右列为 Agent 工具和检索调试。
+- Vue 资料库使用 dashboard 指标、导入 / 批次双栏、集合 tabs 和文档表格；项目空间、集合管理、导入批次、文档预览和删除入口仍保留。
+- Vue 评估页使用 `eval-frame` 展示题目、回答框、提交操作、评估结果、答题记录和待复测列表。
+- Vue 设置页使用 `settings-frame` 和 `field-grid` 展示模型设置，并保留模型 Profile 与 Prompt 预设管理入口。
 - Vue 工作台可在已选择项目空间时查看 Agent 只读工具元数据，手动运行 `project_overview` / `search_sources`，并展示工具结果、运行历史和单条详情。
 - Vue 工作台可在回答来源不足时展示建议工具，用户手动运行 `search_sources` 后可把工具结果标记为下一问上下文，并在下一次 `/api/answer` 中发送 `tool_run_id`。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
@@ -185,6 +195,7 @@ B-145 起，FastAPI 静态服务只挂载 Vue/Vite 生产构建目录 `backend/k
 - Vue 资料库可在文档列表中删除单个文档记录；删除前提示源文件不会被删除，成功后刷新文档列表和文档集合列表。
 - Vue 资料库可在项目空间面板中改名当前项目空间，成功后刷新项目列表并保持当前项目选中。
 - Vue 资料库可在项目空间面板中删除当前项目空间；删除前提示项目内文档记录也会被删除，成功后清空当前项目相关状态。
+- Vue 资料库项目空间面板显示当前项目绑定目录时，以 API 响应的 `root_path` 为准，并继续兼容旧字段 `root`。
 - Vue 设置页可读取、保存和测试基础模型设置；API Key 输入留空不覆盖既有 Key，页面不回显明文 Key。
 - Vue 设置页可读取模型 Profile 列表，新增或编辑 Profile，删除 Profile，设置或清空默认 Profile，并测试单个 Profile。
 - Vue 设置页可在已选择项目空间时读取 Prompt 预设和内置模板，新增或编辑 Prompt 预设，删除 Prompt 预设，设置或清空默认 Prompt 预设。

@@ -1,5 +1,10 @@
 <template>
-  <AppShell :current-view="appState.currentView" @change-view="showView">
+  <AppShell
+    :current-view="appState.currentView"
+    :projects="appState.projects"
+    :selected-project-id="appState.selectedProjectId"
+    @change-view="showView"
+  >
     <component
       :is="currentViewComponent"
       :status-message="statusMessage"
@@ -25,6 +30,7 @@
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
       :answer-status="appState.answerStatus"
+      :cloud-model-notice="cloudModelNotice"
       :last-answer-message-id="appState.lastAnswerMessageId"
       :answer-feedback-submitting="appState.answerFeedbackSubmitting"
       :answer-feedback-status="appState.answerFeedbackStatus"
@@ -309,6 +315,21 @@ const projectStatusMessage = computed(() => {
   }
   const selectedProject = appState.projects.find((project) => project.id === appState.selectedProjectId);
   return selectedProject ? `当前项目：${selectedProject.name}` : "未选择项目空间";
+});
+
+const cloudModelNotice = computed(() => {
+  const defaultProfile = appState.modelProfiles.find((profile) => profile.id === appState.defaultModelProfileId);
+  if (defaultProfile?.provider === "api" && defaultProfile.has_api_key) {
+    const modelLabel = defaultProfile.name || defaultProfile.model || "DeepSeek / OpenAI-compatible API";
+    return `本轮会把检索到的来源片段发送给云端模型：${modelLabel}。`;
+  }
+
+  if (appState.llmSettings?.provider === "api" && appState.llmSettings?.has_api_key) {
+    const modelLabel = appState.llmSettings.model || "DeepSeek / OpenAI-compatible API";
+    return `本轮会把检索到的来源片段发送给云端模型：${modelLabel}。`;
+  }
+
+  return "";
 });
 
 onMounted(() => {

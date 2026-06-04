@@ -1,19 +1,35 @@
 <template>
-  <section class="view-panel">
-    <header class="topbar">
-      <div>
-        <p class="section-kicker">工作台</p>
-        <h2>项目问答</h2>
-        <p>B-142 已迁移 SSE 流式问答、取消当前回答、聊天会话和历史恢复；工作台继续复用既有回答反馈、检索调试、Agent 只读工具、工具来源上下文、项目级检索默认值和检索复盘。</p>
-      </div>
-    </header>
+  <div class="page">
+    <aside>
+      <ChatSessionPanel
+        :selected-project-id="selectedProjectId"
+        :chat-sessions="chatSessions"
+        :selected-chat-session-id="selectedChatSessionId"
+        :chat-messages="chatMessages"
+        :chat-sessions-loading="chatSessionsLoading"
+        :chat-sessions-error="chatSessionsError"
+        :chat-messages-loading="chatMessagesLoading"
+        :chat-messages-error="chatMessagesError"
+        :chat-session-mutation-submitting="chatSessionMutationSubmitting"
+        :chat-session-mutation-status="chatSessionMutationStatus"
+        :chat-session-mutation-error="chatSessionMutationError"
+        :deleting-chat-session-id="deletingChatSessionId"
+        @refresh-chat-sessions="$emit('refresh-chat-sessions')"
+        @select-chat-session="(sessionId) => $emit('select-chat-session', sessionId)"
+        @create-chat-session="(title) => $emit('create-chat-session', title)"
+        @rename-chat-session="(payload) => $emit('rename-chat-session', payload)"
+        @delete-chat-session="(sessionId) => $emit('delete-chat-session', sessionId)"
+        @refresh-chat-messages="$emit('refresh-chat-messages')"
+      />
+    </aside>
 
-    <div class="workbench-grid">
+    <main class="conv-col" aria-label="项目问答：围绕当前项目资料提问，查看来源、会话历史、检索调试、Agent 只读工具结果和工具来源上下文。">
       <QuestionPanel
         :selected-project-id="selectedProjectId"
         :loading="answerLoading"
         :error="answerError"
         :status-message="answerStatus || statusMessage"
+        :cloud-model-notice="cloudModelNotice"
         @submit-question="(question) => $emit('submit-question', question)"
         @cancel-answer="$emit('cancel-answer')"
         @check-health="$emit('check-health')"
@@ -35,25 +51,28 @@
         @use-tool-result-context="(runId) => $emit('use-tool-result-context', runId)"
         @clear-tool-context="$emit('clear-tool-context')"
       />
-      <ChatSessionPanel
+    </main>
+
+    <aside>
+      <AgentToolsPanel
         :selected-project-id="selectedProjectId"
-        :chat-sessions="chatSessions"
-        :selected-chat-session-id="selectedChatSessionId"
-        :chat-messages="chatMessages"
-        :chat-sessions-loading="chatSessionsLoading"
-        :chat-sessions-error="chatSessionsError"
-        :chat-messages-loading="chatMessagesLoading"
-        :chat-messages-error="chatMessagesError"
-        :chat-session-mutation-submitting="chatSessionMutationSubmitting"
-        :chat-session-mutation-status="chatSessionMutationStatus"
-        :chat-session-mutation-error="chatSessionMutationError"
-        :deleting-chat-session-id="deletingChatSessionId"
-        @refresh-chat-sessions="$emit('refresh-chat-sessions')"
-        @select-chat-session="(sessionId) => $emit('select-chat-session', sessionId)"
-        @create-chat-session="(title) => $emit('create-chat-session', title)"
-        @rename-chat-session="(payload) => $emit('rename-chat-session', payload)"
-        @delete-chat-session="(sessionId) => $emit('delete-chat-session', sessionId)"
-        @refresh-chat-messages="$emit('refresh-chat-messages')"
+        :agent-tools="agentTools"
+        :agent-tools-loading="agentToolsLoading"
+        :agent-tools-error="agentToolsError"
+        :agent-tool-runs="agentToolRuns"
+        :agent-tool-runs-loading="agentToolRunsLoading"
+        :agent-tool-runs-error="agentToolRunsError"
+        :selected-agent-tool-run="selectedAgentToolRun"
+        :agent-tool-result="agentToolResult"
+        :agent-tool-status="agentToolStatus"
+        :agent-tool-error="agentToolError"
+        :agent-tool-submitting-name="agentToolSubmittingName"
+        :agent-tool-detail-loading="agentToolDetailLoading"
+        :agent-tool-detail-error="agentToolDetailError"
+        @load-agent-tools="$emit('load-agent-tools')"
+        @run-agent-tool="(payload) => $emit('run-agent-tool', payload)"
+        @load-agent-tool-runs="$emit('load-agent-tool-runs')"
+        @select-agent-tool-run="(runId) => $emit('select-agent-tool-run', runId)"
       />
       <SearchDebugPanel
         :selected-project-id="selectedProjectId"
@@ -82,28 +101,8 @@
         @select-retrieval-review="(reviewId) => $emit('select-retrieval-review', reviewId)"
         @delete-retrieval-review="(reviewId) => $emit('delete-retrieval-review', reviewId)"
       />
-      <AgentToolsPanel
-        :selected-project-id="selectedProjectId"
-        :agent-tools="agentTools"
-        :agent-tools-loading="agentToolsLoading"
-        :agent-tools-error="agentToolsError"
-        :agent-tool-runs="agentToolRuns"
-        :agent-tool-runs-loading="agentToolRunsLoading"
-        :agent-tool-runs-error="agentToolRunsError"
-        :selected-agent-tool-run="selectedAgentToolRun"
-        :agent-tool-result="agentToolResult"
-        :agent-tool-status="agentToolStatus"
-        :agent-tool-error="agentToolError"
-        :agent-tool-submitting-name="agentToolSubmittingName"
-        :agent-tool-detail-loading="agentToolDetailLoading"
-        :agent-tool-detail-error="agentToolDetailError"
-        @load-agent-tools="$emit('load-agent-tools')"
-        @run-agent-tool="(payload) => $emit('run-agent-tool', payload)"
-        @load-agent-tool-runs="$emit('load-agent-tool-runs')"
-        @select-agent-tool-run="(runId) => $emit('select-agent-tool-run', runId)"
-      />
-    </div>
-  </section>
+    </aside>
+  </div>
 </template>
 
 <script setup>
@@ -135,6 +134,10 @@ defineProps({
     default: "",
   },
   answerStatus: {
+    type: String,
+    default: "",
+  },
+  cloudModelNotice: {
     type: String,
     default: "",
   },

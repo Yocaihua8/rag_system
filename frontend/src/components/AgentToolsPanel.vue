@@ -1,77 +1,59 @@
 <template>
-  <section class="agent-tools-panel" aria-labelledby="agent-tools-title">
-    <div class="section-title-row">
-      <div>
-        <p class="section-kicker">Agent 工具</p>
-        <h2 id="agent-tools-title">Agent 工具</h2>
-        <p>当前只开放只读工具，并记录工具调用。</p>
-      </div>
-      <button type="button" :disabled="agentToolsLoading" @click="$emit('load-agent-tools')">
-        {{ agentToolsLoading ? "刷新中..." : "刷新工具" }}
-      </button>
+  <section class="agent-tools-panel aside-block" aria-labelledby="agent-tools-title">
+    <div class="col-head">
+      <span id="agent-tools-title">Agent 工具</span>
+      <span class="num">{{ agentTools.length }}</span>
     </div>
 
     <p v-if="!selectedProjectId" class="muted-line">请选择项目空间后运行只读工具。</p>
+    <p class="muted-line">当前只开放只读工具，并记录工具调用。</p>
     <p v-if="agentToolsError" class="status-line error">{{ agentToolsError }}</p>
     <p v-if="agentToolStatus" class="status-line">{{ agentToolStatus }}</p>
     <p v-if="agentToolError" class="status-line error">{{ agentToolError }}</p>
 
-    <div class="agent-tool-actions">
-      <button
-        type="button"
-        :disabled="!selectedProjectId || agentToolSubmittingName === 'project_overview'"
-        @click="runProjectOverview"
-      >
-        {{ agentToolSubmittingName === "project_overview" ? "运行中..." : "项目概览：运行" }}
-      </button>
-      <label>
-        工具参数：query
-        <input v-model="sourceQuery" placeholder="检索来源，例如：默认入口、API endpoint" />
-      </label>
-      <button
-        type="button"
-        :disabled="!selectedProjectId || agentToolSubmittingName === 'search_sources'"
-        @click="runSearchSources"
-      >
-        {{ agentToolSubmittingName === "search_sources" ? "运行中..." : "检索来源：运行" }}
-      </button>
+    <div class="debug compact-debug">
+      <div class="grid">
+        <label>
+          工具参数：query
+          <input v-model="sourceQuery" type="text" placeholder="默认入口、API endpoint" />
+        </label>
+        <button type="button" class="save" :disabled="agentToolsLoading" @click="$emit('load-agent-tools')">
+          {{ agentToolsLoading ? "刷新中..." : "刷新工具" }}
+        </button>
+      </div>
+      <div class="tool-shortcuts">
+        <button type="button" class="run" :disabled="!selectedProjectId || agentToolSubmittingName === 'project_overview'" @click="runProjectOverview">
+          {{ agentToolSubmittingName === "project_overview" ? "运行中..." : "项目概览：运行" }}
+        </button>
+        <button type="button" class="run" :disabled="!selectedProjectId || agentToolSubmittingName === 'search_sources'" @click="runSearchSources">
+          {{ agentToolSubmittingName === "search_sources" ? "运行中..." : "检索来源：运行" }}
+        </button>
+      </div>
     </div>
 
-    <div class="agent-tools-layout">
-      <section class="agent-tool-list">
-        <div class="section-title-row compact">
-          <p class="section-kicker">只读工具</p>
-        </div>
-        <ul v-if="agentTools.length" class="agent-tools-list">
-          <li v-for="tool in agentTools" :key="tool.name">
-            <strong>{{ tool.label || tool.title || tool.name }}</strong>
-            <p>{{ tool.description || "暂无工具说明" }}</p>
-            <small>参数：{{ formatToolParameters(tool) }}</small>
-            <small>适用场景：{{ formatToolScenarios(tool) }}</small>
-            <button
-              type="button"
-              :disabled="!selectedProjectId || agentToolSubmittingName === tool.name"
-              @click="runListedTool(tool)"
-            >
-              {{ tool.label || tool.name }}：运行
-            </button>
-          </li>
-        </ul>
-        <p v-else class="muted-line">暂无可用只读工具</p>
-      </section>
+    <div v-if="agentTools.length" class="tool-list">
+      <div v-for="tool in agentTools" :key="tool.name" class="tool-row">
+        <div class="name">{{ tool.label || tool.title || tool.name }}</div>
+        <div class="desc">{{ tool.description || "暂无工具说明" }}</div>
+        <div class="desc">参数：{{ formatToolParameters(tool) }}</div>
+        <button type="button" class="run" :disabled="!selectedProjectId || agentToolSubmittingName === tool.name" @click="runListedTool(tool)">
+          运行
+        </button>
+      </div>
+    </div>
+    <p v-else class="muted-line">暂无可用只读工具</p>
 
-      <section class="agent-tool-output">
-        <p class="section-kicker">工具结果</p>
-        <pre class="answer compact-answer">{{ formatToolResult(agentToolResult) }}</pre>
-      </section>
+    <div class="tool-context-card">
+      <p class="section-kicker">工具结果</p>
+      <pre class="answer compact-answer">{{ formatToolResult(agentToolResult) }}</pre>
     </div>
 
-    <div class="agent-tools-layout">
+    <div class="tool-history">
       <section>
-        <div class="section-title-row compact">
-          <p class="section-kicker">运行历史</p>
+        <div class="col-head">
+          <span>运行历史</span>
           <button type="button" :disabled="agentToolRunsLoading || !selectedProjectId" @click="$emit('load-agent-tool-runs')">
-            {{ agentToolRunsLoading ? "刷新中..." : "刷新历史" }}
+            {{ agentToolRunsLoading ? "刷新中" : "刷新" }}
           </button>
         </div>
         <p v-if="agentToolRunsError" class="status-line error">{{ agentToolRunsError }}</p>
