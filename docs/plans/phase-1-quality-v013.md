@@ -116,9 +116,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-06 01:46
-- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`a1efe17` — docs: 补全 OpenAPI 文档元数据
-- **代码状态**：`feature/phase-1-quality`；Task 6 已提交，工作区仅剩本状态快照更新
-- **下一步**：Task 7 E2E
+- **最后更新**：2026-06-06 01:54
+- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`68d9688` — test: 增加 API E2E 流程
+- **代码状态**：`feature/phase-1-quality`；Task 7 已提交，工作区仅剩本状态快照更新
+- **下一步**：前端构建与发布收口
 - **续任务须知**：此 worktree 无本地 `.venv`，可暂用 `E:\Code\knowledage_island\.venv\Scripts\python.exe` 运行 pytest。
