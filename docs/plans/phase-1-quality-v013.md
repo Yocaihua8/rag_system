@@ -113,7 +113,7 @@
 
 - **最后更新**：2026-06-06 00:37
 - **进度**：已完成 2 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — Task 2 Qdrant
-- **代码状态**：`feature/phase-1-quality`；Task 2 完成，等待提交
+- **最新 commit**：`2adcd6e` — feat: 接入 Qdrant 向量后端
+- **代码状态**：`feature/phase-1-quality`；Task 2 已提交，工作区干净
 - **下一步**：Task 3 quality
 - **续任务须知**：此 worktree 无本地 `.venv`，可暂用 `E:\Code\knowledage_island\.venv\Scripts\python.exe` 运行 pytest。
