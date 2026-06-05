@@ -112,7 +112,7 @@
 
 - **最后更新**：2026-06-06 00:21
 - **进度**：已完成 1 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`501bec2` — fix: 启用 SQLite WAL 并恢复测试基线
+- **最新 commit**：`aaae5d5` — fix: 启用 SQLite WAL 并恢复测试基线
 - **代码状态**：`feature/phase-1-quality`；Task 1 已提交，工作区干净
 - **下一步**：Task 2 Qdrant
 - **续任务须知**：此 worktree 无本地 `.venv`，可暂用 `E:\Code\knowledage_island\.venv\Scripts\python.exe` 运行 pytest。
