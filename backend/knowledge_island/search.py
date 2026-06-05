@@ -7,7 +7,6 @@ import re
 from backend.knowledge_island.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from backend.knowledge_island.models import DocumentChunk, SearchHit
 from backend.knowledge_island.storage import KnowledgeStore
-from backend.knowledge_island.vector_index import cosine_similarity
 
 
 def search_documents(
@@ -18,9 +17,13 @@ def search_documents(
     embedding_client: EmbeddingClient | None = None,
     use_keyword: bool = True,
     use_vector: bool = True,
+    vector_backend=None,
 ) -> list[SearchHit]:
+    from backend.knowledge_island.vector_backend import get_vector_backend
+
     tokens = _tokenize(query)
     chunks = store.list_chunks(project_id)
+    chunks_by_id = {chunk.id: chunk for chunk in chunks}
     keyword_scores = _bm25_keyword_scores(chunks, tokens) if use_keyword else {}
     query_vector = {}
     if use_vector:
@@ -29,19 +32,32 @@ def search_documents(
             [query],
         )
         query_vector = query_vectors[0] if query_vectors else {}
-    vector_records = {
-        str(record["chunk_id"]): record
-        for record in store.list_chunk_vector_records(project_id)
-    }
+    ann_hits: dict[str, float] = {}
+    backend = vector_backend or get_vector_backend(store)
+    if vector_backend is None and use_vector and query_vector and not _is_bucket_vector(query_vector):
+        from backend.knowledge_island.vector_backend import SqliteVectorBackend
+
+        backend = SqliteVectorBackend(store)
+    if use_vector and query_vector:
+        ann_hits = {
+            chunk_id: score
+            for chunk_id, score in backend.search(project_id, query_vector, top_k=limit * 4)
+        }
+    candidate_ids = set(keyword_scores) | set(ann_hits)
+    if not candidate_ids:
+        candidate_ids = set(chunks_by_id)
     retrieval = _retrieval_label(use_keyword, use_vector)
     hits: list[SearchHit] = []
-    for chunk in chunks:
+    for chunk_id in candidate_ids:
+        chunk = chunks_by_id.get(chunk_id)
+        if chunk is None:
+            continue
         keyword_score = keyword_scores.get(chunk.id, 0.0)
-        vector_record = vector_records.get(chunk.id, {})
-        vector_score = (
-            cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
-            if use_vector
-            else 0.0
+        vector_score = ann_hits.get(chunk.id, 0.0) if use_vector else 0.0
+        vector_metadata = (
+            backend.metadata_for(chunk.id)
+            if hasattr(backend, "metadata_for")
+            else {}
         )
         score = keyword_score + vector_score
         hits.append(
@@ -53,8 +69,8 @@ def search_documents(
                 keyword_score=keyword_score,
                 vector_score=vector_score,
                 retrieval=retrieval,
-                vector_provider=str(vector_record.get("provider", "local")),
-                vector_model=str(vector_record.get("model", "hashing-96")),
+                vector_provider=str(vector_metadata.get("provider", "qdrant")),
+                vector_model=str(vector_metadata.get("model", "hashing-96")),
             )
         )
     hits.sort(
@@ -145,6 +161,10 @@ def _retrieval_label(use_keyword: bool, use_vector: bool) -> str:
     if use_keyword:
         return "keyword"
     return "disabled"
+
+
+def _is_bucket_vector(vector: dict[str, float]) -> bool:
+    return any(str(index) in vector for index in range(96))
 
 
 def _chunk_index(hit: SearchHit) -> int:

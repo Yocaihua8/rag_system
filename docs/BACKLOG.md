@@ -92,7 +92,7 @@
 | B-119 | research | 网页自动抓取研究 | todo | P3 | S | backlog | RAG 团队 | docs/requirements/functional-modules.md | 当前 URL 来源只做人工粘贴正文；自动抓取涉及网络、权限和依赖，暂缓 |
 | B-132 | feature | 网页自动爬取（可选依赖） | todo | P3 | XL | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 对接 `playwright` 或 `requests-html` 实现 URL 来源自动抓取；需解决动态页面、robots.txt 遵守和依赖隔离；B-119 的细化实现；预估 7 天 |
 | B-133 | feature | GitHub 仓库整体导入 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 通过 GitHub API 或 `git clone` 一键导入仓库文件；开发者核心场景；预估 5 天 |
-| B-134 | feature | Qdrant 替换 SQLite 向量存储 | doing | P2 | L | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/architecture-overview.md | SQLite 全扫描在 > 5000 chunks 时性能下降（见 ISSUE-002）；Qdrant 本地单文件模式，无服务依赖，支持 HNSW；替代 B-67；预估 5 天 |
+| B-134 | feature | Qdrant 替换 SQLite 向量存储 | done | P2 | L | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/architecture-overview.md | 已完成：新增 VectorBackend 抽象、Qdrant local mode 与 SQLite fallback；检索改为通过后端候选融合；chunk 重建同步写入向量后端；新增迁移脚本；验证 qdrant/sqlite 相关后端测试、迁移脚本和 `pytest tests/ -x` |
 | B-135 | feature | 多模型并排对比 | todo | P3 | L | backlog | RAG 团队 | docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天 |
 | B-136 | docs | OpenAPI / Swagger 接口文档 | doing | P3 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
 | B-137 | feature | Notion / Obsidian 本地导出同步 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 支持导入 Notion 导出的 Markdown zip 包和 Obsidian vault 目录；预估 4 天 |

@@ -2015,6 +2015,13 @@ class KnowledgeStore:
             self._backfill_chunk_vectors(conn)
 
     def _replace_document_chunks(self, conn: sqlite3.Connection, document: Document) -> None:
+        old_chunk_ids = [
+            row["id"]
+            for row in conn.execute(
+                "SELECT id FROM document_chunks WHERE document_id = ?",
+                (document.id,),
+            ).fetchall()
+        ]
         conn.execute("DELETE FROM document_chunks WHERE document_id = ?", (document.id,))
         chunk_rows = []
         vector_rows = []
@@ -2060,6 +2067,30 @@ class KnowledgeStore:
             """,
             vector_rows,
         )
+        self._sync_vector_backend(document, old_chunk_ids, vector_rows)
+
+    def _sync_vector_backend(
+        self,
+        document: Document,
+        old_chunk_ids: list[str],
+        vector_rows: list[tuple[str, str, str, str, str, str]],
+    ) -> None:
+        from backend.knowledge_island.vector_backend import get_vector_backend
+
+        backend = get_vector_backend(self)
+        backend.delete(old_chunk_ids, document.project_id)
+        for chunk_id, project_id, vector_json, provider, model, _updated_at in vector_rows:
+            backend.upsert(
+                chunk_id=chunk_id,
+                project_id=project_id,
+                vector=deserialize_vector(vector_json),
+                payload={
+                    "project_id": project_id,
+                    "document_id": document.id,
+                    "provider": provider,
+                    "model": model,
+                },
+            )
 
     def _backfill_document_chunks(self, conn: sqlite3.Connection) -> None:
         rows = conn.execute(
