@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from src.adapters.vector_store import chroma_store
-from src.adapters.vector_store.chroma_store import ChromaVectorStore
+from legacy.desktop.adapters.vector_store import chroma_store
+from legacy.desktop.adapters.vector_store.chroma_store import ChromaVectorStore
 
 
 def test_chroma_vector_store_uses_configured_persist_dir(

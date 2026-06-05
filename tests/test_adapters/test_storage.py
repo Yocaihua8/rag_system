@@ -10,24 +10,24 @@ from pathlib import Path
 
 import pytest
 
-from src.adapters.storage.db import create_connection, init_schema
-from src.adapters.storage.sqlite_workspace_store import SqliteWorkspaceStore
-from src.adapters.storage.sqlite_document_store import SqliteDocumentStore
-from src.adapters.storage.sqlite_chunk_store import SqliteChunkStore
-from src.adapters.storage.sqlite_task_store import SqliteTaskStore
-from src.adapters.storage.sqlite_conversation_store import SqliteConversationStore
-from src.adapters.storage.sqlite_project_knowledge_store import SqliteProjectKnowledgeStore
-from src.adapters.storage.sqlite_tag_store import SqliteTagStore, SqliteDocumentTagStore
-from src.adapters.storage.sqlite_source_store import SqliteSourceStore
-from src.adapters.storage.sqlite_knowledge_mastery_store import SqliteKnowledgeMasteryStore
-from src.adapters.storage.sqlite_graph_store import SqliteGraphStore
-from src.domain.models.chunk import Chunk
-from src.domain.models.graph import GraphEdge, GraphNode
-from src.domain.models.conversation import ConversationRecord
-from src.domain.models.document import Document
-from src.domain.models.source import Source
-from src.domain.models.tag import DocumentTag, Tag
-from src.domain.models.project_knowledge import (
+from legacy.desktop.adapters.storage.db import create_connection, init_schema
+from legacy.desktop.adapters.storage.sqlite_workspace_store import SqliteWorkspaceStore
+from legacy.desktop.adapters.storage.sqlite_document_store import SqliteDocumentStore
+from legacy.desktop.adapters.storage.sqlite_chunk_store import SqliteChunkStore
+from legacy.desktop.adapters.storage.sqlite_task_store import SqliteTaskStore
+from legacy.desktop.adapters.storage.sqlite_conversation_store import SqliteConversationStore
+from legacy.desktop.adapters.storage.sqlite_project_knowledge_store import SqliteProjectKnowledgeStore
+from legacy.desktop.adapters.storage.sqlite_tag_store import SqliteTagStore, SqliteDocumentTagStore
+from legacy.desktop.adapters.storage.sqlite_source_store import SqliteSourceStore
+from legacy.desktop.adapters.storage.sqlite_knowledge_mastery_store import SqliteKnowledgeMasteryStore
+from legacy.desktop.adapters.storage.sqlite_graph_store import SqliteGraphStore
+from legacy.desktop.domain.models.chunk import Chunk
+from legacy.desktop.domain.models.graph import GraphEdge, GraphNode
+from legacy.desktop.domain.models.conversation import ConversationRecord
+from legacy.desktop.domain.models.document import Document
+from legacy.desktop.domain.models.source import Source
+from legacy.desktop.domain.models.tag import DocumentTag, Tag
+from legacy.desktop.domain.models.project_knowledge import (
     Evidence,
     KnowledgePoint,
     MasteryRecord,
@@ -35,8 +35,8 @@ from src.domain.models.project_knowledge import (
     ProjectKnowledgePoint,
     SkillArea,
 )
-from src.domain.models.task import Task, TaskKind, TaskStatus
-from src.domain.models.workspace import Workspace
+from legacy.desktop.domain.models.task import Task, TaskKind, TaskStatus
+from legacy.desktop.domain.models.workspace import Workspace
 
 
 @pytest.fixture

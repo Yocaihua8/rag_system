@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-05-28
 > Scope：Knowledge Island Web MVP 系统级设计
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/requirements/functional-modules.md
 
@@ -24,17 +24,17 @@
 
 | 组成部分 | 职责 | 输入 | 输出 |
 |----------|------|------|------|
-| HTTP Server（webapp/server.py）| FastAPI app、请求路由、SSE 与静态文件服务 | HTTP 请求 | HTTP 响应 |
-| API Handler（webapp/api.py + webapp/routes/*）| 兼容入口、领域路由、参数校验与用例编排 | 路由请求 | JSON 响应 |
-| 知识导入（webapp/ingestion.py 等）| 文件处理、分块、向量化 | 文件/文本/URL | 文档 + chunk + vector |
-| 检索引擎（webapp/search.py）| 关键词 + 向量混合检索 | 查询词 + 参数 | Ranked chunks |
-| 问答引擎（webapp/answers.py）| LLM 调用或本地 fallback | 查询词 + chunks | 回答 + 来源列表 |
-| 存储层（webapp/storage.py）| SQLite 读写与 Schema 初始化 | 数据结构 | 持久化数据 |
-| Embedding（webapp/embeddings.py）| 向量化（API 或本地 hash）| 文本 | float 向量 |
-| LLM 客户端（webapp/llm.py）| OpenAI-compatible Chat Completions | Prompt | 回答文本 |
-| 模型 Profile（webapp/model_profiles.py）| Profile CRUD 与 Key 引用管理 | Profile 配置 | 有效配置 |
-| Agent 工具（webapp/agent_tools.py）| 只读工具执行与审计 | 工具名 + 参数 | 工具结果 + 审计记录 |
-| 静态前端（webapp/static/）| 浏览器 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
+| HTTP Server（backend/knowledge_island/server.py）| FastAPI app、请求路由、SSE 与静态文件服务 | HTTP 请求 | HTTP 响应 |
+| API Handler（backend/knowledge_island/api.py + backend/knowledge_island/routes/*）| 兼容入口、领域路由、参数校验与用例编排 | 路由请求 | JSON 响应 |
+| 知识导入（backend/knowledge_island/ingestion.py 等）| 文件处理、分块、向量化 | 文件/文本/URL | 文档 + chunk + vector |
+| 检索引擎（backend/knowledge_island/search.py）| 关键词 + 向量混合检索 | 查询词 + 参数 | Ranked chunks |
+| 问答引擎（backend/knowledge_island/answers.py）| LLM 调用或本地 fallback | 查询词 + chunks | 回答 + 来源列表 |
+| 存储层（backend/knowledge_island/storage.py）| SQLite 读写与 Schema 初始化 | 数据结构 | 持久化数据 |
+| Embedding（backend/knowledge_island/embeddings.py）| 向量化（API 或本地 hash）| 文本 | float 向量 |
+| LLM 客户端（backend/knowledge_island/llm.py）| OpenAI-compatible Chat Completions | Prompt | 回答文本 |
+| 模型 Profile（backend/knowledge_island/model_profiles.py）| Profile CRUD 与 Key 引用管理 | Profile 配置 | 有效配置 |
+| Agent 工具（backend/knowledge_island/agent_tools.py）| 只读工具执行与审计 | 工具名 + 参数 | 工具结果 + 审计记录 |
+| Vue 前端（frontend/ → backend/knowledge_island/static_dist/）| 浏览器 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
 
 ## 4. 核心流程
 
@@ -91,7 +91,7 @@
 - 核心逻辑按职责分文件（ingestion / search / answers / storage / embeddings / llm）
 - 可选依赖（如 `pymupdf`）通过隔离入口引入，失败不影响主流程
 - API 接口变更通过 `docs/design/api-spec.md` 和 `docs/design/api-changes.md` 追踪
-- 61 个 API 端点原本集中在 `api.py`；B-131 已完成领域拆分蓝图，B-138 已把普通 REST 路由迁入 `webapp/routes/*`，当前 `api.py` 剩余 `path ==` 分支为 0，仅保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口
+- 61 个 API 端点原本集中在 `api.py`；B-131 已完成领域拆分蓝图，B-138 已把普通 REST 路由迁入 `backend/knowledge_island/routes/*`，当前 `api.py` 剩余 `path ==` 分支为 0，仅保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口
 
 ### 5.4 可扩展性
 

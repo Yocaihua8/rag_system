@@ -4,11 +4,11 @@ import dataclasses
 import pytest
 from pathlib import Path
 
-from src.application.container import AppContainer
-from src.application.graph_usecases import GraphUseCase
-from src.application.workspace_usecases import WorkspaceUseCases
-from src.config.settings import load_settings
-from src.domain.errors import NotFoundError, ValidationError
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.application.graph_usecases import GraphUseCase
+from legacy.desktop.application.workspace_usecases import WorkspaceUseCases
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.domain.errors import NotFoundError, ValidationError
 
 
 def _build_container(tmp_path) -> AppContainer:

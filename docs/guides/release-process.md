@@ -2,19 +2,19 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-25
+> Last Updated：2026-05-28
 > Scope：Knowledge Island 版本发布检查与步骤
 > Related：docs/guides/testing.md, docs/guides/branch-conventions.md, CHANGELOG.md
 
 ## 1. 发布前检查
 
-- [ ] 主流程可运行：启动 `python app.py`，访问 `http://127.0.0.1:8765` 正常
+- [ ] 主流程可运行：启动 `python backend/app.py`，访问 `http://127.0.0.1:8765` 正常
 - [ ] 健康检查通过：`GET /api/health` 返回 `{"status": "ok"}`
-- [ ] 测试套件通过：`.venv\Scripts\python.exe -m pytest tests/test_webapp -q`
+- [ ] 测试套件通过：`.venv\Scripts\python.exe -m pytest tests/backend tests/frontend -q`
 - [ ] 最小验收完成：导入目录成功 → 问答返回含来源的回答
 - [ ] 文档同步完成：`requirements/*` / `design/*` / `BACKLOG.md` 与实现一致
 - [ ] `CHANGELOG.md` 已整理当前版本变更条目
-- [ ] Docker 启动验证：`docker compose up --build -d` 服务启动正常（若有 Docker 变更）
+- [ ] Docker 启动验证：`docker compose --project-directory . -f ops/docker/compose.yaml up --build -d` 服务启动正常（若有 Docker 变更）
 
 ## 2. 发布步骤
 
@@ -28,7 +28,7 @@
 ## 3. 回滚方案
 
 - **回滚条件**：启动失败、导入或问答核心链路出现阻断性错误
-- **回滚步骤**：`git checkout <上一个 tag>`，重新启动 `python app.py`
+- **回滚步骤**：`git checkout <上一个 tag>`，重新启动 `python backend/app.py`
 - **数据回滚**：SQLite 数据库文件（`runtime/docker/knowledge.db`）可手动备份和替换；无自动回滚机制
 
 ## 4. Windows 打包（可选）

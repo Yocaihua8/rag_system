@@ -1,5 +1,11 @@
 <template>
-  <AppShell :current-view="appState.currentView" @change-view="showView">
+  <AppShell
+    :current-view="appState.currentView"
+    :projects="appState.projects"
+    :selected-project-id="appState.selectedProjectId"
+    @change-view="showView"
+    @select-project="handleSelectProject"
+  >
     <component
       :is="currentViewComponent"
       :status-message="statusMessage"
@@ -15,6 +21,7 @@
       :project-mutation-error="appState.projectMutationError"
       :project-mutation-status="appState.projectMutationStatus"
       :project-status-message="projectStatusMessage"
+      :project-summary="appState.projectSummary"
       :import-submitting="appState.importSubmitting"
       :import-error="appState.importError"
       :import-status="appState.importStatus"
@@ -25,6 +32,7 @@
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
       :answer-status="appState.answerStatus"
+      :cloud-model-notice="cloudModelNotice"
       :last-answer-message-id="appState.lastAnswerMessageId"
       :answer-feedback-submitting="appState.answerFeedbackSubmitting"
       :answer-feedback-status="appState.answerFeedbackStatus"
@@ -32,6 +40,17 @@
       :current-tool-suggestion="appState.currentToolSuggestion"
       :last-usable-tool-run="appState.lastUsableToolRun"
       :current-tool-context-run-id="appState.currentToolContextRunId"
+      :chat-sessions="appState.chatSessions"
+      :selected-chat-session-id="appState.selectedChatSessionId"
+      :chat-messages="appState.chatMessages"
+      :chat-sessions-loading="appState.chatSessionsLoading"
+      :chat-sessions-error="appState.chatSessionsError"
+      :chat-messages-loading="appState.chatMessagesLoading"
+      :chat-messages-error="appState.chatMessagesError"
+      :chat-session-mutation-submitting="appState.chatSessionMutationSubmitting"
+      :chat-session-mutation-status="appState.chatSessionMutationStatus"
+      :chat-session-mutation-error="appState.chatSessionMutationError"
+      :deleting-chat-session-id="appState.deletingChatSessionId"
       :search-debug-result="appState.searchDebugResult"
       :search-debug-loading="appState.searchDebugLoading"
       :search-debug-error="appState.searchDebugError"
@@ -132,16 +151,24 @@
       :assessment-error="appState.assessmentError"
       :assessment-status="appState.assessmentStatus"
       @check-health="checkHealth"
+      @change-view="showView"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
       @create-project="handleCreateProject"
       @rename-project="handleRenameProject"
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
+      @cancel-answer="handleCancelAnswer"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
       @run-tool-suggestion="handleRunToolSuggestion"
       @use-tool-result-context="handleUseToolResultContext"
       @clear-tool-context="clearToolContextState"
+      @refresh-chat-sessions="loadChatSessions"
+      @select-chat-session="handleSelectChatSession"
+      @create-chat-session="handleCreateChatSession"
+      @rename-chat-session="handleRenameChatSession"
+      @delete-chat-session="handleDeleteChatSession"
+      @refresh-chat-messages="loadChatMessages"
       @run-search-debug="handleRunSearchDebug"
       @save-retrieval-settings="handleSaveRetrievalSettings"
       @save-retrieval-review="handleSaveRetrievalReview"
@@ -198,8 +225,15 @@ import {
   listAgentTools,
   runAgentTool,
 } from "./api/agent.js";
-import { askQuestion, submitAnswerFeedback } from "./api/answer.js";
+import { streamQuestion, submitAnswerFeedback } from "./api/answer.js";
 import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
+import {
+  createChatSession,
+  deleteChatSession,
+  listChatMessages,
+  listChatSessions,
+  renameChatSession,
+} from "./api/chat.js";
 import { apiGet } from "./api/client.js";
 import {
   addDocumentToCollection,
@@ -284,6 +318,21 @@ const projectStatusMessage = computed(() => {
   }
   const selectedProject = appState.projects.find((project) => project.id === appState.selectedProjectId);
   return selectedProject ? `当前项目：${selectedProject.name}` : "未选择项目空间";
+});
+
+const cloudModelNotice = computed(() => {
+  const defaultProfile = appState.modelProfiles.find((profile) => profile.id === appState.defaultModelProfileId);
+  if (defaultProfile?.provider === "api" && defaultProfile.has_api_key) {
+    const modelLabel = defaultProfile.name || defaultProfile.model || "DeepSeek / OpenAI-compatible API";
+    return `本轮会把检索到的来源片段发送给云端模型：${modelLabel}。`;
+  }
+
+  if (appState.llmSettings?.provider === "api" && appState.llmSettings?.has_api_key) {
+    const modelLabel = appState.llmSettings.model || "DeepSeek / OpenAI-compatible API";
+    return `本轮会把检索到的来源片段发送给云端模型：${modelLabel}。`;
+  }
+
+  return "";
 });
 
 onMounted(() => {
@@ -595,6 +644,7 @@ async function loadProjectSpaces() {
   try {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
+    await loadProjectSummary();
     await loadRetrievalSettings();
     await loadRetrievalReviews();
     await loadDocumentCollections();
@@ -602,10 +652,25 @@ async function loadProjectSpaces() {
     await loadImportBatches();
     await loadPromptPresets();
     await loadAgentToolRuns();
+    await loadChatSessions();
+    await loadChatMessages();
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
     appState.projectsLoading = false;
+  }
+}
+
+async function loadProjectSummary() {
+  appState.projectSummary = null;
+  if (!appState.selectedProjectId) {
+    return;
+  }
+  try {
+    const data = await apiGet(`/api/projects/summary?project_id=${encodeURIComponent(appState.selectedProjectId)}`);
+    appState.projectSummary = data.summary || null;
+  } catch (error) {
+    appState.projectSummary = null;
   }
 }
 
@@ -620,11 +685,13 @@ async function handleSelectProject(projectId) {
   clearRetrievalSettingsState();
   clearRetrievalReviewState();
   clearAgentToolState();
+  clearChatState();
   resetAssessmentState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
   clearDocumentDeleteStatus();
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
+  await loadProjectSummary();
   await loadDocumentCollections();
   await loadRetrievalSettings();
   await loadRetrievalReviews();
@@ -632,6 +699,8 @@ async function handleSelectProject(projectId) {
   await loadImportBatches();
   await loadPromptPresets();
   await loadAgentToolRuns();
+  await loadChatSessions();
+  await loadChatMessages();
 }
 
 async function handleCreateProject(payload) {
@@ -651,8 +720,10 @@ async function handleCreateProject(payload) {
     clearRetrievalSettingsState();
     clearRetrievalReviewState();
     clearAgentToolState();
+    clearChatState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
+    await loadProjectSummary();
     await loadDocumentCollections();
     await loadRetrievalSettings();
     await loadRetrievalReviews();
@@ -660,6 +731,8 @@ async function handleCreateProject(payload) {
     await loadImportBatches();
     await loadPromptPresets();
     await loadAgentToolRuns();
+    await loadChatSessions();
+    await loadChatMessages();
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -709,6 +782,7 @@ async function handleDeleteProject() {
 }
 
 function resetLibraryStateAfterProjectDelete() {
+  appState.projectSummary = null;
   appState.documents = [];
   appState.documentsLoadError = "";
   appState.selectedDocumentId = "";
@@ -728,6 +802,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearRetrievalSettingsState();
   clearRetrievalReviewState();
   clearAgentToolState();
+  clearChatState();
   resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
@@ -811,6 +886,7 @@ async function handleSyncDirectory() {
     appState.importStatus = formatImportResult("同步当前项目目录完成", data.result);
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadProjectSummary();
   } catch (error) {
     appState.importError = error.message || "同步当前项目目录失败";
   } finally {
@@ -846,6 +922,7 @@ async function submitLibraryImport(successMessage, action) {
     appState.importStatus = successMessage;
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadProjectSummary();
   } catch (error) {
     appState.importError = error.message || "资料导入失败";
   } finally {
@@ -916,6 +993,20 @@ function clearAgentToolState() {
   appState.lastUsableToolRun = null;
 }
 
+function clearChatState() {
+  appState.chatSessions = [];
+  appState.chatSessionsLoading = false;
+  appState.chatSessionsError = "";
+  appState.chatMessages = [];
+  appState.chatMessagesLoading = false;
+  appState.chatMessagesError = "";
+  appState.selectedChatSessionId = "";
+  appState.chatSessionMutationSubmitting = false;
+  appState.chatSessionMutationStatus = "";
+  appState.chatSessionMutationError = "";
+  appState.deletingChatSessionId = "";
+}
+
 function clearToolSuggestionState() {
   appState.currentToolSuggestion = null;
 }
@@ -969,6 +1060,114 @@ async function loadAgentToolRuns() {
   }
 }
 
+async function loadChatSessions() {
+  appState.chatSessions = [];
+  appState.chatSessionsError = "";
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.chatSessionsLoading = true;
+  try {
+    const sessions = await listChatSessions(appState.selectedProjectId);
+    appState.chatSessions = sessions;
+    if (
+      appState.selectedChatSessionId
+      && !sessions.some((session) => session.id === appState.selectedChatSessionId)
+    ) {
+      appState.selectedChatSessionId = "";
+    }
+  } catch (error) {
+    appState.chatSessionsError = error.message || "聊天会话读取失败";
+  } finally {
+    appState.chatSessionsLoading = false;
+  }
+}
+
+async function loadChatMessages() {
+  appState.chatMessages = [];
+  appState.chatMessagesError = "";
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.chatMessagesLoading = true;
+  try {
+    const messages = await listChatMessages({
+      projectId: appState.selectedProjectId,
+      sessionId: appState.selectedChatSessionId,
+    });
+    appState.chatMessages = messages;
+  } catch (error) {
+    appState.chatMessagesError = error.message || "聊天历史读取失败";
+  } finally {
+    appState.chatMessagesLoading = false;
+  }
+}
+
+async function handleSelectChatSession(sessionId) {
+  appState.selectedChatSessionId = sessionId || "";
+  await loadChatMessages();
+}
+
+async function handleCreateChatSession(title) {
+  appState.chatSessionMutationSubmitting = true;
+  appState.chatSessionMutationError = "";
+  appState.chatSessionMutationStatus = "";
+  try {
+    const session = await createChatSession({
+      projectId: appState.selectedProjectId,
+      title,
+    });
+    appState.selectedChatSessionId = session.id;
+    await loadChatSessions();
+    await loadChatMessages();
+    appState.chatSessionMutationStatus = "聊天会话已创建";
+  } catch (error) {
+    appState.chatSessionMutationError = error.message || "聊天会话创建失败";
+  } finally {
+    appState.chatSessionMutationSubmitting = false;
+  }
+}
+
+async function handleRenameChatSession(payload) {
+  appState.chatSessionMutationSubmitting = true;
+  appState.chatSessionMutationError = "";
+  appState.chatSessionMutationStatus = "";
+  try {
+    await renameChatSession(payload);
+    await loadChatSessions();
+    appState.chatSessionMutationStatus = "聊天会话已重命名";
+  } catch (error) {
+    appState.chatSessionMutationError = error.message || "聊天会话重命名失败";
+  } finally {
+    appState.chatSessionMutationSubmitting = false;
+  }
+}
+
+async function handleDeleteChatSession(sessionId) {
+  if (!window.confirm("确认删除这个聊天会话？会话内聊天记录也会被删除。")) {
+    return;
+  }
+  appState.deletingChatSessionId = sessionId;
+  appState.chatSessionMutationError = "";
+  appState.chatSessionMutationStatus = "";
+  try {
+    await deleteChatSession(sessionId);
+    if (appState.selectedChatSessionId === sessionId) {
+      appState.selectedChatSessionId = "";
+    }
+    await loadChatSessions();
+    await loadChatMessages();
+    await loadProjectSummary();
+    appState.chatSessionMutationStatus = "聊天会话已删除";
+  } catch (error) {
+    appState.chatSessionMutationError = error.message || "聊天会话删除失败";
+  } finally {
+    appState.deletingChatSessionId = "";
+  }
+}
+
 async function handleRunAgentTool(payload) {
   appState.agentToolSubmittingName = payload.toolName;
   appState.agentToolError = "";
@@ -984,6 +1183,7 @@ async function handleRunAgentTool(payload) {
     setLastUsableToolRun(data);
     appState.agentToolStatus = "工具运行完成";
     await loadAgentToolRuns();
+    await loadProjectSummary();
   } catch (error) {
     appState.agentToolError = error.message || "工具运行失败";
     appState.agentToolStatus = "工具运行失败";
@@ -1120,6 +1320,7 @@ async function handleSaveRetrievalReview(payload) {
       ...payload,
     });
     await loadRetrievalReviews();
+    await loadProjectSummary();
     appState.selectedRetrievalReview = review;
     appState.retrievalReviewStatus = "检索复盘已保存";
   } catch (error) {
@@ -1157,6 +1358,7 @@ async function handleDeleteRetrievalReview(reviewId) {
     if (appState.selectedRetrievalReview?.id === reviewId) {
       appState.selectedRetrievalReview = null;
     }
+    await loadProjectSummary();
     appState.retrievalReviewStatus = "检索复盘已删除";
   } catch (error) {
     appState.retrievalReviewError = error.message || "检索复盘删除失败";
@@ -1167,32 +1369,82 @@ async function handleDeleteRetrievalReview(reviewId) {
 }
 
 async function handleSubmitQuestion(question) {
+  closeCurrentAnswerSource();
   appState.currentQuestion = question;
   appState.answerLoading = true;
   appState.answerError = "";
   appState.answerStatus = "正在生成回答...";
+  appState.streamedAnswerText = "";
+  appState.answerResult = null;
   clearAnswerFeedbackState();
   try {
-    const data = await askQuestion({
+    appState.currentAnswerSource = streamQuestion({
       projectId: appState.selectedProjectId,
       question,
+      sessionId: appState.selectedChatSessionId,
       toolRunId: appState.currentToolContextRunId,
+      onToken: appendStreamToken,
+      onDone: finishStreamAnswer,
+      onError: failStreamAnswer,
     });
-    appState.answerResult = data;
-    appState.currentToolSuggestion = data.tool_suggestion || null;
-    if (data.tool_context) {
-      consumeToolContext();
-    }
-    appState.lastAnswerMessageId = data.message?.id || "";
-    appState.answerStatus = "回答已生成";
   } catch (error) {
-    appState.answerError = error.message || "回答生成失败";
-    appState.answerStatus = "回答生成失败";
-    appState.lastAnswerMessageId = "";
-    clearToolSuggestionState();
-  } finally {
-    appState.answerLoading = false;
+    failStreamAnswer(error);
   }
+}
+
+function appendStreamToken(token) {
+  if (!token) {
+    return;
+  }
+  appState.streamedAnswerText += token;
+  appState.answerResult = {
+    ...(appState.answerResult || {}),
+    answer: appState.streamedAnswerText,
+    mode: appState.answerResult?.mode || "api",
+    provider: appState.answerResult?.provider || "stream",
+    sources: appState.answerResult?.sources || [],
+  };
+}
+
+async function finishStreamAnswer(data) {
+  closeCurrentAnswerSource();
+  appState.answerResult = data;
+  appState.currentToolSuggestion = data.tool_suggestion || null;
+  if (data.tool_context) {
+    consumeToolContext();
+  }
+  appState.lastAnswerMessageId = data.message?.id || "";
+  appState.streamedAnswerText = data.answer || appState.streamedAnswerText;
+  appState.answerStatus = "回答已生成";
+  appState.answerLoading = false;
+  await loadChatMessages();
+  await loadProjectSummary();
+}
+
+function failStreamAnswer(error) {
+  closeCurrentAnswerSource();
+  appState.answerError = error.message || "回答生成失败";
+  appState.answerStatus = "回答生成失败";
+  appState.lastAnswerMessageId = "";
+  appState.answerLoading = false;
+  clearToolSuggestionState();
+}
+
+function handleCancelAnswer() {
+  if (!appState.currentAnswerSource) {
+    return;
+  }
+  closeCurrentAnswerSource();
+  appState.answerLoading = false;
+  appState.answerStatus = "回答已取消";
+}
+
+function closeCurrentAnswerSource() {
+  if (!appState.currentAnswerSource) {
+    return;
+  }
+  appState.currentAnswerSource.close();
+  appState.currentAnswerSource = null;
 }
 
 async function handleSubmitAnswerFeedback(rating) {
@@ -1410,6 +1662,7 @@ async function handleDeleteDocument(documentId) {
     appState.documentDeleteStatus = "文档已删除";
     await loadDocumentCollections();
     await loadLibraryDocuments();
+    await loadProjectSummary();
   } catch (error) {
     appState.documentDeleteError = error.message || "文档删除失败";
   } finally {

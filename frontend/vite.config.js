@@ -25,7 +25,7 @@ export default defineConfig({
     port: 4173,
   },
   build: {
-    outDir: path.resolve(__dirname, "../webapp/static_dist"),
+    outDir: path.resolve(__dirname, "../backend/knowledge_island/static_dist"),
     emptyOutDir: true,
   },
 });

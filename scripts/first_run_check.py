@@ -13,9 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.config.settings import load_settings
-from src.config.paths import ensure_runtime_dirs, ensure_kb_dirs
-from src.adapters.storage.db import create_connection, init_schema
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.config.paths import ensure_runtime_dirs, ensure_kb_dirs
+from legacy.desktop.adapters.storage.db import create_connection, init_schema
 
 
 @dataclass

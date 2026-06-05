@@ -8,8 +8,25 @@
 
 ## [Unreleased]
 
+## [v0.13.0] - 2026-06-06
+
 ### Added
-- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `webapp/static_dist/`
+- **Qdrant 向量后端**：新增 `VectorBackend` 抽象、Qdrant local mode 和 SQLite fallback；检索通过向量后端取 ANN 候选后与 BM25 融合，保留 `KI_VECTOR_BACKEND=sqlite` 降级路径。
+- **回答质量指标**：`chat_messages` 新增 `quality_metrics`，回答完成时记录来源覆盖率、最高检索分、是否有来源和回答长度；新增 `GET /api/projects/quality-summary`。
+- **对话分支**：`chat_messages` 新增 `parent_message_id / branch_id / is_active`，新增 `POST /api/chat/messages/branch` 和 `include_branches=true`；工作台历史用户消息支持内联编辑并派生分支。
+- **运维接口与脚本**：新增 `/api/admin/stats`、`/api/admin/rebuild-index`，以及 `ops/scripts/backup_db.sh`、`rebuild_index.sh`、`cleanup_runtime.sh`。
+- **OpenAPI 与 E2E**：FastAPI metadata 更新为 `知识岛 API` v0.13.0，生成 `docs/design/openapi.json`；新增 API E2E live server 测试和 Playwright UI 骨架。
+
+### Changed
+- **SQLite 并发策略**：每个 SQLite 连接启用 WAL、`synchronous=NORMAL` 和 `busy_timeout=5000`，降低本地读写并发时的锁冲突。
+- **前端资料库指标**：资料库 dashboard 追加“回答有来源率”，直接读取项目质量摘要接口，不修改共享 API/state 模块。
+
+### Fixed
+- **legacy 向量库兼容包**：补回 legacy desktop vector store 适配器包，恢复旧业务层测试导入路径。
+- **项目目录展示**：资料库项目空间面板优先显示 `root_path`，兼容旧 `root` 字段。
+
+### Added
+- **Vue/Vite 前端工程骨架**：新增 `frontend/` 前端工程配置和 Vite 构建链，生产构建输出到 `backend/knowledge_island/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
 - **Vue 项目空间薄片**：资料库视图新增项目空间列表、选择、最近项目恢复和新建项目空间表单，复用既有 `/api/projects` 契约
 - **Vue 项目空间改名/删除薄片**：资料库视图新增当前项目改名和删除入口，复用既有 `/api/projects/rename` 与 `/api/projects/delete` 契约；删除前提示项目内文档记录也会被删除
@@ -35,9 +52,9 @@
 - **Vue 工作台检索复盘薄片**：工作台视图新增复盘备注、保存复盘、复盘历史、详情和删除入口，复用既有 `/api/retrieval/reviews*` 契约
 - **Vue 工作台 Agent 只读工具薄片**：工作台视图新增只读工具元数据、`project_overview` / `search_sources` 手动运行、工具结果、运行历史和详情展示，复用既有 `/api/agent/tools*` 契约
 - **Vue 工作台工具来源上下文薄片**：工作台回答区新增工具建议展示、建议 `search_sources` 手动运行、工具结果标记为下一问上下文和 `tool_context` 展示，复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约
-- **B-141 Vue 前端工程化收口**：B-141A-Z 页面级迁移薄片已完成并通过收口验证；Workbench SSE/会话迁移拆为后续 B-142，legacy 静态前端继续作为 fallback
+- **B-141 Vue 前端工程化收口**：B-141A-Z 页面级迁移薄片已完成并通过收口验证；Workbench SSE/会话迁移拆为后续 B-142
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
-- **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
+- **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python backend/app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
 - **评估题模型与存储**：Web MVP 新增 `assessment_questions`、`assessment_answers`、`assessment_results`，开始评估会保存题目，提交回答会保存回答和评估结果
 - **自动出题用例**：Web MVP `/api/assessment/start` 可规则化生成概念理解、流程说明、代码定位三类题，并为每题保存轻量知识点标签和来源
@@ -47,16 +64,22 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
-- **静态前端托管策略**：FastAPI 优先服务 Vite 构建产物；构建产物缺失时回退 legacy `webapp/static/`
+- **目录命名阶段对齐**：后端包名统一为 `backend/knowledge_island/`，Web MVP 测试拆为 `tests/backend/` 与 `tests/frontend/`，legacy 桌面端归档到 `legacy/desktop/`，历史架构/发布快照归入 `docs/archive/`
+- **根目录结构收敛**：前端 npm 配置归入 `frontend/`，Docker 运维入口归入 `ops/docker/`，历史文档映射归入 `docs/template-mapping.md`
+- **前后端目录结构**：FastAPI 后端运行时代码从仓库根 `webapp/` 聚合到 `backend/knowledge_island/`，默认启动入口调整为 `backend/app.py`，Vue/Vite 构建输出调整到 `backend/knowledge_island/static_dist/`
+- **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时返回 503 构建提示，要求先运行 `npm --prefix frontend run build`
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示
 - **关键词检索评分**：Web MVP 关键词召回从 regex 词频累加改为内置 BM25 评分，降低重复常见词压过稀有命中的风险
-- **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到 `webapp/routes/*` 时保持 HTTP 契约和 `dispatch()` 入口不变
-- **API 路由拆分实施**：新增 `webapp/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`webapp/api.py` 仅保留兼容入口和 SSE 入口
+- **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到 `backend/knowledge_island/routes/*` 时保持 HTTP 契约和 `dispatch()` 入口不变
+- **API 路由拆分实施**：新增 `backend/knowledge_island/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`backend/knowledge_island/api.py` 仅保留兼容入口和 SSE 入口
 
 ### Fixed
 -
+
+### Removed
+- **legacy 静态前端 fallback**：删除原生 HTML/CSS/JS 前端和对应旧静态前端断言，前端入口统一为 Vue/Vite 构建产物
 
 ### Security
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥
@@ -126,7 +149,7 @@
 - **Docker 双击入口**：`Start-KnowledgeIsland-Docker.bat` / `Stop-KnowledgeIsland-Docker.bat`，面向非技术用户
 
 ### Changed
-- 默认入口从 PySide6 桌面端切换为本地 Web MVP（`app.py` → `webapp.server.run_server()`）；旧桌面端保留为 legacy
+- 默认入口从 PySide6 桌面端切换为本地 Web MVP（`backend/app.py` → `backend.knowledge_island.server.run_server()`）；旧桌面端保留为 legacy
 
 ---
 

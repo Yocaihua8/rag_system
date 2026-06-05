@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import pytest
 
-from src.application.container import AppContainer
-from src.application.workspace_usecases import WorkspaceUseCases
-from src.application.ingestion_usecases import IngestWorkspaceUseCase
-from src.application.generation_usecases import (
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.application.workspace_usecases import WorkspaceUseCases
+from legacy.desktop.application.ingestion_usecases import IngestWorkspaceUseCase
+from legacy.desktop.application.generation_usecases import (
     GenerateInterviewScriptUseCase,
     GenerateResumeUseCase,
     InterviewRequest,

@@ -7,7 +7,7 @@
 
 ## 1. 当前已落地实体
 
-当前默认交付形态是本地 Web MVP，其运行时直接使用 `webapp/storage.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
+当前默认交付形态是本地 Web MVP，其运行时直接使用 `backend/knowledge_island/storage.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
 
 - `projects`
 - `documents`
@@ -120,10 +120,12 @@
 - 删除项目空间时级联清理；删除会话时清理该会话下的 `chat_messages`。
 
 ### chat_messages（Web MVP）
-- `id / project_id / session_id / question / answer / mode / provider / warning / sources_json / created_at`
+- `id / project_id / session_id / question / answer / mode / provider / warning / sources_json / quality_metrics / parent_message_id / branch_id / is_active / created_at`
 - 每次 `/api/answer` 返回后写入一条记录，用于 Web 工作台按项目恢复最近问答。
 - `session_id` 可为空；为空时归入默认会话，用于兼容历史消息。
 - `sources_json` 保存本轮回答使用的来源片段快照，避免后续文档更新导致历史对话失去当时来源。
+- `quality_metrics` 保存本轮回答的轻量质量指标 JSON，包括 `source_coverage`、`retrieval_top_score`、`has_sources` 和 `answer_length`；旧记录可为空，读取时按空对象处理。
+- `parent_message_id / branch_id / is_active` 支持从历史消息派生新问题分支；默认只读取 `is_active=1` 的消息，显式包含分支时可查看被隐藏的旧后续消息。
 
 ### answer_feedback（Web MVP）
 - `id / project_id / message_id / rating / note / created_at`
@@ -163,6 +165,7 @@
 
 ## 3. 约束与策略
 
+- Web MVP 每个 SQLite 连接都会启用 `PRAGMA journal_mode=WAL`、`PRAGMA synchronous=NORMAL` 和 `PRAGMA busy_timeout=5000`，降低本地导入写入与检索/页面读取并发时出现 `database is locked` 的概率。
 - 外键删除采用 SQLite 外键级联，清理文档时联动 chunk/source/关系。
 - Web MVP 删除或重建文档时会同步删除并重建 `document_chunks`，避免旧 chunk 残留影响检索来源。
 - Web MVP 删除文档时通过外键级联清理 `document_collection_items`；删除集合不删除文档。
@@ -170,6 +173,8 @@
 - Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。Embedding API 失败时回退本地 hashing，不阻断文档入库。
 - Web MVP 删除项目空间时通过外键级联清理 `chat_messages`，避免孤立聊天记录。
 - Web MVP 删除项目空间或聊天消息时通过外键级联清理 `answer_feedback`，避免孤立回答反馈。
+- Web MVP 项目质量摘要只读取 `chat_messages.quality_metrics` 和 `answer_feedback`，不自动修改检索参数或模型配置。
+- Web MVP 对话分支会把同一会话中 parent 之后的消息标记为 `is_active=0`，并插入带新 `branch_id` 的空回答用户消息；不会删除旧消息。
 - Web MVP 删除项目空间时通过外键级联清理 `assessment_questions`、`assessment_answers` 和 `assessment_results`；删除题目时级联清理对应回答与结果。
 - Web MVP 删除项目空间时通过外键级联清理 `agent_tool_runs`，避免孤立工具审计记录。
 - Web MVP 删除项目空间时通过外键级联清理 `retrieval_reviews`，避免孤立检索复盘记录。

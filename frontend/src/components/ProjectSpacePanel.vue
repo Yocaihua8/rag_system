@@ -161,7 +161,7 @@ const selectedProjectStatus = computed(() => {
   if (selectedProject.value.root_exists === false) {
     return "项目目录不存在";
   }
-  return selectedProject.value.root || "未记录本地目录";
+  return selectedProject.value.root_path || selectedProject.value.root || "未记录本地目录";
 });
 
 function handleProjectChange(event) {

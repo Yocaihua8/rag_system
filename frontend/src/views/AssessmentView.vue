@@ -1,104 +1,88 @@
 <template>
-  <section class="view-panel assessment-view">
-    <header class="topbar">
-      <div>
-        <p class="section-kicker">评估</p>
-        <h2>掌握评估</h2>
-        <p>B-141T 已迁移评估最小闭环；回答反馈和题库管理后续迁移。</p>
+  <div class="page full">
+    <div class="eval-frame">
+      <div class="eval-head">
+        <h2>项目掌握评估 · {{ selectedProjectId || "未选择项目" }}</h2>
+        <span class="progress">— 第 {{ currentQuestionNumber }} 题 / 共 {{ totalQuestions || 0 }} 题 —</span>
       </div>
-      <button type="button" :disabled="assessmentLoading || !selectedProjectId" @click="$emit('start-assessment')">
-        {{ assessmentSession ? "重新开始" : "开始评估" }}
-      </button>
-    </header>
 
-    <p v-if="assessmentError" class="status-line error">{{ assessmentError }}</p>
-    <p class="status-line">{{ assessmentStatus || emptyStateText }}</p>
+      <div class="eval-summary">
+        <span>从已导入资料生成题目</span>
+        <span class="pill m">已掌握 {{ masteredCount }}</span>
+        <span class="pill b">基本理解 {{ partialCount }}</span>
+        <span class="pill g">需补充 {{ gapCount }}</span>
+        <button type="button" class="btn-ghost" :disabled="assessmentLoading || !selectedProjectId" @click="$emit('start-assessment')">
+          {{ assessmentSession ? "重新开始" : "开始评估" }}
+        </button>
+      </div>
 
-    <div class="assessment-grid">
-      <section class="assessment-panel">
-        <div class="section-title-row">
+      <p v-if="assessmentError" class="status-line error">{{ assessmentError }}</p>
+      <p class="status-line">{{ assessmentStatus || emptyStateText }}</p>
+
+      <div v-if="assessmentQuestion" class="question">
+        <span class="q-num">{{ romanNumerals[assessmentQuestionIndex] || currentQuestionNumber }}.</span>
+        {{ assessmentQuestion.prompt }}
+      </div>
+      <div v-if="assessmentQuestion" class="eval-meta">
+        <span>题型：{{ formatQuestionType(assessmentQuestion.question_type) }}</span>
+        <span>知识点：{{ assessmentQuestion.knowledge_point || "未命名知识点" }}</span>
+        <span>来源：{{ assessmentQuestion.source_path || "未知来源" }}</span>
+      </div>
+      <p v-else class="muted-line">请先选择项目空间并点击“开始评估”。</p>
+
+      <form @submit.prevent="submitAnswer">
+        <textarea
+          v-model.trim="assessmentAnswer"
+          class="answer-box"
+          name="assessment_answer"
+          placeholder="输入你对当前题目的回答"
+          :disabled="!assessmentQuestion || assessmentSubmitting || assessmentAnsweredCurrent"
+        ></textarea>
+        <div class="eval-actions">
+          <button type="button" class="btn-ghost" :disabled="!assessmentSession" @click="$emit('reset-assessment')">重置评估</button>
           <div>
-            <p class="section-kicker">当前题目</p>
-            <h3>第 {{ currentQuestionNumber }} / {{ totalQuestions || 0 }} 题</h3>
-          </div>
-          <button type="button" :disabled="!assessmentSession" @click="$emit('reset-assessment')">重置评估</button>
-        </div>
-
-        <div v-if="assessmentQuestion" class="assessment-question">
-          <p><strong>题型：</strong>{{ formatQuestionType(assessmentQuestion.question_type) }}</p>
-          <p><strong>知识点：</strong>{{ assessmentQuestion.knowledge_point || "未命名知识点" }}</p>
-          <p><strong>来源：</strong>{{ assessmentQuestion.source_path || "未知来源" }}</p>
-          <p class="question-prompt">{{ assessmentQuestion.prompt }}</p>
-        </div>
-        <p v-else class="muted-line">请先选择项目空间并点击“开始评估”。</p>
-
-        <form class="question-form" @submit.prevent="submitAnswer">
-          <label>
-            评估回答
-            <textarea
-              v-model.trim="assessmentAnswer"
-              name="assessment_answer"
-              placeholder="输入你对当前题目的回答"
-              :disabled="!assessmentQuestion || assessmentSubmitting || assessmentAnsweredCurrent"
-            ></textarea>
-          </label>
-          <div class="actions">
-            <button type="submit" :disabled="!assessmentQuestion || assessmentSubmitting || assessmentAnsweredCurrent">
-              {{ assessmentSubmitting ? "评估中..." : "提交回答" }}
+            <button type="submit" class="btn-ink" :disabled="!assessmentQuestion || assessmentSubmitting || assessmentAnsweredCurrent">
+              {{ assessmentSubmitting ? "评估中..." : "提交回答 ▶" }}
             </button>
-            <button type="button" :disabled="!assessmentAnsweredCurrent" @click="goNext">
+            <button type="button" class="btn-ghost" :disabled="!assessmentAnsweredCurrent" @click="goNext">
               {{ hasNextQuestion ? "下一题" : "完成评估" }}
             </button>
           </div>
-        </form>
-      </section>
-
-      <section class="assessment-panel">
-        <p class="section-kicker">结果概览</p>
-        <h3 :class="statusClass">{{ latestResult?.status || "等待评估" }}</h3>
-        <p>得分：{{ scorePercent }}</p>
-        <p v-if="latestResult?.source_path">来源：{{ latestResult.source_path }}</p>
-
-        <div class="assessment-result-list">
-          <p class="section-kicker">匹配要点</p>
-          <ul>
-            <li v-for="point in latestResult?.matched_points || []" :key="point">{{ point }}</li>
-            <li v-if="(latestResult?.matched_points || []).length === 0">暂无匹配要点</li>
-          </ul>
         </div>
+      </form>
 
-        <div class="assessment-result-list">
-          <p class="section-kicker">缺失要点</p>
-          <ul>
-            <li v-for="point in latestResult?.missing_points || []" :key="point">{{ point }}</li>
-            <li v-if="(latestResult?.missing_points || []).length === 0">暂无缺失要点</li>
-          </ul>
+      <div v-if="latestResult" :class="['verdict', verdictClass]">
+        <div class="level">{{ statusLabel(latestResult.status) }}</div>
+        <h3>结果概览 · {{ scorePercent }}</h3>
+        <div v-if="latestResult.source_path" class="ref">参考：{{ latestResult.source_path }}</div>
+        <p>匹配要点：{{ (latestResult.matched_points || []).join("；") || "暂无匹配要点" }}</p>
+        <p>缺失要点：{{ (latestResult.missing_points || []).join("；") || "暂无缺失要点" }}</p>
+      </div>
+
+      <div class="assessment-ledger">
+        <div>
+          <div class="col-head"><span>答题记录</span><span class="num">{{ assessmentResults.length }}</span></div>
+          <ol class="assessment-history">
+            <li v-for="entry in assessmentResults" :key="entry.result?.result_id || entry.question?.id">
+              <strong>{{ entry.result?.status || "未评估" }}｜{{ formatScore(entry.result?.score) }}</strong>
+              <p>{{ entry.question?.prompt || "未知题目" }}</p>
+            </li>
+            <li v-if="assessmentResults.length === 0">暂无答题记录</li>
+          </ol>
         </div>
-      </section>
-
-      <section class="assessment-panel">
-        <p class="section-kicker">答题记录</p>
-        <ol class="assessment-history">
-          <li v-for="entry in assessmentResults" :key="entry.result?.result_id || entry.question?.id">
-            <strong>{{ entry.result?.status || "未评估" }}｜{{ formatScore(entry.result?.score) }}</strong>
-            <p>{{ entry.question?.prompt || "未知题目" }}</p>
-          </li>
-          <li v-if="assessmentResults.length === 0">暂无答题记录</li>
-        </ol>
-      </section>
-
-      <section class="assessment-panel">
-        <p class="section-kicker">待复测列表</p>
-        <ol class="assessment-history">
-          <li v-for="entry in assessmentMissedQuestions" :key="entry.result?.result_id || entry.question?.id">
-            <strong>{{ entry.result?.status || "需要复测" }}</strong>
-            <p>{{ entry.question?.knowledge_point || entry.question?.source_path || "未命名题目" }}</p>
-          </li>
-          <li v-if="assessmentMissedQuestions.length === 0">暂无待复测题目</li>
-        </ol>
-      </section>
+        <div>
+          <div class="col-head"><span>待复测列表</span><span class="num">{{ assessmentMissedQuestions.length }}</span></div>
+          <ol class="assessment-history">
+            <li v-for="entry in assessmentMissedQuestions" :key="entry.result?.result_id || entry.question?.id">
+              <strong>{{ entry.result?.status || "需要复测" }}</strong>
+              <p>{{ entry.question?.knowledge_point || entry.question?.source_path || "未命名题目" }}</p>
+            </li>
+            <li v-if="assessmentMissedQuestions.length === 0">暂无待复测题目</li>
+          </ol>
+        </div>
+      </div>
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>
@@ -194,6 +178,21 @@ const statusClass = computed(() => {
   };
 });
 
+const masteredCount = computed(() => props.assessmentResults.filter((entry) => entry.result?.status === "已掌握").length);
+const partialCount = computed(() => props.assessmentResults.filter((entry) => entry.result?.status === "基本理解").length);
+const gapCount = computed(() => props.assessmentResults.filter((entry) => ["需要补充", "暂未掌握"].includes(entry.result?.status)).length);
+const verdictClass = computed(() => {
+  const status = latestResult.value?.status || "";
+  if (status === "已掌握") {
+    return "mastered";
+  }
+  if (status === "需要补充" || status === "暂未掌握") {
+    return "gap";
+  }
+  return "partial";
+});
+const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
+
 const emptyStateText = computed(() => {
   if (!props.selectedProjectId) {
     return "未选择项目空间";
@@ -224,5 +223,14 @@ function formatQuestionType(questionType) {
 function formatScore(score) {
   const value = Number(score ?? 0);
   return `${Math.round(value * 100)}%`;
+}
+
+function statusLabel(status) {
+  return {
+    已掌握: "○ 已掌握",
+    基本理解: "○ 基本理解",
+    需要补充: "○ 需要补充",
+    暂未掌握: "○ 暂未掌握",
+  }[status] || "○ 等待评估";
 }
 </script>

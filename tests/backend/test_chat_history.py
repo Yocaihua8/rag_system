@@ -1,0 +1,263 @@
+from pathlib import Path
+
+from backend.knowledge_island.api import dispatch
+from backend.knowledge_island.storage import KnowledgeStore
+
+
+def test_answer_api_persists_project_chat_message_with_sources(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口是 app.py，本地 Web 服务负责页面和 API。",
+    )
+
+    answer_response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "默认入口是什么？"},
+    )
+    history_response = dispatch(store, "GET", f"/api/chat/messages?project_id={project.id}")
+
+    assert answer_response.status == 200
+    assert history_response.status == 200
+    assert len(history_response.body["messages"]) == 1
+    message = history_response.body["messages"][0]
+    assert message["project_id"] == project.id
+    assert message["question"] == "默认入口是什么？"
+    assert "app.py" in message["answer"]
+    assert message["mode"] == "local"
+    assert message["provider"] == "local"
+    assert message["warning"] == ""
+    assert message["sources"][0]["path"] == "stack.md"
+    assert message["sources"][0]["score"] > 0
+    assert message["created_at"]
+
+
+def test_chat_history_api_rejects_missing_project(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch(store, "GET", "/api/chat/messages?project_id=missing")
+
+    assert response.status == 404
+    assert response.body["error"] == "project not found"
+
+
+def test_chat_message_delete_api_removes_only_requested_message(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+    first = store.create_chat_message(project.id, "问题一", "回答一", "local", "local", "", [])
+    second = store.create_chat_message(project.id, "问题二", "回答二", "local", "local", "", [])
+
+    response = dispatch(store, "POST", "/api/chat/messages/delete", {"message_id": first.id})
+
+    assert response.status == 200
+    assert response.body["deleted"] is True
+    assert [message["id"] for message in response.body["messages"]] == [second.id]
+    assert [message.id for message in store.list_chat_messages(project.id)] == [second.id]
+
+
+def test_chat_message_delete_api_rejects_missing_or_unknown_message(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    missing_id_response = dispatch(store, "POST", "/api/chat/messages/delete", {})
+    unknown_response = dispatch(store, "POST", "/api/chat/messages/delete", {"message_id": "missing"})
+
+    assert missing_id_response.status == 400
+    assert missing_id_response.body["error"] == "message_id is required"
+    assert unknown_response.status == 404
+    assert unknown_response.body["error"] == "chat message not found"
+
+
+def test_chat_messages_clear_api_removes_only_current_project_messages(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path / "a")
+    other_project = store.create_project("其他项目", tmp_path / "b")
+    store.create_chat_message(project.id, "问题一", "回答一", "local", "local", "", [])
+    store.create_chat_message(project.id, "问题二", "回答二", "local", "local", "", [])
+    other_message = store.create_chat_message(other_project.id, "其他问题", "其他回答", "local", "local", "", [])
+
+    response = dispatch(store, "POST", "/api/chat/messages/clear", {"project_id": project.id})
+
+    assert response.status == 200
+    assert response.body == {"deleted": 2, "messages": []}
+    assert store.list_chat_messages(project.id) == []
+    assert [message.id for message in store.list_chat_messages(other_project.id)] == [other_message.id]
+
+
+def test_chat_messages_clear_api_rejects_missing_or_unknown_project(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    missing_id_response = dispatch(store, "POST", "/api/chat/messages/clear", {})
+    unknown_response = dispatch(store, "POST", "/api/chat/messages/clear", {"project_id": "missing"})
+
+    assert missing_id_response.status == 400
+    assert missing_id_response.body["error"] == "project_id is required"
+    assert unknown_response.status == 404
+    assert unknown_response.body["error"] == "project not found"
+
+
+def test_chat_sessions_api_creates_lists_renames_and_deletes_sessions(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+
+    create_response = dispatch(
+        store,
+        "POST",
+        "/api/chat/sessions",
+        {"project_id": project.id, "title": "架构说明"},
+    )
+    session_id = create_response.body["session"]["id"]
+    list_response = dispatch(store, "GET", f"/api/chat/sessions?project_id={project.id}")
+    rename_response = dispatch(
+        store,
+        "POST",
+        "/api/chat/sessions/rename",
+        {"session_id": session_id, "title": "接口排查"},
+    )
+    delete_response = dispatch(
+        store,
+        "POST",
+        "/api/chat/sessions/delete",
+        {"session_id": session_id},
+    )
+
+    assert create_response.status == 200
+    assert create_response.body["session"]["project_id"] == project.id
+    assert create_response.body["session"]["title"] == "架构说明"
+    assert list_response.body["sessions"][0]["id"] == session_id
+    assert rename_response.body["session"]["title"] == "接口排查"
+    assert delete_response.status == 200
+    assert delete_response.body["deleted"] is True
+    assert delete_response.body["sessions"] == []
+
+
+def test_chat_session_messages_are_scoped_and_legacy_messages_remain_default(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "继续说明架构。")
+    session = store.create_chat_session(project.id, "架构说明")
+    legacy = store.create_chat_message(project.id, "旧问题", "旧回答", "local", "local", "", [])
+    scoped = store.create_chat_message(
+        project.id,
+        "会话问题",
+        "会话回答",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=session.id,
+    )
+
+    default_response = dispatch(store, "GET", f"/api/chat/messages?project_id={project.id}")
+    session_response = dispatch(
+        store,
+        "GET",
+        f"/api/chat/messages?project_id={project.id}&session_id={session.id}",
+    )
+
+    assert [message["id"] for message in default_response.body["messages"]] == [legacy.id]
+    assert [message["id"] for message in session_response.body["messages"]] == [scoped.id]
+    assert session_response.body["messages"][0]["session_id"] == session.id
+
+
+def test_answer_api_writes_to_chat_session_and_uses_session_history(tmp_path: Path):
+    class FakeLlmClient:
+        provider = "deepseek"
+
+        def __init__(self):
+            self.history_questions = []
+
+        def generate_answer(self, question, hits, history_messages=None):
+            self.history_questions = [message.question for message in history_messages or []]
+            return "会话回答"
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "继续说明架构。")
+    session = store.create_chat_session(project.id, "架构说明")
+    other_session = store.create_chat_session(project.id, "接口排查")
+    store.create_chat_message(project.id, "默认旧问题", "默认旧回答", "local", "local", "", [])
+    store.create_chat_message(project.id, "会话旧问题", "会话旧回答", "local", "local", "", [], session_id=session.id)
+    store.create_chat_message(project.id, "其他会话问题", "其他会话回答", "local", "local", "", [], session_id=other_session.id)
+    client = FakeLlmClient()
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {"project_id": project.id, "question": "继续说明", "session_id": session.id},
+        llm_client=client,
+    )
+
+    assert response.status == 200
+    assert response.body["message"]["session_id"] == session.id
+    assert client.history_questions == ["会话旧问题"]
+
+
+def test_chat_session_api_rejects_cross_project_session(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    other_dir = tmp_path / "other"
+    project_dir.mkdir()
+    other_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    other_project = store.create_project("其他项目", other_dir)
+    other_session = store.create_chat_session(other_project.id, "其他会话")
+
+    response = dispatch(
+        store,
+        "GET",
+        f"/api/chat/messages?project_id={project.id}&session_id={other_session.id}",
+    )
+
+    assert response.status == 404
+    assert response.body["error"] == "chat session not found"
+
+
+def test_chat_message_delete_returns_current_session_messages(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+    session = store.create_chat_session(project.id, "架构说明")
+    first = store.create_chat_message(project.id, "问题一", "回答一", "local", "local", "", [], session_id=session.id)
+    second = store.create_chat_message(project.id, "问题二", "回答二", "local", "local", "", [], session_id=session.id)
+    store.create_chat_message(project.id, "默认问题", "默认回答", "local", "local", "", [])
+
+    response = dispatch(store, "POST", "/api/chat/messages/delete", {"message_id": first.id})
+
+    assert response.status == 200
+    assert [message["id"] for message in response.body["messages"]] == [second.id]
+
+
+def test_branch_chat_message_hides_following_messages_by_default(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+    session = store.create_chat_session(project.id, "架构说明")
+    first = store.create_chat_message(project.id, "问题一", "回答一", "local", "local", "", [], session_id=session.id)
+    second = store.create_chat_message(project.id, "问题二", "回答二", "local", "local", "", [], session_id=session.id)
+    third = store.create_chat_message(project.id, "问题三", "回答三", "local", "local", "", [], session_id=session.id)
+
+    branch_id = store.branch_chat_message(session.id, first.id, "改写后的问题")
+
+    active_messages = store.list_chat_messages(project.id, session.id)
+    all_messages = store.list_chat_messages(project.id, session.id, include_branches=True)
+
+    assert branch_id
+    assert [message.id for message in active_messages] == [first.id, branch_id]
+    assert active_messages[1].question == "改写后的问题"
+    assert active_messages[1].answer == ""
+    assert active_messages[1].parent_message_id == first.id
+    assert active_messages[1].branch_id != "main"
+    assert [message.id for message in all_messages] == [first.id, second.id, third.id, branch_id]
+    assert [message.is_active for message in all_messages] == [True, False, False, True]

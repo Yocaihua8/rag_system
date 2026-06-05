@@ -10,14 +10,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.adapters.storage.db import create_connection, init_schema
-from src.adapters.storage.sqlite_document_store import SqliteDocumentStore
-from src.adapters.storage.sqlite_tag_store import SqliteTagStore, SqliteDocumentTagStore
-from src.adapters.storage.sqlite_source_store import SqliteSourceStore
-from src.adapters.storage.sqlite_workspace_store import SqliteWorkspaceStore
-from src.application.tag_source_usecases import DocumentTaggingUseCase, SourceUseCase
-from src.domain.models.document import Document
-from src.domain.models.workspace import Workspace
+from legacy.desktop.adapters.storage.db import create_connection, init_schema
+from legacy.desktop.adapters.storage.sqlite_document_store import SqliteDocumentStore
+from legacy.desktop.adapters.storage.sqlite_tag_store import SqliteTagStore, SqliteDocumentTagStore
+from legacy.desktop.adapters.storage.sqlite_source_store import SqliteSourceStore
+from legacy.desktop.adapters.storage.sqlite_workspace_store import SqliteWorkspaceStore
+from legacy.desktop.application.tag_source_usecases import DocumentTaggingUseCase, SourceUseCase
+from legacy.desktop.domain.models.document import Document
+from legacy.desktop.domain.models.workspace import Workspace
 
 
 import pytest

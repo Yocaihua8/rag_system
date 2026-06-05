@@ -22,7 +22,7 @@ Thumbs.db
 node_modules/
 frontend/dist/
 frontend/build/
-webapp/static_dist/
+backend/knowledge_island/static_dist/
 
 # Runtime outputs
 runtime/**
@@ -36,8 +36,8 @@ cache/
 temp/
 tmp/
 uploads/
-vector_store/
-vectorstore/
+/vector_store/
+/vectorstore/
 
 # Python test artifacts
 .pytest_cache/

@@ -1,0 +1,2 @@
+"""Legacy vector store adapters."""
+

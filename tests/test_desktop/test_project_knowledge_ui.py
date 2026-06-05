@@ -6,14 +6,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel, QLineEdit, QPushButton
 
-from src.desktop.views.assessment_view import AssessmentView
-from src.desktop.views.guide_view import GuideView
-from src.desktop.views.ingestion_view import IngestionView
-from src.desktop.views.main_window import MainWindow
-from src.desktop.views.query_view import QueryView
-from src.desktop.views.workspace_view import WorkspaceView, _CreateWorkspaceDialog
-from src.application.knowledge_mastery_usecases import AbilityGapReport
-from src.domain.models.workspace import Workspace
+from legacy.desktop.desktop.views.assessment_view import AssessmentView
+from legacy.desktop.desktop.views.guide_view import GuideView
+from legacy.desktop.desktop.views.ingestion_view import IngestionView
+from legacy.desktop.desktop.views.main_window import MainWindow
+from legacy.desktop.desktop.views.query_view import QueryView
+from legacy.desktop.desktop.views.workspace_view import WorkspaceView, _CreateWorkspaceDialog
+from legacy.desktop.application.knowledge_mastery_usecases import AbilityGapReport
+from legacy.desktop.domain.models.workspace import Workspace
 
 
 def _app() -> QApplication:

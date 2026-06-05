@@ -2,15 +2,15 @@
 
 > 状态：Implemented
 > Owner：RAG 团队
-> Last Updated：2026-05-26
-> Scope：B-131 / B-138，规划并实施 `webapp/api.py` 按领域拆分的迁移边界
+> Last Updated：2026-05-28
+> Scope：B-131 / B-138，规划并实施 `backend/knowledge_island/api.py` 按领域拆分的迁移边界
 > Related：docs/design/architecture-overview.md, docs/design/api-spec.md, docs/guides/testing.md
 
 ## 1. 目标
 
-B-131 形成蓝图时，`webapp/api.py` 同时承担 61 个 `/api/*` 路由分发、参数校验、响应封装和部分跨模块 helper。B-138 已按领域完成迁移：普通 REST 路由已迁入 `webapp/routes/*`，`webapp/api.py` 当前只保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口，剩余 `path ==` 路由分支为 0。外部 HTTP 契约、`webapp.api.dispatch()` 入口和 SSE 入口保持不变。
+B-131 形成蓝图时，`backend/knowledge_island/api.py` 同时承担 61 个 `/api/*` 路由分发、参数校验、响应封装和部分跨模块 helper。B-138 已按领域完成迁移：普通 REST 路由已迁入 `backend/knowledge_island/routes/*`，`backend/knowledge_island/api.py` 当前只保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口，剩余 `path ==` 路由分支为 0。外部 HTTP 契约、`backend.knowledge_island.api.dispatch()` 入口和 SSE 入口保持不变。
 
-B-138 拆分阶段仍保留本地 Web MVP 的轻量边界：不引入 FastAPI / Flask，不新增运行时依赖，不改变 `webapp.server` 到 API 层的调用方式。B-139 之后运行时已切换为 FastAPI + Uvicorn，但本蓝图记录的 `webapp.api.dispatch()` 与 `webapp/routes/*` 兼容分发边界继续保留。
+B-138 拆分阶段仍保留本地 Web MVP 的轻量边界：不引入 FastAPI / Flask，不新增运行时依赖，不改变 `backend.knowledge_island.server` 到 API 层的调用方式。B-139 之后运行时已切换为 FastAPI + Uvicorn，但本蓝图记录的 `backend.knowledge_island.api.dispatch()` 与 `backend/knowledge_island/routes/*` 兼容分发边界继续保留。
 
 ## 2. 非目标
 
@@ -39,7 +39,7 @@ B-138 拆分阶段仍保留本地 Web MVP 的轻量边界：不引入 FastAPI / 
 ## 4. 目标结构
 
 ```text
-webapp/
+backend/knowledge_island/
 ├── api.py                  # 兼容入口：解析 raw_path，调用 route registry
 ├── api_support.py          # 共享请求解析、类型转换、检索设置与来源质量 helper
 ├── answer_api.py           # POST /api/answer 与 SSE 共用的回答上下文组装 helper
@@ -58,7 +58,7 @@ webapp/
     └── export.py           # 已迁移 project export / restore 全组
 ```
 
-`webapp/api.py` 继续暴露：
+`backend/knowledge_island/api.py` 继续暴露：
 
 - `dispatch(store, method, raw_path, payload=None, llm_client=None) -> ApiResponse`
 - `answer_stream_events(store, query, llm_client=None)`
@@ -81,23 +81,23 @@ webapp/
 ## 6. 行为不变约束
 
 - `docs/design/api-spec.md` 中的端点、字段和错误文案是拆分验收基线。
-- `tests/test_webapp/test_api.py` 不应为拆分而改变断言语义；只允许在必要时调整 import 路径。
+- `tests/backend/test_api.py` 不应为拆分而改变断言语义；只允许在必要时调整 import 路径。
 - 所有路由仍返回 `ApiResponse`，不直接返回 dict 或 HTTP 状态元组。
 - 所有数据库访问仍经 `KnowledgeStore` 方法完成。
 - `llm_client` 测试注入路径必须保持可用，特别是 `/api/answer`、`/api/answer/stream` 和 model profile 测试。
-- `server.py` 不应知道具体领域路由模块，只依赖 `webapp.api` 的兼容入口。
+- `server.py` 不应知道具体领域路由模块，只依赖 `backend.knowledge_island.api` 的兼容入口。
 
 ## 7. 测试要求
 
 拆分实现任务至少运行：
 
 ```powershell
-.venv\Scripts\python.exe -m pytest tests\test_webapp -q
+.venv\Scripts\python.exe -m pytest tests\backend tests\frontend -q
 .venv\Scripts\python.exe -m pytest tests\test_application tests\test_domain tests\test_adapters -q
 git diff --check
 ```
 
-每迁移一个领域模块，优先运行对应的 `tests/test_webapp/test_api.py` 局部用例；全部迁移完成后再运行上面的全量命令。
+每迁移一个领域模块，优先运行对应的 `tests/backend/test_api.py` 局部用例；全部迁移完成后再运行上面的全量命令。
 
 ## 8. 风险与回滚
 
@@ -114,17 +114,17 @@ git diff --check
 
 | 日期 | 范围 | 状态 |
 |------|------|------|
-| 2026-05-26 | `webapp/routes/__init__.py` route registry、`webapp/routes/health.py`、`GET /api/health` | 已落地；`webapp.api.dispatch()` 先尝试 registry，未匹配时继续走旧分支 |
-| 2026-05-26 | `webapp/api_support.py`、`webapp/routes/projects.py`、`GET /api/projects/summary`、`webapp/routes/agent.py`、`GET /api/agent/tools` | 已落地；`api.py` 中对应旧分支已删除，剩余 58 个 `path ==` 分支 |
-| 2026-05-26 | `GET /api/projects`、`POST /api/projects`、`POST /api/projects/rename`、`POST /api/projects/delete`、`GET/POST /api/projects/retrieval-settings` | 已落地；projects 组全部迁入 `webapp/routes/projects.py`，`api.py` 剩余 52 个 `path ==` 分支 |
-| 2026-05-26 | `GET/POST /api/settings/llm`、`POST /api/settings/llm/test`、model profiles 全组、prompt presets 全组 | 已落地；settings 组全部迁入 `webapp/routes/settings.py`，`api.py` 剩余 38 个 `path ==` 分支 |
-| 2026-05-26 | `GET /api/documents`、`GET /api/document`、`POST /api/documents/delete`、document collections 全组 | 已落地；documents 组全部迁入 `webapp/routes/documents.py`，`api.py` 剩余 29 个 `path ==` 分支 |
-| 2026-05-26 | `POST /api/import`、`GET /api/import/preview`、`POST /api/import/upload`、`POST /api/import/note`、`POST /api/import/url`、`GET /api/import/batches`、`GET /api/import/batches/detail` | 已落地；imports 组全部迁入 `webapp/routes/imports.py`，`api.py` 剩余 22 个 `path ==` 分支 |
-| 2026-05-26 | `POST /api/search`、`POST /api/search/debug`、retrieval reviews 全组 | 已落地；search 组全部迁入 `webapp/routes/search.py`，`api.py` 剩余 16 个 `path ==` 分支 |
-| 2026-05-26 | `GET /api/agent/tools/runs`、`GET /api/agent/tools/runs/detail`、`POST /api/agent/tools/run` | 已落地；agent 组全部迁入 `webapp/routes/agent.py`，`api.py` 剩余 13 个 `path ==` 分支 |
-| 2026-05-26 | chat sessions / messages 全组 | 已落地；chat 组全部迁入 `webapp/routes/chat.py`，`api.py` 剩余 6 个 `path ==` 分支 |
-| 2026-05-26 | assessment 全组 | 已落地；assessment 组全部迁入 `webapp/routes/assessment.py`，`api.py` 剩余 4 个 `path ==` 分支 |
-| 2026-05-26 | project export / restore 全组 | 已落地；export 组全部迁入 `webapp/routes/export.py`，`api.py` 剩余 2 个 `path ==` 分支 |
-| 2026-05-26 | `POST /api/answer`、`POST /api/answer/feedback` | 已落地；answer 组迁入 `webapp/routes/answers.py`，回答上下文 helper 抽到 `webapp/answer_api.py`，`api.py` 剩余 0 个 `path ==` 分支 |
+| 2026-05-26 | `backend/knowledge_island/routes/__init__.py` route registry、`backend/knowledge_island/routes/health.py`、`GET /api/health` | 已落地；`backend.knowledge_island.api.dispatch()` 先尝试 registry，未匹配时继续走旧分支 |
+| 2026-05-26 | `backend/knowledge_island/api_support.py`、`backend/knowledge_island/routes/projects.py`、`GET /api/projects/summary`、`backend/knowledge_island/routes/agent.py`、`GET /api/agent/tools` | 已落地；`api.py` 中对应旧分支已删除，剩余 58 个 `path ==` 分支 |
+| 2026-05-26 | `GET /api/projects`、`POST /api/projects`、`POST /api/projects/rename`、`POST /api/projects/delete`、`GET/POST /api/projects/retrieval-settings` | 已落地；projects 组全部迁入 `backend/knowledge_island/routes/projects.py`，`api.py` 剩余 52 个 `path ==` 分支 |
+| 2026-05-26 | `GET/POST /api/settings/llm`、`POST /api/settings/llm/test`、model profiles 全组、prompt presets 全组 | 已落地；settings 组全部迁入 `backend/knowledge_island/routes/settings.py`，`api.py` 剩余 38 个 `path ==` 分支 |
+| 2026-05-26 | `GET /api/documents`、`GET /api/document`、`POST /api/documents/delete`、document collections 全组 | 已落地；documents 组全部迁入 `backend/knowledge_island/routes/documents.py`，`api.py` 剩余 29 个 `path ==` 分支 |
+| 2026-05-26 | `POST /api/import`、`GET /api/import/preview`、`POST /api/import/upload`、`POST /api/import/note`、`POST /api/import/url`、`GET /api/import/batches`、`GET /api/import/batches/detail` | 已落地；imports 组全部迁入 `backend/knowledge_island/routes/imports.py`，`api.py` 剩余 22 个 `path ==` 分支 |
+| 2026-05-26 | `POST /api/search`、`POST /api/search/debug`、retrieval reviews 全组 | 已落地；search 组全部迁入 `backend/knowledge_island/routes/search.py`，`api.py` 剩余 16 个 `path ==` 分支 |
+| 2026-05-26 | `GET /api/agent/tools/runs`、`GET /api/agent/tools/runs/detail`、`POST /api/agent/tools/run` | 已落地；agent 组全部迁入 `backend/knowledge_island/routes/agent.py`，`api.py` 剩余 13 个 `path ==` 分支 |
+| 2026-05-26 | chat sessions / messages 全组 | 已落地；chat 组全部迁入 `backend/knowledge_island/routes/chat.py`，`api.py` 剩余 6 个 `path ==` 分支 |
+| 2026-05-26 | assessment 全组 | 已落地；assessment 组全部迁入 `backend/knowledge_island/routes/assessment.py`，`api.py` 剩余 4 个 `path ==` 分支 |
+| 2026-05-26 | project export / restore 全组 | 已落地；export 组全部迁入 `backend/knowledge_island/routes/export.py`，`api.py` 剩余 2 个 `path ==` 分支 |
+| 2026-05-26 | `POST /api/answer`、`POST /api/answer/feedback` | 已落地；answer 组迁入 `backend/knowledge_island/routes/answers.py`，回答上下文 helper 抽到 `backend/knowledge_island/answer_api.py`，`api.py` 剩余 0 个 `path ==` 分支 |
 
 说明：`api_support.py` 只承载跨路由复用的 query 读取、数值/布尔解析、默认检索设置、来源质量和设置测试 helper；回答链路中 `POST /api/answer` 与 SSE 共用的上下文准备逻辑单独放入 `answer_api.py`，避免 `routes/answers.py` 与 `api.py` 循环依赖。

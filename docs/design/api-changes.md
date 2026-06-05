@@ -8,4 +8,4 @@
 
 | 日期 | 变更 | 影响范围 | 风险 |
 |------|------|---------|------|
-| 2026-05-16 | 文档模型与用例接口扩展（Markdown 安全链路、增量删除） | `src/application` 与 `src/domain` 数据形态 | 行为兼容层通过 `Workspace` 兼容 |
+| 2026-05-16 | 文档模型与用例接口扩展（Markdown 安全链路、增量删除） | `legacy/desktop/application` 与 `legacy/desktop/domain` 数据形态 | 行为兼容层通过 `Workspace` 兼容 |
