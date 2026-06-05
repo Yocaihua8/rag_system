@@ -4,6 +4,7 @@ from typing import Any
 
 from backend.knowledge_island.models import ApiResponse
 from backend.knowledge_island.routes.agent import handle_agent_route
+from backend.knowledge_island.routes.admin import handle_admin_route
 from backend.knowledge_island.routes.answers import handle_answer_route
 from backend.knowledge_island.routes.assessment import handle_assessment_route
 from backend.knowledge_island.routes.chat import handle_chat_route
@@ -51,6 +52,10 @@ def dispatch_to_routes(
     agent_response = handle_agent_route(store, method, path, query, payload)
     if agent_response is not None:
         return agent_response
+
+    admin_response = handle_admin_route(store, method, path, query, payload)
+    if admin_response is not None:
+        return admin_response
 
     chat_response = handle_chat_route(store, method, path, query, payload)
     if chat_response is not None:

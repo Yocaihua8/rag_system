@@ -3,6 +3,7 @@ from pathlib import Path
 from backend.knowledge_island.api import dispatch
 from backend.knowledge_island.routes import dispatch_to_routes
 from backend.knowledge_island.routes.agent import handle_agent_route
+from backend.knowledge_island.routes.admin import handle_admin_route
 from backend.knowledge_island.routes.answers import handle_answer_route
 from backend.knowledge_island.routes.assessment import handle_assessment_route
 from backend.knowledge_island.routes.chat import handle_chat_route
@@ -47,6 +48,38 @@ def test_dispatch_keeps_health_api_contract(tmp_path):
 
     assert response.status == 200
     assert response.body == {"status": "ok"}
+
+
+def test_admin_route_module_handles_stats_and_rebuild_index(tmp_path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "默认入口是 app.py。")
+
+    stats_response = handle_admin_route(store, "GET", "/api/admin/stats", {}, {})
+    rebuild_response = handle_admin_route(store, "POST", "/api/admin/rebuild-index", {}, {})
+
+    assert stats_response is not None
+    assert stats_response.status == 200
+    assert stats_response.body["project_count"] == 1
+    assert stats_response.body["chunk_count"] == 1
+    assert stats_response.body["vector_count"] == 1
+    assert stats_response.body["db_size_bytes"] > 0
+    assert rebuild_response is not None
+    assert rebuild_response.status == 200
+    assert rebuild_response.body == {"status": "rebuild complete"}
+    assert handle_admin_route(store, "GET", "/api/admin/unknown", {}, {}) is None
+
+
+def test_route_registry_dispatches_admin_stats(tmp_path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    response = dispatch_to_routes(store, "GET", "/api/admin/stats", {}, {}, llm_client=None)
+
+    assert response is not None
+    assert response.status == 200
+    assert "chunk_count" in response.body
 
 
 def test_projects_route_module_handles_project_summary(tmp_path):
