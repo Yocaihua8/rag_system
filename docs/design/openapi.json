@@ -1,0 +1,84 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "知识岛 API",
+    "description": "本地优先的个人 AI 知识库 REST API（Knowledge Island）",
+    "version": "0.13.0"
+  },
+  "paths": {
+    "/api/answer/stream": {
+      "get": {
+        "tags": [
+          "answer"
+        ],
+        "summary": "流式生成回答",
+        "operationId": "answer_stream_api_answer_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/token": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "签发认证 Token",
+        "operationId": "auth_token_api_auth_token_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/{path}": {
+      "get": {
+        "tags": [
+          "api"
+        ],
+        "summary": "分发 GET API 请求",
+        "operationId": "api_dispatch_get_api__path__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "api"
+        ],
+        "summary": "分发 POST API 请求",
+        "operationId": "api_dispatch_post_api__path__post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

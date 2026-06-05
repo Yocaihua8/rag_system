@@ -63,3 +63,21 @@ def test_fastapi_app_streams_answer_as_sse(tmp_path):
     assert response.headers["content-type"].startswith("text/event-stream")
     assert "event: token" in response.text
     assert "event: done" in response.text
+
+
+def test_fastapi_openapi_metadata_and_summaries(tmp_path):
+    client = _client(tmp_path / "app.db")
+
+    schema = client.get("/openapi.json").json()
+
+    assert schema["info"]["title"] == "知识岛 API"
+    assert schema["info"]["version"] == "0.13.0"
+    assert "本地优先" in schema["info"]["description"]
+    operations = [
+        operation
+        for path_item in schema["paths"].values()
+        for method, operation in path_item.items()
+        if method.lower() in {"get", "post", "put", "patch", "delete"}
+    ]
+    assert operations
+    assert all(operation.get("summary") for operation in operations)

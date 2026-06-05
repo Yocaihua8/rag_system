@@ -28,7 +28,13 @@ def create_app(
 ) -> FastAPI:
     knowledge_store = store or KnowledgeStore(db_path or default_db_path())
     auth_config = auth_settings or load_auth_settings()
-    app = FastAPI(title="Knowledge Island", docs_url="/docs", redoc_url="/redoc")
+    app = FastAPI(
+        title="知识岛 API",
+        description="本地优先的个人 AI 知识库 REST API（Knowledge Island）",
+        version="0.13.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+    )
     app.state.knowledge_store = knowledge_store
     app.state.auth_settings = auth_config
 
@@ -41,7 +47,7 @@ def create_app(
             return _auth_error_response(INVALID_CREDENTIALS)
         return await call_next(request)
 
-    @app.get("/api/answer/stream")
+    @app.get("/api/answer/stream", summary="流式生成回答", tags=["answer"])
     async def answer_stream(request: Request) -> StreamingResponse:
         return StreamingResponse(
             _answer_stream_bytes(knowledge_store, _raw_path(request)),
@@ -49,7 +55,7 @@ def create_app(
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
         )
 
-    @app.post("/api/auth/token")
+    @app.post("/api/auth/token", summary="签发认证 Token", tags=["auth"])
     async def auth_token(request: Request) -> JSONResponse:
         if not auth_config.enabled:
             return JSONResponse(status_code=404, content={"error": "not found"})
@@ -66,10 +72,17 @@ def create_app(
             }
         )
 
-    @app.api_route("/api/{path:path}", methods=["GET", "POST"])
-    async def api_dispatch(request: Request) -> JSONResponse:
+    @app.get("/api/{path:path}", summary="分发 GET API 请求", tags=["api"])
+    async def api_dispatch_get(request: Request) -> JSONResponse:
+        return await _api_dispatch_response(knowledge_store, request)
+
+    @app.post("/api/{path:path}", summary="分发 POST API 请求", tags=["api"])
+    async def api_dispatch_post(request: Request) -> JSONResponse:
+        return await _api_dispatch_response(knowledge_store, request)
+
+    async def _api_dispatch_response(store: KnowledgeStore, request: Request) -> JSONResponse:
         response = dispatch(
-            knowledge_store,
+            store,
             request.method,
             _raw_path(request),
             await _json_payload(request),

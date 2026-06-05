@@ -94,7 +94,7 @@
 | B-133 | feature | GitHub 仓库整体导入 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 通过 GitHub API 或 `git clone` 一键导入仓库文件；开发者核心场景；预估 5 天 |
 | B-134 | feature | Qdrant 替换 SQLite 向量存储 | done | P2 | L | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/architecture-overview.md | 已完成：新增 VectorBackend 抽象、Qdrant local mode 与 SQLite fallback；检索改为通过后端候选融合；chunk 重建同步写入向量后端；新增迁移脚本；验证 qdrant/sqlite 相关后端测试、迁移脚本和 `pytest tests/ -x` |
 | B-135 | feature | 多模型并排对比 | todo | P3 | L | backlog | RAG 团队 | docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天 |
-| B-136 | docs | OpenAPI / Swagger 接口文档 | doing | P3 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
+| B-136 | docs | OpenAPI / Swagger 接口文档 | done | P3 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/api-spec.md, docs/design/openapi.json | 已完成：FastAPI metadata 更新为 v0.13.0，schema endpoint 均补 summary/tags，生成 docs/design/openapi.json；当前 8765 被旧服务占用，已在 18766 验证当前分支 /docs 和 /openapi.json |
 | B-137 | feature | Notion / Obsidian 本地导出同步 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 支持导入 Notion 导出的 Markdown zip 包和 Obsidian vault 目录；预估 4 天 |
 | B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
 | B-67 | feature | Web 向量库与 Reranker 接入（legacy 规划） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-134（Qdrant）和 B-125（Reranker）拆分替代 |
