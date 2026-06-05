@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from src.config.settings import AppSettings, load_settings
-from src.application.container import AppContainer
+from legacy.desktop.config.settings import AppSettings, load_settings
+from legacy.desktop.application.container import AppContainer
 
 
 # ── 测试专用 AppSettings ─────────────────────────────────────────────────────

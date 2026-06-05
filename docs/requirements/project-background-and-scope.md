@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-05-28
 > Scope：Knowledge Island 整体项目定位与边界
 > Related：docs/requirements/functional-modules.md, docs/design/system-design-overview.md
 
@@ -10,7 +10,7 @@
 
 个人开发者、学习者和知识工作者在本地积累了大量代码项目、文档和笔记，但这些知识分散在文件系统中，难以高效检索、关联和复用。现有工具要么需要联网（隐私风险），要么不支持非结构化知识的语义检索，要么缺乏对本地文件的即时感知。
 
-Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二大脑——将分散的本地知识导入、索引、检索，并通过 AI 问答、掌握度评估帮助用户真正内化和利用自己的知识资产。当前默认交付形态是本地 Web MVP：通过 `app.py` 启动本机 HTTP 服务，在浏览器中完成项目空间、资料导入、检索、问答和评估的完整闭环。
+Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二大脑——将分散的本地知识导入、索引、检索，并通过 AI 问答、掌握度评估帮助用户真正内化和利用自己的知识资产。当前默认交付形态是本地 Web MVP：通过 `backend/app.py` 启动本机 HTTP 服务，在浏览器中完成项目空间、资料导入、检索、问答和评估的完整闭环。
 
 ## 2. 项目目标
 
@@ -31,7 +31,7 @@ Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二
 - 本地优先运行，不强制联网，数据不离开本机
 - 支持可选的云端 LLM API（DeepSeek / OpenAI-compatible / Ollama）
 - 提供透明的检索质量可观察性，让用户理解回答的可信度
-- Web MVP 后端使用 FastAPI + Uvicorn 提供本地 HTTP 服务，`python app.py` 即开即用
+- Web MVP 后端使用 FastAPI + Uvicorn 提供本地 HTTP 服务，`python backend/app.py` 即开即用
 
 ## 3. 目标用户
 
@@ -69,7 +69,7 @@ Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二
 - 语音输入输出
 - 图片理解 / 图片生成
 
-旧 PySide6 桌面端代码保留在 `src/desktop/` 作为 legacy 参考，不是当前默认入口。
+旧 PySide6 桌面端代码保留在 `legacy/desktop/` 作为 legacy 参考，不是当前默认入口。
 
 ## 5. 成功标准
 
@@ -78,7 +78,7 @@ Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二
 | 知识库导入成功率 | ≥ 95% | 支持格式的文件成功入库率 |
 | 问答有来源回答率 | ≥ 80% | 回答附带有效来源片段比例 |
 | 首次完成导入用时 | ≤ 5 分钟 | 从启动到完成第一次知识库导入的时间 |
-| 本地冷启动时间 | ≤ 10 秒 | `python app.py` 到浏览器可访问的时间 |
+| 本地冷启动时间 | ≤ 10 秒 | `python backend/app.py` 到浏览器可访问的时间 |
 
 ## 6. 约束条件
 

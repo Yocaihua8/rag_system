@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.application.markdown_content import normalize_document_content
+from legacy.desktop.application.markdown_content import normalize_document_content
 
 
 class TestMarkdownContent:

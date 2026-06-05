@@ -1,14 +1,18 @@
 <template>
-  <section class="view-panel">
-    <header class="topbar">
-      <div>
-        <p class="section-kicker">资料库</p>
-        <h2>资料库</h2>
-        <p>B-141C 至 B-141Q 已迁移项目空间选择/创建/改名/删除、文档浏览、导入入口、导入批次历史、目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出和删除文档；其余能力继续分片迁移。</p>
+  <div class="page full" aria-label="资料库：创建项目空间、导入本地资料、管理文档集合并查看导入历史。">
+    <div>
+      <div class="dashboard">
+        <div v-for="[label, value] in summaryMetrics" :key="label" class="metric">
+          <div class="v">{{ value }}</div>
+          <div class="k">{{ label }}</div>
+        </div>
+        <div class="health-stamp" :class="healthStamp.className">
+          {{ healthStamp.label }}
+          <small>{{ healthStamp.detail }}</small>
+        </div>
       </div>
-    </header>
+      <p class="dashboard-note">最近活动：{{ summaryLastActivity }}</p>
 
-    <div class="library-grid">
       <ProjectSpacePanel
         :projects="projects"
         :selected-project-id="selectedProjectId"
@@ -28,40 +32,56 @@
         @rename-project="(name) => $emit('rename-project', name)"
         @delete-project="$emit('delete-project')"
       />
-      <DocumentImportPanel
-        :selected-project-id="selectedProjectId"
-        :import-submitting="importSubmitting"
-        :import-error="importError"
-        :import-status="importStatus"
-        :import-preview="importPreview"
-        :import-preview-loading="importPreviewLoading"
-        :import-preview-error="importPreviewError"
-        @import-note="(payload) => $emit('import-note', payload)"
-        @import-url="(payload) => $emit('import-url', payload)"
-        @import-files="(files) => $emit('import-files', files)"
-        @import-folder="(files) => $emit('import-folder', files)"
-        @sync-directory="$emit('sync-directory')"
-        @preview-import="$emit('preview-import')"
-      />
-      <DocumentCollectionPanel
-        :document-collections="documentCollections"
-        :selected-project-id="selectedProjectId"
-        :selected-document-collection-id="selectedDocumentCollectionId"
-        :document-collections-loading="documentCollectionsLoading"
-        :document-collections-load-error="documentCollectionsLoadError"
-        :collection-form-submitting="collectionFormSubmitting"
-        :collection-form-error="collectionFormError"
-        :collection-form-status="collectionFormStatus"
-        :collection-rename-submitting="collectionRenameSubmitting"
-        :collection-rename-error="collectionRenameError"
-        :collection-rename-status="collectionRenameStatus"
-        :deleting-collection-id="deletingCollectionId"
-        @refresh-collections="$emit('refresh-collections')"
-        @select-collection="(collectionId) => $emit('select-collection', collectionId)"
-        @create-collection="(name) => $emit('create-collection', name)"
-        @delete-collection="(collectionId) => $emit('delete-collection', collectionId)"
-        @update-collection="(payload) => $emit('update-collection', payload)"
-      />
+
+      <div class="import-row">
+        <DocumentImportPanel
+          :selected-project-id="selectedProjectId"
+          :import-submitting="importSubmitting"
+          :import-error="importError"
+          :import-status="importStatus"
+          :import-preview="importPreview"
+          :import-preview-loading="importPreviewLoading"
+          :import-preview-error="importPreviewError"
+          @import-note="(payload) => $emit('import-note', payload)"
+          @import-url="(payload) => $emit('import-url', payload)"
+          @import-files="(files) => $emit('import-files', files)"
+          @import-folder="(files) => $emit('import-folder', files)"
+          @sync-directory="$emit('sync-directory')"
+          @preview-import="$emit('preview-import')"
+        />
+        <ImportBatchHistoryPanel
+          :selected-project-id="selectedProjectId"
+          :import-batches="importBatches"
+          :selected-import-batch="selectedImportBatch"
+          :selected-import-batch-items="selectedImportBatchItems"
+          :loading="importBatchesLoading"
+          :load-error="importBatchesLoadError"
+          :detail-loading="importBatchDetailLoading"
+          :detail-error="importBatchDetailError"
+          @refresh-batches="$emit('refresh-batches')"
+          @select-batch="(batchId) => $emit('select-batch', batchId)"
+        />
+      </div>
+
+      <div class="coll-tabs" aria-label="文档集合筛选">
+        <button type="button" :class="{ active: selectedDocumentCollectionId === '' }" @click="$emit('select-collection', '')">
+          全部 ({{ documents.length }})
+        </button>
+        <button type="button" :class="{ active: selectedDocumentCollectionId === 'unassigned' }" @click="$emit('select-collection', 'unassigned')">
+          未分组
+        </button>
+        <button
+          v-for="collection in documentCollections"
+          :key="collection.id"
+          type="button"
+          :class="{ active: selectedDocumentCollectionId === collection.id }"
+          @click="$emit('select-collection', collection.id)"
+        >
+          {{ collection.name }} ({{ collection.document_count ?? collection.count ?? 0 }})
+        </button>
+        <button type="button" class="add" @click="focusCollectionManagement">+ 新建集合</button>
+      </div>
+
       <DocumentListPanel
         :documents="documents"
         :selected-project-id="selectedProjectId"
@@ -82,29 +102,41 @@
         @remove-document-from-collection="(payload) => $emit('remove-document-from-collection', payload)"
         @delete-document="(documentId) => $emit('delete-document', documentId)"
       />
+
+      <div ref="collectionManagement">
+        <DocumentCollectionPanel
+          :document-collections="documentCollections"
+          :selected-project-id="selectedProjectId"
+          :selected-document-collection-id="selectedDocumentCollectionId"
+          :loading="documentCollectionsLoading"
+          :load-error="documentCollectionsLoadError"
+          :collection-form-submitting="collectionFormSubmitting"
+          :collection-form-error="collectionFormError"
+          :collection-form-status="collectionFormStatus"
+          :collection-rename-submitting="collectionRenameSubmitting"
+          :collection-rename-error="collectionRenameError"
+          :collection-rename-status="collectionRenameStatus"
+          :deleting-collection-id="deletingCollectionId"
+          @refresh-collections="$emit('refresh-collections')"
+          @select-collection="(collectionId) => $emit('select-collection', collectionId)"
+          @create-collection="(name) => $emit('create-collection', name)"
+          @delete-collection="(collectionId) => $emit('delete-collection', collectionId)"
+          @update-collection="(payload) => $emit('update-collection', payload)"
+        />
+      </div>
       <DocumentPreviewPanel
         :selected-document="selectedDocument"
         :selected-document-id="selectedDocumentId"
         :loading="documentPreviewLoading"
         :error="documentPreviewError"
       />
-      <ImportBatchHistoryPanel
-        :selected-project-id="selectedProjectId"
-        :import-batches="importBatches"
-        :selected-import-batch="selectedImportBatch"
-        :selected-import-batch-items="selectedImportBatchItems"
-        :loading="importBatchesLoading"
-        :load-error="importBatchesLoadError"
-        :detail-loading="importBatchDetailLoading"
-        :detail-error="importBatchDetailError"
-        @refresh-batches="$emit('refresh-batches')"
-        @select-batch="(batchId) => $emit('select-batch', batchId)"
-      />
     </div>
-  </section>
+  </div>
 </template>
 
 <script setup>
+import { computed, ref } from "vue";
+
 import DocumentCollectionPanel from "../components/DocumentCollectionPanel.vue";
 import DocumentImportPanel from "../components/DocumentImportPanel.vue";
 import DocumentListPanel from "../components/DocumentListPanel.vue";
@@ -112,7 +144,7 @@ import DocumentPreviewPanel from "../components/DocumentPreviewPanel.vue";
 import ImportBatchHistoryPanel from "../components/ImportBatchHistoryPanel.vue";
 import ProjectSpacePanel from "../components/ProjectSpacePanel.vue";
 
-defineProps({
+const props = defineProps({
   projects: {
     type: Array,
     required: true,
@@ -120,6 +152,10 @@ defineProps({
   selectedProjectId: {
     type: String,
     required: true,
+  },
+  projectSummary: {
+    type: Object,
+    default: null,
   },
   projectsLoading: {
     type: Boolean,
@@ -310,6 +346,44 @@ defineProps({
     default: "",
   },
 });
+
+const collectionManagement = ref(null);
+
+const summaryMetrics = computed(() => [
+  ["文档", summaryValue("document_count", props.documents.length)],
+  ["Chunk", summaryValue("chunk_count", 0)],
+  ["向量", summaryValue("vector_count", 0)],
+  ["聊天", summaryValue("chat_message_count", 0)],
+  ["工具", summaryValue("agent_tool_run_count", 0)],
+  ["复盘", summaryValue("retrieval_review_count", 0)],
+]);
+
+const healthStamp = computed(() => {
+  if (!props.selectedProjectId) {
+    return { label: "未选择项目", detail: "PROJECT REQUIRED", className: "empty" };
+  }
+  const chunkCount = Number(summaryValue("chunk_count", 0));
+  const vectorCount = Number(summaryValue("vector_count", 0));
+  if (chunkCount <= 0) {
+    return { label: "暂无 Chunk", detail: "EMPTY INDEX", className: "empty" };
+  }
+  if (vectorCount > 0) {
+    return { label: "✓ 向量已生成", detail: "HYBRID READY", className: "ready" };
+  }
+  return { label: "仅关键词", detail: "KEYWORD ONLY", className: "warning" };
+});
+
+const summaryLastActivity = computed(() => {
+  return props.projectSummary?.last_activity_at || "暂无记录";
+});
+
+function summaryValue(fieldName, fallbackValue) {
+  return props.projectSummary?.[fieldName] ?? fallbackValue;
+}
+
+function focusCollectionManagement() {
+  collectionManagement.value?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 defineEmits([
   "refresh-projects",

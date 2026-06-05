@@ -62,8 +62,8 @@ Knowledge Island 当前是本地单用户应用，默认只监听 `127.0.0.1:876
 
 | 模块 | 影响 |
 |------|------|
-| `webapp/auth.py` | 新增认证配置、API Key 校验、JWT 签发与验证 |
-| `webapp/server.py` | 新增 FastAPI 中间件和 `/api/auth/token` 路由 |
+| `backend/knowledge_island/auth.py` | 新增认证配置、API Key 校验、JWT 签发与验证 |
+| `backend/knowledge_island/server.py` | 新增 FastAPI 中间件和 `/api/auth/token` 路由 |
 | `docs/design/permission-matrix.md` | 从“无认证”更新为“默认关闭、可选启用” |
 | `docs/design/api-spec.md` | 新增认证配置、错误格式和 token 接口说明 |
 | `docs/guides/setup.md` | 增加环境变量启用方式 |
@@ -78,13 +78,13 @@ Knowledge Island 当前是本地单用户应用，默认只监听 `127.0.0.1:876
 
 ## 7. 回滚策略
 
-- 删除 B-140 相关 commits，恢复 `webapp/server.py` 无认证中间件状态。
+- 删除 B-140 相关 commits，恢复 `backend/knowledge_island/server.py` 无认证中间件状态。
 - 清除 `RAG_AUTH_*` 环境变量即可回到无认证运行方式。
 - 无数据库迁移，因此不需要数据回滚。
 
 ## 8. 验证方式
 
-- 认证关闭时，现有 `tests/test_webapp` 必须继续通过。
+- 认证关闭时，现有 `tests/backend/` 与 `tests/frontend/` 必须继续通过。
 - 认证启用时：
   - `/api/health` 无凭证返回 200。
   - `/api/projects` 无凭证返回 401。

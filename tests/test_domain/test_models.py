@@ -13,16 +13,16 @@ from __future__ import annotations
 import dataclasses
 import pytest
 
-from src.domain.models.document import Document
-from src.domain.models.chunk import Chunk
-from src.domain.models.project import Project
-from src.domain.models.graph import GraphEdge, GraphNode
-from src.domain.models.source import Source
-from src.domain.models.tag import DocumentTag, Tag
-from src.domain.models.workspace import Workspace
-from src.domain.models.task import Task, TaskStatus, TaskKind
-from src.domain.models.conversation import ConversationRecord
-from src.domain.models.project_knowledge import (
+from legacy.desktop.domain.models.document import Document
+from legacy.desktop.domain.models.chunk import Chunk
+from legacy.desktop.domain.models.project import Project
+from legacy.desktop.domain.models.graph import GraphEdge, GraphNode
+from legacy.desktop.domain.models.source import Source
+from legacy.desktop.domain.models.tag import DocumentTag, Tag
+from legacy.desktop.domain.models.workspace import Workspace
+from legacy.desktop.domain.models.task import Task, TaskStatus, TaskKind
+from legacy.desktop.domain.models.conversation import ConversationRecord
+from legacy.desktop.domain.models.project_knowledge import (
     Evidence,
     KnowledgePoint,
     MasteryRecord,
@@ -30,7 +30,7 @@ from src.domain.models.project_knowledge import (
     ProjectKnowledgePoint,
     SkillArea,
 )
-from src.domain.errors import (
+from legacy.desktop.domain.errors import (
     DomainError, NotFoundError, ValidationError,
     ConfigurationError, IndexNotReadyError,
 )

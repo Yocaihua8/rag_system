@@ -7,7 +7,7 @@
 
 ## 1. 当前已落地实体
 
-当前默认交付形态是本地 Web MVP，其运行时直接使用 `webapp/storage.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
+当前默认交付形态是本地 Web MVP，其运行时直接使用 `backend/knowledge_island/storage.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
 
 - `projects`
 - `documents`

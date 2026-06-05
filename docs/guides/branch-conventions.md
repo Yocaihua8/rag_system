@@ -55,6 +55,6 @@
 ## 4. 合并规则
 
 - 个人项目允许直接推送 `main`，重大功能建议走 PR 留记录
-- 合并前应确认：`python -m pytest tests/test_webapp -q` 通过
+- 合并前应确认：`python -m pytest tests/backend tests/frontend -q` 通过
 - 合并方式：Squash（功能分支，保持 main 历史整洁）或 Merge（需要保留提交历史时）
 - 推送前检查 `CHANGELOG.md` 是否已更新

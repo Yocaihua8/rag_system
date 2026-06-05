@@ -15,63 +15,60 @@
     <p v-else-if="loadError" class="status-line error">{{ loadError }}</p>
     <p v-else-if="documents.length === 0" class="status-line">暂无文档</p>
 
-    <ul v-else class="document-list">
-      <li v-for="document in documents" :key="document.id">
-        <button
-          type="button"
-          class="document-list-item"
-          :class="{ active: document.id === selectedDocumentId }"
-          @click="$emit('select-document', document.id)"
-        >
-          <span>{{ document.relative_path || document.source_path || "未命名文档" }}</span>
-          <small>{{ document.updated_at || "未记录更新时间" }}</small>
-        </button>
-        <div v-if="documentCollections.length > 0" class="document-collection-actions">
-          <label>
-            <span>加入集合</span>
-            <select
-              v-model="collectionSelections[document.id]"
-              :disabled="isSubmitting(document) || availableCollectionsForDocument(document).length === 0"
-            >
-              <option value="">选择集合</option>
-              <option
-                v-for="collection in availableCollectionsForDocument(document)"
-                :key="collection.id"
-                :value="collection.id"
+    <table v-else class="doc-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th>文档</th>
+          <th>来源</th>
+          <th>修改</th>
+          <th>集合</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="document in documents" :key="document.id" :class="{ active: document.id === selectedDocumentId }">
+          <td>📄</td>
+          <td class="name">
+            <button type="button" class="table-link" @click="$emit('select-document', document.id)">
+              {{ document.relative_path || document.title || "未命名文档" }}
+            </button>
+          </td>
+          <td class="src">{{ document.source_path || document.relative_path || "未知来源" }}</td>
+          <td class="date">{{ document.updated_at || "未记录" }}</td>
+          <td class="size">
+            <div v-if="documentCollections.length > 0" class="table-actions">
+              <select
+                v-model="collectionSelections[document.id]"
+                :disabled="isSubmitting(document) || availableCollectionsForDocument(document).length === 0"
               >
-                {{ collection.name }}
-              </option>
-            </select>
-          </label>
-          <button
-            type="button"
-            :disabled="isSubmitting(document) || !collectionSelections[document.id]"
-            @click="submitAdd(document)"
-          >
-            {{ isSubmitting(document) ? "处理中..." : "加入集合" }}
-          </button>
-          <button
-            v-if='selectedDocumentCollectionId && selectedDocumentCollectionId !== "unassigned"'
-            type="button"
-            class="danger-link"
-            :disabled="isSubmitting(document)"
-            @click="submitRemove(document)"
-          >
-            移出集合
-          </button>
-        </div>
-        <div class="document-item-actions">
-          <button
-            type="button"
-            class="danger-link"
-            :disabled="deletingDocumentId !== ''"
-            @click="$emit('delete-document', document.id)"
-          >
-            {{ deletingDocumentId === document.id ? "删除中..." : "删除文档" }}
-          </button>
-        </div>
-      </li>
-    </ul>
+                <option value="">选择集合</option>
+                <option v-for="collection in availableCollectionsForDocument(document)" :key="collection.id" :value="collection.id">
+                  {{ collection.name }}
+                </option>
+              </select>
+              <button type="button" :disabled="isSubmitting(document) || !collectionSelections[document.id]" @click="submitAdd(document)">
+                {{ isSubmitting(document) ? "处理中..." : "加入集合" }}
+              </button>
+              <button
+                v-if='selectedDocumentCollectionId && selectedDocumentCollectionId !== "unassigned"'
+                type="button"
+                class="delete"
+                :disabled="isSubmitting(document)"
+                @click="submitRemove(document)"
+              >
+                移出集合
+              </button>
+            </div>
+          </td>
+          <td>
+            <button type="button" class="delete" :disabled="deletingDocumentId !== ''" @click="$emit('delete-document', document.id)">
+              {{ deletingDocumentId === document.id ? "删除中..." : "删除文档" }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
     <p v-if="collectionItemError" class="status-line error">{{ collectionItemError }}</p>
     <p v-else-if="collectionItemStatus" class="status-line">{{ collectionItemStatus }}</p>
     <p v-if="documentDeleteError" class="status-line error">{{ documentDeleteError }}</p>

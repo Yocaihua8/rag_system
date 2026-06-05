@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import pytest
 
-import src.config.settings as settings_module
-from src.application.settings_usecases import SettingsUseCases
-from src.config.settings import AppSettings, load_settings
+import legacy.desktop.config.settings as settings_module
+from legacy.desktop.application.settings_usecases import SettingsUseCases
+from legacy.desktop.config.settings import AppSettings, load_settings
 
 
 @pytest.fixture(autouse=True)

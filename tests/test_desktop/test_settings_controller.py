@@ -4,9 +4,9 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-import src.config.settings as settings_module
-from src.config.settings import load_settings
-from src.desktop.controllers.settings_controller import SettingsController
+import legacy.desktop.config.settings as settings_module
+from legacy.desktop.config.settings import load_settings
+from legacy.desktop.desktop.controllers.settings_controller import SettingsController
 
 
 def test_settings_controller_saves_string_and_numeric_fields(tmp_path, monkeypatch):
@@ -48,7 +48,7 @@ def test_settings_controller_saves_string_and_numeric_fields(tmp_path, monkeypat
 
 
 def test_main_window_delegates_settings_save_to_controller():
-    source = (settings_module._project_root() / "src" / "desktop" / "views" / "main_window.py").read_text(
+    source = (settings_module._project_root() / "legacy" / "desktop" / "desktop" / "views" / "main_window.py").read_text(
         encoding="utf-8"
     )
 

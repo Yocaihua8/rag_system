@@ -1,6 +1,6 @@
-from src.adapters.retrieval.keyword_retriever import KeywordRetriever
-from src.domain.models.chunk import Chunk
-from src.ports.retriever import RetrievalQuery
+from legacy.desktop.adapters.retrieval.keyword_retriever import KeywordRetriever
+from legacy.desktop.domain.models.chunk import Chunk
+from legacy.desktop.ports.retriever import RetrievalQuery
 
 
 def test_keyword_retriever_matches_chinese_compound_terms():

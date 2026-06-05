@@ -14,12 +14,12 @@ from __future__ import annotations
 
 import pytest
 
-from src.application.container import AppContainer
-from src.application.workspace_usecases import WorkspaceUseCases
-from src.application.ingestion_usecases import IngestWorkspaceUseCase
-from src.application.query_usecases import QueryKnowledgeBaseUseCase, QueryRequest
-from src.domain.models.conversation import ConversationRecord
-from src.ports.llm_client import LLMResponse
+from legacy.desktop.application.container import AppContainer
+from legacy.desktop.application.workspace_usecases import WorkspaceUseCases
+from legacy.desktop.application.ingestion_usecases import IngestWorkspaceUseCase
+from legacy.desktop.application.query_usecases import QueryKnowledgeBaseUseCase, QueryRequest
+from legacy.desktop.domain.models.conversation import ConversationRecord
+from legacy.desktop.ports.llm_client import LLMResponse
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ class TestBuildPrompt:
         assert "暂无" in prompt
 
     def test_chunks_included_in_prompt(self):
-        from src.domain.models.chunk import Chunk
+        from legacy.desktop.domain.models.chunk import Chunk
         # Chunk.create(document_id, workspace_id, content, order, domain)
         chunk = Chunk.create(
             document_id="doc1",
@@ -376,7 +376,7 @@ class TestBuildPrompt:
         assert "来源 1" in prompt
 
     def test_multiple_chunks_numbered_sequentially(self):
-        from src.domain.models.chunk import Chunk
+        from legacy.desktop.domain.models.chunk import Chunk
         chunks = [
             Chunk.create(
                 document_id="doc1",
@@ -393,7 +393,7 @@ class TestBuildPrompt:
         assert "来源 3" in prompt
 
     def test_history_is_included_after_sources_before_question(self):
-        from src.domain.models.chunk import Chunk
+        from legacy.desktop.domain.models.chunk import Chunk
         chunk = Chunk.create(
             document_id="doc1",
             workspace_id="ws1",

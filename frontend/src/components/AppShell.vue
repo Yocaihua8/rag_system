@@ -1,12 +1,37 @@
 <template>
-  <main class="workspace-shell">
-    <aside class="workspace-left">
-      <header class="brand-block">
-        <h1>知识岛</h1>
-        <p>Vue 前端迁移工作台</p>
-      </header>
-
-      <nav class="main-nav" aria-label="主导航">
+  <div class="atlas-shell" :data-theme="isDark ? 'dark' : undefined" data-rule="strong">
+    <header class="masthead">
+      <div class="brand">
+        <span class="brand-mark">
+          <svg width="34" height="34" viewBox="0 0 40 40" fill="none" class="island-mark">
+            <rect x="0.5" y="0.5" width="39" height="39" stroke="currentColor" stroke-opacity="0.35" />
+            <g stroke="var(--accent)" fill="none" stroke-width="1">
+              <path d="M20 9 L29 25 L11 25 Z" fill="var(--accent)" fill-opacity="0.12" />
+              <path d="M20 13 L26 24 L14 24 Z" />
+              <path d="M20 17 L23 23 L17 23 Z" />
+            </g>
+            <path d="M5 31 Q11 28 17 30 Q23 32 29 29 Q33 27 35 29" stroke="var(--accent)" stroke-width="0.9" fill="none" opacity="0.7" />
+            <path d="M5 35 Q12 32 20 34 Q28 36 35 33" stroke="var(--accent)" stroke-width="0.7" fill="none" opacity="0.4" />
+          </svg>
+        </span>
+        <span class="brand-text">
+          <h1>知识岛 · Knowledge Island</h1>
+          <span class="vol">
+            海图志 · Vol. I ·
+            <span v-if="!projects.length">{{ currentProjectName }}</span>
+            <select
+              v-else
+              class="project-select"
+              :value="selectedProjectId"
+              @change="$emit('select-project', $event.target.value)"
+            >
+              <option value="">选择项目…</option>
+              <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </span>
+        </span>
+      </div>
+      <nav class="nav" aria-label="主导航">
         <button
           type="button"
           :class="{ active: currentView === 'workbench' }"
@@ -43,36 +68,35 @@
         >
           设置
         </button>
+        <button
+          type="button"
+          class="theme-toggle"
+          :aria-label="isDark ? '切换主题：浅色' : '切换主题：深色'"
+          :title="isDark ? '切换到浅色主题' : '切换到深色主题'"
+          @click="toggleTheme"
+        >
+          {{ isDark ? "浅色" : "深色" }}
+        </button>
+        <span class="folio">FOL. {{ folioNumber }}</span>
       </nav>
-    </aside>
+    </header>
 
-    <section class="workspace-main">
-      <header class="topbar">
-        <div>
-          <p class="eyebrow">B-141 Vue Migration</p>
-          <h2>{{ activeTitle }}</h2>
-        <p>B-141 已按薄片迁移项目问答、检索调试、项目级检索默认值、检索复盘、Agent 只读工具、工具来源上下文、资料库、设置和评估基础闭环；SSE 和会话后续迁移。</p>
-        </div>
-        <div class="status-pills" aria-label="服务状态">
-          <span>FastAPI</span>
-          <span>Vue 3</span>
-          <span>Vite</span>
-        </div>
-      </header>
+    <slot />
 
-      <slot />
-    </section>
-  </main>
+    <div class="ki-foot">— 知识岛 · 海图志版 · 本地优先 · 个人第二大脑 · MMXXVI —</div>
+  </div>
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+
+const THEME_STORAGE_KEY = "knowledge-island:theme";
 
 const navItems = [
-  { key: "workbench", label: "工作台", title: "项目问答" },
-  { key: "library", label: "资料库", title: "资料库" },
-  { key: "assessment", label: "评估", title: "掌握评估" },
-  { key: "settings", label: "设置", title: "设置" },
+  { key: "workbench", label: "工作台", folio: "I" },
+  { key: "library", label: "资料库", folio: "II" },
+  { key: "assessment", label: "评估", folio: "III" },
+  { key: "settings", label: "设置", folio: "IV" },
 ];
 
 const props = defineProps({
@@ -80,11 +104,47 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  projects: {
+    type: Array,
+    default: () => [],
+  },
+  selectedProjectId: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["change-view"]);
+defineEmits(["change-view", "select-project"]);
 
-const activeTitle = computed(() => {
-  return navItems.find((item) => item.key === props.currentView)?.title || "项目问答";
+const isDark = ref(resolveInitialTheme() === "dark");
+
+const currentProjectName = computed(() => {
+  const project = props.projects.find((entry) => entry.id === props.selectedProjectId);
+  return project?.name || "未选择项目";
 });
+
+const folioNumber = computed(() => {
+  return navItems.find((item) => item.key === props.currentView)?.folio || "I";
+});
+
+function resolveInitialTheme() {
+  if (typeof window !== "undefined" && window.localStorage) {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme === "dark" || savedTheme === "light") {
+      return savedTheme;
+    }
+  }
+  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
+}
+
+function toggleTheme() {
+  const nextTheme = isDark.value ? "light" : "dark";
+  isDark.value = nextTheme === "dark";
+  if (typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  }
+}
 </script>

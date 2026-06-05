@@ -1,48 +1,85 @@
 <template>
-  <section class="answer-panel" aria-labelledby="answer-panel-title">
-    <div class="section-title-row">
-      <div>
-        <p class="section-kicker">回答</p>
-        <h2 id="answer-panel-title">回答</h2>
-      </div>
-      <div v-if="answerResult" class="answer-meta">
-        <span>mode: {{ answerResult.mode || "local" }}</span>
-        <span>provider: {{ answerResult.provider || "local" }}</span>
-      </div>
+  <section class="answer-panel conv" aria-labelledby="answer-panel-title">
+    <div class="col-head">
+      <span id="answer-panel-title">对话</span>
+      <span class="num">Respondeo</span>
     </div>
 
     <p v-if="loading" class="status-line">正在生成回答...</p>
     <p v-else-if="error" class="status-line error">{{ error }}</p>
     <p v-else-if="!answerResult" class="muted-line">提交问题后会在这里显示回答。</p>
 
-    <div v-if="answerResult" class="answer-body">
-      <p>{{ answerResult.answer || answerResult.message || "暂无回答" }}</p>
-    </div>
+    <article v-if="answerResult" class="turn assistant">
+      <div class="speaker">答 · Respondeo</div>
+      <div class="body">
+        <MarkdownBody :content="answerResult.answer || answerResult.message || '暂无回答'" />
+      </div>
 
-    <div v-if="answerResult" class="source-quality">
-      <p class="section-kicker">来源质量</p>
-      <p>{{ sourceQualityText }}</p>
-    </div>
+      <div class="obs">
+        <span>命中 <strong>{{ sources.length }}</strong></span>
+        <span>top_k <strong>{{ observability.top_k }}</strong></span>
+        <span>模式 <strong>{{ answerResult.mode || "local" }}</strong></span>
+        <span>模型 <strong>{{ answerResult.provider || observability.model }}</strong></span>
+        <span>耗时 <strong>{{ observability.latency }}</strong></span>
+      </div>
 
-    <div v-if="answerResult" class="source-list">
-      <p class="section-kicker">来源</p>
-      <p v-if="sources.length === 0" class="muted-line">暂无来源</p>
-      <ol v-else>
-        <li v-for="source in sources" :key="source.chunk_id || source.document_id || source.path">
-          <strong>{{ source.path || "未知来源" }}</strong>
-          <p>{{ source.snippet || source.preview || "无片段预览" }}</p>
-        </li>
-      </ol>
-    </div>
+      <div class="sources">
+        <span class="label">来源</span>
+        <span v-if="sources.length === 0" class="src">暂无来源 · {{ sourceQualityText }}</span>
+        <template v-else>
+          <span v-for="(source, index) in sources" :key="source.chunk_id || source.document_id || source.path" class="src">
+            <span class="roman">{{ romanNumerals[index] || index + 1 }}</span>
+            <em>{{ source.path || "未知来源" }}</em>
+            <span style="color:var(--ink-3)"> · {{ source.snippet || source.preview || "无片段预览" }}</span>
+          </span>
+        </template>
+      </div>
 
-    <div v-if="toolSuggestion" class="tool-suggestion">
-      <p class="section-kicker">建议工具</p>
-      <p>{{ formatToolSuggestion(toolSuggestion) }}</p>
-      <button
-        type="button"
-        :disabled="agentToolSubmittingName === suggestionToolName"
-        @click="runToolSuggestion"
-      >
+      <div class="feedback" aria-label="回答反馈">
+        <button
+          type="button"
+          data-feedback-rating="useful"
+          :disabled="answerFeedbackSubmitting || !lastAnswerMessageId"
+          @click="submitAnswerFeedback('useful')"
+        >
+          有用
+        </button>
+        <button
+          type="button"
+          data-feedback-rating="not_useful"
+          :disabled="answerFeedbackSubmitting || !lastAnswerMessageId"
+          @click="submitAnswerFeedback('not_useful')"
+        >
+          无用
+        </button>
+        <button
+          type="button"
+          data-feedback-rating="source_wrong"
+          :disabled="answerFeedbackSubmitting || !lastAnswerMessageId"
+          @click="submitAnswerFeedback('source_wrong')"
+        >
+          来源不准
+        </button>
+        <button
+          type="button"
+          data-feedback-rating="need_more_context"
+          :disabled="answerFeedbackSubmitting || !lastAnswerMessageId"
+          @click="submitAnswerFeedback('need_more_context')"
+        >
+          需要更多上下文
+        </button>
+      </div>
+      <p v-if="!lastAnswerMessageId" class="muted-line">当前回答暂不可反馈。</p>
+      <p v-if="answerFeedbackStatus" class="status-line">{{ answerFeedbackStatus }}</p>
+      <p v-if="answerFeedbackError" class="status-line error">{{ answerFeedbackError }}</p>
+    </article>
+
+    <div v-if="toolSuggestion" class="tool-suggest">
+      <span>建议工具</span>
+      <span>来源不足时建议运行</span>
+      <span class="pill">{{ suggestionToolName }}</span>
+      <span>{{ formatToolSuggestion(toolSuggestion) }}</span>
+      <button type="button" :disabled="agentToolSubmittingName === suggestionToolName" @click="runToolSuggestion">
         {{ agentToolSubmittingName === suggestionToolName ? "运行中..." : "运行建议工具" }}
       </button>
     </div>
@@ -64,51 +101,12 @@
       <p>{{ formatUsedToolContext(usedToolContext) }}</p>
     </div>
 
-    <div v-if="answerResult" class="answer-feedback">
-      <p class="section-kicker">回答反馈</p>
-      <p v-if="!lastAnswerMessageId" class="muted-line">当前回答暂不可反馈。</p>
-      <div v-else class="feedback-actions">
-        <button
-          type="button"
-          data-feedback-rating="useful"
-          :disabled="answerFeedbackSubmitting"
-          @click="submitAnswerFeedback('useful')"
-        >
-          有用
-        </button>
-        <button
-          type="button"
-          data-feedback-rating="not_useful"
-          :disabled="answerFeedbackSubmitting"
-          @click="submitAnswerFeedback('not_useful')"
-        >
-          无用
-        </button>
-        <button
-          type="button"
-          data-feedback-rating="source_wrong"
-          :disabled="answerFeedbackSubmitting"
-          @click="submitAnswerFeedback('source_wrong')"
-        >
-          来源不准
-        </button>
-        <button
-          type="button"
-          data-feedback-rating="need_more_context"
-          :disabled="answerFeedbackSubmitting"
-          @click="submitAnswerFeedback('need_more_context')"
-        >
-          需要更多上下文
-        </button>
-      </div>
-      <p v-if="answerFeedbackStatus" class="status-line">{{ answerFeedbackStatus }}</p>
-      <p v-if="answerFeedbackError" class="status-line error">{{ answerFeedbackError }}</p>
-    </div>
   </section>
 </template>
 
 <script setup>
 import { computed } from "vue";
+import MarkdownBody from "./MarkdownBody.vue";
 
 const props = defineProps({
   answerResult: {
@@ -163,6 +161,15 @@ const sources = computed(() => {
   return props.answerResult?.sources || [];
 });
 
+const observability = computed(() => {
+  const data = props.answerResult?.observability || props.answerResult?.debug || {};
+  return {
+    top_k: data.top_k ?? props.answerResult?.retrieval?.top_k ?? "-",
+    model: data.model || props.answerResult?.model || "local",
+    latency: data.latency || data.latency_ms || "-",
+  };
+});
+
 const toolSuggestion = computed(() => {
   return props.toolSuggestion || null;
 });
@@ -174,6 +181,8 @@ const usedToolContext = computed(() => {
 const suggestionToolName = computed(() => {
   return toolSuggestion.value?.tool || "search_sources";
 });
+
+const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
 const sourceQualityText = computed(() => {
   const sourceQuality = props.answerResult?.source_quality;
