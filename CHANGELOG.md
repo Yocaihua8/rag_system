@@ -8,6 +8,23 @@
 
 ## [Unreleased]
 
+## [v0.13.0] - 2026-06-06
+
+### Added
+- **Qdrant 向量后端**：新增 `VectorBackend` 抽象、Qdrant local mode 和 SQLite fallback；检索通过向量后端取 ANN 候选后与 BM25 融合，保留 `KI_VECTOR_BACKEND=sqlite` 降级路径。
+- **回答质量指标**：`chat_messages` 新增 `quality_metrics`，回答完成时记录来源覆盖率、最高检索分、是否有来源和回答长度；新增 `GET /api/projects/quality-summary`。
+- **对话分支**：`chat_messages` 新增 `parent_message_id / branch_id / is_active`，新增 `POST /api/chat/messages/branch` 和 `include_branches=true`；工作台历史用户消息支持内联编辑并派生分支。
+- **运维接口与脚本**：新增 `/api/admin/stats`、`/api/admin/rebuild-index`，以及 `ops/scripts/backup_db.sh`、`rebuild_index.sh`、`cleanup_runtime.sh`。
+- **OpenAPI 与 E2E**：FastAPI metadata 更新为 `知识岛 API` v0.13.0，生成 `docs/design/openapi.json`；新增 API E2E live server 测试和 Playwright UI 骨架。
+
+### Changed
+- **SQLite 并发策略**：每个 SQLite 连接启用 WAL、`synchronous=NORMAL` 和 `busy_timeout=5000`，降低本地读写并发时的锁冲突。
+- **前端资料库指标**：资料库 dashboard 追加“回答有来源率”，直接读取项目质量摘要接口，不修改共享 API/state 模块。
+
+### Fixed
+- **legacy 向量库兼容包**：补回 legacy desktop vector store 适配器包，恢复旧业务层测试导入路径。
+- **项目目录展示**：资料库项目空间面板优先显示 `root_path`，兼容旧 `root` 字段。
+
 ### Added
 - **Vue/Vite 前端工程骨架**：新增 `frontend/` 前端工程配置和 Vite 构建链，生产构建输出到 `backend/knowledge_island/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳

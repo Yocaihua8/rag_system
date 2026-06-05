@@ -37,7 +37,7 @@
 - [x] Task 5 admin API：新增 `backend/knowledge_island/routes/admin.py` 和 `/api/admin/stats`、`/api/admin/rebuild-index` 等运维接口；注册路由；新增 `ops/scripts/backup_db.sh`、`ops/scripts/rebuild_index.sh`、`ops/scripts/cleanup_runtime.sh`；运行 `pytest tests/backend/` 和 `pytest tests/ -x`。
 - [x] Task 6 OpenAPI：为 `server.py` 的 `FastAPI(...)` 补全 title/description/version/docs_url/redoc_url；为所有 FastAPI endpoint 补 `summary` 和 tags；生成并提交 `docs/design/openapi.json`；验证 `/docs` 可访问且所有端点有 summary。
 - [x] Task 7 E2E：新增 `tests/e2e/conftest.py`、`tests/e2e/test_api_flows.py` 和 Playwright UI 骨架；运行 `pytest tests/e2e/test_api_flows.py -v`、`pytest tests/e2e/ -v` 和 `pytest tests/ -x`。
-- [ ] 前端构建与发布收口：运行 `npm --prefix frontend run build`；追加 `CHANGELOG.md` v0.13.0 发布说明；确认 `git tag v0.13.0` 可创建。
+- [x] 前端构建与发布收口：运行 `npm --prefix frontend run build`；追加 `CHANGELOG.md` v0.13.0 发布说明；确认 `git tag v0.13.0` 可创建。
 
 ## 4. 影响范围
 
@@ -81,15 +81,15 @@
 
 ## 6. 完成标准
 
-- [ ] `KI_VECTOR_BACKEND=qdrant pytest tests/ -x` 通过。
-- [ ] `KI_VECTOR_BACKEND=sqlite pytest tests/ -x` 通过。
-- [ ] `pytest tests/e2e/test_api_flows.py -v` 通过。
-- [ ] `npm --prefix frontend run build` 通过。
-- [ ] `/docs` 所有端点有 `summary`。
-- [ ] `docs/design/openapi.json` 已生成并提交。
-- [ ] `CHANGELOG.md` 已追加 v0.13.0 发布说明。
-- [ ] `git tag v0.13.0` 可创建。
-- [ ] BACKLOG 相关条目按完成状态更新。
+- [x] `KI_VECTOR_BACKEND=qdrant pytest tests/ -x` 通过。
+- [x] `KI_VECTOR_BACKEND=sqlite pytest tests/ -x` 通过。
+- [x] `pytest tests/e2e/test_api_flows.py -v` 通过。
+- [x] `npm --prefix frontend run build` 通过。
+- [x] `/docs` 所有端点有 `summary`。
+- [x] `docs/design/openapi.json` 已生成并提交。
+- [x] `CHANGELOG.md` 已追加 v0.13.0 发布说明。
+- [x] `git tag v0.13.0` 可创建。
+- [x] BACKLOG 相关条目按完成状态更新。
 
 ## 7. 回流清单
 
@@ -113,12 +113,13 @@
 - 2026-06-06 01:31：Task 5 完成。`test_admin_route_module_handles_stats_and_rebuild_index` 与 `test_route_registry_dispatches_admin_stats` 先 RED：`backend.knowledge_island.routes.admin` 不存在；实现后定向测试通过。新增 `/api/admin/stats`、`/api/admin/rebuild-index`、路由注册和 `ops/scripts` 三个运维脚本。最终 `pytest tests/backend/` 与 `pytest tests/ -x` 通过。
 - 2026-06-06 01:45：Task 6 完成。`test_fastapi_openapi_metadata_and_summaries` 先 RED：OpenAPI title 仍为 `Knowledge Island`；实现后定向测试通过。FastAPI metadata 更新为 `知识岛 API` / `0.13.0`，SSE、认证和 GET/POST API dispatcher 均有 summary/tags，已生成 `docs/design/openapi.json`。`http://127.0.0.1:8765/docs` 当前由旧进程占用，OpenAPI 仍为 `Knowledge Island 0.1.0`；未终止未知进程，改在 `http://127.0.0.1:18766/docs` 启动当前分支验证：HTTP 200、Swagger UI 存在、OpenAPI 无缺失 summary。最终 `pytest tests/backend/` 与 `pytest tests/ -x` 通过。
 - 2026-06-06 01:53：Task 7 完成。新增 `tests/e2e/conftest.py` 使用 uvicorn 启动 live server，`tests/e2e/test_api_flows.py` 覆盖 health、项目创建、文本笔记导入、搜索、质量摘要、chat branch 参数校验和 admin stats；新增 Playwright UI 骨架测试。`pytest tests/e2e/test_api_flows.py -v` 通过 5 项；`pytest tests/e2e/ -v` 为 5 passed / 1 skipped（Playwright 浏览器不可用）；最终 `pytest tests/ -x` 通过 508 passed / 1 skipped。
+- 2026-06-06 02:03：发布收口完成。`KI_VECTOR_BACKEND=qdrant pytest tests/ -x` 通过 508 passed / 1 skipped；`KI_VECTOR_BACKEND=sqlite pytest tests/ -x` 通过 508 passed / 1 skipped；`pytest tests/e2e/test_api_flows.py -v` 通过 5 项；`npm --prefix frontend run build` 通过；`git tag --list v0.13.0` 无输出且 `git check-ref-format refs/tags/v0.13.0` 通过。`CHANGELOG.md` 已追加 v0.13.0 发布说明。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-06 01:54
-- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
+- **最后更新**：2026-06-06 02:03
+- **进度**：已完成 8 / 8 项（见 § 3 勾选状态）
 - **最新 commit**：`68d9688` — test: 增加 API E2E 流程
-- **代码状态**：`feature/phase-1-quality`；Task 7 已提交，工作区仅剩本状态快照更新
-- **下一步**：前端构建与发布收口
+- **代码状态**：`feature/phase-1-quality`；收口验证已完成，工作区仅剩 CHANGELOG 与本状态快照更新
+- **下一步**：删除已完成 plan 文件并准备 PR
 - **续任务须知**：此 worktree 无本地 `.venv`，可暂用 `E:\Code\knowledage_island\.venv\Scripts\python.exe` 运行 pytest。
