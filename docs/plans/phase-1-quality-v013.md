@@ -114,9 +114,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-06 01:20
-- **进度**：已完成 4 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`8a1aa38` — feat: 支持对话分支编辑
-- **代码状态**：`feature/phase-1-quality`；Task 4 已提交，工作区仅剩本状态快照更新
-- **下一步**：Task 5 admin API
+- **最后更新**：2026-06-06 01:32
+- **进度**：已完成 5 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`50fc20d` — feat: 增加运维管理接口
+- **代码状态**：`feature/phase-1-quality`；Task 5 已提交，工作区仅剩本状态快照更新
+- **下一步**：Task 6 OpenAPI
 - **续任务须知**：此 worktree 无本地 `.venv`，可暂用 `E:\Code\knowledage_island\.venv\Scripts\python.exe` 运行 pytest。
