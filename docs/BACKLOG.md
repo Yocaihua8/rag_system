@@ -86,7 +86,7 @@
 | B-07 | feature | 结果导出（Markdown / PDF） | todo | P3 | M | backlog | RAG 团队 | — | `data/outputs/` 预留了输出目录，支持将生成结果导出为 Markdown / PDF |
 | B-08 | feature | 多工作区并发索引 | todo | P3 | L | backlog | RAG 团队 | docs/design/architecture-overview.md | 当前同一时间只允许一个工作区摄入任务，未来支持队列并发 |
 | B-24 | feature | 跨平台打包（macOS / Windows / Linux） | todo | P1 | XL | v1.0.0 | RAG 团队 | docs/plans/phase-4-production-v100.md, docs/guides/release-process.md | PyInstaller 三平台构建；双击启动无需 Python；GitHub Actions 矩阵 CI；预估 7 天 |
-| B-25 | test | 端到端 UI 自动化测试 | doing | P2 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/guides/testing.md | Playwright 驱动三条主流程 E2E（工作台问答 / 资料库导入 / 评估周期）；CI 集成；预估 3 天 |
+| B-25 | test | 端到端 UI 自动化测试 | done | P2 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/guides/testing.md | 已完成：新增 live server API E2E 覆盖 health、项目/导入/搜索、质量摘要、chat branch 和 admin stats；新增 Playwright UI 骨架；验证 `pytest tests/e2e/test_api_flows.py -v`、`pytest tests/e2e/ -v`、`pytest tests/ -x` |
 | B-117 | feature | MCP 工具接口实现 | todo | P2 | L | v1.1.0 | RAG 团队 | docs/plans/phase-5-ecosystem-v11x.md | 实现 MCP Server（stdio 模式）；暴露 search_knowledge 和 get_project_overview 两个只读工具；设置页生成 Claude Desktop 配置 |
 | B-118 | feature | 多用户 LAN 模式 Alpha | todo | P2 | XL | v1.1.0 | RAG 团队 | docs/plans/phase-5-ecosystem-v11x.md, docs/design/permission-matrix.md | users / project_members 表；邮箱+密码+JWT；owner/editor/viewer 权限；LAN 部署 Docker Compose；预估 7 天 |
 | B-119 | research | 网页自动抓取研究 | todo | P3 | S | backlog | RAG 团队 | docs/requirements/functional-modules.md | 当前 URL 来源只做人工粘贴正文；自动抓取涉及网络、权限和依赖，暂缓 |

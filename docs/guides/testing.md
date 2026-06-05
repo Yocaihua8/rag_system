@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-28
+> Last Updated：2026-06-06
 
 ## 1. 目标
 
@@ -18,6 +18,8 @@
 .venv\Scripts\python.exe -m pytest tests/backend/test_fastapi_server.py tests/backend/test_app_entrypoint.py tests/backend/test_docker_startup.py -q
 set KI_VECTOR_BACKEND=qdrant && .venv\Scripts\python.exe -m pytest tests/backend/test_vector_backend.py tests/backend/test_search.py -q
 set KI_VECTOR_BACKEND=sqlite && .venv\Scripts\python.exe -m pytest tests/backend/test_vector_backend.py tests/backend/test_search.py -q
+.venv\Scripts\python.exe -m pytest tests/e2e/test_api_flows.py -v
+.venv\Scripts\python.exe -m pytest tests/e2e/ -v
 npm --prefix frontend run build
 .venv\Scripts\python.exe -m pytest tests/test_application/test_markdown_content.py -q
 .venv\Scripts\python.exe -m pytest tests/test_application/test_ingestion_usecases.py -q
@@ -28,6 +30,8 @@ docker compose --project-directory . -f ops/docker/compose.yaml config
 ## 3. 说明
 
 - 受环境限制时，`pytest` 可能因依赖/网络导致不能完整运行，需在提交说明里写出失败原因与替代验证。
+- E2E API flow 使用 `tests/e2e/conftest.py` 启动 `uvicorn backend.knowledge_island.server:app`，固定端口 `18765`，并设置 `KI_VECTOR_BACKEND=sqlite` 和临时 SQLite 数据库；测试结束会终止服务进程。
+- Playwright UI E2E 目前是骨架测试；未安装 Playwright 或本机浏览器不可用时按 skip 处理，不阻塞 API E2E。
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/backend tests/frontend`。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/backend/test_auth.py` 和 `tests/backend/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。

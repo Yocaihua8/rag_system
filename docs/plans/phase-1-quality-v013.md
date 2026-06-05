@@ -36,7 +36,7 @@
 - [x] Task 4 branch：为 `chat_messages` 增加 `parent_message_id`、`branch_id`、`is_active`；新增 `branch_chat_message()`；`GET /api/chat/messages` 支持 `include_branches=true`；新增 `POST /api/chat/messages/branch`；在 `frontend/src/views/WorkbenchView.vue` 增加历史消息编辑重发 UI，不修改 `frontend/src/api/` 或 `frontend/src/state/`；运行 `pytest tests/backend/` 和 `pytest tests/ -x`。
 - [x] Task 5 admin API：新增 `backend/knowledge_island/routes/admin.py` 和 `/api/admin/stats`、`/api/admin/rebuild-index` 等运维接口；注册路由；新增 `ops/scripts/backup_db.sh`、`ops/scripts/rebuild_index.sh`、`ops/scripts/cleanup_runtime.sh`；运行 `pytest tests/backend/` 和 `pytest tests/ -x`。
 - [x] Task 6 OpenAPI：为 `server.py` 的 `FastAPI(...)` 补全 title/description/version/docs_url/redoc_url；为所有 FastAPI endpoint 补 `summary` 和 tags；生成并提交 `docs/design/openapi.json`；验证 `/docs` 可访问且所有端点有 summary。
-- [ ] Task 7 E2E：新增 `tests/e2e/conftest.py`、`tests/e2e/test_api_flows.py` 和 Playwright UI 骨架；运行 `pytest tests/e2e/test_api_flows.py -v`、`pytest tests/e2e/ -v` 和 `pytest tests/ -x`。
+- [x] Task 7 E2E：新增 `tests/e2e/conftest.py`、`tests/e2e/test_api_flows.py` 和 Playwright UI 骨架；运行 `pytest tests/e2e/test_api_flows.py -v`、`pytest tests/e2e/ -v` 和 `pytest tests/ -x`。
 - [ ] 前端构建与发布收口：运行 `npm --prefix frontend run build`；追加 `CHANGELOG.md` v0.13.0 发布说明；确认 `git tag v0.13.0` 可创建。
 
 ## 4. 影响范围
@@ -112,6 +112,7 @@
 - 2026-06-06 01:19：Task 4 完成。`test_branch_chat_message_hides_following_messages_by_default` 与 `test_chat_route_module_handles_message_branching` 先 RED：`KnowledgeStore` 不存在 `branch_chat_message` 且 chat route 未注册 branch 端点；实现后定向测试通过。新增 `parent_message_id / branch_id / is_active`，默认聊天列表只返回 active 消息，`include_branches=true` 返回全部；Workbench 历史用户消息可 hover 编辑并调用 branch 端点。最终 `pytest tests/backend/`、`pytest tests/ -x` 和 `npm --prefix frontend run build` 通过。
 - 2026-06-06 01:31：Task 5 完成。`test_admin_route_module_handles_stats_and_rebuild_index` 与 `test_route_registry_dispatches_admin_stats` 先 RED：`backend.knowledge_island.routes.admin` 不存在；实现后定向测试通过。新增 `/api/admin/stats`、`/api/admin/rebuild-index`、路由注册和 `ops/scripts` 三个运维脚本。最终 `pytest tests/backend/` 与 `pytest tests/ -x` 通过。
 - 2026-06-06 01:45：Task 6 完成。`test_fastapi_openapi_metadata_and_summaries` 先 RED：OpenAPI title 仍为 `Knowledge Island`；实现后定向测试通过。FastAPI metadata 更新为 `知识岛 API` / `0.13.0`，SSE、认证和 GET/POST API dispatcher 均有 summary/tags，已生成 `docs/design/openapi.json`。`http://127.0.0.1:8765/docs` 当前由旧进程占用，OpenAPI 仍为 `Knowledge Island 0.1.0`；未终止未知进程，改在 `http://127.0.0.1:18766/docs` 启动当前分支验证：HTTP 200、Swagger UI 存在、OpenAPI 无缺失 summary。最终 `pytest tests/backend/` 与 `pytest tests/ -x` 通过。
+- 2026-06-06 01:53：Task 7 完成。新增 `tests/e2e/conftest.py` 使用 uvicorn 启动 live server，`tests/e2e/test_api_flows.py` 覆盖 health、项目创建、文本笔记导入、搜索、质量摘要、chat branch 参数校验和 admin stats；新增 Playwright UI 骨架测试。`pytest tests/e2e/test_api_flows.py -v` 通过 5 项；`pytest tests/e2e/ -v` 为 5 passed / 1 skipped（Playwright 浏览器不可用）；最终 `pytest tests/ -x` 通过 508 passed / 1 skipped。
 
 ## 9. 状态快照
 
