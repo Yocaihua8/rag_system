@@ -12,7 +12,7 @@
     <article v-if="answerResult" class="turn assistant">
       <div class="speaker">答 · Respondeo</div>
       <div class="body">
-        <p>{{ answerResult.answer || answerResult.message || "暂无回答" }}</p>
+        <MarkdownBody :content="answerResult.answer || answerResult.message || '暂无回答'" />
       </div>
 
       <div class="obs">
@@ -106,6 +106,7 @@
 
 <script setup>
 import { computed } from "vue";
+import MarkdownBody from "./MarkdownBody.vue";
 
 const props = defineProps({
   answerResult: {

@@ -2,15 +2,16 @@
   <div class="page full" aria-label="资料库：创建项目空间、导入本地资料、管理文档集合并查看导入历史。">
     <div>
       <div class="dashboard">
-        <div v-for="[label, value] in metrics" :key="label" class="metric">
+        <div v-for="[label, value] in summaryMetrics" :key="label" class="metric">
           <div class="v">{{ value }}</div>
           <div class="k">{{ label }}</div>
         </div>
-        <div class="health-stamp">
-          ✓ 向量已生成
-          <small>HYBRID READY</small>
+        <div class="health-stamp" :class="healthStamp.className">
+          {{ healthStamp.label }}
+          <small>{{ healthStamp.detail }}</small>
         </div>
       </div>
+      <p class="dashboard-note">最近活动：{{ summaryLastActivity }}</p>
 
       <ProjectSpacePanel
         :projects="projects"
@@ -78,7 +79,7 @@
         >
           {{ collection.name }} ({{ collection.document_count ?? collection.count ?? 0 }})
         </button>
-        <span class="add">+ 新建集合</span>
+        <button type="button" class="add" @click="focusCollectionManagement">+ 新建集合</button>
       </div>
 
       <DocumentListPanel
@@ -102,25 +103,27 @@
         @delete-document="(documentId) => $emit('delete-document', documentId)"
       />
 
-      <DocumentCollectionPanel
-        :document-collections="documentCollections"
-        :selected-project-id="selectedProjectId"
-        :selected-document-collection-id="selectedDocumentCollectionId"
-        :document-collections-loading="documentCollectionsLoading"
-        :document-collections-load-error="documentCollectionsLoadError"
-        :collection-form-submitting="collectionFormSubmitting"
-        :collection-form-error="collectionFormError"
-        :collection-form-status="collectionFormStatus"
-        :collection-rename-submitting="collectionRenameSubmitting"
-        :collection-rename-error="collectionRenameError"
-        :collection-rename-status="collectionRenameStatus"
-        :deleting-collection-id="deletingCollectionId"
-        @refresh-collections="$emit('refresh-collections')"
-        @select-collection="(collectionId) => $emit('select-collection', collectionId)"
-        @create-collection="(name) => $emit('create-collection', name)"
-        @delete-collection="(collectionId) => $emit('delete-collection', collectionId)"
-        @update-collection="(payload) => $emit('update-collection', payload)"
-      />
+      <div ref="collectionManagement">
+        <DocumentCollectionPanel
+          :document-collections="documentCollections"
+          :selected-project-id="selectedProjectId"
+          :selected-document-collection-id="selectedDocumentCollectionId"
+          :loading="documentCollectionsLoading"
+          :load-error="documentCollectionsLoadError"
+          :collection-form-submitting="collectionFormSubmitting"
+          :collection-form-error="collectionFormError"
+          :collection-form-status="collectionFormStatus"
+          :collection-rename-submitting="collectionRenameSubmitting"
+          :collection-rename-error="collectionRenameError"
+          :collection-rename-status="collectionRenameStatus"
+          :deleting-collection-id="deletingCollectionId"
+          @refresh-collections="$emit('refresh-collections')"
+          @select-collection="(collectionId) => $emit('select-collection', collectionId)"
+          @create-collection="(name) => $emit('create-collection', name)"
+          @delete-collection="(collectionId) => $emit('delete-collection', collectionId)"
+          @update-collection="(payload) => $emit('update-collection', payload)"
+        />
+      </div>
       <DocumentPreviewPanel
         :selected-document="selectedDocument"
         :selected-document-id="selectedDocumentId"
@@ -132,7 +135,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import DocumentCollectionPanel from "../components/DocumentCollectionPanel.vue";
 import DocumentImportPanel from "../components/DocumentImportPanel.vue";
@@ -149,6 +152,10 @@ const props = defineProps({
   selectedProjectId: {
     type: String,
     required: true,
+  },
+  projectSummary: {
+    type: Object,
+    default: null,
   },
   projectsLoading: {
     type: Boolean,
@@ -340,14 +347,43 @@ const props = defineProps({
   },
 });
 
-const metrics = computed(() => [
-  ["文档", props.documents.length],
-  ["集合", props.documentCollections.length],
-  ["导入", props.importBatches.length],
-  ["预览", props.selectedDocumentId ? 1 : 0],
-  ["批次", props.selectedImportBatch ? 1 : 0],
-  ["筛选", props.selectedDocumentCollectionId ? 1 : 0],
+const collectionManagement = ref(null);
+
+const summaryMetrics = computed(() => [
+  ["文档", summaryValue("document_count", props.documents.length)],
+  ["Chunk", summaryValue("chunk_count", 0)],
+  ["向量", summaryValue("vector_count", 0)],
+  ["聊天", summaryValue("chat_message_count", 0)],
+  ["工具", summaryValue("agent_tool_run_count", 0)],
+  ["复盘", summaryValue("retrieval_review_count", 0)],
 ]);
+
+const healthStamp = computed(() => {
+  if (!props.selectedProjectId) {
+    return { label: "未选择项目", detail: "PROJECT REQUIRED", className: "empty" };
+  }
+  const chunkCount = Number(summaryValue("chunk_count", 0));
+  const vectorCount = Number(summaryValue("vector_count", 0));
+  if (chunkCount <= 0) {
+    return { label: "暂无 Chunk", detail: "EMPTY INDEX", className: "empty" };
+  }
+  if (vectorCount > 0) {
+    return { label: "✓ 向量已生成", detail: "HYBRID READY", className: "ready" };
+  }
+  return { label: "仅关键词", detail: "KEYWORD ONLY", className: "warning" };
+});
+
+const summaryLastActivity = computed(() => {
+  return props.projectSummary?.last_activity_at || "暂无记录";
+});
+
+function summaryValue(fieldName, fallbackValue) {
+  return props.projectSummary?.[fieldName] ?? fallbackValue;
+}
+
+function focusCollectionManagement() {
+  collectionManagement.value?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 defineEmits([
   "refresh-projects",

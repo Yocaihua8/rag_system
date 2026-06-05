@@ -57,24 +57,6 @@
         </div>
       </li>
     </ul>
-
-    <div class="chat-history">
-      <div class="col-head">
-        <span>历史消息</span>
-        <button type="button" :disabled="!selectedProjectId || chatMessagesLoading" @click="$emit('refresh-chat-messages')">
-          {{ chatMessagesLoading ? "读取中" : "刷新" }}
-        </button>
-      </div>
-      <p v-if="chatMessagesLoading" class="status-line">正在读取历史消息...</p>
-      <p v-if="chatMessagesError" class="status-line error">{{ chatMessagesError }}</p>
-      <p v-if="chatMessages.length === 0" class="muted-line">暂无聊天记录</p>
-      <ol v-else>
-        <li v-for="message in chatMessages" :key="message.id">
-          <strong>{{ message.question || "未记录问题" }}</strong>
-          <p>{{ message.answer || "暂无回答" }}</p>
-        </li>
-      </ol>
-    </div>
   </section>
 </template>
 
@@ -94,23 +76,11 @@ const props = defineProps({
     type: String,
     default: "",
   },
-  chatMessages: {
-    type: Array,
-    default: () => [],
-  },
   chatSessionsLoading: {
     type: Boolean,
     default: false,
   },
   chatSessionsError: {
-    type: String,
-    default: "",
-  },
-  chatMessagesLoading: {
-    type: Boolean,
-    default: false,
-  },
-  chatMessagesError: {
     type: String,
     default: "",
   },
@@ -132,7 +102,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["refresh-chat-sessions", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "refresh-chat-messages"]);
+const emit = defineEmits(["refresh-chat-sessions", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session"]);
 const newSessionTitle = ref("");
 const renamingSessionId = ref("");
 const renameTitle = ref("");

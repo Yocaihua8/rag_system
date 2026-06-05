@@ -65,8 +65,8 @@ def test_vue_layout_components_define_four_primary_views():
     assert "AppShell" in app_vue
     assert "currentViewComponent" in app_vue
     assert "computed" in app_vue
-    assert "本地优先的个人 AI 知识库" in shell_vue
-    assert "导入资料、检索来源、提问和评估掌握情况" in shell_vue
+    assert "project-select" in shell_vue
+    assert "选择项目…" in shell_vue
     assert "B-141" not in shell_vue
     assert "Vue 前端迁移工作台" not in shell_vue
     assert "完整业务流程仍由 legacy 静态前端承载" not in shell_vue
@@ -84,12 +84,12 @@ def test_vue_primary_views_use_product_copy_instead_of_migration_notes():
     assert "B-141" not in settings_vue
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
-    assert "项目问答" in workbench_vue
-    assert "围绕当前项目资料提问" in workbench_vue
+    assert 'aria-label="对话"' in workbench_vue
+    assert "围绕已导入的项目资料" in workbench_vue
     assert "B-142" not in workbench_vue
-    assert "检索调试" in workbench_vue
-    assert "Agent 只读工具" in workbench_vue
-    assert "工具来源上下文" in workbench_vue
+    assert "SearchDebugPanel" in workbench_vue
+    assert "AgentToolsPanel" in workbench_vue
+    assert "currentToolContextRunId" in workbench_vue
 
     library_vue = _read("frontend/src/views/LibraryView.vue")
     assert "资料库" in library_vue
@@ -152,7 +152,7 @@ def test_vue_app_shell_renders_atlas_masthead_with_project_context():
         "brand-mark",
         "island-mark",
         "知识岛 · Knowledge Island",
-        "海图志 · Vol. I · 2026",
+        "海图志 · Vol. I",
         "currentProjectName",
         "folioNumber",
         "FOL.",
@@ -165,6 +165,70 @@ def test_vue_app_shell_renders_atlas_masthead_with_project_context():
         assert marker in shell_vue
 
 
+def test_vue_app_shell_exposes_persistent_theme_toggle():
+    shell_vue = _read("frontend/src/components/AppShell.vue")
+
+    for marker in [
+        "THEME_STORAGE_KEY",
+        '"knowledge-island:theme"',
+        "window.matchMedia",
+        'window.localStorage.getItem(THEME_STORAGE_KEY)',
+        'window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme)',
+        "toggleTheme",
+        'class="theme-toggle"',
+        "@click=\"toggleTheme\"",
+        "切换主题",
+        "深色",
+        "浅色",
+    ]:
+        assert marker in shell_vue
+
+
+def test_vue_library_uses_project_summary_for_health_dashboard():
+    app_vue = _read("frontend/src/App.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        ":project-summary=\"appState.projectSummary\"",
+        "loadProjectSummary",
+        'apiGet(`/api/projects/summary?project_id=${encodeURIComponent(appState.selectedProjectId)}`)',
+        "appState.projectSummary = data.summary || null",
+    ]:
+        assert marker in app_vue
+
+    for marker in [
+        "projectSummary:",
+        "summaryMetrics",
+        "document_count",
+        "chunk_count",
+        "vector_count",
+        "chat_message_count",
+        "agent_tool_run_count",
+        "retrieval_review_count",
+        "healthStamp",
+        "last_activity_at",
+    ]:
+        assert marker in library_vue
+
+
+def test_vue_library_collection_tab_opens_real_collection_create_form():
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    assert '<span class="add">+ 新建集合</span>' not in library_vue
+    for marker in [
+        'type="button"',
+        'class="add"',
+        "@click=\"focusCollectionManagement\"",
+        'ref="collectionManagement"',
+        "focusCollectionManagement",
+        "scrollIntoView",
+        "DocumentCollectionPanel",
+        ':loading="documentCollectionsLoading"',
+        ':load-error="documentCollectionsLoadError"',
+    ]:
+        assert marker in library_vue
+
+
 def test_vue_primary_views_use_atlas_layout_classes():
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
     library_vue = _read("frontend/src/views/LibraryView.vue")
@@ -173,11 +237,11 @@ def test_vue_primary_views_use_atlas_layout_classes():
     settings_vue = _read("frontend/src/views/SettingsView.vue")
 
     for marker in [
-        'class="page"',
-        'class="conv-col"',
+        'class="page workbench-page"',
+        'class="conv-col workbench-center"',
         "ChatSessionPanel",
-        "QuestionPanel",
-        "AnswerPanel",
+        "MarkdownBody",
+        "conv-composer",
         "AgentToolsPanel",
         "SearchDebugPanel",
     ]:
@@ -378,7 +442,8 @@ def test_vue_workbench_warns_before_cloud_model_submission():
 
     assert "cloudModelNotice" in app_vue
     assert ':cloud-model-notice="cloudModelNotice"' in app_vue
-    assert ":cloud-model-notice=\"cloudModelNotice\"" in workbench_vue
+    assert "cloudModelNotice" in workbench_vue
+    assert "tool-suggest-sm" in workbench_vue
     assert "本轮会把检索到的来源片段发送给云端模型" in question_panel_vue
     assert "DeepSeek / OpenAI-compatible API" in question_panel_vue
     assert "cloudModelNotice:" in workbench_vue
@@ -496,7 +561,7 @@ def test_vue_chat_api_helper_uses_existing_session_and_message_contracts():
         assert marker in chat_js
 
 
-def test_vue_workbench_question_and_answer_panels_render_entrypoint():
+def test_vue_workbench_inlines_question_and_answer_entrypoint():
     question_panel_vue = _read("frontend/src/components/QuestionPanel.vue")
     answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
@@ -521,14 +586,18 @@ def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     ]:
         assert marker in answer_panel_vue
 
-    assert "QuestionPanel" in workbench_vue
-    assert "AnswerPanel" in workbench_vue
-    assert "@submit-question" in workbench_vue
-    assert "@cancel-answer" in workbench_vue
-    assert ":answer-result=\"answerResult\"" in workbench_vue
+    assert "QuestionPanel" not in workbench_vue
+    assert "AnswerPanel" not in workbench_vue
+    assert 'v-model="draft"' in workbench_vue
+    assert "function send()" in workbench_vue
+    assert "latestAnswer" in workbench_vue
+    assert "turn-streaming" in workbench_vue
+    assert '"submit-question"' in workbench_vue
+    assert '"cancel-answer"' in workbench_vue
+    assert "MarkdownBody" in workbench_vue
 
 
-def test_vue_chat_session_panel_renders_sessions_and_history():
+def test_vue_chat_session_panel_renders_sessions_without_history_block():
     panel_path = Path("frontend/src/components/ChatSessionPanel.vue")
     assert panel_path.exists(), "B-142 should add ChatSessionPanel"
     panel_vue = _read(str(panel_path))
@@ -538,25 +607,29 @@ def test_vue_chat_session_panel_renders_sessions_and_history():
         "聊天会话",
         "默认会话",
         "新建会话",
-        "历史消息",
         "重命名",
         "删除会话",
-        "暂无聊天记录",
         'v-for="session in chatSessions"',
-        'v-for="message in chatMessages"',
-        'defineEmits(["refresh-chat-sessions", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "refresh-chat-messages"])',
+        'defineEmits(["refresh-chat-sessions", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session"])',
     ]:
         assert marker in panel_vue
+
+    for removed_marker in [
+        'class="chat-history"',
+        "暂无聊天记录",
+        'v-for="message in chatMessages"',
+        "refresh-chat-messages",
+        "chatMessagesLoading",
+        "chatMessagesError",
+    ]:
+        assert removed_marker not in panel_vue
 
     for prop_name in [
         "selectedProjectId",
         "chatSessions",
         "selectedChatSessionId",
-        "chatMessages",
         "chatSessionsLoading",
         "chatSessionsError",
-        "chatMessagesLoading",
-        "chatMessagesError",
         "chatSessionMutationSubmitting",
         "chatSessionMutationStatus",
         "chatSessionMutationError",
@@ -568,7 +641,6 @@ def test_vue_chat_session_panel_renders_sessions_and_history():
         "ChatSessionPanel",
         ":chat-sessions=\"chatSessions\"",
         ":selected-chat-session-id=\"selectedChatSessionId\"",
-        ":chat-messages=\"chatMessages\"",
         "@select-chat-session",
         "@create-chat-session",
         "@rename-chat-session",
@@ -600,11 +672,11 @@ def test_vue_answer_panel_renders_answer_feedback_controls():
     ]:
         assert marker in answer_panel_vue
 
-    assert "@submit-answer-feedback" in workbench_vue
-    assert ":last-answer-message-id=\"lastAnswerMessageId\"" in workbench_vue
-    assert ":answer-feedback-submitting=\"answerFeedbackSubmitting\"" in workbench_vue
-    assert ":answer-feedback-status=\"answerFeedbackStatus\"" in workbench_vue
-    assert ":answer-feedback-error=\"answerFeedbackError\"" in workbench_vue
+    assert '"submit-answer-feedback"' in workbench_vue
+    assert "lastAnswerMessageId" in workbench_vue
+    assert "answerFeedbackSubmitting" in workbench_vue
+    assert "answerFeedbackStatus" in workbench_vue
+    assert "answerFeedbackError" in workbench_vue
 
 
 def test_vue_app_handles_streaming_workbench_question_state_and_cancel():
@@ -743,12 +815,12 @@ def test_vue_answer_panel_renders_tool_suggestion_and_context_controls():
         assert marker in answer_panel_vue
 
     for marker in [
-        ":tool-suggestion=\"currentToolSuggestion\"",
-        ":last-usable-tool-run=\"lastUsableToolRun\"",
-        ":current-tool-context-run-id=\"currentToolContextRunId\"",
-        "@run-tool-suggestion",
-        "@use-tool-result-context",
-        "@clear-tool-context",
+            "currentToolSuggestion",
+            "lastUsableToolRun",
+            "currentToolContextRunId",
+            "run-tool-suggestion",
+            "use-tool-result-context",
+            "clear-tool-context",
     ]:
         assert marker in workbench_vue
 
@@ -1734,8 +1806,8 @@ def test_vue_document_collection_panel_renders_readonly_filter_controls():
     assert "DocumentCollectionPanel" in library_vue
     assert ":document-collections=\"documentCollections\"" in library_vue
     assert ":selected-document-collection-id=\"selectedDocumentCollectionId\"" in library_vue
-    assert ":document-collections-loading=\"documentCollectionsLoading\"" in library_vue
-    assert ":document-collections-load-error=\"documentCollectionsLoadError\"" in library_vue
+    assert ":loading=\"documentCollectionsLoading\"" in library_vue
+    assert ":load-error=\"documentCollectionsLoadError\"" in library_vue
     assert ":collection-form-submitting=\"collectionFormSubmitting\"" in library_vue
     assert ":collection-form-error=\"collectionFormError\"" in library_vue
     assert ":collection-form-status=\"collectionFormStatus\"" in library_vue
@@ -2345,3 +2417,127 @@ def test_vue_app_handles_settings_prompt_preset_state_and_events():
         "promptPresetStatus",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_workbench_final_fixes_render_markdown_and_keep_single_emit_contract():
+    markdown_path = Path("frontend/src/components/MarkdownBody.vue")
+    assert markdown_path.exists(), "B-151 should add a reusable MarkdownBody component"
+
+    markdown_vue = _read(str(markdown_path))
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "defineProps",
+        "content:",
+        "renderedHtml",
+        "escapeHtml",
+        "renderMarkdown",
+        "markdown-body",
+        "v-html",
+    ]:
+        assert marker in markdown_vue
+
+    assert 'import MarkdownBody from "../components/MarkdownBody.vue";' in workbench_vue
+    assert "MarkdownBody" in workbench_vue
+    assert workbench_vue.count("defineEmits(") == 1
+    assert 'class="page workbench-page"' in workbench_vue
+    assert 'class="workbench-side workbench-left"' in workbench_vue
+    assert 'class="conv-col workbench-center"' in workbench_vue
+    assert 'class="workbench-side workbench-right"' in workbench_vue
+
+
+def test_vue_workbench_final_fixes_add_viewport_column_scroll_css_and_clear_question():
+    styles_css = _read("frontend/src/styles.css")
+    question_vue = _read("frontend/src/components/QuestionPanel.vue")
+
+    for marker in [
+        ".workbench-page",
+        ".workbench-side",
+        ".workbench-center",
+        ".workbench-scroll",
+        "height: calc(100vh",
+        "overflow-y: auto",
+        "min-height: 0",
+    ]:
+        assert marker in styles_css
+
+    assert 'emit("submit-question", questionText.value)' in question_vue
+    assert 'questionText.value = ""' in question_vue
+
+
+def test_vue_workbench_thread_flow_inlines_history_streaming_and_bottom_composer():
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        'aria-label="对话"',
+        'ref="convEl"',
+        "conv-empty",
+        "conv-empty-mark",
+        "前往资料库创建项目",
+        '@click="$emit(\'change-view\', \'library\')"',
+        "暂无对话记录",
+        "chatThread",
+        "v-for=\"(msg, i) in chatThread\"",
+        "liveAnswer",
+        "turn-streaming",
+        "latestAnswer",
+        "FEEDBACK",
+        "lastFeedback",
+        "currentToolSuggestion",
+        "currentToolContextRunId",
+        "conv-composer",
+        'v-model="draft"',
+        "function send()",
+        'emit("submit-question", draft.value)',
+        'draft.value = ""',
+        "function doFeedback",
+        "watch(",
+        "nextTick",
+        "scrollTo",
+    ]:
+        assert marker in workbench_vue
+
+    assert workbench_vue.count("defineEmits(") == 1
+    assert '"change-view"' in workbench_vue
+    assert "QuestionPanel" not in workbench_vue
+    assert "AnswerPanel" not in workbench_vue
+    assert '@change-view="showView"' in _read("frontend/src/App.vue")
+
+
+def test_vue_masthead_project_select_is_wired_to_app_shell():
+    app_shell_vue = _read("frontend/src/components/AppShell.vue")
+    app_vue = _read("frontend/src/App.vue")
+
+    for marker in [
+        'defineEmits(["change-view", "select-project"])',
+        'class="project-select"',
+        ':value="selectedProjectId"',
+        '@change="$emit(\'select-project\', $event.target.value)"',
+        '<option value="">选择项目…</option>',
+        'v-for="p in projects"',
+        "{{ p.name }}",
+    ]:
+        assert marker in app_shell_vue
+
+    shell_block = app_vue.split("</AppShell>")[0]
+    assert '@select-project="handleSelectProject"' in shell_block
+
+
+def test_vue_workbench_thread_flow_css_is_appended():
+    styles_css = _read("frontend/src/styles.css")
+
+    for marker in [
+        "/* ── Conv column layout fix",
+        ".conv-col.workbench-center",
+        ".conv-composer",
+        ".conv-empty",
+        ".conv-empty-mark",
+        ".conv-empty-title",
+        ".conv-empty-sub",
+        ".tool-suggest-sm",
+        ".turn-streaming .body::after",
+        "@keyframes stream-fade",
+        ".project-select",
+        ".project-select:hover",
+    ]:
+        assert marker in styles_css

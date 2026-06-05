@@ -4,6 +4,7 @@
     :projects="appState.projects"
     :selected-project-id="appState.selectedProjectId"
     @change-view="showView"
+    @select-project="handleSelectProject"
   >
     <component
       :is="currentViewComponent"
@@ -20,6 +21,7 @@
       :project-mutation-error="appState.projectMutationError"
       :project-mutation-status="appState.projectMutationStatus"
       :project-status-message="projectStatusMessage"
+      :project-summary="appState.projectSummary"
       :import-submitting="appState.importSubmitting"
       :import-error="appState.importError"
       :import-status="appState.importStatus"
@@ -149,6 +151,7 @@
       :assessment-error="appState.assessmentError"
       :assessment-status="appState.assessmentStatus"
       @check-health="checkHealth"
+      @change-view="showView"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
       @create-project="handleCreateProject"
@@ -641,6 +644,7 @@ async function loadProjectSpaces() {
   try {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
+    await loadProjectSummary();
     await loadRetrievalSettings();
     await loadRetrievalReviews();
     await loadDocumentCollections();
@@ -654,6 +658,19 @@ async function loadProjectSpaces() {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
     appState.projectsLoading = false;
+  }
+}
+
+async function loadProjectSummary() {
+  appState.projectSummary = null;
+  if (!appState.selectedProjectId) {
+    return;
+  }
+  try {
+    const data = await apiGet(`/api/projects/summary?project_id=${encodeURIComponent(appState.selectedProjectId)}`);
+    appState.projectSummary = data.summary || null;
+  } catch (error) {
+    appState.projectSummary = null;
   }
 }
 
@@ -674,6 +691,7 @@ async function handleSelectProject(projectId) {
   clearCollectionItemStatus();
   clearDocumentDeleteStatus();
   projectFormStatus.value = projectId ? "已切换项目空间" : "未选择项目空间";
+  await loadProjectSummary();
   await loadDocumentCollections();
   await loadRetrievalSettings();
   await loadRetrievalReviews();
@@ -705,6 +723,7 @@ async function handleCreateProject(payload) {
     clearChatState();
     resetAssessmentState();
     appState.selectedDocumentCollectionId = "";
+    await loadProjectSummary();
     await loadDocumentCollections();
     await loadRetrievalSettings();
     await loadRetrievalReviews();
@@ -763,6 +782,7 @@ async function handleDeleteProject() {
 }
 
 function resetLibraryStateAfterProjectDelete() {
+  appState.projectSummary = null;
   appState.documents = [];
   appState.documentsLoadError = "";
   appState.selectedDocumentId = "";
@@ -866,6 +886,7 @@ async function handleSyncDirectory() {
     appState.importStatus = formatImportResult("同步当前项目目录完成", data.result);
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadProjectSummary();
   } catch (error) {
     appState.importError = error.message || "同步当前项目目录失败";
   } finally {
@@ -901,6 +922,7 @@ async function submitLibraryImport(successMessage, action) {
     appState.importStatus = successMessage;
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadProjectSummary();
   } catch (error) {
     appState.importError = error.message || "资料导入失败";
   } finally {
@@ -1137,6 +1159,7 @@ async function handleDeleteChatSession(sessionId) {
     }
     await loadChatSessions();
     await loadChatMessages();
+    await loadProjectSummary();
     appState.chatSessionMutationStatus = "聊天会话已删除";
   } catch (error) {
     appState.chatSessionMutationError = error.message || "聊天会话删除失败";
@@ -1160,6 +1183,7 @@ async function handleRunAgentTool(payload) {
     setLastUsableToolRun(data);
     appState.agentToolStatus = "工具运行完成";
     await loadAgentToolRuns();
+    await loadProjectSummary();
   } catch (error) {
     appState.agentToolError = error.message || "工具运行失败";
     appState.agentToolStatus = "工具运行失败";
@@ -1296,6 +1320,7 @@ async function handleSaveRetrievalReview(payload) {
       ...payload,
     });
     await loadRetrievalReviews();
+    await loadProjectSummary();
     appState.selectedRetrievalReview = review;
     appState.retrievalReviewStatus = "检索复盘已保存";
   } catch (error) {
@@ -1333,6 +1358,7 @@ async function handleDeleteRetrievalReview(reviewId) {
     if (appState.selectedRetrievalReview?.id === reviewId) {
       appState.selectedRetrievalReview = null;
     }
+    await loadProjectSummary();
     appState.retrievalReviewStatus = "检索复盘已删除";
   } catch (error) {
     appState.retrievalReviewError = error.message || "检索复盘删除失败";
@@ -1392,6 +1418,7 @@ async function finishStreamAnswer(data) {
   appState.answerStatus = "回答已生成";
   appState.answerLoading = false;
   await loadChatMessages();
+  await loadProjectSummary();
 }
 
 function failStreamAnswer(error) {
@@ -1635,6 +1662,7 @@ async function handleDeleteDocument(documentId) {
     appState.documentDeleteStatus = "文档已删除";
     await loadDocumentCollections();
     await loadLibraryDocuments();
+    await loadProjectSummary();
   } catch (error) {
     appState.documentDeleteError = error.message || "文档删除失败";
   } finally {

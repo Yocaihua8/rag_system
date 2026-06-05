@@ -71,5 +71,6 @@ const questionText = ref("");
 
 function submitQuestion() {
   emit("submit-question", questionText.value);
+  questionText.value = "";
 }
 </script>

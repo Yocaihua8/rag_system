@@ -16,7 +16,19 @@
         </span>
         <span class="brand-text">
           <h1>知识岛 · Knowledge Island</h1>
-          <span class="vol" title="本地优先的个人 AI 知识库；导入资料、检索来源、提问和评估掌握情况">海图志 · Vol. I · 2026 · {{ currentProjectName }}</span>
+          <span class="vol">
+            海图志 · Vol. I ·
+            <span v-if="!projects.length">{{ currentProjectName }}</span>
+            <select
+              v-else
+              class="project-select"
+              :value="selectedProjectId"
+              @change="$emit('select-project', $event.target.value)"
+            >
+              <option value="">选择项目…</option>
+              <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </span>
         </span>
       </div>
       <nav class="nav" aria-label="主导航">
@@ -56,6 +68,15 @@
         >
           设置
         </button>
+        <button
+          type="button"
+          class="theme-toggle"
+          :aria-label="isDark ? '切换主题：浅色' : '切换主题：深色'"
+          :title="isDark ? '切换到浅色主题' : '切换到深色主题'"
+          @click="toggleTheme"
+        >
+          {{ isDark ? "浅色" : "深色" }}
+        </button>
         <span class="folio">FOL. {{ folioNumber }}</span>
       </nav>
     </header>
@@ -68,6 +89,8 @@
 
 <script setup>
 import { computed, ref } from "vue";
+
+const THEME_STORAGE_KEY = "knowledge-island:theme";
 
 const navItems = [
   { key: "workbench", label: "工作台", folio: "I" },
@@ -91,9 +114,9 @@ const props = defineProps({
   },
 });
 
-defineEmits(["change-view"]);
+defineEmits(["change-view", "select-project"]);
 
-const isDark = ref(false);
+const isDark = ref(resolveInitialTheme() === "dark");
 
 const currentProjectName = computed(() => {
   const project = props.projects.find((entry) => entry.id === props.selectedProjectId);
@@ -103,4 +126,25 @@ const currentProjectName = computed(() => {
 const folioNumber = computed(() => {
   return navItems.find((item) => item.key === props.currentView)?.folio || "I";
 });
+
+function resolveInitialTheme() {
+  if (typeof window !== "undefined" && window.localStorage) {
+    const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (savedTheme === "dark" || savedTheme === "light") {
+      return savedTheme;
+    }
+  }
+  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+    return "dark";
+  }
+  return "light";
+}
+
+function toggleTheme() {
+  const nextTheme = isDark.value ? "light" : "dark";
+  isDark.value = nextTheme === "dark";
+  if (typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  }
+}
 </script>
