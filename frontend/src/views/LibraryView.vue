@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 
 import DocumentCollectionPanel from "../components/DocumentCollectionPanel.vue";
 import DocumentImportPanel from "../components/DocumentImportPanel.vue";
@@ -348,15 +348,23 @@ const props = defineProps({
 });
 
 const collectionManagement = ref(null);
+const qualitySummary = ref(null);
+const qualitySummaryRequestId = ref(0);
 
 const summaryMetrics = computed(() => [
   ["文档", summaryValue("document_count", props.documents.length)],
   ["Chunk", summaryValue("chunk_count", 0)],
   ["向量", summaryValue("vector_count", 0)],
+  ["回答有来源率", qualitySourceRate.value],
   ["聊天", summaryValue("chat_message_count", 0)],
   ["工具", summaryValue("agent_tool_run_count", 0)],
   ["复盘", summaryValue("retrieval_review_count", 0)],
 ]);
+
+const qualitySourceRate = computed(() => {
+  const rate = Number(qualitySummary.value?.has_sources_rate ?? 0);
+  return `${Math.round(rate * 100)}%`;
+});
 
 const healthStamp = computed(() => {
   if (!props.selectedProjectId) {
@@ -384,6 +392,37 @@ function summaryValue(fieldName, fallbackValue) {
 function focusCollectionManagement() {
   collectionManagement.value?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
+async function loadQualitySummary(projectId) {
+  const requestId = qualitySummaryRequestId.value + 1;
+  qualitySummaryRequestId.value = requestId;
+  qualitySummary.value = null;
+  if (!projectId) {
+    return;
+  }
+  try {
+    const response = await fetch(`/api/projects/quality-summary?project_id=${encodeURIComponent(projectId)}`);
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    if (qualitySummaryRequestId.value === requestId) {
+      qualitySummary.value = data;
+    }
+  } catch {
+    if (qualitySummaryRequestId.value === requestId) {
+      qualitySummary.value = null;
+    }
+  }
+}
+
+watch(
+  () => props.selectedProjectId,
+  (projectId) => {
+    loadQualitySummary(projectId);
+  },
+  { immediate: true },
+);
 
 defineEmits([
   "refresh-projects",

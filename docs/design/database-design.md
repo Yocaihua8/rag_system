@@ -120,10 +120,11 @@
 - 删除项目空间时级联清理；删除会话时清理该会话下的 `chat_messages`。
 
 ### chat_messages（Web MVP）
-- `id / project_id / session_id / question / answer / mode / provider / warning / sources_json / created_at`
+- `id / project_id / session_id / question / answer / mode / provider / warning / sources_json / quality_metrics / created_at`
 - 每次 `/api/answer` 返回后写入一条记录，用于 Web 工作台按项目恢复最近问答。
 - `session_id` 可为空；为空时归入默认会话，用于兼容历史消息。
 - `sources_json` 保存本轮回答使用的来源片段快照，避免后续文档更新导致历史对话失去当时来源。
+- `quality_metrics` 保存本轮回答的轻量质量指标 JSON，包括 `source_coverage`、`retrieval_top_score`、`has_sources` 和 `answer_length`；旧记录可为空，读取时按空对象处理。
 
 ### answer_feedback（Web MVP）
 - `id / project_id / message_id / rating / note / created_at`
@@ -171,6 +172,7 @@
 - Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。Embedding API 失败时回退本地 hashing，不阻断文档入库。
 - Web MVP 删除项目空间时通过外键级联清理 `chat_messages`，避免孤立聊天记录。
 - Web MVP 删除项目空间或聊天消息时通过外键级联清理 `answer_feedback`，避免孤立回答反馈。
+- Web MVP 项目质量摘要只读取 `chat_messages.quality_metrics` 和 `answer_feedback`，不自动修改检索参数或模型配置。
 - Web MVP 删除项目空间时通过外键级联清理 `assessment_questions`、`assessment_answers` 和 `assessment_results`；删除题目时级联清理对应回答与结果。
 - Web MVP 删除项目空间时通过外键级联清理 `agent_tool_runs`，避免孤立工具审计记录。
 - Web MVP 删除项目空间时通过外键级联清理 `retrieval_reviews`，避免孤立检索复盘记录。

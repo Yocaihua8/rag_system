@@ -87,6 +87,76 @@ def test_projects_route_module_handles_project_summary(tmp_path):
     assert handle_projects_route(store, "POST", "/api/projects/summary", {}, {}) is None
 
 
+def test_projects_route_module_handles_quality_summary(tmp_path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    first = store.create_chat_message(
+        project.id,
+        "问题一",
+        "回答一",
+        "local",
+        "local",
+        "",
+        [],
+        quality_metrics={
+            "source_coverage": 0.5,
+            "retrieval_top_score": 0.9,
+            "has_sources": True,
+            "answer_length": 3,
+        },
+    )
+    store.create_chat_message(
+        project.id,
+        "问题二",
+        "回答二",
+        "local",
+        "local",
+        "",
+        [],
+        quality_metrics={
+            "source_coverage": 0.0,
+            "retrieval_top_score": 0.0,
+            "has_sources": False,
+            "answer_length": 3,
+        },
+    )
+    store.create_answer_feedback(project.id, first.id, "useful")
+
+    response = handle_projects_route(
+        store,
+        "GET",
+        "/api/projects/quality-summary",
+        {"project_id": [project.id]},
+        {},
+    )
+    missing_id_response = handle_projects_route(store, "GET", "/api/projects/quality-summary", {}, {})
+    unknown_project_response = handle_projects_route(
+        store,
+        "GET",
+        "/api/projects/quality-summary",
+        {"project_id": ["missing"]},
+        {},
+    )
+
+    assert response is not None
+    assert response.status == 200
+    assert response.body == {
+        "total_questions": 2,
+        "has_sources_rate": 0.5,
+        "user_useful_rate": 0.5,
+        "avg_source_coverage": 0.25,
+        "avg_retrieval_top_score": 0.45,
+    }
+    assert missing_id_response is not None
+    assert missing_id_response.status == 400
+    assert missing_id_response.body["error"] == "project_id is required"
+    assert unknown_project_response is not None
+    assert unknown_project_response.status == 404
+    assert unknown_project_response.body["error"] == "project not found"
+
+
 def test_projects_route_module_handles_project_crud(tmp_path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()

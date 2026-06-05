@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -347,6 +347,7 @@ class ChatMessage:
     sources: list[dict[str, Any]]
     created_at: str
     session_id: str = ""
+    quality_metrics: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -360,6 +361,7 @@ class ChatMessage:
             "sources": self.sources,
             "created_at": self.created_at,
             "session_id": self.session_id,
+            "quality_metrics": self.quality_metrics,
         }
 
 

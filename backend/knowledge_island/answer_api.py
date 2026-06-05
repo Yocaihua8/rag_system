@@ -81,6 +81,8 @@ def prepare_answer_context(
 def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answer_result: Any) -> dict[str, Any]:
     useful_hits = context["useful_hits"]
     sources = [hit.to_dict() for hit in useful_hits[:5]]
+    quality_metrics = _compute_quality_metrics(useful_hits[:5], int(context["retrieval_settings"]["top_k"]))
+    quality_metrics["answer_length"] = len(answer_result.answer)
     message = None
     project = context["project"]
     if project:
@@ -93,6 +95,7 @@ def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answ
             warning=answer_result.warning,
             sources=sources,
             session_id=str(context["session_id"]),
+            quality_metrics=quality_metrics,
         )
     body = {
         "answer": answer_result.answer,
@@ -122,6 +125,17 @@ def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answ
             "hit_count": len(context["tool_context_hits"]),
         }
     return body
+
+
+def _compute_quality_metrics(sources: list[SearchHit], top_k: int) -> dict[str, object]:
+    source_count = len(sources)
+    top_score = max((source.score for source in sources), default=0.0)
+    return {
+        "source_coverage": round(source_count / max(top_k, 1), 3),
+        "retrieval_top_score": round(top_score, 4),
+        "has_sources": bool(sources),
+        "answer_length": 0,
+    }
 
 
 def _default_model_profile_client(store: KnowledgeStore) -> OpenAICompatibleChatClient | None:

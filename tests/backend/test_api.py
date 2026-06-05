@@ -204,6 +204,12 @@ def test_api_import_search_and_answer_flow(tmp_path: Path):
     assert "本地 Web 服务" in answer_response.body["answer"]
     assert answer_response.body["mode"] == "local"
     assert answer_response.body["sources"][0]["path"] == "stack.md"
+    assert answer_response.body["message"]["quality_metrics"] == {
+        "source_coverage": round(len(answer_response.body["sources"]) / 5, 3),
+        "retrieval_top_score": round(answer_response.body["sources"][0]["score"], 4),
+        "has_sources": True,
+        "answer_length": len(answer_response.body["answer"]),
+    }
     assert "tool_suggestion" not in answer_response.body
 
 

@@ -27,6 +27,15 @@ def handle_projects_route(
             return ApiResponse(404, {"error": "project not found"})
         return ApiResponse(200, {"summary": summary})
 
+    if method == "GET" and path == "/api/projects/quality-summary":
+        project_id = query_value(query, "project_id")
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        summary = store.get_project_quality_summary(project_id)
+        if summary is None:
+            return ApiResponse(404, {"error": "project not found"})
+        return ApiResponse(200, summary)
+
     if method == "GET" and path == "/api/projects/retrieval-settings":
         project_id = query_value(query, "project_id")
         if not project_id:

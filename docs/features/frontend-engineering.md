@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-05
+> Last Updated：2026-06-06
 > Scope：B-141 Vue 3 + Vite 前端工程化；B-142 Vue 工作台 SSE 与会话历史迁移；B-143 legacy 静态前端清理；B-145 目录命名阶段对齐；B-149 Vue 海图志视觉重构；B-150 Vue 前端产品化收口；B-151 Vue 工作台最终可用性修复；B-152 Vue 工作台线性会话流收口
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
@@ -46,6 +46,7 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 - B-148 后，Vue Web MVP 首屏和四个主视图使用产品化文案，不再向用户展示 B-141/B-142 迁移说明；资料库项目空间面板显示后端返回的 `root_path`，避免创建项目后误报“未记录本地目录”；工作台在检测到 API 模式且 Key 已配置时，会在提问前提示本轮会把检索到的来源片段发送给云端模型。
 - B-149 后，Vue Web MVP 使用海图志视觉系统：顶部为 `masthead`、IslandMark、四个主导航和 `FOL.` 页码；工作台为会话 / 对话 / 工具三列；资料库有 `dashboard`、导入区、集合 tabs 和文档表格；评估页使用 `eval-frame`；设置页使用 `settings-frame` 与 `field-grid`。本次仅调整视觉层，不修改 `/api/*` 契约、`frontend/src/api/`、`frontend/src/state/`、SQLite schema 或 Agent 工具权限。
 - B-150 后，Vue Web MVP 的海图志界面补齐产品化入口：顶部主题按钮可在浅色 / 深色之间手动切换，并保存到浏览器 `localStorage`；资料库 dashboard 优先读取 `/api/projects/summary` 展示文档、Chunk、向量、聊天、工具运行和检索复盘计数，并按 Chunk/向量状态显示 `HYBRID READY / KEYWORD ONLY / EMPTY INDEX`；集合 tabs 里的“新建集合”是可点击入口，会滚动到真实集合创建表单，不再只是静态装饰文本。B-150 不修改 `frontend/src/api/`、`frontend/src/state/`、后端 API 或数据库 schema。
+- B-154 起，Vue 资料库 dashboard 在不修改 `frontend/src/api/` 和 `frontend/src/state/` 的前提下，随当前项目直接读取 `GET /api/projects/quality-summary`，追加展示“回答有来源率”指标；接口读取失败或未选择项目时显示 `0%`。
 - B-151 后，Vue 工作台新增 `MarkdownBody.vue` 渲染回答正文，支持标题、列表、引用、行内代码、粗体/斜体和代码块的安全 HTML 输出；工作台三列使用独立滚动容器，长会话、长回答、工具历史和检索复盘不会撑开整页；提问提交后输入框会立即清空。B-151 不修改 `frontend/src/api/`、`frontend/src/state/`、后端 API 或数据库 schema。
 - B-152 后，Vue 工作台中列不再用独立 `QuestionPanel` / `AnswerPanel` 拼接，而是在 `WorkbenchView.vue` 内联为线性会话流：未选项目显示“前往资料库创建项目”空状态，已选项目无历史时显示“暂无对话记录”，历史 `chatMessages` 展开为 `.turn.user` / `.turn.assistant`，流式生成显示 `.turn-streaming`，完成后显示观察性、来源和反馈。底部 `conv-composer` 固定在中列底部；`ChatSessionPanel` 只保留会话管理；masthead 的 `Vol.` 行提供项目下拉。B-152 不修改 `frontend/src/api/`、`frontend/src/state/`、后端 API 或数据库 schema。
 
@@ -191,7 +192,7 @@ B-152 起，`WorkbenchView.vue` 作为工作台中列组合层直接渲染历史
 - Vue 工作台中列按历史轮次、流式回答、最新完成回答、工具提示和底部 composer 线性排列；未选项目时“前往资料库创建项目”按钮跳转资料库。
 - Vue 工作台三列在桌面视口内独立滚动，长内容不应造成整个页面或相邻列被撑开；窄屏下回到普通页面流。
 - Vue 资料库使用 dashboard 指标、导入 / 批次双栏、集合 tabs 和文档表格；项目空间、集合管理、导入批次、文档预览和删除入口仍保留。
-- Vue 资料库 dashboard 优先展示当前项目健康概览中的文档、Chunk、向量、聊天、工具运行、检索复盘和最近活动时间；缺少 summary 时可用前端已加载列表做最小 fallback。
+- Vue 资料库 dashboard 优先展示当前项目健康概览中的文档、Chunk、向量、聊天、工具运行、检索复盘、回答有来源率和最近活动时间；缺少 summary 时可用前端已加载列表做最小 fallback，质量摘要读取失败时回答有来源率显示 `0%`。
 - Vue 资料库集合 tabs 的“新建集合”必须跳转到真实集合创建表单，不允许作为无动作装饰文本。
 - Vue 评估页使用 `eval-frame` 展示题目、回答框、提交操作、评估结果、答题记录和待复测列表。
 - Vue 设置页使用 `settings-frame` 和 `field-grid` 展示模型设置，并保留模型 Profile 与 Prompt 预设管理入口。

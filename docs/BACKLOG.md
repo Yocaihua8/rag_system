@@ -99,7 +99,7 @@
 | B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
 | B-67 | feature | Web 向量库与 Reranker 接入（legacy 规划） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-134（Qdrant）和 B-125（Reranker）拆分替代 |
 | B-153 | tech-debt | SQLite WAL 模式启用 | done | P2 | XS | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | 已完成：在 storage.py 连接初始化时追加 WAL / synchronous=NORMAL / busy_timeout=5000；新增并发读写测试；验证 `pytest tests/backend/test_concurrent_access.py` 与 `pytest tests/ -x` |
-| B-154 | feature | 回答质量指标存储 | doing | P2 | S | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | chat_messages 追加 quality_metrics JSON 列；计算 source_coverage / retrieval_top_score；新增 /api/projects/quality-summary 接口 |
+| B-154 | feature | 回答质量指标存储 | done | P2 | S | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/database-design.md, docs/design/api-spec.md, docs/features/frontend-engineering.md | 已完成：chat_messages 追加 quality_metrics JSON 列；回答完成时计算 source_coverage / retrieval_top_score / has_sources / answer_length；新增 /api/projects/quality-summary；资料库 dashboard 展示回答有来源率；验证 `pytest tests/backend/`、`pytest tests/ -x`、`npm --prefix frontend run build` |
 | B-155 | feature | HyDE 查询增强 | todo | P2 | M | v0.14.0 | RAG 团队 | docs/plans/phase-2-intelligence-v014.md | 先让 LLM 生成假设答案，用假设答案 embedding 做向量检索；retrieval_settings 可开关；预估 2 天 |
 | B-156 | feature | 多路查询改写 | todo | P2 | M | v0.14.0 | RAG 团队 | docs/plans/phase-2-intelligence-v014.md | 将问题改写为 3 个语义等价变体并发检索，RRF 融合去重；retrieval_settings 可开关；预估 2 天 |
 | B-157 | feature | 自动更新机制 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/plans/phase-4-production-v100.md | 打包版本启动时后台检查 GitHub Releases 最新版本；masthead 显示更新提示；不自动安装，只引导下载 |

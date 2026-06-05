@@ -1063,8 +1063,10 @@ class KnowledgeStore:
         warning: str,
         sources: list[dict[str, object]],
         session_id: str = "",
+        quality_metrics: dict[str, object] | None = None,
     ) -> ChatMessage:
         now = _now()
+        metrics = dict(quality_metrics or {})
         message = ChatMessage(
             id=str(uuid.uuid4()),
             project_id=project_id,
@@ -1076,13 +1078,15 @@ class KnowledgeStore:
             sources=[dict(source) for source in sources],
             created_at=now,
             session_id=session_id,
+            quality_metrics=metrics,
         )
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO chat_messages
-                    (id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, project_id, session_id, question, answer, mode, provider, warning,
+                     sources_json, quality_metrics, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
@@ -1094,6 +1098,7 @@ class KnowledgeStore:
                     message.provider,
                     message.warning,
                     json.dumps(message.sources, ensure_ascii=False),
+                    json.dumps(message.quality_metrics, ensure_ascii=False),
                     message.created_at,
                 ),
             )
@@ -1109,7 +1114,8 @@ class KnowledgeStore:
             if session_id:
                 rows = conn.execute(
                     """
-                    SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                    SELECT id, project_id, session_id, question, answer, mode, provider, warning,
+                           sources_json, quality_metrics, created_at
                     FROM chat_messages
                     WHERE project_id = ? AND session_id = ?
                     ORDER BY created_at ASC
@@ -1119,7 +1125,8 @@ class KnowledgeStore:
                 return [_chat_message_from_row(row) for row in rows]
             rows = conn.execute(
                 """
-                SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                SELECT id, project_id, session_id, question, answer, mode, provider, warning,
+                       sources_json, quality_metrics, created_at
                 FROM chat_messages
                 WHERE project_id = ? AND session_id IS NULL
                 ORDER BY created_at ASC
@@ -1132,7 +1139,8 @@ class KnowledgeStore:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                SELECT id, project_id, session_id, question, answer, mode, provider, warning,
+                       sources_json, quality_metrics, created_at
                 FROM chat_messages
                 WHERE project_id = ?
                 ORDER BY created_at ASC
@@ -1140,6 +1148,33 @@ class KnowledgeStore:
                 (project_id,),
             ).fetchall()
         return [_chat_message_from_row(row) for row in rows]
+
+    def get_project_quality_summary(self, project_id: str) -> dict[str, object] | None:
+        if not self.get_project(project_id):
+            return None
+        messages = self.list_all_chat_messages(project_id)
+        total = len(messages)
+        if total == 0:
+            return {
+                "total_questions": 0,
+                "has_sources_rate": 0.0,
+                "user_useful_rate": 0.0,
+                "avg_source_coverage": 0.0,
+                "avg_retrieval_top_score": 0.0,
+            }
+        feedback = self.list_answer_feedback(project_id)
+        useful_message_ids = {entry.message_id for entry in feedback if entry.rating == "useful"}
+        with_sources = sum(1 for message in messages if bool(message.quality_metrics.get("has_sources")))
+        source_coverage = sum(float(message.quality_metrics.get("source_coverage", 0.0) or 0.0) for message in messages)
+        top_score = sum(float(message.quality_metrics.get("retrieval_top_score", 0.0) or 0.0) for message in messages)
+        useful = sum(1 for message in messages if message.id in useful_message_ids)
+        return {
+            "total_questions": total,
+            "has_sources_rate": round(with_sources / total, 3),
+            "user_useful_rate": round(useful / total, 3),
+            "avg_source_coverage": round(source_coverage / total, 3),
+            "avg_retrieval_top_score": round(top_score / total, 4),
+        }
 
     def create_chat_session(self, project_id: str, title: str = "") -> ChatSession:
         now = _now()
@@ -1233,7 +1268,8 @@ class KnowledgeStore:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                SELECT id, project_id, session_id, question, answer, mode, provider, warning,
+                       sources_json, quality_metrics, created_at
                 FROM chat_messages
                 WHERE id = ?
                 """,
@@ -1298,7 +1334,9 @@ class KnowledgeStore:
         sources: list[dict[str, object]],
         created_at: str,
         session_id: str = "",
+        quality_metrics: dict[str, object] | None = None,
     ) -> ChatMessage:
+        metrics = dict(quality_metrics or {})
         message = ChatMessage(
             id=str(uuid.uuid4()),
             project_id=project_id,
@@ -1310,13 +1348,15 @@ class KnowledgeStore:
             sources=[dict(source) for source in sources],
             created_at=created_at or _now(),
             session_id=session_id,
+            quality_metrics=metrics,
         )
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO chat_messages
-                    (id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, project_id, session_id, question, answer, mode, provider, warning,
+                     sources_json, quality_metrics, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
@@ -1328,6 +1368,7 @@ class KnowledgeStore:
                     message.provider,
                     message.warning,
                     json.dumps(message.sources, ensure_ascii=False),
+                    json.dumps(message.quality_metrics, ensure_ascii=False),
                     message.created_at,
                 ),
             )
@@ -1900,6 +1941,7 @@ class KnowledgeStore:
                     provider TEXT NOT NULL,
                     warning TEXT NOT NULL DEFAULT '',
                     sources_json TEXT NOT NULL,
+                    quality_metrics TEXT DEFAULT NULL,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
                 );
@@ -2007,6 +2049,7 @@ class KnowledgeStore:
             _ensure_column(conn, "projects", "retrieval_use_vector", "INTEGER NOT NULL DEFAULT 1")
             _ensure_column(conn, "projects", "default_prompt_preset_id", "TEXT")
             _ensure_column(conn, "chat_messages", "session_id", "TEXT")
+            _ensure_column(conn, "chat_messages", "quality_metrics", "TEXT DEFAULT NULL")
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
             _ensure_column(conn, "chunk_vectors", "model", "TEXT NOT NULL DEFAULT 'hashing-96'")
             _ensure_column(conn, "assessment_questions", "question_type", "TEXT NOT NULL DEFAULT 'concept'")
@@ -2320,6 +2363,7 @@ def _chat_message_from_row(row: sqlite3.Row) -> ChatMessage:
         sources=[source for source in sources if isinstance(source, dict)],
         created_at=row["created_at"],
         session_id=row["session_id"] or "",
+        quality_metrics=_json_object(str(row["quality_metrics"] or "{}")),
     )
 
 
