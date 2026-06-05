@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.knowledge_island.api_support import query_value
+from backend.knowledge_island.api_support import bool_value, query_value
 from backend.knowledge_island.models import ApiResponse
 from backend.knowledge_island.storage import KnowledgeStore
 
@@ -17,13 +17,17 @@ def handle_chat_route(
     if method == "GET" and path == "/api/chat/messages":
         project_id = query_value(query, "project_id")
         session_id = query_value(query, "session_id")
+        include_branches = bool_value(query_value(query, "include_branches"), False)
         if not project_id:
             return ApiResponse(400, {"error": "project_id is required"})
         if not store.get_project(project_id):
             return ApiResponse(404, {"error": "project not found"})
         if session_id and not _chat_session_belongs_to_project(store, session_id, project_id):
             return ApiResponse(404, {"error": "chat session not found"})
-        messages = [message.to_dict() for message in store.list_chat_messages(project_id, session_id)]
+        messages = [
+            message.to_dict()
+            for message in store.list_chat_messages(project_id, session_id, include_branches=include_branches)
+        ]
         return ApiResponse(200, {"messages": messages})
 
     if method == "GET" and path == "/api/chat/sessions":
@@ -75,6 +79,19 @@ def handle_chat_route(
             return ApiResponse(404, {"error": "chat message not found"})
         messages = [entry.to_dict() for entry in store.list_chat_messages(message.project_id, message.session_id)]
         return ApiResponse(200, {"deleted": True, "messages": messages})
+
+    if method == "POST" and path == "/api/chat/messages/branch":
+        session_id = str(payload.get("session_id", "")).strip()
+        parent_id = str(payload.get("parent_message_id", "")).strip()
+        question = str(payload.get("question", "")).strip()
+        if not all([session_id, parent_id, question]):
+            return ApiResponse(400, {"error": "session_id, parent_message_id, question are required"})
+        if not store.get_chat_session(session_id):
+            return ApiResponse(404, {"error": "chat session not found"})
+        new_message_id = store.branch_chat_message(session_id, parent_id, question)
+        if not new_message_id:
+            return ApiResponse(404, {"error": "chat message not found"})
+        return ApiResponse(200, {"new_message_id": new_message_id, "status": "branched"})
 
     if method == "POST" and path == "/api/chat/messages/clear":
         project_id = str(payload.get("project_id", "")).strip()

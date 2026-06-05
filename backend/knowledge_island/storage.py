@@ -1064,6 +1064,9 @@ class KnowledgeStore:
         sources: list[dict[str, object]],
         session_id: str = "",
         quality_metrics: dict[str, object] | None = None,
+        parent_message_id: str = "",
+        branch_id: str = "main",
+        is_active: bool = True,
     ) -> ChatMessage:
         now = _now()
         metrics = dict(quality_metrics or {})
@@ -1079,14 +1082,17 @@ class KnowledgeStore:
             created_at=now,
             session_id=session_id,
             quality_metrics=metrics,
+            parent_message_id=parent_message_id,
+            branch_id=branch_id or "main",
+            is_active=is_active,
         )
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO chat_messages
                     (id, project_id, session_id, question, answer, mode, provider, warning,
-                     sources_json, quality_metrics, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
@@ -1099,6 +1105,9 @@ class KnowledgeStore:
                     message.warning,
                     json.dumps(message.sources, ensure_ascii=False),
                     json.dumps(message.quality_metrics, ensure_ascii=False),
+                    message.parent_message_id or None,
+                    message.branch_id,
+                    1 if message.is_active else 0,
                     message.created_at,
                 ),
             )
@@ -1109,29 +1118,36 @@ class KnowledgeStore:
                 )
         return message
 
-    def list_chat_messages(self, project_id: str, session_id: str = "") -> list[ChatMessage]:
+    def list_chat_messages(
+        self,
+        project_id: str,
+        session_id: str = "",
+        include_branches: bool = False,
+    ) -> list[ChatMessage]:
         with self._connect() as conn:
             if session_id:
                 rows = conn.execute(
                     """
                     SELECT id, project_id, session_id, question, answer, mode, provider, warning,
-                           sources_json, quality_metrics, created_at
+                           sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at
                     FROM chat_messages
                     WHERE project_id = ? AND session_id = ?
+                      AND (? OR is_active = 1)
                     ORDER BY created_at ASC
                     """,
-                    (project_id, session_id),
+                    (project_id, session_id, 1 if include_branches else 0),
                 ).fetchall()
                 return [_chat_message_from_row(row) for row in rows]
             rows = conn.execute(
                 """
                 SELECT id, project_id, session_id, question, answer, mode, provider, warning,
-                       sources_json, quality_metrics, created_at
+                       sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at
                 FROM chat_messages
                 WHERE project_id = ? AND session_id IS NULL
+                  AND (? OR is_active = 1)
                 ORDER BY created_at ASC
                 """,
-                (project_id,),
+                (project_id, 1 if include_branches else 0),
             ).fetchall()
         return [_chat_message_from_row(row) for row in rows]
 
@@ -1140,7 +1156,7 @@ class KnowledgeStore:
             rows = conn.execute(
                 """
                 SELECT id, project_id, session_id, question, answer, mode, provider, warning,
-                       sources_json, quality_metrics, created_at
+                       sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at
                 FROM chat_messages
                 WHERE project_id = ?
                 ORDER BY created_at ASC
@@ -1175,6 +1191,55 @@ class KnowledgeStore:
             "avg_source_coverage": round(source_coverage / total, 3),
             "avg_retrieval_top_score": round(top_score / total, 4),
         }
+
+    def branch_chat_message(
+        self,
+        session_id: str,
+        parent_message_id: str,
+        new_question: str,
+    ) -> str | None:
+        branch_id = str(uuid.uuid4())
+        new_id = str(uuid.uuid4())
+        now = _now()
+        with self._connect() as conn:
+            parent = conn.execute(
+                """
+                SELECT rowid, project_id, session_id
+                FROM chat_messages
+                WHERE id = ? AND session_id = ?
+                """,
+                (parent_message_id, session_id),
+            ).fetchone()
+            if not parent:
+                return None
+            conn.execute(
+                """
+                UPDATE chat_messages
+                SET is_active = 0
+                WHERE session_id = ?
+                  AND rowid > ?
+                """,
+                (session_id, int(parent["rowid"])),
+            )
+            conn.execute(
+                """
+                INSERT INTO chat_messages
+                    (id, project_id, session_id, question, answer, mode, provider, warning,
+                     sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at)
+                VALUES (?, ?, ?, ?, '', 'local', 'local', '', '[]', '{}', ?, ?, 1, ?)
+                """,
+                (
+                    new_id,
+                    parent["project_id"],
+                    session_id,
+                    new_question.strip(),
+                    parent_message_id,
+                    branch_id,
+                    now,
+                ),
+            )
+            conn.execute("UPDATE chat_sessions SET updated_at = ? WHERE id = ?", (now, session_id))
+        return new_id
 
     def create_chat_session(self, project_id: str, title: str = "") -> ChatSession:
         now = _now()
@@ -1269,7 +1334,7 @@ class KnowledgeStore:
             row = conn.execute(
                 """
                 SELECT id, project_id, session_id, question, answer, mode, provider, warning,
-                       sources_json, quality_metrics, created_at
+                       sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at
                 FROM chat_messages
                 WHERE id = ?
                 """,
@@ -1335,6 +1400,9 @@ class KnowledgeStore:
         created_at: str,
         session_id: str = "",
         quality_metrics: dict[str, object] | None = None,
+        parent_message_id: str = "",
+        branch_id: str = "main",
+        is_active: bool = True,
     ) -> ChatMessage:
         metrics = dict(quality_metrics or {})
         message = ChatMessage(
@@ -1349,14 +1417,17 @@ class KnowledgeStore:
             created_at=created_at or _now(),
             session_id=session_id,
             quality_metrics=metrics,
+            parent_message_id=parent_message_id,
+            branch_id=branch_id or "main",
+            is_active=is_active,
         )
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO chat_messages
                     (id, project_id, session_id, question, answer, mode, provider, warning,
-                     sources_json, quality_metrics, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     sources_json, quality_metrics, parent_message_id, branch_id, is_active, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
@@ -1369,6 +1440,9 @@ class KnowledgeStore:
                     message.warning,
                     json.dumps(message.sources, ensure_ascii=False),
                     json.dumps(message.quality_metrics, ensure_ascii=False),
+                    message.parent_message_id or None,
+                    message.branch_id,
+                    1 if message.is_active else 0,
                     message.created_at,
                 ),
             )
@@ -1942,6 +2016,9 @@ class KnowledgeStore:
                     warning TEXT NOT NULL DEFAULT '',
                     sources_json TEXT NOT NULL,
                     quality_metrics TEXT DEFAULT NULL,
+                    parent_message_id TEXT DEFAULT NULL,
+                    branch_id TEXT DEFAULT 'main',
+                    is_active INTEGER DEFAULT 1,
                     created_at TEXT NOT NULL,
                     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
                 );
@@ -2050,6 +2127,9 @@ class KnowledgeStore:
             _ensure_column(conn, "projects", "default_prompt_preset_id", "TEXT")
             _ensure_column(conn, "chat_messages", "session_id", "TEXT")
             _ensure_column(conn, "chat_messages", "quality_metrics", "TEXT DEFAULT NULL")
+            _ensure_column(conn, "chat_messages", "parent_message_id", "TEXT DEFAULT NULL")
+            _ensure_column(conn, "chat_messages", "branch_id", "TEXT DEFAULT 'main'")
+            _ensure_column(conn, "chat_messages", "is_active", "INTEGER DEFAULT 1")
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
             _ensure_column(conn, "chunk_vectors", "model", "TEXT NOT NULL DEFAULT 'hashing-96'")
             _ensure_column(conn, "assessment_questions", "question_type", "TEXT NOT NULL DEFAULT 'concept'")
@@ -2364,6 +2444,9 @@ def _chat_message_from_row(row: sqlite3.Row) -> ChatMessage:
         created_at=row["created_at"],
         session_id=row["session_id"] or "",
         quality_metrics=_json_object(str(row["quality_metrics"] or "{}")),
+        parent_message_id=row["parent_message_id"] or "",
+        branch_id=row["branch_id"] or "main",
+        is_active=bool(row["is_active"]),
     )
 
 

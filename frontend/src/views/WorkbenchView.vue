@@ -58,7 +58,33 @@
             </div>
             <div class="body">
               <template v-if="msg.role === 'user'">
-                <p style="margin:0">{{ msg.content }}</p>
+                <div v-if="editingMessageId === msg.messageId" class="branch-editor">
+                  <textarea v-model="branchDraft" rows="3" />
+                  <div class="branch-actions">
+                    <button
+                      type="button"
+                      :disabled="branchSubmitting || !branchDraft.trim()"
+                      @click="submitBranchEdit(msg)"
+                    >
+                      {{ branchSubmitting ? "保存中…" : "保存" }}
+                    </button>
+                    <button type="button" :disabled="branchSubmitting" @click="cancelBranchEdit">取消</button>
+                  </div>
+                  <p v-if="branchError" class="status-line error">{{ branchError }}</p>
+                </div>
+                <template v-else>
+                  <p style="margin:0">{{ msg.content }}</p>
+                  <button
+                    v-if="selectedChatSessionId && msg.messageId"
+                    type="button"
+                    class="branch-edit"
+                    title="编辑"
+                    aria-label="编辑"
+                    @click="startBranchEdit(msg)"
+                  >
+                    ✎
+                  </button>
+                </template>
               </template>
               <MarkdownBody v-else :content="msg.content" />
             </div>
@@ -467,16 +493,25 @@ const FEEDBACK = [["useful", "有用"], ["not_useful", "无用"], ["source_wrong
 const draft = ref("");
 const lastFeedback = ref("");
 const convEl = ref(null);
+const editingMessageId = ref("");
+const branchDraft = ref("");
+const branchSubmitting = ref(false);
+const branchError = ref("");
 
 const chatThread = computed(() => {
   return (props.chatMessages || []).flatMap((msg, index) => {
     const items = [];
     if (msg.question) {
-      items.push({ _key: `${index}-q`, role: "user", content: msg.question });
+      items.push({
+        _key: `${msg.id || index}-q`,
+        role: "user",
+        content: msg.question,
+        messageId: msg.id || "",
+      });
     }
     if (msg.answer) {
       items.push({
-        _key: `${index}-a`,
+        _key: `${msg.id || index}-a`,
         role: "assistant",
         content: msg.answer,
         sources: msg.sources || [],
@@ -507,6 +542,48 @@ function doFeedback(rating) {
   emit("submit-answer-feedback", rating);
 }
 
+function startBranchEdit(msg) {
+  editingMessageId.value = msg.messageId;
+  branchDraft.value = msg.content || "";
+  branchError.value = "";
+}
+
+function cancelBranchEdit() {
+  editingMessageId.value = "";
+  branchDraft.value = "";
+  branchError.value = "";
+}
+
+async function submitBranchEdit(msg) {
+  const question = branchDraft.value.trim();
+  if (!question || !props.selectedChatSessionId || !msg.messageId) {
+    return;
+  }
+  branchSubmitting.value = true;
+  branchError.value = "";
+  try {
+    const response = await fetch("/api/chat/messages/branch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: props.selectedChatSessionId,
+        parent_message_id: msg.messageId,
+        question,
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || "分支创建失败");
+    }
+    cancelBranchEdit();
+    emit("refresh-chat-messages");
+  } catch (error) {
+    branchError.value = error instanceof Error ? error.message : "分支创建失败";
+  } finally {
+    branchSubmitting.value = false;
+  }
+}
+
 watch(
   () => [props.answerLoading, props.chatMessages?.length, props.answerResult?.answer?.length],
   async () => {
@@ -515,3 +592,48 @@ watch(
   },
 );
 </script>
+
+<style scoped>
+.turn.user .body {
+  position: relative;
+}
+
+.branch-edit {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-2);
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.turn.user:hover .branch-edit,
+.branch-edit:focus-visible {
+  opacity: 1;
+}
+
+.branch-edit:hover {
+  color: var(--ink);
+}
+
+.branch-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.branch-editor textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+}
+
+.branch-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+</style>

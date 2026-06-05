@@ -433,6 +433,56 @@ def test_chat_route_module_handles_sessions_and_messages(tmp_path):
     assert clear_messages_response.body == {"deleted": 0, "messages": []}
 
 
+def test_chat_route_module_handles_message_branching(tmp_path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    session = store.create_chat_session(project.id, "架构说明")
+    first = store.create_chat_message(project.id, "问题一", "回答一", "local", "local", "", [], session_id=session.id)
+    second = store.create_chat_message(project.id, "问题二", "回答二", "local", "local", "", [], session_id=session.id)
+
+    branch_response = handle_chat_route(
+        store,
+        "POST",
+        "/api/chat/messages/branch",
+        {},
+        {"session_id": session.id, "parent_message_id": first.id, "question": "重新问问题一"},
+    )
+    active_response = handle_chat_route(
+        store,
+        "GET",
+        "/api/chat/messages",
+        {"project_id": [project.id], "session_id": [session.id]},
+        {},
+    )
+    all_response = handle_chat_route(
+        store,
+        "GET",
+        "/api/chat/messages",
+        {"project_id": [project.id], "session_id": [session.id], "include_branches": ["true"]},
+        {},
+    )
+    invalid_response = handle_chat_route(
+        store,
+        "POST",
+        "/api/chat/messages/branch",
+        {},
+        {"session_id": session.id, "parent_message_id": "missing", "question": "重新问"},
+    )
+
+    assert branch_response is not None
+    assert branch_response.status == 200
+    assert branch_response.body["status"] == "branched"
+    new_message_id = branch_response.body["new_message_id"]
+    assert [message["id"] for message in active_response.body["messages"]] == [first.id, new_message_id]
+    assert [message["id"] for message in all_response.body["messages"]] == [first.id, second.id, new_message_id]
+    assert all_response.body["messages"][1]["is_active"] is False
+    assert invalid_response is not None
+    assert invalid_response.status == 404
+    assert invalid_response.body["error"] == "chat message not found"
+
+
 def test_assessment_route_module_handles_start_and_answer(tmp_path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()

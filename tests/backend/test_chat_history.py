@@ -238,3 +238,26 @@ def test_chat_message_delete_returns_current_session_messages(tmp_path: Path):
 
     assert response.status == 200
     assert [message["id"] for message in response.body["messages"]] == [second.id]
+
+
+def test_branch_chat_message_hides_following_messages_by_default(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+    session = store.create_chat_session(project.id, "架构说明")
+    first = store.create_chat_message(project.id, "问题一", "回答一", "local", "local", "", [], session_id=session.id)
+    second = store.create_chat_message(project.id, "问题二", "回答二", "local", "local", "", [], session_id=session.id)
+    third = store.create_chat_message(project.id, "问题三", "回答三", "local", "local", "", [], session_id=session.id)
+
+    branch_id = store.branch_chat_message(session.id, first.id, "改写后的问题")
+
+    active_messages = store.list_chat_messages(project.id, session.id)
+    all_messages = store.list_chat_messages(project.id, session.id, include_branches=True)
+
+    assert branch_id
+    assert [message.id for message in active_messages] == [first.id, branch_id]
+    assert active_messages[1].question == "改写后的问题"
+    assert active_messages[1].answer == ""
+    assert active_messages[1].parent_message_id == first.id
+    assert active_messages[1].branch_id != "main"
+    assert [message.id for message in all_messages] == [first.id, second.id, third.id, branch_id]
+    assert [message.is_active for message in all_messages] == [True, False, False, True]

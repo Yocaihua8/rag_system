@@ -348,6 +348,9 @@ class ChatMessage:
     created_at: str
     session_id: str = ""
     quality_metrics: dict[str, Any] = field(default_factory=dict)
+    parent_message_id: str = ""
+    branch_id: str = "main"
+    is_active: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -362,6 +365,9 @@ class ChatMessage:
             "created_at": self.created_at,
             "session_id": self.session_id,
             "quality_metrics": self.quality_metrics,
+            "parent_message_id": self.parent_message_id,
+            "branch_id": self.branch_id,
+            "is_active": self.is_active,
         }
 
 
