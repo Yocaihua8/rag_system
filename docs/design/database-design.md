@@ -163,6 +163,7 @@
 
 ## 3. 约束与策略
 
+- Web MVP 每个 SQLite 连接都会启用 `PRAGMA journal_mode=WAL`、`PRAGMA synchronous=NORMAL` 和 `PRAGMA busy_timeout=5000`，降低本地导入写入与检索/页面读取并发时出现 `database is locked` 的概率。
 - 外键删除采用 SQLite 外键级联，清理文档时联动 chunk/source/关系。
 - Web MVP 删除或重建文档时会同步删除并重建 `document_chunks`，避免旧 chunk 残留影响检索来源。
 - Web MVP 删除文档时通过外键级联清理 `document_collection_items`；删除集合不删除文档。

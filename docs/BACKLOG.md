@@ -80,26 +80,26 @@
 | B-152 | ux | Vue 工作台线性会话流收口 | done | P1 | S | v0.12.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 已完成：工作台中列改为历史轮次 / 流式回答 / 底部 composer 的线性会话流；清理会话面板历史块；masthead 增加项目选择器；空状态按钮可跳转资料库；验证 `tests/frontend`、`npm run build`、preview 浏览器冒烟；未修改 `frontend/src/api/`、`frontend/src/state/`；已按 plan 生命周期删除 B-152 临时计划文件 |
 | B-42 | feature | 知识管理仪表盘（第五 Tab） | todo | P2 | L | v0.14.0 | RAG 团队 | docs/plans/phase-2-intelligence-v014.md, docs/design/ui-wireframes.md | 新增「知识库」导航 Tab；展示项目健康状态、掌握分布饼图、知识点列表（按掌握状态分组）、最近评估记录 |
 | B-125 | feature | Reranker 重排序接入 | todo | P2 | L | v0.14.0 | RAG 团队 | docs/plans/phase-2-intelligence-v014.md, docs/design/architecture-overview.md | 向量检索 top_k 候选后增加 Cross-Encoder reranker；优先对接 Cohere Rerank API（可选依赖），本地 cross-encoder 作为后备；预估 5 天 |
-| B-128 | feature | 对话分支与历史消息编辑重发 | todo | P2 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/api-spec.md | 支持在某条历史消息上编辑并重发，派生新对话分支；Claude.ai / ChatGPT 标配交互；预估 3 天 |
+| B-128 | feature | 对话分支与历史消息编辑重发 | doing | P2 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/api-spec.md | 支持在某条历史消息上编辑并重发，派生新对话分支；Claude.ai / ChatGPT 标配交互；预估 3 天 |
 | B-126 | feature | 知识图谱增强检索（Graph-RAG） | todo | P2 | L | v0.15.0 | RAG 团队 | docs/plans/phase-3-knowledge-v015.md, docs/design/database-design.md | `graph_nodes` / `graph_edges` 已建表（B-48），当前检索未使用；GraphBuilder 自动构建图谱；BFS 2 跳扩展 + Reranker 精排；预估 5 天 |
-| B-06 | tech-debt | ops/ 运维脚本 | todo | P2 | S | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | backup_db.sh / rebuild_index.sh / cleanup_runtime.sh；暴露为 /api/admin/* 受保护端点 |
+| B-06 | tech-debt | ops/ 运维脚本 | doing | P2 | S | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | backup_db.sh / rebuild_index.sh / cleanup_runtime.sh；暴露为 /api/admin/* 受保护端点 |
 | B-07 | feature | 结果导出（Markdown / PDF） | todo | P3 | M | backlog | RAG 团队 | — | `data/outputs/` 预留了输出目录，支持将生成结果导出为 Markdown / PDF |
 | B-08 | feature | 多工作区并发索引 | todo | P3 | L | backlog | RAG 团队 | docs/design/architecture-overview.md | 当前同一时间只允许一个工作区摄入任务，未来支持队列并发 |
 | B-24 | feature | 跨平台打包（macOS / Windows / Linux） | todo | P1 | XL | v1.0.0 | RAG 团队 | docs/plans/phase-4-production-v100.md, docs/guides/release-process.md | PyInstaller 三平台构建；双击启动无需 Python；GitHub Actions 矩阵 CI；预估 7 天 |
-| B-25 | test | 端到端 UI 自动化测试 | todo | P2 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/guides/testing.md | Playwright 驱动三条主流程 E2E（工作台问答 / 资料库导入 / 评估周期）；CI 集成；预估 3 天 |
+| B-25 | test | 端到端 UI 自动化测试 | doing | P2 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/guides/testing.md | Playwright 驱动三条主流程 E2E（工作台问答 / 资料库导入 / 评估周期）；CI 集成；预估 3 天 |
 | B-117 | feature | MCP 工具接口实现 | todo | P2 | L | v1.1.0 | RAG 团队 | docs/plans/phase-5-ecosystem-v11x.md | 实现 MCP Server（stdio 模式）；暴露 search_knowledge 和 get_project_overview 两个只读工具；设置页生成 Claude Desktop 配置 |
 | B-118 | feature | 多用户 LAN 模式 Alpha | todo | P2 | XL | v1.1.0 | RAG 团队 | docs/plans/phase-5-ecosystem-v11x.md, docs/design/permission-matrix.md | users / project_members 表；邮箱+密码+JWT；owner/editor/viewer 权限；LAN 部署 Docker Compose；预估 7 天 |
 | B-119 | research | 网页自动抓取研究 | todo | P3 | S | backlog | RAG 团队 | docs/requirements/functional-modules.md | 当前 URL 来源只做人工粘贴正文；自动抓取涉及网络、权限和依赖，暂缓 |
 | B-132 | feature | 网页自动爬取（可选依赖） | todo | P3 | XL | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 对接 `playwright` 或 `requests-html` 实现 URL 来源自动抓取；需解决动态页面、robots.txt 遵守和依赖隔离；B-119 的细化实现；预估 7 天 |
 | B-133 | feature | GitHub 仓库整体导入 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 通过 GitHub API 或 `git clone` 一键导入仓库文件；开发者核心场景；预估 5 天 |
-| B-134 | feature | Qdrant 替换 SQLite 向量存储 | todo | P2 | L | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/architecture-overview.md | SQLite 全扫描在 > 5000 chunks 时性能下降（见 ISSUE-002）；Qdrant 本地单文件模式，无服务依赖，支持 HNSW；替代 B-67；预估 5 天 |
+| B-134 | feature | Qdrant 替换 SQLite 向量存储 | doing | P2 | L | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/architecture-overview.md | SQLite 全扫描在 > 5000 chunks 时性能下降（见 ISSUE-002）；Qdrant 本地单文件模式，无服务依赖，支持 HNSW；替代 B-67；预估 5 天 |
 | B-135 | feature | 多模型并排对比 | todo | P3 | L | backlog | RAG 团队 | docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天 |
-| B-136 | docs | OpenAPI / Swagger 接口文档 | todo | P3 | M | backlog | RAG 团队 | docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
+| B-136 | docs | OpenAPI / Swagger 接口文档 | doing | P3 | M | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md, docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
 | B-137 | feature | Notion / Obsidian 本地导出同步 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 支持导入 Notion 导出的 Markdown zip 包和 Obsidian vault 目录；预估 4 天 |
 | B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
 | B-67 | feature | Web 向量库与 Reranker 接入（legacy 规划） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-134（Qdrant）和 B-125（Reranker）拆分替代 |
-| B-153 | tech-debt | SQLite WAL 模式启用 | todo | P2 | XS | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | 在 storage.py 连接初始化时追加 PRAGMA journal_mode=WAL；解决并发读写 database is locked 问题 |
-| B-154 | feature | 回答质量指标存储 | todo | P2 | S | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | chat_messages 追加 quality_metrics JSON 列；计算 source_coverage / retrieval_top_score；新增 /api/projects/quality-summary 接口 |
+| B-153 | tech-debt | SQLite WAL 模式启用 | done | P2 | XS | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | 已完成：在 storage.py 连接初始化时追加 WAL / synchronous=NORMAL / busy_timeout=5000；新增并发读写测试；验证 `pytest tests/backend/test_concurrent_access.py` 与 `pytest tests/ -x` |
+| B-154 | feature | 回答质量指标存储 | doing | P2 | S | v0.13.0 | RAG 团队 | docs/plans/phase-1-quality-v013.md | chat_messages 追加 quality_metrics JSON 列；计算 source_coverage / retrieval_top_score；新增 /api/projects/quality-summary 接口 |
 | B-155 | feature | HyDE 查询增强 | todo | P2 | M | v0.14.0 | RAG 团队 | docs/plans/phase-2-intelligence-v014.md | 先让 LLM 生成假设答案，用假设答案 embedding 做向量检索；retrieval_settings 可开关；预估 2 天 |
 | B-156 | feature | 多路查询改写 | todo | P2 | M | v0.14.0 | RAG 团队 | docs/plans/phase-2-intelligence-v014.md | 将问题改写为 3 个语义等价变体并发检索，RRF 融合去重；retrieval_settings 可开关；预估 2 天 |
 | B-157 | feature | 自动更新机制 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/plans/phase-4-production-v100.md | 打包版本启动时后台检查 GitHub Releases 最新版本；masthead 显示更新提示；不自动安装，只引导下载 |
