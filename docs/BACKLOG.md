@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-28（确认 legacy 静态前端清理排期）
+> Last Updated：2026-06-07（登记 Docker Vue 构建产物内置修复）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -69,6 +69,7 @@
 | B-141 | feature | Vue 3 + Vite 前端工程化 | done | P1 | XL | v1.0.0 | RAG 团队 | docs/features/frontend-engineering.md | 已完成：Vue/Vite 工程骨架和 B-141A-Z 页面级迁移薄片已收口，覆盖资料库、设置、评估、工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文；`webapp/static/` 继续保留为未迁移高级交互 fallback；已按 plan 生命周期删除 B-141 临时计划文件 |
 | B-142 | feature | Vue 工作台 SSE 与会话历史迁移 | todo | P2 | M | v0.11.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/api-spec.md | 从 B-141 非目标拆出：Vue 工作台接入 `/api/answer/stream` EventSource 流式输出、取消当前请求、`/api/chat/sessions*` 与 `/api/chat/messages` 会话列表/历史恢复；不修改后端契约或数据库 schema；预估 3 天 |
 | B-143 | tech-debt | 移除 legacy 静态前端 fallback | todo | P2 | M | v0.12.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md, docs/guides/testing.md | B-142 完成并确认 Vue 覆盖旧前端保留主流程后执行：删除 `webapp/static/` legacy 原生前端，调整 `webapp/server.py` 静态文件兜底策略，清理仅针对 legacy 静态前端的测试断言，并同步前端工程、启动和测试文档；B-142 前不得执行 |
+| B-144 | tech-debt | Docker 镜像内置 Vue 构建产物 | done | P1 | S | v0.11.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md | 已完成：Docker 镜像构建阶段执行 Vue/Vite 构建并复制 `webapp/static_dist/`，避免依赖宿主机预先运行 `npm run build`；完成后已删除 plan |
 | B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
 | B-125 | feature | Reranker 重排序接入 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/architecture-overview.md | 向量检索 top_k 候选后增加 Cross-Encoder reranker；优先对接 Cohere Rerank API（可选依赖），本地 cross-encoder 作为后备；预估 5 天 |
 | B-128 | feature | 对话分支与历史消息编辑重发 | todo | P2 | M | v0.11.0 | RAG 团队 | docs/design/api-spec.md | 支持在某条历史消息上编辑并重发，派生新对话分支；Claude.ai / ChatGPT 标配交互；预估 3 天 |
@@ -101,3 +102,11 @@
 - **复现条件**：导入大型代码仓库或文档库后提问，观察 `/api/search` 耗时
 - **临时规避方案**：控制单个项目导入文件数量，或通过文档集合缩小检索范围
 - **计划处理方式**：B-134（Qdrant 替换 SQLite 全扫描，v1.0.0）
+
+### ISSUE-003 文档一致性脚本要求缺失的 docs/DEVLOG.md
+
+- **现象**：运行 `.venv\Scripts\python.exe scripts\check_docs_consistency.py` 时失败，提示 `docs/DEVLOG.md` 不存在，无法校验聚合索引
+- **影响范围**：文档一致性自动校验；不影响 Web MVP 启动、Docker 启动或 API 主流程
+- **复现条件**：在当前仓库根目录运行 `.venv\Scripts\python.exe scripts\check_docs_consistency.py`
+- **临时规避方案**：本次 Docker 修复验收以 `tests/test_webapp`、`docker compose config`、Docker 无缓存构建和容器健康检查为准
+- **计划处理方式**：待确认是否补回 `docs/DEVLOG.md` 聚合索引，或调整脚本改为校验 `docs/devlog/` 目录结构

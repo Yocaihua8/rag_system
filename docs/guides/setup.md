@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-07
 
 ## 1. 环境要求
 
@@ -46,6 +46,8 @@ npm run build
 
 构建产物输出到 `webapp/static_dist/`，该目录不入库。`python app.py` 会优先服务 `webapp/static_dist/`；未构建或构建产物缺失时，自动回退到 legacy `webapp/static/`。
 
+Docker 镜像构建会在独立 Node 阶段执行 `npm ci && npm run build`，并把生成的 `webapp/static_dist/` 复制到最终 Python 镜像中。因此 Docker 启动不需要宿主机提前执行 `npm run build`，但重新拉取或修改前端源码后仍需重新 `docker compose up --build -d`。
+
 启用 API Key + JWT 认证（可选）：
 
 ```powershell
@@ -86,7 +88,7 @@ Windows PowerShell：
 - 创建 `runtime/docker/` 作为容器运行时持久化目录。
 - 从 Windows User 环境读取 `DEEPSEEK_API_KEY` 并注入给 Compose（不打印 Key）。
 - 从 Windows User 环境读取 `RAG_EMBED_API_KEY` 并注入给 Compose（不打印 Key）。
-- 执行 `docker compose up --build -d`。
+- 执行 `docker compose up --build -d`，镜像构建阶段会生成并内置 Vue/Vite 生产前端。
 - 打开 `http://127.0.0.1:8765`。
 
 Docker 模式下推荐优先使用 Web 侧栏的“选择本机文件夹导入”。浏览器会读取用户选择的本地项目文件夹，并把允许的文本文件、DOCX 和 PDF 二进制内容上传给本地服务入库；这种方式可以直接选择 `E:\Code\your-project`，不需要填写 Windows 路径。PDF 正文抽取需要镜像或运行环境安装可选 `pymupdf`，未安装时会在导入结果中显示跳过原因。

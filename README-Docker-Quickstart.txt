@@ -11,7 +11,7 @@
 
 启动：
 1. 双击 Start-KnowledgeIsland-Docker.bat。
-2. 等待命令窗口显示 Docker Web 已启动。
+2. 等待命令窗口显示 Docker Web 已启动；镜像构建时会自动生成并内置重构后的 Vue 前端。
 3. 浏览器打开 http://127.0.0.1:8765。
 
 导入文件：
@@ -36,6 +36,7 @@
 - 运行数据：runtime/docker
 
 注意：
+- Docker 镜像会在构建阶段生成 webapp/static_dist，不需要你在宿主机提前运行 npm run build。
 - Docker 模式下，Web 页面里的目录要填写容器路径 /workspace，不要填写 Windows 路径。
 - 如果不想理解 Docker 路径，直接使用“选择本机文件夹导入”。
 - 启动脚本会读取 DEEPSEEK_API_KEY 并传给容器，但不会在命令窗口打印 Key。

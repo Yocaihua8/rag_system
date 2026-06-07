@@ -56,7 +56,7 @@
 - **API 路由拆分实施**：新增 `webapp/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`webapp/api.py` 仅保留兼容入口和 SSE 入口
 
 ### Fixed
--
+- **Docker 前端构建产物**：Docker 镜像构建阶段会生成并内置 `webapp/static_dist/`，避免宿主机未预构建或旧产物导致容器展示 legacy 静态前端。
 
 ### Security
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥

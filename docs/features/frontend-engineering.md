@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-28
+> Last Updated：2026-06-07
 > Scope：B-141 Vue 3 + Vite 前端工程化（已完成 A-Z 页面级迁移收口）
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
@@ -63,6 +63,8 @@ B-141 是 Web 前端技术栈迁移，不新增后端业务能力。目标是把
 | `frontend/src/views/` | 工作台、资料库、评估、设置等页面组件 |
 | `webapp/static_dist/` | Vite 生产构建输出，由 FastAPI 托管 |
 | `webapp/static/` | 迁移期间的 legacy 原生前端 fallback |
+
+Docker 镜像构建时会在 Node 构建阶段执行 `npm ci && npm run build`，并把生成的 `webapp/static_dist/` 复制到最终 Python 运行镜像。Docker 模式不依赖宿主机预先执行 `npm run build`；本地直接运行 `python app.py` 时仍遵循“存在 `webapp/static_dist/` 则优先服务，否则回退 `webapp/static/`”。
 
 ## 4. 非目标
 
@@ -182,6 +184,7 @@ B-141Z 起，Vue 工作台迁移检索复盘薄片：`search.js` 扩展既有 `P
 - Vue 评估页可在已选择项目空间时开始评估、查看当前题目、提交回答、进入下一题或完成本轮，并查看结果概览、答题记录和待复测列表。
 - `npm run build` 可生成 `webapp/static_dist/`。
 - FastAPI 优先服务 `webapp/static_dist/`；构建产物不存在时回退 `webapp/static/`。
+- Docker 镜像构建会内置生成 Vue/Vite 生产产物，容器启动后应优先展示 `webapp/static_dist/` 中的重构后前端。
 - Web MVP 后端测试保持通过。
 - 文档说明清楚当前是工程化骨架阶段，不宣称完整 Vue UI 已迁移完成。
 - B-141 收口后，未纳入本任务的 Workbench SSE/会话等能力已在 BACKLOG 中拆为后续条目，不阻塞本任务完成。

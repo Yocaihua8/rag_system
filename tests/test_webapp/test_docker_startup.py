@@ -5,6 +5,11 @@ def test_dockerfile_runs_web_mvp_without_legacy_desktop_dependencies():
     dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
 
     assert "python:3.11-slim" in dockerfile
+    assert "node:" in dockerfile
+    assert "npm ci" in dockerfile
+    assert "npm run build" in dockerfile
+    assert "COPY --from=frontend-build" in dockerfile
+    assert "webapp/static_dist" in dockerfile
     assert "EXPOSE 8765" in dockerfile
     assert "webapp.server" in dockerfile
     assert "0.0.0.0" in dockerfile
