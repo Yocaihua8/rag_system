@@ -38,7 +38,7 @@
 - [x] 任务 2：实现 `backend/providers/base.py`（BaseLLM / BaseEmbedder ABC）
 - [x] 任务 3：移植 `OllamaLLM` → `backend/providers/llm/ollama.py`
 - [x] 任务 4：移植 `OllamaEmbedder` → `backend/providers/embedder/ollama.py`
-- [ ] 任务 5：移植平台路径 → `backend/config/paths.py`
+- [x] 任务 5：移植平台路径 → `backend/config/paths.py`
 - [ ] 任务 6：在 Web MVP 设置接口中注册 Ollama 为可选 LLM provider
 - [ ] 任务 7：写测试（mock Ollama HTTP，验证 BaseLLM 接口实现）
 - [ ] 任务 8：同步文档，更新 BACKLOG B-146 为 done
@@ -106,12 +106,13 @@
 - 2026-06-26：任务 2 完成；新增 `backend/providers/base.py`，定义 `BaseLLM.generate()`、`BaseLLM.stream()`、`BaseLLM.is_available()`、`BaseEmbedder.embed()`、`BaseEmbedder.is_available()` 及 `LLMMessage`/`LLMResult`；确认 `new-architecture-design.md §5.1` 当前未包含 BaseLLM/BaseEmbedder 明确定义，因此按 plan 目标和 Web LLM 结构建立最小 ABC；PowerShell here-string 导入/抽象方法检查通过。
 - 2026-06-26：任务 3 完成；新增 `backend/providers/llm/ollama.py`，使用标准库 HTTP 调用 Ollama `/api/chat` 与 `/api/tags`，实现 `BaseLLM.generate()`、`stream()`、`is_available()`、`list_models()`；`is_available()` 检测失败时打印 `WARNING` 并返回 `False`，不阻断启动；`py_compile` 与导入检查通过。
 - 2026-06-26：任务 4 完成；新增 `backend/providers/embedder/ollama.py`，使用标准库 HTTP 调用 Ollama `/api/embeddings` 与 `/api/tags`，实现 `BaseEmbedder.embed()`、`is_available()` 和 `dimension/model/provider` 属性；`py_compile` 与导入检查通过。
+- 2026-06-26：任务 5 完成；新增 `backend/config/paths.py`，移植平台感知 `app_data_dir()`，并提供 `ensure_app_data_dir()` 与 `app_env_file()`；通过注入 `system/environ/home` 模拟 Windows/macOS/Linux 路径验证。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:06
-- **进度**：已完成 4 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 4 OllamaEmbedder
+- **最后更新**：2026-06-26 19:08
+- **进度**：已完成 5 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 5 平台路径
 - **代码状态**：`backend/` 目录骨架已新增；`src/` 保持只读
-- **下一步**：任务 5 — 移植平台路径到 `backend/config/paths.py`
+- **下一步**：任务 6 — 在 Web MVP 设置接口中注册 Ollama 为可选 LLM provider
 - **续任务须知**：`docs/design/new-architecture-design.md §5.1` 未实际包含 BaseLLM/BaseEmbedder 定义；后续实现继续按 `backend/providers/base.py` 的最小 ABC 对齐，不直接复制 src/ 的旧 request/response 签名。
