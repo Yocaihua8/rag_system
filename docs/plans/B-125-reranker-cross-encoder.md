@@ -86,22 +86,22 @@
 
 ## 6. 完成标准
 
-- [ ] `CrossEncoderReranker` 实现 `BaseReranker.rerank(query, candidates, top_n)`
-- [ ] `reranker.enabled = false`（默认）时，搜索行为与现在完全一致（无回归）
-- [ ] `reranker.enabled = true` 时，`/api/search` 返回的 hit 顺序经过精排
-- [ ] `sentence-transformers` 未安装时，启动时打印 WARNING，reranker = None，不崩溃
-- [ ] `SearchHit.rerank_score` 在精排后有值，未精排时为 `None`
-- [ ] 测试：MockReranker 验证接口契约；`enabled=False` 时原有测试 100% 通过
-- [ ] `.venv\Scripts\python.exe -m pytest tests/test_webapp tests/test_backend -q` 通过
-- [ ] `docs/BACKLOG.md` B-125 状态更新为 `done`
+- [x] `CrossEncoderReranker` 实现 `BaseReranker.rerank(query, candidates, top_n)`
+- [x] `reranker.enabled = false`（默认）时，搜索行为与现在完全一致（无回归）
+- [x] `reranker.enabled = true` 时，`/api/search` 返回的 hit 顺序经过精排
+- [x] `sentence-transformers` 未安装时，启动时打印 WARNING，reranker = None，不崩溃
+- [x] `SearchHit.rerank_score` 在精排后有值，未精排时为 `None`
+- [x] 测试：MockReranker 验证接口契约；`enabled=False` 时原有测试 100% 通过
+- [x] `.venv\Scripts\python.exe -m pytest tests/test_webapp tests/test_backend -q` 通过
+- [x] `docs/BACKLOG.md` B-125 状态更新为 `done`
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| Reranker 可选依赖安装说明（`pip install sentence-transformers`）| `docs/guides/setup.md` | [ ] |
-| `reranker.enabled` / `reranker.model` 配置项 | `docs/design/new-architecture-design.md §18.2`（确认一致）| [ ] |
-| `pipeline_trace.reranker_used` 字段加入 API 响应说明 | `docs/design/api-spec.md` | [ ] |
+| Reranker 可选依赖安装说明（`pip install sentence-transformers`）| `docs/guides/setup.md` | [x] |
+| `reranker.enabled` / `reranker.model` 配置项 | `docs/design/new-architecture-design.md §18.2`（确认一致）| [x] |
+| `pipeline_trace.reranker_used` 字段加入 API 响应说明 | `docs/design/api-spec.md` | [x] |
 
 ## 8. 执行记录
 
@@ -118,10 +118,10 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 20:24
+- **最后更新**：2026-06-26 20:28
 - **进度**：已完成 9 / 9 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 9 文档与 BACKLOG 收尾
-- **代码状态**：B-125 代码与测试已完成；文档已同步
+- **最新 commit**：e26c026 — 任务 9 文档与 BACKLOG 收尾
+- **代码状态**：B-125 代码、测试、文档已完成
 - **下一步**：运行最终验收命令；验收通过后按 plan 生命周期删除本文件
 - **续任务须知**：
   - Cross-Encoder 模型首次加载需下载 ~80MB，测试时必须 mock，不要求联网
