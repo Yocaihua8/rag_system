@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import replace
 import math
 import re
 
@@ -70,10 +71,11 @@ def search_documents(
     candidate_hits = hits[: max(limit * 3, limit)]
     active_reranker = get_default_reranker() if reranker is _DEFAULT_RERANKER else reranker
     if active_reranker is not None:
-        return [
+        ranked_hits = [
             hit for hit in active_reranker.rerank(query, candidate_hits, top_n=limit)
             if isinstance(hit, SearchHit)
         ]
+        return _with_rerank_scores(ranked_hits, active_reranker)
     return candidate_hits[:limit]
 
 
@@ -162,3 +164,15 @@ def _retrieval_label(use_keyword: bool, use_vector: bool) -> str:
 
 def _chunk_index(hit: SearchHit) -> int:
     return hit.chunk.chunk_index if hit.chunk is not None else 0
+
+
+def _with_rerank_scores(hits: list[SearchHit], reranker: BaseReranker) -> list[SearchHit]:
+    model_scores = getattr(reranker, "last_scores", {})
+    ranked_total = len(hits)
+    result: list[SearchHit] = []
+    for index, hit in enumerate(hits):
+        score = model_scores.get(id(hit)) if isinstance(model_scores, dict) else None
+        if score is None:
+            score = float(ranked_total - index)
+        result.append(replace(hit, rerank_score=float(score)))
+    return result

@@ -21,6 +21,7 @@ class CrossEncoderReranker(BaseReranker):
         self._model_factory = model_factory or _load_cross_encoder
         self._model: Any | None = None
         self._load_failed = False
+        self.last_scores: dict[int, float] = {}
 
     def rerank(
         self,
@@ -30,13 +31,19 @@ class CrossEncoderReranker(BaseReranker):
     ) -> list[object]:
         candidate_list = list(candidates)
         if not candidate_list:
+            self.last_scores = {}
             return []
         model = self._get_model()
         if model is None:
+            self.last_scores = {}
             return _limit(candidate_list, top_n)
 
         pairs = [(query, _candidate_text(candidate)) for candidate in candidate_list]
         scores = [float(score) for score in model.predict(pairs)]
+        self.last_scores = {
+            id(candidate): score
+            for score, candidate in zip(scores, candidate_list)
+        }
         ranked = sorted(
             zip(scores, candidate_list),
             key=lambda item: item[0],

@@ -44,6 +44,11 @@ def test_cross_encoder_reranker_loads_model_lazily_and_orders_by_score():
     assert created_models == ["cross-encoder/ms-marco-MiniLM-L-6-v2"]
     assert fake_model.pairs == [[("query", "alpha"), ("query", "beta"), ("query", "gamma")]]
     assert ranked == [candidates[1], candidates[2]]
+    assert reranker.last_scores == {
+        id(candidates[0]): 0.2,
+        id(candidates[1]): 0.9,
+        id(candidates[2]): 0.5,
+    }
 
 
 def test_cross_encoder_reranker_dependency_failure_warns_and_skips(capsys):

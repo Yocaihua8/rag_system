@@ -360,6 +360,54 @@ def test_search_uses_default_reranker_when_configured(tmp_path: Path, monkeypatc
     assert [hit.document.relative_path for hit in hits] == list(reversed(reranker.calls[0][1]))
 
 
+def test_search_sets_rerank_score_when_reranker_used(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(project.id, tmp_path / "first.md", "first.md", "DeepSeek API key setup")
+    store.upsert_document(project.id, tmp_path / "second.md", "second.md", "DeepSeek API model settings")
+
+    hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+        reranker=ReverseReranker(),
+    )
+
+    assert [hit.rerank_score for hit in hits] == [2.0, 1.0]
+    assert [hit.to_dict()["rerank_score"] for hit in hits] == [2.0, 1.0]
+
+
+def test_search_default_disabled_matches_explicit_disabled(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(project.id, tmp_path / "first.md", "first.md", "DeepSeek API key setup")
+    store.upsert_document(project.id, tmp_path / "second.md", "second.md", "DeepSeek API model settings")
+
+    default_hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+    )
+    disabled_hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+        reranker=None,
+    )
+
+    assert [hit.to_dict() for hit in default_hits] == [hit.to_dict() for hit in disabled_hits]
+    assert all(hit.rerank_score is None for hit in default_hits)
+
+
 class FakeEmbeddingClient:
     provider = "api"
     model = "fake-embedding"
