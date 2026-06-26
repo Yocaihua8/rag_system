@@ -35,7 +35,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` ③ 更新 § 9 状态快照。
 
 - [x] 任务 1：建立 `backend/` 目录骨架
-- [ ] 任务 2：实现 `backend/providers/base.py`（BaseLLM / BaseEmbedder ABC）
+- [x] 任务 2：实现 `backend/providers/base.py`（BaseLLM / BaseEmbedder ABC）
 - [ ] 任务 3：移植 `OllamaLLM` → `backend/providers/llm/ollama.py`
 - [ ] 任务 4：移植 `OllamaEmbedder` → `backend/providers/embedder/ollama.py`
 - [ ] 任务 5：移植平台路径 → `backend/config/paths.py`
@@ -103,12 +103,13 @@
 
 - 2026-06-26：创建 plan，B-146 进入 doing 状态。
 - 2026-06-26：任务 1 完成；新增 `backend/`、`backend/config/`、`backend/providers/`、`backend/providers/llm/`、`backend/providers/embedder/` 包骨架；`.venv\Scripts\python.exe -c "import backend, backend.providers, backend.config, backend.providers.llm, backend.providers.embedder"` 通过。
+- 2026-06-26：任务 2 完成；新增 `backend/providers/base.py`，定义 `BaseLLM.generate()`、`BaseLLM.stream()`、`BaseLLM.is_available()`、`BaseEmbedder.embed()`、`BaseEmbedder.is_available()` 及 `LLMMessage`/`LLMResult`；确认 `new-architecture-design.md §5.1` 当前未包含 BaseLLM/BaseEmbedder 明确定义，因此按 plan 目标和 Web LLM 结构建立最小 ABC；PowerShell here-string 导入/抽象方法检查通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:00
-- **进度**：已完成 1 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 1 backend 目录骨架
+- **最后更新**：2026-06-26 19:02
+- **进度**：已完成 2 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 2 BaseLLM/BaseEmbedder ABC
 - **代码状态**：`backend/` 目录骨架已新增；`src/` 保持只读
-- **下一步**：任务 2 — 实现 `backend/providers/base.py`（BaseLLM / BaseEmbedder ABC）
-- **续任务须知**：`docs/design/new-architecture-design.md §5.1` 未实际包含 BaseLLM/BaseEmbedder 定义；实现时按 plan 的 `generate()` / `stream()` / `embed()` 目标和现有 Web LLM 结构确定最小 ABC，不直接复制 src/ 的旧接口签名。
+- **下一步**：任务 3 — 移植 `OllamaLLM` 到 `backend/providers/llm/ollama.py`
+- **续任务须知**：`docs/design/new-architecture-design.md §5.1` 未实际包含 BaseLLM/BaseEmbedder 定义；后续实现继续按 `backend/providers/base.py` 的最小 ABC 对齐，不直接复制 src/ 的旧 request/response 签名。
