@@ -16,9 +16,7 @@ from webapp.storage import KnowledgeStore
 
 
 WEBAPP_DIR = Path(__file__).resolve().parent
-STATIC_LEGACY_DIR = WEBAPP_DIR / "static"
 STATIC_DIST_DIR = WEBAPP_DIR / "static_dist"
-STATIC_DIR = STATIC_LEGACY_DIR
 AUTHENTICATION_REQUIRED = {"error": "authentication required"}
 INVALID_CREDENTIALS = {"error": "invalid credentials"}
 
@@ -131,9 +129,9 @@ def _auth_error_response(content: dict[str, str]) -> JSONResponse:
 
 
 def _frontend_static_dir() -> Path:
-    if (STATIC_DIST_DIR / "index.html").exists():
-        return STATIC_DIST_DIR
-    return STATIC_LEGACY_DIR
+    if not (STATIC_DIST_DIR / "index.html").exists():
+        raise RuntimeError("Vue build output missing. Run `npm run build` before starting Knowledge Island.")
+    return STATIC_DIST_DIR
 
 
 app = create_app()
