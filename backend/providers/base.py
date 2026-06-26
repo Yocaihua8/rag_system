@@ -80,9 +80,21 @@ class BaseEmbedder(ABC):
         """Return whether the provider can be reached without blocking app startup."""
 
 
+class BaseReranker(ABC):
+    @abstractmethod
+    def rerank(
+        self,
+        query: str,
+        candidates: Sequence[object],
+        top_n: int | None = None,
+    ) -> list[object]:
+        """Return candidates ordered by descending relevance to the query."""
+
+
 __all__ = [
     "BaseEmbedder",
     "BaseLLM",
+    "BaseReranker",
     "LLMMessage",
     "LLMResult",
 ]
