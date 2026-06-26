@@ -40,7 +40,7 @@
 - [x] 任务 4：移植 `OllamaEmbedder` → `backend/providers/embedder/ollama.py`
 - [x] 任务 5：移植平台路径 → `backend/config/paths.py`
 - [x] 任务 6：在 Web MVP 设置接口中注册 Ollama 为可选 LLM provider
-- [ ] 任务 7：写测试（mock Ollama HTTP，验证 BaseLLM 接口实现）
+- [x] 任务 7：写测试（mock Ollama HTTP，验证 BaseLLM 接口实现）
 - [ ] 任务 8：同步文档，更新 BACKLOG B-146 为 done
 
 ## 4. 影响范围
@@ -108,12 +108,13 @@
 - 2026-06-26：任务 4 完成；新增 `backend/providers/embedder/ollama.py`，使用标准库 HTTP 调用 Ollama `/api/embeddings` 与 `/api/tags`，实现 `BaseEmbedder.embed()`、`is_available()` 和 `dimension/model/provider` 属性；`py_compile` 与导入检查通过。
 - 2026-06-26：任务 5 完成；新增 `backend/config/paths.py`，移植平台感知 `app_data_dir()`，并提供 `ensure_app_data_dir()` 与 `app_env_file()`；通过注入 `system/environ/home` 模拟 Windows/macOS/Linux 路径验证。
 - 2026-06-26：任务 6 完成；`webapp/llm.py` 新增 `OllamaAnswerClient` 与 `build_llm_client()`，provider=ollama 时通过 `backend.providers.llm.OllamaLLM` 生成/流式回答；`webapp/settings_api.py` 在 provider=ollama 时读写 `RAG_OLLAMA_HOST`/`RAG_OLLAMA_MODEL` 且不要求 API Key；`webapp/routes/settings.py` 的模型 Profile 测试改走统一工厂；相关设置/模型测试 18 项通过，LLM 模块测试 4 项通过。
+- 2026-06-26：任务 7 完成；新增 `tests/test_backend/test_ollama_llm.py`，mock Ollama HTTP 覆盖 `OllamaLLM.generate()` payload、`stream()` NDJSON token、`is_available()` WARNING、`OllamaEmbedder.embed()` 顺序和三平台 `app_data_dir()`；`.venv\Scripts\python.exe -m pytest tests\test_backend -q` 通过 5 项；相关 Web LLM/设置测试 22 项通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:12
-- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 6 Web MVP Ollama provider 接入
+- **最后更新**：2026-06-26 19:14
+- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 7 backend Ollama provider 测试
 - **代码状态**：`backend/` 目录骨架已新增；`src/` 保持只读
-- **下一步**：任务 7 — 写测试（mock Ollama HTTP，验证 BaseLLM 接口实现）
+- **下一步**：任务 8 — 同步文档，更新 BACKLOG B-146 为 done
 - **续任务须知**：`docs/design/new-architecture-design.md §5.1` 未实际包含 BaseLLM/BaseEmbedder 定义；后续实现继续按 `backend/providers/base.py` 的最小 ABC 对齐，不直接复制 src/ 的旧 request/response 签名。
