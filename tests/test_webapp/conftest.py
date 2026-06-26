@@ -16,6 +16,8 @@ def _clear_web_llm_env(monkeypatch):
         "DEEPSEEK_APIKEY",
         "DeepSeekApiKey",
         "deepseekapikey",
+        "RAG_RERANKER_ENABLED",
+        "RAG_RERANKER_MODEL",
     ):
         monkeypatch.delenv(key, raising=False)
     monkeypatch.setattr(settings_module, "_persistent_env", lambda: {})

@@ -44,7 +44,7 @@
 - [x] 任务 4：在 `webapp/search.py` 中接入 Reranker（在 RRF 融合之后，返回前调用）
 - [x] 任务 5：`webapp/models.py` 的 `SearchHit` 新增 `rerank_score: float | None`
 - [x] 任务 6：API 响应的 `pipeline_trace` 新增 `reranker_used` 字段（`/api/answer/stream` done 事件）
-- [ ] 任务 7：`settings.toml` / `AppSettings` 追加 `reranker.enabled` 和 `reranker.model` 字段
+- [x] 任务 7：`settings.toml` / `AppSettings` 追加 `reranker.enabled` 和 `reranker.model` 字段
 - [ ] 任务 8：写测试（MockReranker 验证接口；确认 disabled 时行为不变）
 - [ ] 任务 9：同步文档，更新 BACKLOG B-125 为 done
 
@@ -112,14 +112,15 @@
 - 2026-06-26：任务 4 完成；先写 `search_documents(..., reranker=...)` 红灯测试，确认原签名不支持；随后在 `webapp/search.py` 增加可选 `reranker` 参数，在现有 BM25+向量分数排序后取 `limit*3` 候选交给 reranker，默认 None 时仍走原排序截断。搜索测试 16 项与 backend reranker 测试 3 项通过。
 - 2026-06-26：任务 5 完成；先新增 `tests/test_webapp/test_models.py` 红灯验证 `SearchHit(rerank_score=...)` 序列化，随后在 `webapp/models.py` 新增 `rerank_score: float | None = None` 并写入 `to_dict()`；模型与搜索测试 17 项通过。
 - 2026-06-26：任务 6 完成；先在 stream done 测试中新增 `pipeline_trace.reranker_used` 红灯断言，随后在 `answer_body_from_result()` 统一返回 `pipeline_trace`，当前由 `SearchHit.rerank_score is not None` 判断；stream/observability 相关测试 2 项通过。
+- 2026-06-26：任务 7 完成；因 plan 同时要求 `src/` 只读，未修改 `src/config/settings.py`；新增 `backend/config/reranker.py` 读取 `RAG_RERANKER_ENABLED` / `RAG_RERANKER_MODEL`，默认 disabled，并通过 `importlib.util.find_spec` 软检测 `sentence-transformers`，缺失时 WARNING 后返回 None；`webapp/search.py` 未显式传 reranker 时读取默认配置，测试环境清理相关 env 防止本机污染。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:56
-- **进度**：已完成 6 / 9 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 6 pipeline_trace.reranker_used
-- **代码状态**：回答响应已包含 `pipeline_trace.reranker_used`
-- **下一步**：任务 7 — 新增 reranker 配置读取
+- **最后更新**：2026-06-26 20:04
+- **进度**：已完成 7 / 9 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 7 reranker 配置读取
+- **代码状态**：`backend/config/reranker.py` 已新增；默认配置为 disabled
+- **下一步**：任务 8 — 补充 reranker 行为测试与 disabled 回归
 - **续任务须知**：
   - Cross-Encoder 模型首次加载需下载 ~80MB，测试时必须 mock，不要求联网
   - `rerank()` 入参是 `list[Chunk]`，内部拼接 `(query, chunk.content)` 对送入模型

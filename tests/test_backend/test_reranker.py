@@ -58,3 +58,34 @@ def test_cross_encoder_reranker_dependency_failure_warns_and_skips(capsys):
 
     assert reranker.rerank("query", candidates) == candidates
     assert "WARNING: sentence-transformers is not installed; reranker disabled" in capsys.readouterr().err
+
+
+def test_reranker_settings_default_disabled_and_env_override():
+    from backend.config.reranker import load_reranker_settings
+
+    defaults = load_reranker_settings({})
+    enabled = load_reranker_settings(
+        {
+            "RAG_RERANKER_ENABLED": "true",
+            "RAG_RERANKER_MODEL": "BAAI/bge-reranker-base",
+        }
+    )
+
+    assert defaults.enabled is False
+    assert defaults.model == "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    assert enabled.enabled is True
+    assert enabled.model == "BAAI/bge-reranker-base"
+
+
+def test_build_reranker_returns_none_when_disabled_or_dependency_missing(capsys):
+    from backend.config.reranker import RerankerSettings, build_reranker
+
+    assert build_reranker(RerankerSettings(enabled=False, model="model")) is None
+
+    missing = build_reranker(
+        RerankerSettings(enabled=True, model="model"),
+        dependency_available=lambda: False,
+    )
+
+    assert missing is None
+    assert "WARNING: sentence-transformers is not installed; reranker disabled" in capsys.readouterr().err

@@ -339,6 +339,27 @@ def test_search_can_rerank_explicit_candidate_pool(tmp_path: Path):
     assert [hit.document.relative_path for hit in hits] == list(reversed(baseline_paths))
 
 
+def test_search_uses_default_reranker_when_configured(tmp_path: Path, monkeypatch):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(project.id, tmp_path / "first.md", "first.md", "DeepSeek API key setup")
+    store.upsert_document(project.id, tmp_path / "second.md", "second.md", "DeepSeek API model settings")
+    reranker = ReverseReranker()
+    monkeypatch.setattr("webapp.search.get_default_reranker", lambda: reranker)
+
+    hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+    )
+
+    assert reranker.calls
+    assert [hit.document.relative_path for hit in hits] == list(reversed(reranker.calls[0][1]))
+
+
 class FakeEmbeddingClient:
     provider = "api"
     model = "fake-embedding"

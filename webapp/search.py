@@ -4,11 +4,15 @@ from collections import Counter
 import math
 import re
 
+from backend.config.reranker import get_default_reranker
 from backend.providers.base import BaseReranker
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import DocumentChunk, SearchHit
 from webapp.storage import KnowledgeStore
 from webapp.vector_index import cosine_similarity
+
+
+_DEFAULT_RERANKER = object()
 
 
 def search_documents(
@@ -19,7 +23,7 @@ def search_documents(
     embedding_client: EmbeddingClient | None = None,
     use_keyword: bool = True,
     use_vector: bool = True,
-    reranker: BaseReranker | None = None,
+    reranker: BaseReranker | None | object = _DEFAULT_RERANKER,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
     chunks = store.list_chunks(project_id)
@@ -64,9 +68,10 @@ def search_documents(
         reverse=True,
     )
     candidate_hits = hits[: max(limit * 3, limit)]
-    if reranker is not None:
+    active_reranker = get_default_reranker() if reranker is _DEFAULT_RERANKER else reranker
+    if active_reranker is not None:
         return [
-            hit for hit in reranker.rerank(query, candidate_hits, top_n=limit)
+            hit for hit in active_reranker.rerank(query, candidate_hits, top_n=limit)
             if isinstance(hit, SearchHit)
         ]
     return candidate_hits[:limit]
