@@ -309,6 +309,36 @@ def test_search_can_use_api_embedding_client_for_query_vector(tmp_path: Path):
     assert body["vector_score"] > 0
 
 
+def test_search_can_rerank_explicit_candidate_pool(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(project.id, tmp_path / "first.md", "first.md", "DeepSeek API key setup")
+    store.upsert_document(project.id, tmp_path / "second.md", "second.md", "DeepSeek API model settings")
+    reranker = ReverseReranker()
+    baseline_hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+    )
+    baseline_paths = [hit.document.relative_path for hit in baseline_hits]
+
+    hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+        reranker=reranker,
+    )
+
+    assert reranker.calls == [("DeepSeek API", baseline_paths, 2)]
+    assert [hit.document.relative_path for hit in hits] == list(reversed(baseline_paths))
+
+
 class FakeEmbeddingClient:
     provider = "api"
     model = "fake-embedding"
@@ -327,3 +357,13 @@ class FakeEmbeddingClient:
                 "key": 1.0 if "key" in lowered else 0.0,
             })
         return vectors
+
+
+class ReverseReranker:
+    def __init__(self):
+        self.calls = []
+
+    def rerank(self, query, candidates, top_n=None):
+        self.calls.append((query, [hit.document.relative_path for hit in candidates], top_n))
+        ranked = list(reversed(candidates))
+        return ranked[:top_n] if top_n is not None else ranked

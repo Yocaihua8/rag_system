@@ -4,6 +4,7 @@ from collections import Counter
 import math
 import re
 
+from backend.providers.base import BaseReranker
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import DocumentChunk, SearchHit
 from webapp.storage import KnowledgeStore
@@ -18,6 +19,7 @@ def search_documents(
     embedding_client: EmbeddingClient | None = None,
     use_keyword: bool = True,
     use_vector: bool = True,
+    reranker: BaseReranker | None = None,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
     chunks = store.list_chunks(project_id)
@@ -61,7 +63,13 @@ def search_documents(
         key=lambda hit: (hit.score, hit.document.updated_at, -_chunk_index(hit)),
         reverse=True,
     )
-    return hits[:limit]
+    candidate_hits = hits[: max(limit * 3, limit)]
+    if reranker is not None:
+        return [
+            hit for hit in reranker.rerank(query, candidate_hits, top_n=limit)
+            if isinstance(hit, SearchHit)
+        ]
+    return candidate_hits[:limit]
 
 
 def _tokenize(text: str) -> list[str]:
