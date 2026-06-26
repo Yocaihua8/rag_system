@@ -155,6 +155,7 @@ class SearchHit:
     retrieval: str = "keyword"
     vector_provider: str = "local"
     vector_model: str = "hashing-96"
+    rerank_score: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -167,6 +168,7 @@ class SearchHit:
             "vector_score": self.vector_score,
             "vector_provider": self.vector_provider,
             "vector_model": self.vector_model,
+            "rerank_score": self.rerank_score,
         }
         if self.chunk is not None:
             data["chunk_id"] = self.chunk.id
