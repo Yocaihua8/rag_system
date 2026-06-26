@@ -41,7 +41,7 @@
 - [x] 任务 5：移植平台路径 → `backend/config/paths.py`
 - [x] 任务 6：在 Web MVP 设置接口中注册 Ollama 为可选 LLM provider
 - [x] 任务 7：写测试（mock Ollama HTTP，验证 BaseLLM 接口实现）
-- [ ] 任务 8：同步文档，更新 BACKLOG B-146 为 done
+- [x] 任务 8：同步文档，更新 BACKLOG B-146 为 done
 
 ## 4. 影响范围
 
@@ -95,9 +95,9 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| backend/ 目录骨架说明 | `AGENTS.md § 3` | [ ] |
-| Ollama 作为 LLM 选项的配置方法 | `docs/guides/setup.md` | [ ] |
-| BaseLLM / BaseEmbedder ABC 接口（与设计文档对齐） | `docs/design/new-architecture-design.md §16.2`（确认一致即可）| [ ] |
+| backend/ 目录骨架说明 | `AGENTS.md § 3` | [x] |
+| Ollama 作为 LLM 选项的配置方法 | `docs/guides/setup.md` | [x] |
+| BaseLLM / BaseEmbedder ABC 接口（与设计文档对齐） | `docs/design/new-architecture-design.md §16.2`（确认一致即可）| [x] |
 
 ## 8. 执行记录
 
@@ -109,12 +109,13 @@
 - 2026-06-26：任务 5 完成；新增 `backend/config/paths.py`，移植平台感知 `app_data_dir()`，并提供 `ensure_app_data_dir()` 与 `app_env_file()`；通过注入 `system/environ/home` 模拟 Windows/macOS/Linux 路径验证。
 - 2026-06-26：任务 6 完成；`webapp/llm.py` 新增 `OllamaAnswerClient` 与 `build_llm_client()`，provider=ollama 时通过 `backend.providers.llm.OllamaLLM` 生成/流式回答；`webapp/settings_api.py` 在 provider=ollama 时读写 `RAG_OLLAMA_HOST`/`RAG_OLLAMA_MODEL` 且不要求 API Key；`webapp/routes/settings.py` 的模型 Profile 测试改走统一工厂；相关设置/模型测试 18 项通过，LLM 模块测试 4 项通过。
 - 2026-06-26：任务 7 完成；新增 `tests/test_backend/test_ollama_llm.py`，mock Ollama HTTP 覆盖 `OllamaLLM.generate()` payload、`stream()` NDJSON token、`is_available()` WARNING、`OllamaEmbedder.embed()` 顺序和三平台 `app_data_dir()`；`.venv\Scripts\python.exe -m pytest tests\test_backend -q` 通过 5 项；相关 Web LLM/设置测试 22 项通过。
+- 2026-06-26：任务 8 完成；`docs/guides/setup.md` 补充 Ollama provider 配置方式，`docs/design/api-spec.md` 同步 `provider=ollama` 行为，`docs/BACKLOG.md` 标记 B-146 done 并给 B-147 追加前置说明；确认 `AGENTS.md §3` 已包含 backend/ 目录说明。`docs/design/new-architecture-design.md` 当前为未跟踪文件，且 §5.1 未包含 BaseLLM/BaseEmbedder 明确定义，本任务不提交整份未跟踪设计文档，实际接口以 `backend/providers/base.py` 为准。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:14
-- **进度**：已完成 7 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 7 backend Ollama provider 测试
+- **最后更新**：2026-06-26 19:18
+- **进度**：已完成 8 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 8 文档与 BACKLOG 收尾
 - **代码状态**：`backend/` 目录骨架已新增；`src/` 保持只读
-- **下一步**：任务 8 — 同步文档，更新 BACKLOG B-146 为 done
+- **下一步**：运行 B-146 最终验收命令；验收通过后按 plan 生命周期删除本文件
 - **续任务须知**：`docs/design/new-architecture-design.md §5.1` 未实际包含 BaseLLM/BaseEmbedder 定义；后续实现继续按 `backend/providers/base.py` 的最小 ABC 对齐，不直接复制 src/ 的旧 request/response 签名。
