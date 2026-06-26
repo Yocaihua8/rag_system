@@ -254,6 +254,7 @@ def test_answer_stream_api_yields_token_events_and_done_payload(tmp_path: Path):
     assert done["mode"] == "api"
     assert done["provider"] == "deepseek"
     assert done["sources"][0]["document_id"] == document.id
+    assert done["pipeline_trace"]["reranker_used"] is False
     assert done["message"]["answer"] == "第一段第二段"
     assert done["message"]["session_id"] == session.id
     assert store.list_chat_messages(project.id, session.id)[0].answer == "第一段第二段"

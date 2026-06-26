@@ -43,7 +43,7 @@
 - [x] 任务 3：实现 `CrossEncoderReranker` → `backend/providers/reranker/cross_encoder.py`
 - [x] 任务 4：在 `webapp/search.py` 中接入 Reranker（在 RRF 融合之后，返回前调用）
 - [x] 任务 5：`webapp/models.py` 的 `SearchHit` 新增 `rerank_score: float | None`
-- [ ] 任务 6：API 响应的 `pipeline_trace` 新增 `reranker_used` 字段（`/api/answer/stream` done 事件）
+- [x] 任务 6：API 响应的 `pipeline_trace` 新增 `reranker_used` 字段（`/api/answer/stream` done 事件）
 - [ ] 任务 7：`settings.toml` / `AppSettings` 追加 `reranker.enabled` 和 `reranker.model` 字段
 - [ ] 任务 8：写测试（MockReranker 验证接口；确认 disabled 时行为不变）
 - [ ] 任务 9：同步文档，更新 BACKLOG B-125 为 done
@@ -111,14 +111,15 @@
 - 2026-06-26：任务 3 完成；先写 CrossEncoder provider 红灯测试，确认模块缺失；随后新增 `backend/providers/reranker/cross_encoder.py`，实现延迟加载、`predict()` 打分排序、`top_n` 截断和 ImportError WARNING 降级；采用 plan 中默认模型名 `cross-encoder/ms-marco-MiniLM-L-6-v2`，测试不下载模型。
 - 2026-06-26：任务 4 完成；先写 `search_documents(..., reranker=...)` 红灯测试，确认原签名不支持；随后在 `webapp/search.py` 增加可选 `reranker` 参数，在现有 BM25+向量分数排序后取 `limit*3` 候选交给 reranker，默认 None 时仍走原排序截断。搜索测试 16 项与 backend reranker 测试 3 项通过。
 - 2026-06-26：任务 5 完成；先新增 `tests/test_webapp/test_models.py` 红灯验证 `SearchHit(rerank_score=...)` 序列化，随后在 `webapp/models.py` 新增 `rerank_score: float | None = None` 并写入 `to_dict()`；模型与搜索测试 17 项通过。
+- 2026-06-26：任务 6 完成；先在 stream done 测试中新增 `pipeline_trace.reranker_used` 红灯断言，随后在 `answer_body_from_result()` 统一返回 `pipeline_trace`，当前由 `SearchHit.rerank_score is not None` 判断；stream/observability 相关测试 2 项通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:50
-- **进度**：已完成 5 / 9 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 5 SearchHit rerank_score
-- **代码状态**：`SearchHit.to_dict()` 已包含 `rerank_score`
-- **下一步**：任务 6 — API 响应 `pipeline_trace.reranker_used`
+- **最后更新**：2026-06-26 19:56
+- **进度**：已完成 6 / 9 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 6 pipeline_trace.reranker_used
+- **代码状态**：回答响应已包含 `pipeline_trace.reranker_used`
+- **下一步**：任务 7 — 新增 reranker 配置读取
 - **续任务须知**：
   - Cross-Encoder 模型首次加载需下载 ~80MB，测试时必须 mock，不要求联网
   - `rerank()` 入参是 `list[Chunk]`，内部拼接 `(query, chunk.content)` 对送入模型

@@ -100,6 +100,7 @@ def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answ
         "mode": answer_result.mode,
         "provider": answer_result.provider,
         "source_quality": source_quality(useful_hits),
+        "pipeline_trace": _pipeline_trace(useful_hits),
         "observability": _answer_observability(
             useful_hits,
             context["retrieval_settings"],
@@ -163,6 +164,12 @@ def _answer_observability(
             "provider": provider,
         },
         "elapsed_ms": max(0, round((time.perf_counter() - started_at) * 1000)),
+    }
+
+
+def _pipeline_trace(hits: list[SearchHit]) -> dict[str, Any]:
+    return {
+        "reranker_used": any(hit.rerank_score is not None for hit in hits),
     }
 
 
