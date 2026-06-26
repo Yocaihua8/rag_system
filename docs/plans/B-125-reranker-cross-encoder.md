@@ -46,7 +46,7 @@
 - [x] 任务 6：API 响应的 `pipeline_trace` 新增 `reranker_used` 字段（`/api/answer/stream` done 事件）
 - [x] 任务 7：`settings.toml` / `AppSettings` 追加 `reranker.enabled` 和 `reranker.model` 字段
 - [x] 任务 8：写测试（MockReranker 验证接口；确认 disabled 时行为不变）
-- [ ] 任务 9：同步文档，更新 BACKLOG B-125 为 done
+- [x] 任务 9：同步文档，更新 BACKLOG B-125 为 done
 
 ## 4. 影响范围
 
@@ -114,14 +114,15 @@
 - 2026-06-26：任务 6 完成；先在 stream done 测试中新增 `pipeline_trace.reranker_used` 红灯断言，随后在 `answer_body_from_result()` 统一返回 `pipeline_trace`，当前由 `SearchHit.rerank_score is not None` 判断；stream/observability 相关测试 2 项通过。
 - 2026-06-26：任务 7 完成；因 plan 同时要求 `src/` 只读，未修改 `src/config/settings.py`；新增 `backend/config/reranker.py` 读取 `RAG_RERANKER_ENABLED` / `RAG_RERANKER_MODEL`，默认 disabled，并通过 `importlib.util.find_spec` 软检测 `sentence-transformers`，缺失时 WARNING 后返回 None；`webapp/search.py` 未显式传 reranker 时读取默认配置，测试环境清理相关 env 防止本机污染。
 - 2026-06-26：任务 8 完成；补充 CrossEncoder `last_scores` 测试、搜索写回 `rerank_score` 测试和默认 disabled 等价回归；`webapp/search.py` 使用模型分数写回 `SearchHit.rerank_score`，无分数时按 rerank 后排名兜底；默认 disabled 下 `.venv\Scripts\python.exe -m pytest tests\test_webapp tests\test_backend -q` 通过 294 项。
+- 2026-06-26：任务 9 完成；同步 `.env.example`、`docs/guides/setup.md`、`docs/design/api-spec.md` 和 `docs/BACKLOG.md`，记录 `RAG_RERANKER_ENABLED` / `RAG_RERANKER_MODEL`、可选 `sentence-transformers` 安装、`rerank_score` 与 `pipeline_trace.reranker_used`；`docs/design/new-architecture-design.md` 当前仍是未跟踪文件，且已包含 Reranker/settings.toml 设计，本任务不提交整份未跟踪设计文档。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 20:14
-- **进度**：已完成 8 / 9 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 8 reranker 行为测试与 disabled 回归
-- **代码状态**：启用 reranker 时 `SearchHit.rerank_score` 会写回；默认 disabled 回归通过
-- **下一步**：任务 9 — 同步文档，更新 BACKLOG B-125 为 done
+- **最后更新**：2026-06-26 20:24
+- **进度**：已完成 9 / 9 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 9 文档与 BACKLOG 收尾
+- **代码状态**：B-125 代码与测试已完成；文档已同步
+- **下一步**：运行最终验收命令；验收通过后按 plan 生命周期删除本文件
 - **续任务须知**：
   - Cross-Encoder 模型首次加载需下载 ~80MB，测试时必须 mock，不要求联网
   - `rerank()` 入参是 `list[Chunk]`，内部拼接 `(query, chunk.content)` 对送入模型

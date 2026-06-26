@@ -73,7 +73,7 @@
 | B-147 | tech-debt | 归档 src/ 桌面遗留代码 | todo | P2 | XS | Tauri MVP 0 | RAG 团队 | docs/design/new-architecture-design.md §23.7 | B-146 已完成关键移植；归档前需再次确认 `src/` 无仍被 Web/Tauri 链路引用，再整体移至 `archive/src-desktop-legacy/`；不再接受 PR |
 | B-144 | tech-debt | Docker 镜像内置 Vue 构建产物 | done | P1 | S | v0.11.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md | 已完成：Docker 镜像构建阶段执行 Vue/Vite 构建并复制 `webapp/static_dist/`，避免依赖宿主机预先运行 `npm run build`；完成后已删除 plan |
 | B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
-| B-125 | feature | Reranker 重排序接入 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/architecture-overview.md | 向量检索 top_k 候选后增加 Cross-Encoder reranker；优先对接 Cohere Rerank API（可选依赖），本地 cross-encoder 作为后备；预估 5 天 |
+| B-125 | feature | Reranker 重排序接入 | done | P1 | L | v1.0.0 | RAG 团队 | docs/design/new-architecture-design.md §5.4, docs/guides/setup.md, docs/design/api-spec.md | 已完成：BM25 + 向量候选后可选接入本地 Cross-Encoder reranker；默认关闭；`sentence-transformers` 为软依赖；命中返回 `rerank_score`，回答返回 `pipeline_trace.reranker_used` |
 | B-128 | feature | 对话分支与历史消息编辑重发 | todo | P2 | M | v0.11.0 | RAG 团队 | docs/design/api-spec.md | 支持在某条历史消息上编辑并重发，派生新对话分支；Claude.ai / ChatGPT 标配交互；预估 3 天 |
 | B-126 | feature | 知识图谱接入检索流程 | todo | P2 | L | v1.0.0 | RAG 团队 | docs/design/database-design.md | `graph_nodes` / `graph_edges` 已建表（B-48），当前检索未使用；补充 Graph-enhanced 检索，扩展关联节点提升多跳推理；预估 5 天 |
 | B-06 | tech-debt | ops/ 运维脚本 | todo | P3 | S | backlog | RAG 团队 | — | `ops/scripts/` 目前是空框架，补充：备份 db、清理 runtime、一键重建索引 |
