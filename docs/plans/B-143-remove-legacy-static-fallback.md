@@ -37,7 +37,7 @@
 - [x] 任务 1：写 B-143 红灯测试，锁定“只服务 `static_dist`、缺失构建不回退 legacy”的服务边界。
 - [x] 任务 2：修改 `webapp/server.py`，移除 `STATIC_LEGACY_DIR` / `STATIC_DIR` / fallback 逻辑。
 - [x] 任务 3：删除 `webapp/static/` legacy 原生前端文件。
-- [ ] 任务 4：删除或替换 `tests/test_webapp/test_frontend_static.py`，确保 legacy 静态源码断言不再参与回归。
+- [x] 任务 4：删除或替换 `tests/test_webapp/test_frontend_static.py`，确保 legacy 静态源码断言不再参与回归。
 - [ ] 任务 5：同步正式文档，说明生产前端唯一来源是 Vue/Vite 构建产物。
 - [ ] 任务 6：运行 B-143 验收命令，确认全量 Web MVP 测试和前端构建通过。
 
@@ -106,15 +106,16 @@
 - 2026-06-26：任务 1 完成；`tests/test_webapp/test_frontend_build.py` 已新增缺失 Vue 构建时抛错和 server 源码无 legacy fallback 的红灯测试；`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_build.py -q` 预期失败 2 项，分别指向现有 fallback 未抛 `RuntimeError` 和 `STATIC_LEGACY_DIR`/`STATIC_DIR` 仍存在。
 - 2026-06-26：任务 2 完成；`webapp/server.py` 已移除 `STATIC_LEGACY_DIR`/`STATIC_DIR` 和 fallback 分支，`_frontend_static_dir()` 在 `static_dist/index.html` 缺失时抛出包含 `npm run build` 的 `RuntimeError`；`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_build.py -q` 通过 5 项。
 - 2026-06-26：任务 3 完成；已删除 `webapp/static/` 下 legacy 原生前端 HTML/CSS/JS 文件，PowerShell 确认剩余文件数为 0；`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_build.py -q` 通过 5 项。
+- 2026-06-26：任务 4 完成；已删除 `tests/test_webapp/test_frontend_static.py`，legacy 静态源码断言不再参与回归；`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_build.py tests\test_webapp\test_frontend_vue_app.py -q` 通过 76 项。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 18:44
-- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 3 删除 legacy 原生静态文件
+- **最后更新**：2026-06-26 18:45
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 4 删除 legacy 静态源码测试
 - **代码状态**：有未提交 B-142 改动；B-143 plan 已建档；未跟踪 `docs/design/new-architecture-design.md` 不属于本任务
-- **下一步**：任务 4：删除或替换 `tests/test_webapp/test_frontend_static.py`
-- **续任务须知**：任务 3 已删除 legacy 静态文件；下一步清理 legacy 静态源码断言，不触碰 Vue 源码、后端 API、数据库、`backend/` 或 `webapp/search.py`。
+- **下一步**：任务 5：同步正式文档，说明生产前端唯一来源是 Vue/Vite 构建产物
+- **续任务须知**：任务 4 已删除 legacy 静态源码测试；下一步只同步 B-143 相关正式文档，不触碰 Vue 源码、后端 API、数据库、`backend/` 或 `webapp/search.py`。
 
 ## 10. 实施细节草案
 
