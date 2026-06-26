@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from webapp.llm import OpenAICompatibleChatClient
 from webapp.models import Document, SearchHit
 from webapp.storage import DEFAULT_RETRIEVAL_SETTINGS
 
@@ -72,7 +71,7 @@ def source_quality(hits: list[SearchHit]) -> dict[str, Any]:
     }
 
 
-def test_llm_settings_with_client(client: OpenAICompatibleChatClient) -> dict[str, Any]:
+def test_llm_settings_with_client(client: Any) -> dict[str, Any]:
     document = SearchHit(
         document=storeless_settings_test_document(),
         score=1.0,

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from webapp.api_support import query_value, test_llm_settings_with_client
-from webapp.llm import OpenAICompatibleChatClient
+from webapp.llm import build_llm_client
 from webapp.model_profiles import (
     llm_config_from_profile,
     model_profile_payload,
@@ -207,7 +207,7 @@ def _handle_model_profiles_route(
         profile = store.get_model_profile(profile_id)
         if not profile:
             return ApiResponse(404, {"error": "model profile not found"})
-        client = OpenAICompatibleChatClient(llm_config_from_profile(profile), timeout=20.0)
+        client = build_llm_client(llm_config_from_profile(profile), timeout=20.0)
         if not client.is_configured():
             return ApiResponse(400, {"error": "LLM provider is not configured"})
         try:

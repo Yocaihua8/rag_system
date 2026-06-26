@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Callable, Iterator
 from urllib.request import Request, urlopen
 
+from backend.providers.llm.ollama import DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL, OllamaLLM
 from src.config.settings import AppSettings, load_settings
 from webapp.models import ChatMessage, PromptPreset, SearchHit
 
@@ -141,8 +142,76 @@ class OpenAICompatibleChatClient:
                     yield str(content)
 
 
+class OllamaAnswerClient:
+    def __init__(
+        self,
+        config: LlmConfig,
+        client: OllamaLLM | None = None,
+        timeout: float = 60.0,
+    ) -> None:
+        self._config = config
+        self._client = client or OllamaLLM(
+            host=config.api_base or DEFAULT_OLLAMA_HOST,
+            model=config.model or DEFAULT_OLLAMA_MODEL,
+            timeout=timeout,
+        )
+
+    @property
+    def provider(self) -> str:
+        return "ollama"
+
+    def is_configured(self) -> bool:
+        if self._config.provider != "ollama" or not (self._config.model or DEFAULT_OLLAMA_MODEL).strip():
+            return False
+        return self._client.is_available()
+
+    def generate_answer(
+        self,
+        question: str,
+        hits: list[SearchHit],
+        history_messages: list[ChatMessage] | None = None,
+        prompt_preset: PromptPreset | None = None,
+    ) -> str:
+        if not self.is_configured():
+            raise RuntimeError("LLM provider is not configured")
+        result = self._client.generate(
+            _build_user_prompt(question, hits, history_messages or [], prompt_preset),
+            system_prompt=_build_system_prompt(prompt_preset),
+            model=self._config.model or DEFAULT_OLLAMA_MODEL,
+            temperature=self._config.temperature,
+            max_tokens=self._config.max_tokens,
+        )
+        return result.content
+
+    def stream_answer(
+        self,
+        question: str,
+        hits: list[SearchHit],
+        history_messages: list[ChatMessage] | None = None,
+        prompt_preset: PromptPreset | None = None,
+    ) -> Iterator[str]:
+        if not self.is_configured():
+            raise RuntimeError("LLM provider is not configured")
+        return self._client.stream(
+            _build_user_prompt(question, hits, history_messages or [], prompt_preset),
+            system_prompt=_build_system_prompt(prompt_preset),
+            model=self._config.model or DEFAULT_OLLAMA_MODEL,
+            temperature=self._config.temperature,
+            max_tokens=self._config.max_tokens,
+        )
+
+
 def load_llm_config(settings: AppSettings | None = None) -> LlmConfig:
     current = settings or load_settings()
+    if current.llm_provider == "ollama":
+        return LlmConfig(
+            provider=current.llm_provider,
+            api_base=current.ollama_host,
+            api_key="",
+            model=current.ollama_model,
+            temperature=current.llm_temperature,
+            max_tokens=current.llm_max_tokens,
+        )
     return LlmConfig(
         provider=current.llm_provider,
         api_base=current.llm_api_base,
@@ -153,8 +222,14 @@ def load_llm_config(settings: AppSettings | None = None) -> LlmConfig:
     )
 
 
-def get_default_llm_client() -> OpenAICompatibleChatClient | None:
-    client = OpenAICompatibleChatClient(load_llm_config())
+def build_llm_client(config: LlmConfig, timeout: float = 60.0) -> OpenAICompatibleChatClient | OllamaAnswerClient:
+    if config.provider == "ollama":
+        return OllamaAnswerClient(config, timeout=timeout)
+    return OpenAICompatibleChatClient(config, timeout=timeout)
+
+
+def get_default_llm_client() -> OpenAICompatibleChatClient | OllamaAnswerClient | None:
+    client = build_llm_client(load_llm_config())
     return client if client.is_configured() else None
 
 

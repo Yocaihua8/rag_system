@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.config.settings import AppSettings, get_api_key_env_name, load_settings, save_setting
-from webapp.llm import OpenAICompatibleChatClient, load_llm_config
+from webapp.llm import build_llm_client, load_llm_config
 from webapp.models import Document, SearchHit
 
 
@@ -15,24 +15,34 @@ def get_llm_settings_body(settings: AppSettings | None = None) -> dict:
 def save_llm_settings(payload: dict) -> dict:
     current = load_settings()
     provider = _clean_choice(str(payload.get("provider", "")), {"api", "ollama"}, "api")
-    api_base = str(payload.get("api_base", "")).strip() or current.llm_api_base
-    model = str(payload.get("model", "")).strip() or current.llm_api_model
     api_key = str(payload.get("api_key", "")).strip()
 
-    for key, value in (
-        ("RAG_LLM_PROVIDER", provider),
-        ("RAG_LLM_API_BASE", api_base),
-        ("RAG_LLM_API_MODEL", model),
-    ):
-        save_setting(key, value, current)
-    if api_key:
-        save_setting("RAG_LLM_API_KEY", api_key, current)
+    if provider == "ollama":
+        api_base = str(payload.get("api_base", "")).strip() or current.ollama_host
+        model = str(payload.get("model", "")).strip() or current.ollama_model
+        for key, value in (
+            ("RAG_LLM_PROVIDER", provider),
+            ("RAG_OLLAMA_HOST", api_base),
+            ("RAG_OLLAMA_MODEL", model),
+        ):
+            save_setting(key, value, current)
+    else:
+        api_base = str(payload.get("api_base", "")).strip() or current.llm_api_base
+        model = str(payload.get("model", "")).strip() or current.llm_api_model
+        for key, value in (
+            ("RAG_LLM_PROVIDER", provider),
+            ("RAG_LLM_API_BASE", api_base),
+            ("RAG_LLM_API_MODEL", model),
+        ):
+            save_setting(key, value, current)
+        if api_key:
+            save_setting("RAG_LLM_API_KEY", api_key, current)
 
     return get_llm_settings_body(load_settings())
 
 
 def test_llm_settings() -> dict:
-    client = OpenAICompatibleChatClient(load_llm_config(), timeout=20.0)
+    client = build_llm_client(load_llm_config(), timeout=20.0)
     if not client.is_configured():
         raise RuntimeError("LLM provider is not configured")
     document = Document(
@@ -51,6 +61,14 @@ def test_llm_settings() -> dict:
 
 def _settings_payload(settings: AppSettings) -> dict:
     env_key_name = get_api_key_env_name()
+    if settings.llm_provider == "ollama":
+        return {
+            "provider": settings.llm_provider,
+            "api_base": settings.ollama_host,
+            "model": settings.ollama_model,
+            "has_api_key": False,
+            "api_key_source": "",
+        }
     return {
         "provider": settings.llm_provider,
         "api_base": settings.llm_api_base,
