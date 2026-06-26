@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 import webapp.server as server
@@ -38,15 +39,10 @@ def test_vite_config_builds_into_webapp_static_dist_and_proxies_api():
 
 def test_fastapi_serves_vite_build_when_it_exists(tmp_path, monkeypatch):
     dist_dir = tmp_path / "static_dist"
-    legacy_dir = tmp_path / "static"
     dist_dir.mkdir()
-    legacy_dir.mkdir()
     (dist_dir / "index.html").write_text("<!doctype html><title>vite-build</title>", encoding="utf-8")
-    (legacy_dir / "index.html").write_text("<!doctype html><title>legacy-static</title>", encoding="utf-8")
 
     monkeypatch.setattr(server, "STATIC_DIST_DIR", dist_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_LEGACY_DIR", legacy_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_DIR", legacy_dir, raising=False)
     client = TestClient(server.create_app(db_path=tmp_path / "app.db"))
 
     response = client.get("/")
@@ -55,18 +51,18 @@ def test_fastapi_serves_vite_build_when_it_exists(tmp_path, monkeypatch):
     assert "vite-build" in response.text
 
 
-def test_fastapi_falls_back_to_legacy_static_when_vite_build_is_missing(tmp_path, monkeypatch):
+def test_fastapi_requires_vite_build_output_when_dist_is_missing(tmp_path, monkeypatch):
     dist_dir = tmp_path / "missing_dist"
-    legacy_dir = tmp_path / "static"
-    legacy_dir.mkdir()
-    (legacy_dir / "index.html").write_text("<!doctype html><title>legacy-static</title>", encoding="utf-8")
 
     monkeypatch.setattr(server, "STATIC_DIST_DIR", dist_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_LEGACY_DIR", legacy_dir, raising=False)
-    monkeypatch.setattr(server, "STATIC_DIR", legacy_dir, raising=False)
-    client = TestClient(server.create_app(db_path=tmp_path / "app.db"))
 
-    response = client.get("/")
+    with pytest.raises(RuntimeError, match="npm run build"):
+        server.create_app(db_path=tmp_path / "app.db")
 
-    assert response.status_code == 200
-    assert "legacy-static" in response.text
+
+def test_fastapi_static_server_has_no_legacy_fallback():
+    source = Path("webapp/server.py").read_text(encoding="utf-8")
+
+    assert "STATIC_LEGACY_DIR" not in source
+    assert "STATIC_DIR" not in source
+    assert "webapp/static" not in source
