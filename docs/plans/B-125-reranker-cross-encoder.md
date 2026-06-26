@@ -40,7 +40,7 @@
 
 - [x] 任务 1：在 `backend/providers/reranker/` 建立目录（若 backend/ 不存在则同步创建骨架）
 - [x] 任务 2：实现 `BaseReranker` ABC → `backend/providers/base.py`（或追加到已有 base.py）
-- [ ] 任务 3：实现 `CrossEncoderReranker` → `backend/providers/reranker/cross_encoder.py`
+- [x] 任务 3：实现 `CrossEncoderReranker` → `backend/providers/reranker/cross_encoder.py`
 - [ ] 任务 4：在 `webapp/search.py` 中接入 Reranker（在 RRF 融合之后，返回前调用）
 - [ ] 任务 5：`webapp/models.py` 的 `SearchHit` 新增 `rerank_score: float | None`
 - [ ] 任务 6：API 响应的 `pipeline_trace` 新增 `reranker_used` 字段（`/api/answer/stream` done 事件）
@@ -108,14 +108,15 @@
 - 2026-06-26：创建 plan，B-125 进入 doing 状态。
 - 2026-06-26：任务 1 完成；确认 B-146 已建立 `backend/` 与 `backend/providers/base.py`，本任务只新增 `backend/providers/reranker/__init__.py` 包入口；未重建既有 backend 骨架。
 - 2026-06-26：任务 2 完成；先新增 `tests/test_backend/test_reranker.py` 验证 `BaseReranker` 导出与抽象方法，红灯为 import 失败；随后在 `backend/providers/base.py` 追加 `BaseReranker.rerank(query, candidates, top_n)`，测试转绿。
+- 2026-06-26：任务 3 完成；先写 CrossEncoder provider 红灯测试，确认模块缺失；随后新增 `backend/providers/reranker/cross_encoder.py`，实现延迟加载、`predict()` 打分排序、`top_n` 截断和 ImportError WARNING 降级；采用 plan 中默认模型名 `cross-encoder/ms-marco-MiniLM-L-6-v2`，测试不下载模型。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-26 19:31
-- **进度**：已完成 2 / 9 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — 任务 2 BaseReranker ABC
-- **代码状态**：`backend/providers/reranker/` 已新增；`backend/providers/base.py` 已追加 `BaseReranker`；`webapp/search.py` 未改动
-- **下一步**：任务 3 — 实现 `CrossEncoderReranker`
+- **最后更新**：2026-06-26 19:38
+- **进度**：已完成 3 / 9 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — 任务 3 CrossEncoderReranker
+- **代码状态**：`backend/providers/reranker/cross_encoder.py` 已新增；`webapp/search.py` 未改动
+- **下一步**：任务 4 — 在 `webapp/search.py` 中接入 Reranker
 - **续任务须知**：
   - Cross-Encoder 模型首次加载需下载 ~80MB，测试时必须 mock，不要求联网
   - `rerank()` 入参是 `list[Chunk]`，内部拼接 `(query, chunk.content)` 对送入模型
