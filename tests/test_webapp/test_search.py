@@ -309,6 +309,62 @@ def test_search_can_use_api_embedding_client_for_query_vector(tmp_path: Path):
     assert body["vector_score"] > 0
 
 
+def test_search_uses_vector_store_provider_without_sqlite_vector_scan(tmp_path: Path, monkeypatch):
+    embedding_client = FakeEmbeddingClient()
+    store = KnowledgeStore(tmp_path / "app.db", embedding_client=embedding_client)
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(
+        project.id,
+        tmp_path / "model.md",
+        "model.md",
+        "模型设置：填写 DeepSeek API Key，并点击测试连接。",
+    )
+    store.upsert_document(
+        project.id,
+        tmp_path / "docker.md",
+        "docker.md",
+        "Docker 启动：运行一键脚本后打开浏览器。",
+    )
+    model_chunk = next(chunk for chunk in store.list_chunks(project.id) if chunk.document.relative_path == "model.md")
+    vector_store = FakeVectorStore(
+        [
+            {
+                "chunk_id": model_chunk.id,
+                "score": 0.72,
+                "provider": "api",
+                "model": "fake-embedding",
+            }
+        ]
+    )
+
+    def fail_sqlite_vector_scan(project_id):
+        raise AssertionError(f"unexpected SQLite vector full scan for {project_id}")
+
+    monkeypatch.setattr(store, "list_chunk_vector_records", fail_sqlite_vector_scan)
+
+    hits = search_documents(
+        store,
+        project.id,
+        "DeepSeek API Key",
+        limit=1,
+        embedding_client=embedding_client,
+        vector_store=vector_store,
+        reranker=None,
+    )
+    body = hits[0].to_dict()
+
+    assert vector_store.calls[0]["project_id"] == project.id
+    assert vector_store.calls[0]["query_vector"] == {"deepseek": 1.0, "api": 1.0, "key": 1.0}
+    assert vector_store.calls[0]["limit"] >= 1
+    assert body["path"] == "model.md"
+    assert body["retrieval"] == "hybrid"
+    assert body["keyword_score"] > 0
+    assert body["vector_score"] == 0.72
+    assert body["score"] == body["keyword_score"] + body["vector_score"]
+    assert body["vector_provider"] == "api"
+    assert body["vector_model"] == "fake-embedding"
+
+
 def test_search_can_rerank_explicit_candidate_pool(tmp_path: Path):
     store = KnowledgeStore(tmp_path / "app.db")
     project = store.create_project("Demo", tmp_path)
@@ -426,6 +482,20 @@ class FakeEmbeddingClient:
                 "key": 1.0 if "key" in lowered else 0.0,
             })
         return vectors
+
+
+class FakeVectorStore:
+    def __init__(self, hits):
+        self.hits = list(hits)
+        self.calls = []
+
+    def search(self, project_id, query_vector, limit):
+        self.calls.append({
+            "project_id": project_id,
+            "query_vector": dict(query_vector),
+            "limit": limit,
+        })
+        return list(self.hits)
 
 
 class ReverseReranker:

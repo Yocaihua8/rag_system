@@ -27,7 +27,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 未完成项不得删除。
 
-- [ ] 任务 1：写 B-134 红灯测试，覆盖启用向量存储 provider 时搜索不调用 SQLite `list_chunk_vector_records()` 全量扫描，并保持 hybrid ranking 与 SearchHit 字段兼容。
+- [x] 任务 1：写 B-134 红灯测试，覆盖启用向量存储 provider 时搜索不调用 SQLite `list_chunk_vector_records()` 全量扫描，并保持 hybrid ranking 与 SearchHit 字段兼容。
 - [ ] 任务 2：实现向量存储抽象与 `webapp/search.py` 集成；默认仍走 SQLite fallback，显式传入 provider 时使用 provider 候选。
 - [ ] 任务 3：写 Qdrant provider 红灯测试，覆盖本地 collection 创建、upsert、query、软依赖缺失降级和向量维度转换。
 - [ ] 任务 4：实现 `backend/providers/vector_store/` Qdrant 本地 provider、配置读取和依赖声明。
@@ -99,6 +99,7 @@
 - 2026-06-28：Context7 查询 `/qdrant/qdrant-client`，确认 Python client 支持 local mode `QdrantClient(path=...)`、`create_collection`、`upsert`、`query_points`。
 - 2026-06-28：`docs/design/new-architecture-design.md` 在当前 worktree 不存在；B-134 行关联 `docs/design/architecture-overview.md`，本任务以该文件为正式设计入口。
 - 2026-06-28：`docs/adr/README.md` 已存在 ADR-006，Qdrant 决策使用下一个编号 `ADR-007-qdrant-vector-store.md`。
+- 2026-06-28：任务 1 红灯测试命令 `& E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests/test_webapp/test_search.py::test_search_uses_vector_store_provider_without_sqlite_vector_scan -q`；失败符合预期：`search_documents() got an unexpected keyword argument 'vector_store'`。
 
 ## 9. 状态快照
 
