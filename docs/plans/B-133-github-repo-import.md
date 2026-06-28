@@ -94,7 +94,7 @@
 
 - **最后更新**：2026-06-28 01:05
 - **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — feat: 接入 GitHub 仓库导入前端入口
+- **最新 commit**：`4d29960` — feat: 接入 GitHub 仓库导入前端入口
 - **代码状态**：`fix/B-133-github-repo-import` 分支；后端和 Vue 资料库入口已实现，正式文档尚需同步
 - **下一步**：任务 5：同步正式文档并运行 B-133 相关验证清单
 - **续任务须知**：使用隔离 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-133-github-repo-import`；不要修改原始 checkout 的未提交改动。
