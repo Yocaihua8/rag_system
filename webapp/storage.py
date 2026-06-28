@@ -1063,31 +1063,41 @@ class KnowledgeStore:
         warning: str,
         sources: list[dict[str, object]],
         session_id: str = "",
+        parent_message_id: str = "",
     ) -> ChatMessage:
         now = _now()
-        message = ChatMessage(
-            id=str(uuid.uuid4()),
-            project_id=project_id,
-            question=question,
-            answer=answer,
-            mode=mode,
-            provider=provider,
-            warning=warning,
-            sources=[dict(source) for source in sources],
-            created_at=now,
-            session_id=session_id,
-        )
+        parent_message_id = parent_message_id.strip()
         with self._connect() as conn:
+            branch_index = _next_chat_branch_index(conn, parent_message_id) if parent_message_id else 0
+            message = ChatMessage(
+                id=str(uuid.uuid4()),
+                project_id=project_id,
+                question=question,
+                answer=answer,
+                mode=mode,
+                provider=provider,
+                warning=warning,
+                sources=[dict(source) for source in sources],
+                created_at=now,
+                session_id=session_id,
+                parent_message_id=parent_message_id,
+                branch_index=branch_index,
+            )
             conn.execute(
                 """
                 INSERT INTO chat_messages
-                    (id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (
+                        id, project_id, session_id, parent_message_id, branch_index,
+                        question, answer, mode, provider, warning, sources_json, created_at
+                    )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
                     message.project_id,
                     message.session_id or None,
+                    message.parent_message_id or None,
+                    message.branch_index,
                     message.question,
                     message.answer,
                     message.mode,
@@ -1109,7 +1119,9 @@ class KnowledgeStore:
             if session_id:
                 rows = conn.execute(
                     """
-                    SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                    SELECT
+                        id, project_id, session_id, parent_message_id, branch_index,
+                        question, answer, mode, provider, warning, sources_json, created_at
                     FROM chat_messages
                     WHERE project_id = ? AND session_id = ?
                     ORDER BY created_at ASC
@@ -1119,7 +1131,9 @@ class KnowledgeStore:
                 return [_chat_message_from_row(row) for row in rows]
             rows = conn.execute(
                 """
-                SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                SELECT
+                    id, project_id, session_id, parent_message_id, branch_index,
+                    question, answer, mode, provider, warning, sources_json, created_at
                 FROM chat_messages
                 WHERE project_id = ? AND session_id IS NULL
                 ORDER BY created_at ASC
@@ -1132,7 +1146,9 @@ class KnowledgeStore:
         with self._connect() as conn:
             rows = conn.execute(
                 """
-                SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                SELECT
+                    id, project_id, session_id, parent_message_id, branch_index,
+                    question, answer, mode, provider, warning, sources_json, created_at
                 FROM chat_messages
                 WHERE project_id = ?
                 ORDER BY created_at ASC
@@ -1233,7 +1249,9 @@ class KnowledgeStore:
         with self._connect() as conn:
             row = conn.execute(
                 """
-                SELECT id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at
+                SELECT
+                    id, project_id, session_id, parent_message_id, branch_index,
+                    question, answer, mode, provider, warning, sources_json, created_at
                 FROM chat_messages
                 WHERE id = ?
                 """,
@@ -1298,6 +1316,8 @@ class KnowledgeStore:
         sources: list[dict[str, object]],
         created_at: str,
         session_id: str = "",
+        parent_message_id: str = "",
+        branch_index: int = 0,
     ) -> ChatMessage:
         message = ChatMessage(
             id=str(uuid.uuid4()),
@@ -1310,18 +1330,25 @@ class KnowledgeStore:
             sources=[dict(source) for source in sources],
             created_at=created_at or _now(),
             session_id=session_id,
+            parent_message_id=parent_message_id.strip(),
+            branch_index=max(0, int(branch_index or 0)),
         )
         with self._connect() as conn:
             conn.execute(
                 """
                 INSERT INTO chat_messages
-                    (id, project_id, session_id, question, answer, mode, provider, warning, sources_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (
+                        id, project_id, session_id, parent_message_id, branch_index,
+                        question, answer, mode, provider, warning, sources_json, created_at
+                    )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     message.id,
                     message.project_id,
                     message.session_id or None,
+                    message.parent_message_id or None,
+                    message.branch_index,
                     message.question,
                     message.answer,
                     message.mode,
@@ -1891,6 +1918,8 @@ class KnowledgeStore:
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
                     session_id TEXT,
+                    parent_message_id TEXT,
+                    branch_index INTEGER NOT NULL DEFAULT 0,
                     question TEXT NOT NULL,
                     answer TEXT NOT NULL,
                     mode TEXT NOT NULL,
@@ -1903,6 +1932,9 @@ class KnowledgeStore:
 
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_project
                     ON chat_messages(project_id, created_at);
+
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_parent
+                    ON chat_messages(parent_message_id, branch_index);
 
                 CREATE TABLE IF NOT EXISTS answer_feedback (
                     id TEXT PRIMARY KEY,
@@ -2004,6 +2036,8 @@ class KnowledgeStore:
             _ensure_column(conn, "projects", "retrieval_use_vector", "INTEGER NOT NULL DEFAULT 1")
             _ensure_column(conn, "projects", "default_prompt_preset_id", "TEXT")
             _ensure_column(conn, "chat_messages", "session_id", "TEXT")
+            _ensure_column(conn, "chat_messages", "parent_message_id", "TEXT")
+            _ensure_column(conn, "chat_messages", "branch_index", "INTEGER NOT NULL DEFAULT 0")
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
             _ensure_column(conn, "chunk_vectors", "model", "TEXT NOT NULL DEFAULT 'hashing-96'")
             _ensure_column(conn, "assessment_questions", "question_type", "TEXT NOT NULL DEFAULT 'concept'")
@@ -2268,6 +2302,18 @@ def _chunk_from_row(row: sqlite3.Row) -> DocumentChunk:
     )
 
 
+def _next_chat_branch_index(conn: sqlite3.Connection, parent_message_id: str) -> int:
+    row = conn.execute(
+        """
+        SELECT COALESCE(MAX(branch_index), 0) AS branch_index
+        FROM chat_messages
+        WHERE parent_message_id = ?
+        """,
+        (parent_message_id,),
+    ).fetchone()
+    return int(row["branch_index"] or 0) + 1
+
+
 def _chat_message_from_row(row: sqlite3.Row) -> ChatMessage:
     try:
         sources = json.loads(row["sources_json"])
@@ -2286,6 +2332,8 @@ def _chat_message_from_row(row: sqlite3.Row) -> ChatMessage:
         sources=[source for source in sources if isinstance(source, dict)],
         created_at=row["created_at"],
         session_id=row["session_id"] or "",
+        parent_message_id=row["parent_message_id"] or "",
+        branch_index=int(row["branch_index"] or 0),
     )
 
 

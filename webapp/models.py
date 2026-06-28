@@ -349,6 +349,8 @@ class ChatMessage:
     sources: list[dict[str, Any]]
     created_at: str
     session_id: str = ""
+    parent_message_id: str = ""
+    branch_index: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -362,6 +364,8 @@ class ChatMessage:
             "sources": self.sources,
             "created_at": self.created_at,
             "session_id": self.session_id,
+            "parent_message_id": self.parent_message_id,
+            "branch_index": self.branch_index,
         }
 
 
