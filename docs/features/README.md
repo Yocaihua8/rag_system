@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-28
 
 本目录用于存放各个功能模块的详细说明。每个功能应尽量独立成文，避免把多个模块混写在一个文件里。
 
@@ -42,4 +42,5 @@
 - `authentication.md`：B-140 API Key + JWT 认证中间件
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界
+- `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）

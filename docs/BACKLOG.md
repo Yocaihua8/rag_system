@@ -91,7 +91,7 @@
 | B-134 | feature | Qdrant 替换 SQLite 向量存储 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/design/architecture-overview.md | SQLite 全扫描在 > 5000 chunks 时性能下降（见 ISSUE-002）；Qdrant 本地单文件模式，无服务依赖，支持 HNSW；替代 B-67；预估 5 天 |
 | B-135 | feature | 多模型并排对比 | todo | P3 | L | backlog | RAG 团队 | docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天 |
 | B-136 | docs | OpenAPI / Swagger 接口文档 | todo | P3 | M | backlog | RAG 团队 | docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
-| B-137 | feature | Notion / Obsidian 本地导出同步 | todo | P3 | L | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 支持导入 Notion 导出的 Markdown zip 包和 Obsidian vault 目录；预估 4 天 |
+| B-137 | feature | Notion / Obsidian 本地导出同步 | doing | P2 | L | v1.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md | 导入 Notion 导出的 Markdown zip 包和 Obsidian vault 目录；知识工作者核心 C端场景；plan：docs/plans/B-137-notion-obsidian-sync.md |
 | B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
 | B-67 | feature | Web 向量库与 Reranker 接入（legacy 规划） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-134（Qdrant）和 B-125（Reranker）拆分替代 |
 
