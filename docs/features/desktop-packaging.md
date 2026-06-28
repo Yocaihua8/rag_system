@@ -27,6 +27,7 @@ Tauri 桌面模式不修改现有 HTTP API。Vue 内部请求仍访问 `http://1
 - `scripts/build-backend-sidecar.ps1` 使用 PyInstaller 打包 `app.py`，并把生成的 exe 复制到 `src-tauri/binaries/`，文件名带 Tauri target triple。
 - `npm run tauri:build:windows` 调用后端 sidecar 打包，再执行 Tauri Windows 构建。
 - Tauri 启动时拉起 sidecar；窗口关闭时隐藏到托盘；通过托盘菜单退出时结束应用。
+- 本机执行 Tauri 构建需要 Rust/Cargo/rustup；缺失时可先用 `npx tauri info` 确认环境缺口。
 
 ## 4. 验收标准
 
@@ -35,4 +36,3 @@ Tauri 桌面模式不修改现有 HTTP API。Vue 内部请求仍访问 `http://1
 - Windows sidecar 构建脚本生成 `knowledge-island-backend-x86_64-pc-windows-msvc.exe`。
 - Tauri Rust 入口包含 sidecar 启动、托盘菜单和关闭隐藏逻辑。
 - 文档和测试命令覆盖桌面打包链路。
-
