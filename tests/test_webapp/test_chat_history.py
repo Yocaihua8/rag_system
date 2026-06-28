@@ -1,6 +1,7 @@
 from pathlib import Path
+from urllib.parse import quote
 
-from webapp.api import dispatch
+from webapp.api import answer_stream_events, dispatch
 from webapp.storage import KnowledgeStore
 
 
@@ -238,3 +239,184 @@ def test_chat_message_delete_returns_current_session_messages(tmp_path: Path):
 
     assert response.status == 200
     assert [message["id"] for message in response.body["messages"]] == [second.id]
+
+
+def test_chat_message_branch_fields_are_persisted_and_listed(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+    session = store.create_chat_session(project.id, "架构说明")
+    parent = store.create_chat_message(
+        project.id,
+        "默认入口是什么？",
+        "默认入口是 app.py。",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=session.id,
+    )
+
+    first_branch = store.create_chat_message(
+        project.id,
+        "默认入口和 FastAPI 的关系是什么？",
+        "app.py 启动 FastAPI 服务。",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=session.id,
+        parent_message_id=parent.id,
+    )
+    second_branch = store.create_chat_message(
+        project.id,
+        "默认入口和 Vue 的关系是什么？",
+        "app.py 托管 Vue 构建产物。",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=session.id,
+        parent_message_id=parent.id,
+    )
+
+    messages = store.list_chat_messages(project.id, session.id)
+
+    assert first_branch.parent_message_id == parent.id
+    assert first_branch.branch_index == 1
+    assert second_branch.parent_message_id == parent.id
+    assert second_branch.branch_index == 2
+    assert messages[1].to_dict()["parent_message_id"] == parent.id
+    assert messages[1].to_dict()["branch_index"] == 1
+
+
+def test_answer_api_persists_branch_message_when_parent_message_id_is_sent(tmp_path: Path):
+    class FakeLlmClient:
+        provider = "deepseek"
+
+        def generate_answer(self, question, hits, history_messages=None, prompt_preset=None):
+            assert question == "默认入口和 FastAPI 的关系是什么？"
+            return "DeepSeek 回答：app.py 启动 FastAPI 服务。"
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口是 app.py，本地 Web 服务使用 FastAPI 并托管 Vue 构建产物。",
+    )
+    session = store.create_chat_session(project.id, "架构说明")
+    parent = store.create_chat_message(
+        project.id,
+        "默认入口是什么？",
+        "默认入口是 app.py。",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=session.id,
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {
+            "project_id": project.id,
+            "session_id": session.id,
+            "parent_message_id": parent.id,
+            "question": "默认入口和 FastAPI 的关系是什么？",
+        },
+        llm_client=FakeLlmClient(),
+    )
+
+    assert response.status == 200
+    assert response.body["message"]["parent_message_id"] == parent.id
+    assert response.body["message"]["branch_index"] == 1
+    assert response.body["message"]["question"] == "默认入口和 FastAPI 的关系是什么？"
+    assert store.get_chat_message(response.body["message"]["id"]).parent_message_id == parent.id
+
+
+def test_answer_api_rejects_parent_message_from_other_session(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "默认入口是 app.py。")
+    session = store.create_chat_session(project.id, "架构说明")
+    other_session = store.create_chat_session(project.id, "接口排查")
+    parent = store.create_chat_message(
+        project.id,
+        "其他会话问题",
+        "其他会话回答",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=other_session.id,
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer",
+        {
+            "project_id": project.id,
+            "session_id": session.id,
+            "parent_message_id": parent.id,
+            "question": "重发问题",
+        },
+    )
+
+    assert response.status == 404
+    assert response.body["error"] == "parent chat message not found"
+
+
+def test_answer_stream_done_payload_includes_branch_message_fields(tmp_path: Path):
+    class FakeStreamingLlmClient:
+        provider = "deepseek"
+
+        def stream_answer(self, question, hits, history_messages=None, prompt_preset=None):
+            yield "流式"
+            yield "回答"
+
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "stack.md",
+        "stack.md",
+        "默认入口是 app.py，本地 Web 服务使用 FastAPI 并托管 Vue 构建产物。",
+    )
+    session = store.create_chat_session(project.id, "架构说明")
+    parent = store.create_chat_message(
+        project.id,
+        "默认入口是什么？",
+        "默认入口是 app.py。",
+        "local",
+        "local",
+        "",
+        [],
+        session_id=session.id,
+    )
+
+    events = list(
+        answer_stream_events(
+            store,
+            (
+                f"/api/answer/stream?project_id={project.id}"
+                f"&session_id={session.id}"
+                f"&parent_message_id={parent.id}"
+                f"&question={quote('默认入口和 FastAPI 的关系是什么？')}"
+            ),
+            llm_client=FakeStreamingLlmClient(),
+        )
+    )
+    done = [event for event in events if event.event == "done"][0]
+
+    assert done.data["message"]["parent_message_id"] == parent.id
+    assert done.data["message"]["branch_index"] == 1
