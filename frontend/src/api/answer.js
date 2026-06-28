@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from "./client.js";
 
-export async function askQuestion({ projectId, question, toolRunId = "" }) {
+export async function askQuestion({ projectId, question, toolRunId = "", parentMessageId = "" }) {
   const trimmedQuestion = (question || "").trim();
   if (!projectId) {
     throw new Error("请先创建或选择项目空间");
@@ -15,10 +15,20 @@ export async function askQuestion({ projectId, question, toolRunId = "" }) {
   if (toolRunId) {
     payload.tool_run_id = toolRunId;
   }
+  if (parentMessageId) {
+    payload.parent_message_id = parentMessageId;
+  }
   return apiPost("/api/answer", payload);
 }
 
-export function askQuestionStream({ projectId, question, sessionId = "", toolRunId = "", handlers = {} }) {
+export function askQuestionStream({
+  projectId,
+  question,
+  sessionId = "",
+  toolRunId = "",
+  parentMessageId = "",
+  handlers = {},
+}) {
   const trimmedQuestion = (question || "").trim();
   if (!projectId) {
     throw new Error("请先创建或选择项目空间");
@@ -36,6 +46,9 @@ export function askQuestionStream({ projectId, question, sessionId = "", toolRun
   }
   if (toolRunId) {
     params.set("tool_run_id", toolRunId);
+  }
+  if (parentMessageId) {
+    params.set("parent_message_id", parentMessageId);
   }
 
   const source = new EventSource(`/api/answer/stream?${params.toString()}`);

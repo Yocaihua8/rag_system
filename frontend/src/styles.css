@@ -728,6 +728,15 @@ button:focus-visible {
   justify-content: space-between;
 }
 
+.chat-branch-label {
+  color: #52616f;
+  font-size: 12px;
+}
+
+.chat-message-question {
+  font-weight: 600;
+}
+
 .answer-meta {
   color: #52616f;
   display: flex;

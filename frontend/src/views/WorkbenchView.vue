@@ -58,6 +58,7 @@
         :loading="chatMessagesLoading"
         :error="chatMessagesError"
         :answer-streaming-text="answerStreamingText"
+        @edit-chat-message="(message) => $emit('edit-chat-message', message)"
         @delete-chat-message="(messageId) => $emit('delete-chat-message', messageId)"
         @clear-chat-messages="$emit('clear-chat-messages')"
       />
@@ -402,5 +403,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "cancel-answer", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "delete-chat-message", "clear-chat-messages", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "cancel-answer", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "edit-chat-message", "delete-chat-message", "clear-chat-messages", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

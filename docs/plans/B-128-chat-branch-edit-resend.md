@@ -26,7 +26,7 @@
 - [x] 任务 1：写 B-128 红灯测试
 - [x] 任务 2：扩展 `ChatMessage` 模型、SQLite 字段迁移和存储层分支写入
 - [x] 任务 3：让 `/api/answer` 与 `/api/answer/stream` 接收 `parent_message_id` 并保存分支消息
-- [ ] 任务 4：在 Vue 工作台接入历史消息编辑重发 UI 和 API helper
+- [x] 任务 4：在 Vue 工作台接入历史消息编辑重发 UI 和 API helper
 - [ ] 任务 5：同步 API、数据库、功能文档和前端工程文档
 - [ ] 任务 6：运行回归验证并关闭 B-128
 
@@ -94,12 +94,15 @@
 - 2026-06-28：任务 1 红灯测试已添加。目标命令运行结果为 4 failed，失败点分别是 `create_chat_message()` 不接受 `parent_message_id`、响应 `message` 缺少 `parent_message_id`、跨会话父消息未返回 `404 parent chat message not found`、SSE `done` 缺少分支字段。
 - 2026-06-28：任务 2 依据 `docs/design/new-architecture-design.md §5.5.3` 修改 `chat_messages` schema，新增 `parent_message_id` 与 `branch_index`；旧消息默认 `parent_message_id=""`、`branch_index=0`。
 - 2026-06-28：任务 3 将 `parent_message_id` 接入 `/api/answer` 与 `/api/answer/stream`，校验父消息同项目同会话。`tests/test_webapp/test_chat_history.py -q` 通过 15 项。
+- 2026-06-28：任务 4 需要修改 `frontend/src/components/ChatThread.vue`，但该文件当前为未跟踪的 B-142 工作区文件；直接提交会把整份 B-142 组件并入 B-128，违反“不要吸收无关改动”。任务暂停，等待 B-142 前端文件先提交/合并，或用户明确允许 B-128 吸收这些前端文件。
+- 2026-06-28：用户选择方案 1，已先提交 B-142 前端会话迁移 `953bba6`，`ChatThread.vue` 等文件已纳入版本控制；恢复任务 4。
+- 2026-06-28：任务 4 完成 Vue 编辑重发入口。`tests/test_webapp/test_frontend_vue_app.py -q` 通过 72 项；`npm run build` 在实现后通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 21:35
-- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — feat: 接入问答分支父消息参数
-- **代码状态**：分支 `fix/B-128-chat-branch-edit-resend`；工作区已有未提交的非 B-128 改动；B-128 后端存储/API 已实现，前端尚未接入
-- **下一步**：任务 4：在 Vue 工作台接入历史消息编辑重发 UI 和 API helper
-- **续任务须知**：任务 4 会触碰当前已有 B-142 前端脏文件，必须只追加 B-128 事件、状态和 helper hunk，不回退既有聊天会话改动。
+- **最后更新**：2026-06-28 22:05
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — feat: 接入对话编辑重发前端入口
+- **代码状态**：分支 `fix/B-128-chat-branch-edit-resend`；B-128 后端和前端交互已实现；文档同步与关闭流程待做
+- **下一步**：任务 5：同步 API、数据库、功能文档和前端工程文档
+- **续任务须知**：任务 5 需同步 `docs/design/api-spec.md`、`docs/design/database-design.md`、`docs/features/chat-branching.md`、`docs/features/frontend-engineering.md`，并谨慎处理 `docs/BACKLOG.md` 当前仍有未提交重排。

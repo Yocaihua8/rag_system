@@ -279,13 +279,14 @@ def test_vue_app_loads_project_spaces_on_startup_and_handles_panel_events():
 def test_vue_answer_api_helper_uses_existing_non_streaming_answer_contract():
     answer_js = _read("frontend/src/api/answer.js")
 
-    assert "export async function askQuestion({ projectId, question, toolRunId = \"\" })" in answer_js
+    assert "export async function askQuestion({ projectId, question, toolRunId = \"\", parentMessageId = \"\" })" in answer_js
     assert 'apiPost("/api/answer"' in answer_js
     assert "project_id: projectId" in answer_js
     assert "question" in answer_js
     assert "请先创建或选择项目空间" in answer_js
     assert "请输入问题" in answer_js
     assert "payload.tool_run_id = toolRunId" in answer_js
+    assert "payload.parent_message_id = parentMessageId" in answer_js
     assert 'return apiPost("/api/answer", payload)' in answer_js
 
 
@@ -293,7 +294,7 @@ def test_vue_answer_api_helper_supports_streaming_answer_and_chat_contracts():
     answer_js = _read("frontend/src/api/answer.js")
 
     for marker in [
-        "export function askQuestionStream({ projectId, question, sessionId = \"\", toolRunId = \"\", handlers = {} })",
+        "export function askQuestionStream({",
         "new EventSource(`/api/answer/stream?${params.toString()}`)",
         "source.addEventListener(\"token\"",
         "source.addEventListener(\"done\"",
@@ -304,6 +305,8 @@ def test_vue_answer_api_helper_supports_streaming_answer_and_chat_contracts():
         "handlers.onToken?.(answer, text)",
         "params.set(\"session_id\", sessionId)",
         "params.set(\"tool_run_id\", toolRunId)",
+        "parentMessageId = \"\"",
+        "params.set(\"parent_message_id\", parentMessageId)",
         "export async function listChatSessions(projectId)",
         "apiGet(`/api/chat/sessions?project_id=${encodeURIComponent(projectId)}`)",
         "export async function createChatSession({ projectId, title = \"\" })",
@@ -496,6 +499,39 @@ def test_vue_app_wires_chat_sessions_messages_streaming_and_cancel_state():
         "@cancel-answer",
     ]:
         assert marker in workbench_vue
+
+
+def test_vue_workbench_supports_editing_chat_message_and_resending_branch():
+    answer_js = _read("frontend/src/api/answer.js")
+    app_vue = _read("frontend/src/App.vue")
+    chat_thread_vue = _read("frontend/src/components/ChatThread.vue")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for marker in [
+        "parentMessageId",
+        "parent_message_id",
+    ]:
+        assert marker in answer_js
+
+    for marker in [
+        "编辑重发",
+        "edit-chat-message",
+        "$emit('edit-chat-message', message)",
+        "message.parent_message_id",
+        "message.branch_index",
+    ]:
+        assert marker in chat_thread_vue
+
+    for marker in [
+        "@edit-chat-message=\"handleEditChatMessage\"",
+        "handleEditChatMessage",
+        "window.prompt(\"编辑问题后重发\"",
+        "parentMessageId",
+        "message?.id || message?.message_id",
+    ]:
+        assert marker in app_vue
+
+    assert "@edit-chat-message=\"(message) => $emit('edit-chat-message', message)\"" in workbench_vue
 
 
 def test_vue_app_handles_answer_feedback_state_and_events():

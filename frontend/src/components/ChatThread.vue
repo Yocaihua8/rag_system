@@ -18,9 +18,14 @@
       <li v-for="message in chatMessages" :key="message.id || message.message_id">
         <div class="chat-message-header">
           <span>{{ message.role || message.type || "message" }}</span>
+          <span v-if="message.parent_message_id" class="chat-branch-label">
+            分支 {{ message.branch_index || 0 }}
+          </span>
+          <button type="button" @click="$emit('edit-chat-message', message)">编辑重发</button>
           <button type="button" @click="$emit('delete-chat-message', message.id || message.message_id)">删除</button>
         </div>
-        <p>{{ message.content || message.answer || message.question || message.text || "暂无内容" }}</p>
+        <p class="chat-message-question">{{ message.question || message.content || message.text || "暂无问题" }}</p>
+        <p>{{ message.answer || "暂无回答" }}</p>
       </li>
     </ol>
 
@@ -51,5 +56,5 @@ defineProps({
   },
 });
 
-defineEmits(["delete-chat-message", "clear-chat-messages"]);
+defineEmits(["edit-chat-message", "delete-chat-message", "clear-chat-messages"]);
 </script>

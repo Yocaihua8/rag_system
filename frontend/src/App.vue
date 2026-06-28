@@ -164,6 +164,7 @@
       @create-chat-session="handleCreateChatSession"
       @rename-chat-session="handleRenameChatSession"
       @delete-chat-session="handleDeleteChatSession"
+      @edit-chat-message="handleEditChatMessage"
       @delete-chat-message="handleDeleteChatMessage"
       @clear-chat-messages="handleClearChatMessages"
       @cancel-answer="handleCancelAnswer"
@@ -1439,7 +1440,9 @@ async function handleDeleteRetrievalReview(reviewId) {
   }
 }
 
-async function handleSubmitQuestion(question) {
+async function handleSubmitQuestion(input) {
+  const questionPayload = typeof input === "object" && input !== null ? input : { question: input };
+  const question = questionPayload.question || "";
   appState.currentQuestion = question;
   appState.answerLoading = true;
   appState.answerError = "";
@@ -1453,6 +1456,7 @@ async function handleSubmitQuestion(question) {
       question,
       sessionId: appState.selectedChatSessionId,
       toolRunId: appState.currentToolContextRunId,
+      parentMessageId: questionPayload.parentMessageId || "",
       handlers: {
         onToken(fullText) {
           appState.answerStreamingText = fullText;
@@ -1488,6 +1492,27 @@ async function handleSubmitQuestion(question) {
     appState.answerLoading = false;
     appState.currentAnswerAbortController = null;
   }
+}
+
+async function handleEditChatMessage(message) {
+  const messageId = message?.id || message?.message_id || "";
+  if (!messageId) {
+    appState.answerError = "请选择要编辑的聊天记录";
+    return;
+  }
+  const draft = window.prompt("编辑问题后重发", message.question || message.content || message.text || "");
+  if (draft === null) {
+    return;
+  }
+  const question = draft.trim();
+  if (!question) {
+    appState.answerError = "请输入问题";
+    return;
+  }
+  await handleSubmitQuestion({
+    question,
+    parentMessageId: messageId,
+  });
 }
 
 function handleCancelAnswer() {
