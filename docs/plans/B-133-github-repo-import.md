@@ -95,7 +95,7 @@
 
 - **最后更新**：2026-06-28 01:25
 - **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — docs: 同步 GitHub 仓库导入契约
+- **最新 commit**：`b5e4cf6` — docs: 同步 GitHub 仓库导入契约
 - **代码状态**：`fix/B-133-github-repo-import` 分支；代码、测试和正式文档均已完成，待关闭 BACKLOG 并删除 plan
 - **下一步**：任务 6：关闭 B-133：BACKLOG 置 done、删除本 plan、提交最终收口
 - **续任务须知**：使用隔离 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-133-github-repo-import`；不要修改原始 checkout 的未提交改动。
