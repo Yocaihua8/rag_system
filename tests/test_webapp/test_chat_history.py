@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from urllib.parse import quote
 
@@ -287,6 +288,34 @@ def test_chat_message_branch_fields_are_persisted_and_listed(tmp_path: Path):
     assert second_branch.branch_index == 2
     assert messages[1].to_dict()["parent_message_id"] == parent.id
     assert messages[1].to_dict()["branch_index"] == 1
+
+
+def test_chat_message_branch_columns_are_backfilled_for_existing_database(tmp_path: Path):
+    db_path = tmp_path / "app.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE chat_messages (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                session_id TEXT,
+                question TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                mode TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                warning TEXT NOT NULL DEFAULT '',
+                sources_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            """
+        )
+
+    store = KnowledgeStore(db_path)
+    project = store.create_project("知识岛", tmp_path)
+    message = store.create_chat_message(project.id, "问题", "回答", "local", "local", "", [])
+
+    assert message.parent_message_id == ""
+    assert message.branch_index == 0
 
 
 def test_answer_api_persists_branch_message_when_parent_message_id_is_sent(tmp_path: Path):

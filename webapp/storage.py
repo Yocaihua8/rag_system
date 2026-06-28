@@ -1933,9 +1933,6 @@ class KnowledgeStore:
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_project
                     ON chat_messages(project_id, created_at);
 
-                CREATE INDEX IF NOT EXISTS idx_chat_messages_parent
-                    ON chat_messages(parent_message_id, branch_index);
-
                 CREATE TABLE IF NOT EXISTS answer_feedback (
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
@@ -2038,6 +2035,12 @@ class KnowledgeStore:
             _ensure_column(conn, "chat_messages", "session_id", "TEXT")
             _ensure_column(conn, "chat_messages", "parent_message_id", "TEXT")
             _ensure_column(conn, "chat_messages", "branch_index", "INTEGER NOT NULL DEFAULT 0")
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_parent
+                    ON chat_messages(parent_message_id, branch_index)
+                """
+            )
             _ensure_column(conn, "chunk_vectors", "provider", "TEXT NOT NULL DEFAULT 'local'")
             _ensure_column(conn, "chunk_vectors", "model", "TEXT NOT NULL DEFAULT 'hashing-96'")
             _ensure_column(conn, "assessment_questions", "question_type", "TEXT NOT NULL DEFAULT 'concept'")
