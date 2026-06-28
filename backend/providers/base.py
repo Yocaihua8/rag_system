@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
 
@@ -16,6 +16,27 @@ class LLMResult:
     content: str
     model: str
     provider: str
+
+
+@dataclass(frozen=True)
+class VectorSearchHit:
+    chunk_id: str
+    score: float
+    provider: str = "local"
+    model: str = "hashing-96"
+
+
+@dataclass(frozen=True)
+class VectorUpsertRecord:
+    project_id: str
+    document_id: str
+    chunk_id: str
+    chunk_index: int
+    path: str
+    content: str
+    vector: Mapping[str, float]
+    provider: str
+    model: str
 
 
 class BaseLLM(ABC):
@@ -91,10 +112,36 @@ class BaseReranker(ABC):
         """Return candidates ordered by descending relevance to the query."""
 
 
+class BaseVectorStore(ABC):
+    @abstractmethod
+    def search(
+        self,
+        project_id: str,
+        query_vector: Mapping[str, float],
+        limit: int,
+    ) -> list[VectorSearchHit]:
+        """Return vector hits ordered by descending similarity for a project."""
+
+    @abstractmethod
+    def upsert(self, records: Sequence[VectorUpsertRecord]) -> None:
+        """Insert or update chunk vectors."""
+
+    @abstractmethod
+    def delete(self, project_id: str, chunk_ids: Sequence[str] | None = None) -> None:
+        """Delete vectors for selected chunks, or the whole project when omitted."""
+
+    @abstractmethod
+    def is_available(self) -> bool:
+        """Return whether the vector store can be used without blocking startup."""
+
+
 __all__ = [
     "BaseEmbedder",
     "BaseLLM",
     "BaseReranker",
+    "BaseVectorStore",
     "LLMMessage",
     "LLMResult",
+    "VectorSearchHit",
+    "VectorUpsertRecord",
 ]

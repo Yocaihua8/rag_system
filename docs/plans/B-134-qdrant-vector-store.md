@@ -28,7 +28,7 @@
 未完成项不得删除。
 
 - [x] 任务 1：写 B-134 红灯测试，覆盖启用向量存储 provider 时搜索不调用 SQLite `list_chunk_vector_records()` 全量扫描，并保持 hybrid ranking 与 SearchHit 字段兼容。
-- [ ] 任务 2：实现向量存储抽象与 `webapp/search.py` 集成；默认仍走 SQLite fallback，显式传入 provider 时使用 provider 候选。
+- [x] 任务 2：实现向量存储抽象与 `webapp/search.py` 集成；默认仍走 SQLite fallback，显式传入 provider 时使用 provider 候选。
 - [ ] 任务 3：写 Qdrant provider 红灯测试，覆盖本地 collection 创建、upsert、query、软依赖缺失降级和向量维度转换。
 - [ ] 任务 4：实现 `backend/providers/vector_store/` Qdrant 本地 provider、配置读取和依赖声明。
 - [ ] 任务 5：写 storage 同步红灯测试，覆盖文档摄入/更新/删除时向量 provider 的 upsert/delete 调用，以及 provider 异常时不破坏 SQLite 写入。
@@ -100,6 +100,7 @@
 - 2026-06-28：`docs/design/new-architecture-design.md` 在当前 worktree 不存在；B-134 行关联 `docs/design/architecture-overview.md`，本任务以该文件为正式设计入口。
 - 2026-06-28：`docs/adr/README.md` 已存在 ADR-006，Qdrant 决策使用下一个编号 `ADR-007-qdrant-vector-store.md`。
 - 2026-06-28：任务 1 红灯测试命令 `& E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests/test_webapp/test_search.py::test_search_uses_vector_store_provider_without_sqlite_vector_scan -q`；失败符合预期：`search_documents() got an unexpected keyword argument 'vector_store'`。
+- 2026-06-28：任务 2 实现 `BaseVectorStore` / `VectorSearchHit` / `VectorUpsertRecord`，并让 `search_documents(..., vector_store=...)` 使用 provider 候选；验证 `tests/test_webapp/test_search.py` 20 passed。
 
 ## 9. 状态快照
 
@@ -108,8 +109,8 @@
 > 正常完成后随 plan 一起删除。
 
 - **最后更新**：2026-06-28 00:00
-- **进度**：已完成 0 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`N/A` — plan 刚创建，尚未提交
-- **代码状态**：`fix/B-134-qdrant-vector-store`；plan 启动文档待提交；运行时代码未修改
-- **下一步**：任务 1：写 B-134 红灯测试，覆盖启用向量存储 provider 时搜索不调用 SQLite `list_chunk_vector_records()` 全量扫描，并保持 hybrid ranking 与 SearchHit 字段兼容。
-- **续任务须知**：在 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-134-qdrant-vector-store` 执行；原始 checkout 有用户未提交改动，不要回写原始 checkout。
+- **进度**：已完成 1 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`59ad73e` — test: 增加 Qdrant 检索红灯测试
+- **代码状态**：`fix/B-134-qdrant-vector-store`；任务 1 已提交；§9 快照已更新；运行时代码尚未实现 provider 接口
+- **下一步**：任务 2：实现向量存储抽象与 `webapp/search.py` 集成；默认仍走 SQLite fallback，显式传入 provider 时使用 provider 候选。
+- **续任务须知**：在 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-134-qdrant-vector-store` 执行；测试使用 `E:\Code\knowledage_island\.venv\Scripts\python.exe`；任务 1 红灯失败点为 `search_documents()` 缺少 `vector_store` 参数。

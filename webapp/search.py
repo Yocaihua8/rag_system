@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import replace
 import math
 import re
+import sys
 
 from backend.config.reranker import get_default_reranker
-from backend.providers.base import BaseReranker
+from backend.providers.base import BaseReranker, BaseVectorStore
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import DocumentChunk, SearchHit
 from webapp.storage import KnowledgeStore
@@ -24,6 +26,7 @@ def search_documents(
     embedding_client: EmbeddingClient | None = None,
     use_keyword: bool = True,
     use_vector: bool = True,
+    vector_store: BaseVectorStore | None = None,
     reranker: BaseReranker | None | object = _DEFAULT_RERANKER,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
@@ -36,17 +39,30 @@ def search_documents(
             [query],
         )
         query_vector = query_vectors[0] if query_vectors else {}
-    vector_records = {
-        str(record["chunk_id"]): record
-        for record in store.list_chunk_vector_records(project_id)
-    }
+    candidate_limit = max(limit * 3, limit)
+    vector_records = _vector_records(
+        store=store,
+        project_id=project_id,
+        query_vector=query_vector,
+        limit=candidate_limit,
+        use_vector=use_vector,
+        vector_store=vector_store,
+    )
+    candidate_chunks = _candidate_chunks(
+        chunks,
+        keyword_scores=keyword_scores,
+        vector_records=vector_records,
+        use_keyword=use_keyword,
+        use_vector_store=use_vector and vector_store is not None and bool(query_vector),
+        limit=candidate_limit,
+    )
     retrieval = _retrieval_label(use_keyword, use_vector)
     hits: list[SearchHit] = []
-    for chunk in chunks:
+    for chunk in candidate_chunks:
         keyword_score = keyword_scores.get(chunk.id, 0.0)
         vector_record = vector_records.get(chunk.id, {})
         vector_score = (
-            cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
+            _vector_score(query_vector, vector_record)
             if use_vector
             else 0.0
         )
@@ -68,7 +84,7 @@ def search_documents(
         key=lambda hit: (hit.score, hit.document.updated_at, -_chunk_index(hit)),
         reverse=True,
     )
-    candidate_hits = hits[: max(limit * 3, limit)]
+    candidate_hits = hits[:candidate_limit]
     active_reranker = get_default_reranker() if reranker is _DEFAULT_RERANKER else reranker
     if active_reranker is not None:
         ranked_hits = [
@@ -77,6 +93,81 @@ def search_documents(
         ]
         return _with_rerank_scores(ranked_hits, active_reranker)
     return candidate_hits[:limit]
+
+
+def _vector_records(
+    *,
+    store: KnowledgeStore,
+    project_id: str,
+    query_vector: Mapping[str, float],
+    limit: int,
+    use_vector: bool,
+    vector_store: BaseVectorStore | None,
+) -> dict[str, dict[str, object]]:
+    if not use_vector:
+        return {}
+    if vector_store is not None and query_vector:
+        try:
+            return _provider_vector_records(vector_store.search(project_id, query_vector, limit))
+        except Exception as exc:  # pragma: no cover - defensive fallback for optional providers.
+            print(
+                f"WARNING: vector store search failed; falling back to SQLite vectors: {exc}",
+                file=sys.stderr,
+            )
+    return {
+        str(record["chunk_id"]): dict(record)
+        for record in store.list_chunk_vector_records(project_id)
+    }
+
+
+def _provider_vector_records(raw_hits: list[object]) -> dict[str, dict[str, object]]:
+    records: dict[str, dict[str, object]] = {}
+    for hit in raw_hits:
+        chunk_id = _hit_value(hit, "chunk_id")
+        if chunk_id is None:
+            continue
+        records[str(chunk_id)] = {
+            "chunk_id": str(chunk_id),
+            "score": float(_hit_value(hit, "score") or 0.0),
+            "provider": str(_hit_value(hit, "provider") or "local"),
+            "model": str(_hit_value(hit, "model") or "hashing-96"),
+        }
+    return records
+
+
+def _hit_value(hit: object, name: str) -> object:
+    if isinstance(hit, Mapping):
+        return hit.get(name)
+    return getattr(hit, name, None)
+
+
+def _candidate_chunks(
+    chunks: list[DocumentChunk],
+    *,
+    keyword_scores: dict[str, float],
+    vector_records: dict[str, dict[str, object]],
+    use_keyword: bool,
+    use_vector_store: bool,
+    limit: int,
+) -> list[DocumentChunk]:
+    if not use_vector_store:
+        return chunks
+
+    candidate_ids = set(vector_records)
+    if use_keyword:
+        candidate_ids.update(_top_keyword_chunk_ids(keyword_scores, limit))
+    return [chunk for chunk in chunks if chunk.id in candidate_ids]
+
+
+def _top_keyword_chunk_ids(keyword_scores: dict[str, float], limit: int) -> list[str]:
+    ranked = sorted(keyword_scores.items(), key=lambda item: item[1], reverse=True)
+    return [chunk_id for chunk_id, _ in ranked[:limit]]
+
+
+def _vector_score(query_vector: Mapping[str, float], vector_record: dict[str, object]) -> float:
+    if "score" in vector_record:
+        return float(vector_record.get("score") or 0.0)
+    return cosine_similarity(query_vector, dict(vector_record.get("vector", {})))
 
 
 def _tokenize(text: str) -> list[str]:
