@@ -92,7 +92,7 @@
 
 - **最后更新**：2026-06-28 00:30
 - **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`待提交` — feat: 新增 GitHub 仓库导入后端接口
+- **最新 commit**：`2450805` — feat: 新增 GitHub 仓库导入后端接口
 - **代码状态**：`fix/B-133-github-repo-import` 分支；后端 GitHub clone + 目录导入接口已实现，前端入口尚未接入
 - **下一步**：任务 3：写 Vue 前端红灯测试，覆盖 API helper、导入面板表单和 App 事件串联
 - **续任务须知**：使用隔离 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-133-github-repo-import`；不要修改原始 checkout 的未提交改动。
