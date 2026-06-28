@@ -120,9 +120,11 @@
 - 删除项目空间时级联清理；删除会话时清理该会话下的 `chat_messages`。
 
 ### chat_messages（Web MVP）
-- `id / project_id / session_id / question / answer / mode / provider / warning / sources_json / created_at`
+- `id / project_id / session_id / parent_message_id / branch_index / question / answer / mode / provider / warning / sources_json / created_at`
 - 每次 `/api/answer` 返回后写入一条记录，用于 Web 工作台按项目恢复最近问答。
 - `session_id` 可为空；为空时归入默认会话，用于兼容历史消息。
+- `parent_message_id` 可为空；非空时表示本条消息来自历史消息编辑重发，并指向被编辑的父消息。
+- `branch_index` 默认为 `0`；同一 `parent_message_id` 下的编辑重发消息按创建顺序递增。
 - `sources_json` 保存本轮回答使用的来源片段快照，避免后续文档更新导致历史对话失去当时来源。
 
 ### answer_feedback（Web MVP）

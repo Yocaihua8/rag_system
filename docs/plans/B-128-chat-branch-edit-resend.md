@@ -27,7 +27,7 @@
 - [x] 任务 2：扩展 `ChatMessage` 模型、SQLite 字段迁移和存储层分支写入
 - [x] 任务 3：让 `/api/answer` 与 `/api/answer/stream` 接收 `parent_message_id` 并保存分支消息
 - [x] 任务 4：在 Vue 工作台接入历史消息编辑重发 UI 和 API helper
-- [ ] 任务 5：同步 API、数据库、功能文档和前端工程文档
+- [x] 任务 5：同步 API、数据库、功能文档和前端工程文档
 - [ ] 任务 6：运行回归验证并关闭 B-128
 
 ## 4. 影响范围
@@ -81,10 +81,10 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 历史消息编辑重发的用户行为、边界和非目标 | `docs/features/chat-branching.md` | [ ] |
-| `parent_message_id` / `branch_index` 响应字段和问答请求参数 | `docs/design/api-spec.md` | [ ] |
-| `chat_messages` 新增字段、默认值和迁移方式 | `docs/design/database-design.md` | [ ] |
-| Vue 工作台新增编辑重发入口 | `docs/features/frontend-engineering.md` | [ ] |
+| 历史消息编辑重发的用户行为、边界和非目标 | `docs/features/chat-branching.md` | [x] |
+| `parent_message_id` / `branch_index` 响应字段和问答请求参数 | `docs/design/api-spec.md` | [x] |
+| `chat_messages` 新增字段、默认值和迁移方式 | `docs/design/database-design.md` | [x] |
+| Vue 工作台新增编辑重发入口 | `docs/features/frontend-engineering.md` | [x] |
 | B-128 完成状态 | `docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
@@ -97,12 +97,13 @@
 - 2026-06-28：任务 4 需要修改 `frontend/src/components/ChatThread.vue`，但该文件当前为未跟踪的 B-142 工作区文件；直接提交会把整份 B-142 组件并入 B-128，违反“不要吸收无关改动”。任务暂停，等待 B-142 前端文件先提交/合并，或用户明确允许 B-128 吸收这些前端文件。
 - 2026-06-28：用户选择方案 1，已先提交 B-142 前端会话迁移 `953bba6`，`ChatThread.vue` 等文件已纳入版本控制；恢复任务 4。
 - 2026-06-28：任务 4 完成 Vue 编辑重发入口。`tests/test_webapp/test_frontend_vue_app.py -q` 通过 72 项；`npm run build` 在实现后通过。
+- 2026-06-28：任务 5 完成 API、数据库、功能和前端工程文档同步。`tests/test_webapp/test_docs_contract.py tests/test_webapp/test_frontend_vue_app.py -q` 通过 94 项。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 22:05
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — feat: 接入对话编辑重发前端入口
-- **代码状态**：分支 `fix/B-128-chat-branch-edit-resend`；B-128 后端和前端交互已实现；文档同步与关闭流程待做
-- **下一步**：任务 5：同步 API、数据库、功能文档和前端工程文档
-- **续任务须知**：任务 5 需同步 `docs/design/api-spec.md`、`docs/design/database-design.md`、`docs/features/chat-branching.md`、`docs/features/frontend-engineering.md`，并谨慎处理 `docs/BACKLOG.md` 当前仍有未提交重排。
+- **最后更新**：2026-06-28 22:15
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — docs: 同步对话分支接口与前端说明
+- **代码状态**：分支 `fix/B-128-chat-branch-edit-resend`；B-128 后端、前端和正式文档已同步；关闭流程待做
+- **下一步**：任务 6：运行回归验证并关闭 B-128
+- **续任务须知**：任务 6 需要全量 Web MVP 回归、`npm run build`，然后处理 BACKLOG B-128 done 和 plan 删除。`docs/BACKLOG.md` 当前仍有未提交重排，需避免吸收无关改动或明确说明。
