@@ -5,6 +5,7 @@ from typing import Any
 from webapp.api_support import query_value
 from webapp.ingestion import import_directory, preview_import_directory
 from webapp.models import ApiResponse, Document, ImportResult
+from webapp.notion_obsidian_import import import_notion_zip, import_obsidian_vault
 from webapp.source_import import import_plain_text_note, import_url_excerpt
 from webapp.storage import KnowledgeStore
 from webapp.upload_import import create_browser_upload_project, import_uploaded_files
@@ -63,6 +64,39 @@ def handle_imports_route(
                 "documents": documents,
             },
         )
+
+    if method == "POST" and path == "/api/import/notion-zip":
+        project_id = str(payload.get("project_id", ""))
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            result = import_notion_zip(
+                store,
+                project_id,
+                payload.get("filename", ""),
+                payload.get("content_base64", ""),
+            )
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        batch = _record_import_batch(store, project_id, "notion_zip", result)
+        documents = [doc.to_dict() for doc in store.list_documents(project_id)]
+        return ApiResponse(200, {"result": result.to_dict(), "batch": batch.to_dict(), "documents": documents})
+
+    if method == "POST" and path == "/api/import/obsidian-vault":
+        project_id = str(payload.get("project_id", ""))
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            result = import_obsidian_vault(
+                store,
+                project_id,
+                payload.get("vault_path", ""),
+            )
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        batch = _record_import_batch(store, project_id, "obsidian_vault", result)
+        documents = [doc.to_dict() for doc in store.list_documents(project_id)]
+        return ApiResponse(200, {"result": result.to_dict(), "batch": batch.to_dict(), "documents": documents})
 
     if method == "POST" and path == "/api/import/note":
         project_id = str(payload.get("project_id", ""))
