@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from webapp.api import answer_stream_events, dispatch
 from webapp.auth import AuthSettings, issue_jwt, load_auth_settings, validate_api_key, validate_jwt
 from webapp.config import DEFAULT_HOST, DEFAULT_PORT, default_db_path
+from webapp.routes.ollama import ollama_pull_events, validate_ollama_pull_payload
 from webapp.storage import KnowledgeStore
 
 
@@ -45,6 +46,18 @@ def create_app(
     async def answer_stream(request: Request) -> StreamingResponse:
         return StreamingResponse(
             _answer_stream_bytes(knowledge_store, _raw_path(request)),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        )
+
+    @app.post("/api/ollama/pull", response_model=None)
+    async def ollama_pull(request: Request) -> JSONResponse | StreamingResponse:
+        payload = await _json_payload(request)
+        error = validate_ollama_pull_payload(payload)
+        if error:
+            return JSONResponse(status_code=400, content={"error": error})
+        return StreamingResponse(
+            _ollama_pull_stream(str(payload.get("model", "")).strip()),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
         )
@@ -160,6 +173,14 @@ def _raw_path(request: Request) -> str:
 def _answer_stream_bytes(store: KnowledgeStore, raw_path: str) -> Iterable[bytes]:
     try:
         for event in answer_stream_events(store, raw_path):
+            yield _format_sse_event(event)
+    except (BrokenPipeError, ConnectionResetError):
+        return
+
+
+def _ollama_pull_stream(model: str) -> Iterable[bytes]:
+    try:
+        for event in ollama_pull_events(model):
             yield _format_sse_event(event)
     except (BrokenPipeError, ConnectionResetError):
         return

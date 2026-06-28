@@ -33,6 +33,10 @@ class OllamaLLM(BaseLLM):
     def model(self) -> str:
         return self._model
 
+    @property
+    def host(self) -> str:
+        return self._host
+
     def generate(
         self,
         prompt: str,
@@ -96,7 +100,7 @@ class OllamaLLM(BaseLLM):
 
     def is_available(self) -> bool:
         try:
-            self._post_json("/api/tags", None, method="GET")
+            self.get_tags()
             return True
         except Exception as exc:
             print(f"WARNING: Ollama is not available at {self._host}: {exc}", file=sys.stderr)
@@ -104,11 +108,31 @@ class OllamaLLM(BaseLLM):
 
     def list_models(self) -> list[str]:
         try:
-            data = self._post_json("/api/tags", None, method="GET")
+            data = self.get_tags()
         except Exception:
             return []
         models = data.get("models", [])
         return [str(item.get("name", "")) for item in models if item.get("name")]
+
+    def get_tags(self) -> dict:
+        return self._post_json("/api/tags", None, method="GET")
+
+    def pull_model(self, model: str) -> Iterator[dict]:
+        request = self._request("/api/pull", {"model": model, "stream": True})
+        try:
+            with self._opener(request, timeout=self._timeout) as response:
+                for raw_line in response:
+                    line = raw_line.decode("utf-8").strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if isinstance(data, dict):
+                        yield data
+        except URLError as exc:
+            raise RuntimeError(str(exc.reason)) from exc
 
     def _chat_payload(
         self,

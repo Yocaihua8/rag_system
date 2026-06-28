@@ -11,6 +11,7 @@ from webapp.routes.documents import handle_documents_route
 from webapp.routes.export import handle_export_route
 from webapp.routes.health import handle_health_route
 from webapp.routes.imports import handle_imports_route
+from webapp.routes.ollama import handle_ollama_route
 from webapp.routes.projects import handle_projects_route
 from webapp.routes.search import handle_search_route
 from webapp.routes.settings import handle_settings_route
@@ -27,6 +28,10 @@ def dispatch_to_routes(
     health_response = handle_health_route(method, path)
     if health_response is not None:
         return health_response
+
+    ollama_response = handle_ollama_route(method, path, query, payload)
+    if ollama_response is not None:
+        return ollama_response
 
     projects_response = handle_projects_route(store, method, path, query, payload)
     if projects_response is not None:

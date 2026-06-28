@@ -24,7 +24,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 任务 1：写 B-148 后端红灯测试，覆盖 `GET /api/ollama/status`、`POST /api/ollama/pull` SSE 和无效模型拒绝
-- [ ] 任务 2：实现后端 Ollama 状态与拉取流，新增最小白名单推荐模型，不修改数据库 schema
+- [x] 任务 2：实现后端 Ollama 状态与拉取流，新增最小白名单推荐模型，不修改数据库 schema
 - [ ] 任务 3：写前端 API/helper 红灯测试并新增 `frontend/src/api/ollama.js`
 - [ ] 任务 4：接入 First-Run Wizard 前端入口，展示 Ollama 状态、模型拉取进度和创建知识库引导
 - [ ] 任务 5：同步 API、功能、setup/testing 文档和 BACKLOG 状态
@@ -88,12 +88,13 @@
 
 - 2026-06-28：创建 plan。当前工作区存在多处前端未提交改动，B-148 前端任务必须逐文件读取后再编辑；后端任务先行以降低冲突。
 - 2026-06-28：任务 1 红灯测试已运行：`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_ollama_wizard.py -q`，结果 4 failed；失败点符合预期，均为 `/api/ollama/status`、`/api/ollama/pull` 尚未实现而返回 404。
+- 2026-06-28：任务 2 后端实现已完成；`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_ollama_wizard.py -q` 通过 4 项，`.venv\Scripts\python.exe -m pytest tests\test_backend\test_ollama_llm.py -q` 通过 5 项。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 15:00
+- **最后更新**：2026-06-28 15:06
 - **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：N/A — 本快照将在任务 1 提交后更新
+- **最新 commit**：b28d01b
 - **代码状态**：`main` 分支；工作区已有与 B-148 无关或待确认的未提交改动
 - **下一步**：任务 2：实现后端 Ollama 状态与拉取流，新增最小白名单推荐模型，不修改数据库 schema
 - **续任务须知**：不要修改数据库 schema；不要扩大 Agent 工具权限；前端文件当前较脏，先从后端可测接口开始
