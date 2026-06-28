@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">设置</p>
         <h2>设置</h2>
-        <p>B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设；Workbench SSE/会话后续迁移。</p>
+        <p>B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设；B-142 已接入 Workbench SSE 和会话历史。</p>
       </div>
       <button type="button" :disabled="llmSettingsLoading || modelProfilesLoading || promptPresetsLoading" @click="$emit('load-settings')">
         {{ llmSettingsLoading || modelProfilesLoading || promptPresetsLoading ? "刷新中..." : "刷新设置" }}

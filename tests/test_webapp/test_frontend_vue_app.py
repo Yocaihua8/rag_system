@@ -65,8 +65,10 @@ def test_vue_layout_components_define_four_primary_views():
     assert "AppShell" in app_vue
     assert "currentViewComponent" in app_vue
     assert "computed" in app_vue
-    assert "B-141 已按薄片迁移" in shell_vue
+    assert "B-142 Vue Workbench" in shell_vue
+    assert "流式问答、会话历史、消息管理" in shell_vue
     assert "完整业务流程仍由 legacy 静态前端承载" not in shell_vue
+    assert "SSE 和会话后续迁移" not in shell_vue
 
 
 def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
@@ -80,11 +82,11 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
     assert "项目问答" in workbench_vue
-    assert "B-141D 已迁移非流式问答入口" in workbench_vue
-    assert "B-141V 已迁移检索调试" in workbench_vue
-    assert "B-141W 已迁移 Agent 只读工具" in workbench_vue
-    assert "B-141X 已迁移工具建议与来源上下文" in workbench_vue
-    assert "SSE 和会话后续迁移" in workbench_vue
+    assert "B-142 已接入流式问答、取消、会话历史和消息管理" in workbench_vue
+    assert "检索调试" in workbench_vue
+    assert "Agent 只读工具" in workbench_vue
+    assert "工具来源上下文" in workbench_vue
+    assert "SSE 和会话后续迁移" not in workbench_vue
 
     library_vue = _read("frontend/src/views/LibraryView.vue")
     assert "资料库" in library_vue
@@ -287,6 +289,39 @@ def test_vue_answer_api_helper_uses_existing_non_streaming_answer_contract():
     assert 'return apiPost("/api/answer", payload)' in answer_js
 
 
+def test_vue_answer_api_helper_supports_streaming_answer_and_chat_contracts():
+    answer_js = _read("frontend/src/api/answer.js")
+
+    for marker in [
+        "export function askQuestionStream({ projectId, question, sessionId = \"\", toolRunId = \"\", handlers = {} })",
+        "new EventSource(`/api/answer/stream?${params.toString()}`)",
+        "source.addEventListener(\"token\"",
+        "source.addEventListener(\"done\"",
+        "source.addEventListener(\"answer_error\"",
+        "source.onerror",
+        "source.close()",
+        "new DOMException(\"已取消本次提问\", \"AbortError\")",
+        "handlers.onToken?.(answer, text)",
+        "params.set(\"session_id\", sessionId)",
+        "params.set(\"tool_run_id\", toolRunId)",
+        "export async function listChatSessions(projectId)",
+        "apiGet(`/api/chat/sessions?project_id=${encodeURIComponent(projectId)}`)",
+        "export async function createChatSession({ projectId, title = \"\" })",
+        'apiPost("/api/chat/sessions"',
+        "export async function renameChatSession({ sessionId, title })",
+        'apiPost("/api/chat/sessions/rename"',
+        "export async function deleteChatSession(sessionId)",
+        'apiPost("/api/chat/sessions/delete"',
+        "export async function listChatMessages({ projectId, sessionId = \"\" })",
+        "apiGet(`/api/chat/messages?${params.toString()}`)",
+        "export async function deleteChatMessage(messageId)",
+        'apiPost("/api/chat/messages/delete", { message_id: messageId })',
+        "export async function clearChatMessages(projectId)",
+        'apiPost("/api/chat/messages/clear", { project_id: projectId })',
+    ]:
+        assert marker in answer_js
+
+
 def test_vue_answer_api_helper_uses_existing_feedback_contract():
     answer_js = _read("frontend/src/api/answer.js")
 
@@ -385,6 +420,82 @@ def test_vue_app_handles_non_streaming_workbench_question_state():
         "answerStatus",
     ]:
         assert f"{state_field}:" in state_js
+
+
+def test_vue_app_wires_chat_sessions_messages_streaming_and_cancel_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+
+    for imported_name in [
+        "askQuestionStream",
+        "listChatSessions",
+        "createChatSession",
+        "renameChatSession",
+        "deleteChatSession",
+        "listChatMessages",
+        "deleteChatMessage",
+        "clearChatMessages",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":chat-messages=\"appState.chatMessages\"",
+        ":chat-sessions=\"appState.chatSessions\"",
+        ":selected-chat-session-id=\"appState.selectedChatSessionId\"",
+        ":chat-sessions-loading=\"appState.chatSessionsLoading\"",
+        ":chat-messages-loading=\"appState.chatMessagesLoading\"",
+        ":answer-streaming-text=\"appState.answerStreamingText\"",
+        "@select-chat-session=\"handleSelectChatSession\"",
+        "@create-chat-session=\"handleCreateChatSession\"",
+        "@rename-chat-session=\"handleRenameChatSession\"",
+        "@delete-chat-session=\"handleDeleteChatSession\"",
+        "@delete-chat-message=\"handleDeleteChatMessage\"",
+        "@clear-chat-messages=\"handleClearChatMessages\"",
+        "@cancel-answer=\"handleCancelAnswer\"",
+        "loadChatSessions",
+        "loadChatMessages",
+        "handleSelectChatSession",
+        "handleCreateChatSession",
+        "handleRenameChatSession",
+        "handleDeleteChatSession",
+        "handleDeleteChatMessage",
+        "handleClearChatMessages",
+        "handleCancelAnswer",
+        "appState.currentAnswerAbortController?.abort()",
+        "askQuestionStream({",
+        "sessionId: appState.selectedChatSessionId",
+        "handlers: {",
+        "onToken(fullText)",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "chatMessages",
+        "chatSessions",
+        "selectedChatSessionId",
+        "chatMessagesLoading",
+        "chatMessagesError",
+        "chatSessionsLoading",
+        "chatSessionsError",
+        "chatSessionMutationError",
+        "chatSessionMutationStatus",
+        "answerStreamingText",
+        "answerCancelStatus",
+        "currentAnswerAbortController",
+    ]:
+        assert f"{state_field}:" in state_js
+
+    for marker in [
+        "chatMessages",
+        "chatSessions",
+        "selectedChatSessionId",
+        "ChatSessionPanel",
+        "ChatThread",
+        "QuestionComposer",
+        "@cancel-answer",
+    ]:
+        assert marker in workbench_vue
 
 
 def test_vue_app_handles_answer_feedback_state_and_events():

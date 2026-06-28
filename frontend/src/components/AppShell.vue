@@ -3,7 +3,7 @@
     <aside class="workspace-left">
       <header class="brand-block">
         <h1>知识岛</h1>
-        <p>Vue 前端迁移工作台</p>
+        <p>本地知识工作台</p>
       </header>
 
       <nav class="main-nav" aria-label="主导航">
@@ -49,9 +49,9 @@
     <section class="workspace-main">
       <header class="topbar">
         <div>
-          <p class="eyebrow">B-141 Vue Migration</p>
+          <p class="eyebrow">B-142 Vue Workbench</p>
           <h2>{{ activeTitle }}</h2>
-        <p>B-141 已按薄片迁移项目问答、检索调试、项目级检索默认值、检索复盘、Agent 只读工具、工具来源上下文、资料库、设置和评估基础闭环；SSE 和会话后续迁移。</p>
+        <p>Vue 工作台已接入流式问答、会话历史、消息管理、检索调试、检索复盘、Agent 只读工具和工具来源上下文；legacy 静态前端仍作为 fallback 保留到 B-143。</p>
         </div>
         <div class="status-pills" aria-label="服务状态">
           <span>FastAPI</span>

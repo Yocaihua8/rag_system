@@ -4,7 +4,7 @@
       <div>
         <p class="section-kicker">工作台</p>
         <h2>项目问答</h2>
-        <p>B-141D 已迁移非流式问答入口，B-141U 已迁移回答反馈，B-141V 已迁移检索调试，B-141W 已迁移 Agent 只读工具，B-141X 已迁移工具建议与来源上下文，B-141Y 已迁移项目级检索默认值，B-141Z 已迁移检索复盘；SSE 和会话后续迁移。</p>
+        <p>B-142 已接入流式问答、取消、会话历史和消息管理；右侧保留检索调试、检索复盘、Agent 只读工具和工具来源上下文。</p>
       </div>
     </header>
 
@@ -28,13 +28,38 @@
     />
 
     <div class="workbench-grid">
-      <QuestionPanel
+      <ChatSessionPanel
+        :selected-project-id="selectedProjectId"
+        :chat-sessions="chatSessions"
+        :selected-chat-session-id="selectedChatSessionId"
+        :loading="chatSessionsLoading"
+        :error="chatSessionsError"
+        :mutation-status="chatSessionMutationStatus"
+        :mutation-error="chatSessionMutationError"
+        @select-chat-session="(sessionId) => $emit('select-chat-session', sessionId)"
+        @create-chat-session="(title) => $emit('create-chat-session', title)"
+        @rename-chat-session="(payload) => $emit('rename-chat-session', payload)"
+        @delete-chat-session="(sessionId) => $emit('delete-chat-session', sessionId)"
+      />
+
+      <div class="workbench-main-column">
+      <QuestionComposer
         :selected-project-id="selectedProjectId"
         :loading="answerLoading"
         :error="answerError"
         :status-message="answerStatus || statusMessage"
+        :answer-cancel-status="answerCancelStatus"
         @submit-question="(question) => $emit('submit-question', question)"
+        @cancel-answer="$emit('cancel-answer')"
         @check-health="$emit('check-health')"
+      />
+      <ChatThread
+        :chat-messages="chatMessages"
+        :loading="chatMessagesLoading"
+        :error="chatMessagesError"
+        :answer-streaming-text="answerStreamingText"
+        @delete-chat-message="(messageId) => $emit('delete-chat-message', messageId)"
+        @clear-chat-messages="$emit('clear-chat-messages')"
       />
       <AnswerPanel
         :answer-result="answerResult"
@@ -53,6 +78,9 @@
         @use-tool-result-context="(runId) => $emit('use-tool-result-context', runId)"
         @clear-tool-context="$emit('clear-tool-context')"
       />
+      </div>
+
+      <div class="workbench-context-rail">
       <SearchDebugPanel
         :selected-project-id="selectedProjectId"
         :search-debug-result="searchDebugResult"
@@ -100,6 +128,7 @@
         @load-agent-tool-runs="$emit('load-agent-tool-runs')"
         @select-agent-tool-run="(runId) => $emit('select-agent-tool-run', runId)"
       />
+      </div>
     </div>
   </section>
 </template>
@@ -107,7 +136,10 @@
 <script setup>
 import AnswerPanel from "../components/AnswerPanel.vue";
 import AgentToolsPanel from "../components/AgentToolsPanel.vue";
+import ChatSessionPanel from "../components/ChatSessionPanel.vue";
+import ChatThread from "../components/ChatThread.vue";
 import FirstRunWizard from "../components/FirstRunWizard.vue";
+import QuestionComposer from "../components/QuestionComposer.vue";
 import QuestionPanel from "../components/QuestionPanel.vue";
 import SearchDebugPanel from "../components/SearchDebugPanel.vue";
 
@@ -165,6 +197,50 @@ defineProps({
     default: "",
   },
   ollamaPullError: {
+    type: String,
+    default: "",
+  },
+  answerStreamingText: {
+    type: String,
+    default: "",
+  },
+  answerCancelStatus: {
+    type: String,
+    default: "",
+  },
+  chatMessages: {
+    type: Array,
+    default: () => [],
+  },
+  chatSessions: {
+    type: Array,
+    default: () => [],
+  },
+  selectedChatSessionId: {
+    type: String,
+    default: "",
+  },
+  chatMessagesLoading: {
+    type: Boolean,
+    default: false,
+  },
+  chatMessagesError: {
+    type: String,
+    default: "",
+  },
+  chatSessionsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  chatSessionsError: {
+    type: String,
+    default: "",
+  },
+  chatSessionMutationError: {
+    type: String,
+    default: "",
+  },
+  chatSessionMutationStatus: {
     type: String,
     default: "",
   },
@@ -326,5 +402,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "create-project", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "cancel-answer", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "delete-chat-message", "clear-chat-messages", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

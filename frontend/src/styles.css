@@ -566,6 +566,36 @@ button:focus-visible {
   color: #b42318;
 }
 
+.workbench-grid {
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(190px, 0.7fr) minmax(0, 1.4fr) minmax(280px, 0.9fr);
+}
+
+.question-panel,
+.question-composer,
+.chat-session-panel,
+.chat-thread,
+.answer-panel,
+.search-debug-panel,
+.agent-tools-panel {
+  border-top: 1px solid #d9e2ec;
+  display: grid;
+  gap: 18px;
+  padding-top: 24px;
+}
+
+.question-panel h2,
+.question-composer h2,
+.chat-session-panel h2,
+.chat-thread h2,
+.answer-panel h2,
+.search-debug-panel h2,
+.agent-tools-panel h2 {
+  font-size: 20px;
+}
+
 .first-run-wizard {
   border-top: 1px solid #d9e2ec;
   display: grid;
@@ -630,43 +660,72 @@ button:focus-visible {
   width: 100%;
 }
 
-.workbench-grid {
+.workbench-main-column,
+.workbench-context-rail {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-}
-
-.question-panel,
-.answer-panel,
-.search-debug-panel,
-.agent-tools-panel {
-  border-top: 1px solid #d9e2ec;
-  display: grid;
-  gap: 18px;
-  padding-top: 24px;
-}
-
-.question-panel h2,
-.answer-panel h2,
-.search-debug-panel h2,
-.agent-tools-panel h2 {
-  font-size: 20px;
 }
 
 .workbench-grid .search-debug-panel,
 .workbench-grid .agent-tools-panel {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
-.question-form {
+.question-form,
+.chat-session-form {
   display: grid;
   gap: 12px;
 }
 
-.question-form label {
+.question-form label,
+.chat-session-form label {
   color: #52616f;
   display: grid;
   gap: 8px;
+}
+
+.chat-session-list,
+.chat-message-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chat-session-list li,
+.chat-message-list li,
+.chat-streaming-draft {
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.chat-session-select {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.chat-session-select.active {
+  background: #0b5f56;
+}
+
+.chat-session-actions,
+.chat-message-header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chat-session-actions input {
+  flex: 1 1 140px;
+}
+
+.chat-message-header {
+  justify-content: space-between;
 }
 
 .answer-meta {
