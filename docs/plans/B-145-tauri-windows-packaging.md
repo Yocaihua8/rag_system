@@ -1,6 +1,6 @@
 # B-145 Tauri Windows Packaging Plan
 
-> 状态：Active
+> 状态：Interrupted
 > 创建时间：2026-06-28
 > 创建方：Codex
 > 关联 BACKLOG：B-145
@@ -90,12 +90,13 @@
 - 2026-06-28：任务 3 新增 Windows sidecar 脚本、Tauri npm scripts、`@tauri-apps/cli` 和 PyInstaller 开发依赖；复跑 B-145 测试结果 4 passed / 1 failed，剩余失败为正式文档入口。
 - 2026-06-28：任务 4 验证结果：`npm run build` 通过；首次 `npx tauri --version` 因 npm optional dependency 未安装 `@tauri-apps/cli-win32-x64-msvc` 失败，执行 `npm install --include=optional` 后 `npx tauri --version` 通过（2.11.3）；`npx tauri info` 可读取配置并显示 WebView2/MSVC 可用、`frontendDist` 正确，阻塞项为本机未安装 `rustc`/`cargo`/`rustup`；`cargo check --manifest-path src-tauri\Cargo.toml` 因 `cargo` 不存在无法运行。
 - 2026-06-28：任务 5 同步 `docs/features/desktop-packaging.md`、`docs/guides/setup.md`、`docs/guides/testing.md`、`docs/features/frontend-engineering.md`，并在未跟踪的 `docs/design/new-architecture-design.md §23` 工作树中对齐 Windows 脚本和 `webapp/static_dist/`；该设计文档尚未纳入本次暂存，避免把非本任务创建的整份未跟踪大文档混入提交。
+- 2026-06-28：任务 6 验证结果：`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_tauri_packaging.py -q` 为 5 passed；`.venv\Scripts\python.exe -m pytest tests\test_webapp -q` 为 289 passed；`npm run sidecar:build` 通过并生成 `src-tauri/binaries/knowledge-island-backend-x86_64-pc-windows-msvc.exe`；`npm run tauri:build:windows` 在 sidecar 构建后失败，原因是 `cargo metadata` 找不到 `cargo`。因此 B-145 代码侧已完成到可验证状态，但 installer 生成被本机 Rust 工具链缺失阻塞，plan 保留为 Interrupted，BACKLOG 标为 blocked。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 14:26
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`4f8f5fd` — docs: 记录 B-145 Tauri 验证结果
-- **代码状态**：`main` 分支；工作区仍存在与 B-145 无关的未提交改动；B-145 可用验证已完成，Rust 编译/打包需先安装 Rust 工具链
-- **下一步**：任务 5：同步正式文档，覆盖 setup/testing/frontend/new architecture 中的桌面打包入口和限制
-- **续任务须知**：不要修改后端 API、数据库 schema 或 `frontend/src/`；B-145 只覆盖 Windows 打包验证，不包含 B-148/B-149/B-150
+- **最后更新**：2026-06-28 14:38
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`807b6bb` — docs: 补充 Tauri Windows 打包说明
+- **代码状态**：`main` 分支；工作区仍存在与 B-145 无关的未提交改动；B-145 代码、脚本、测试和已跟踪文档已提交，最终 installer 生成缺 Rust/Cargo
+- **下一步**：安装 Rust 工具链后重试 `cargo check --manifest-path src-tauri\Cargo.toml` 和 `npm run tauri:build:windows`
+- **续任务须知**：不要修改后端 API、数据库 schema 或 `frontend/src/`；B-145 只覆盖 Windows 打包验证，不包含 B-148/B-149/B-150。恢复后若 Tauri installer 生成成功，再勾选任务 6、将 BACKLOG B-145 改为 `done`、删除本 plan 并提交。
