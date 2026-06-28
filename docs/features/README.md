@@ -45,3 +45,4 @@
 - `github-repo-import.md`：B-133 GitHub 仓库整体导入
 - `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
+- `qdrant-vector-store.md`：B-134 Qdrant 本地向量存储替换 SQLite 全扫描
