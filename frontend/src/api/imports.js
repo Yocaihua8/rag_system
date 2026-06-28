@@ -115,6 +115,20 @@ export async function importObsidianVault({ projectId, vaultPath }) {
   });
 }
 
+export async function importGithubRepo({ repoUrl, branch = "", projectName = "" }) {
+  const cleanRepoUrl = String(repoUrl || "").trim();
+  const cleanBranch = String(branch || "").trim();
+  const cleanProjectName = String(projectName || "").trim();
+  if (!cleanRepoUrl) {
+    throw new Error("请输入 GitHub 仓库地址");
+  }
+  return apiPost("/api/import/github-repo", {
+    repo_url: cleanRepoUrl,
+    branch: cleanBranch,
+    project_name: cleanProjectName,
+  });
+}
+
 export async function listImportBatches(projectId) {
   if (!projectId) {
     return [];

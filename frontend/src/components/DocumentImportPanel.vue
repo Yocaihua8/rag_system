@@ -69,6 +69,33 @@
         </div>
       </section>
 
+      <form class="import-form" @submit.prevent="submitGithubRepo">
+        <p class="section-kicker">GitHub 仓库</p>
+        <h3>导入 GitHub 仓库</h3>
+        <p class="muted-line">通过本机 git clone 拉取仓库，并创建新的项目空间。</p>
+        <label>
+          仓库地址
+          <input
+            v-model.trim="githubRepoForm.repoUrl"
+            :disabled="importSubmitting"
+            placeholder="https://github.com/owner/repo.git"
+          />
+        </label>
+        <label>
+          分支名
+          <input v-model.trim="githubRepoForm.branch" :disabled="importSubmitting" placeholder="默认分支" />
+        </label>
+        <label>
+          项目名称
+          <input v-model.trim="githubRepoForm.projectName" :disabled="importSubmitting" placeholder="默认使用仓库名" />
+        </label>
+        <div class="actions">
+          <button type="submit" :disabled="importSubmitting">
+            {{ importSubmitting ? "导入中..." : "导入 GitHub 仓库" }}
+          </button>
+        </div>
+      </form>
+
       <section class="import-form">
         <p class="section-kicker">Notion 导出</p>
         <h3>导入 Notion zip</h3>
@@ -194,6 +221,7 @@ const emit = defineEmits([
   "import-folder",
   "import-notion-zip",
   "import-obsidian-vault",
+  "import-github-repo",
   "sync-directory",
   "preview-import",
 ]);
@@ -202,6 +230,12 @@ const fileInput = ref(null);
 const folderInput = ref(null);
 const notionZipInput = ref(null);
 const obsidianVaultPath = ref("");
+
+const githubRepoForm = reactive({
+  repoUrl: "",
+  branch: "",
+  projectName: "",
+});
 
 const noteForm = reactive({
   title: "",
@@ -260,6 +294,14 @@ function submitNotionZip(event) {
 function submitObsidianVault() {
   emit("import-obsidian-vault", {
     vaultPath: obsidianVaultPath.value,
+  });
+}
+
+function submitGithubRepo() {
+  emit("import-github-repo", {
+    repoUrl: githubRepoForm.repoUrl,
+    branch: githubRepoForm.branch,
+    projectName: githubRepoForm.projectName,
   });
 }
 </script>

@@ -197,6 +197,7 @@
       @import-folder="handleImportFolder"
       @import-notion-zip="handleImportNotionZip"
       @import-obsidian-vault="handleImportObsidianVault"
+      @import-github-repo="handleImportGithubRepo"
       @sync-directory="handleSyncDirectory"
       @preview-import="handlePreviewImport"
       @refresh-batches="loadImportBatches"
@@ -257,6 +258,7 @@ import {
   getImportBatchDetail,
   importBrowserFolder,
   importBrowserFiles,
+  importGithubRepo,
   importNotionZip,
   importObsidianVault,
   importPlainTextNote,
@@ -1028,6 +1030,31 @@ async function handleImportObsidianVault(payload) {
     projectId: appState.selectedProjectId,
     vaultPath: payload.vaultPath,
   }));
+}
+
+async function handleImportGithubRepo(payload) {
+  appState.importSubmitting = true;
+  appState.importError = "";
+  appState.importStatus = "";
+  clearImportPreview();
+  try {
+    const data = await importGithubRepo({
+      repoUrl: payload.repoUrl,
+      branch: payload.branch,
+      projectName: payload.projectName,
+    });
+    if (data.project?.id) {
+      selectProject(data.project.id);
+    }
+    appState.documents = data.documents || [];
+    appState.importStatus = formatImportResult("GitHub 仓库导入完成", data.result);
+    await loadProjectSpaces();
+    await loadImportBatches();
+  } catch (error) {
+    appState.importError = error.message || "GitHub 仓库导入失败";
+  } finally {
+    appState.importSubmitting = false;
+  }
 }
 
 async function handleImportFiles(files) {

@@ -42,6 +42,7 @@
         @import-folder="(files) => $emit('import-folder', files)"
         @import-notion-zip="(file) => $emit('import-notion-zip', file)"
         @import-obsidian-vault="(payload) => $emit('import-obsidian-vault', payload)"
+        @import-github-repo="(payload) => $emit('import-github-repo', payload)"
         @sync-directory="$emit('sync-directory')"
         @preview-import="$emit('preview-import')"
       />
@@ -335,6 +336,7 @@ defineEmits([
   "import-folder",
   "import-notion-zip",
   "import-obsidian-vault",
+  "import-github-repo",
   "sync-directory",
   "preview-import",
   "refresh-batches",
