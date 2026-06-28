@@ -25,7 +25,7 @@
 
 - [x] 任务 1：写 B-128 红灯测试
 - [x] 任务 2：扩展 `ChatMessage` 模型、SQLite 字段迁移和存储层分支写入
-- [ ] 任务 3：让 `/api/answer` 与 `/api/answer/stream` 接收 `parent_message_id` 并保存分支消息
+- [x] 任务 3：让 `/api/answer` 与 `/api/answer/stream` 接收 `parent_message_id` 并保存分支消息
 - [ ] 任务 4：在 Vue 工作台接入历史消息编辑重发 UI 和 API helper
 - [ ] 任务 5：同步 API、数据库、功能文档和前端工程文档
 - [ ] 任务 6：运行回归验证并关闭 B-128
@@ -93,12 +93,13 @@
 - 2026-06-28：工作区存在未提交的 BACKLOG 重排和 B-142 前端改动，后续提交必须避免整文件吸收。
 - 2026-06-28：任务 1 红灯测试已添加。目标命令运行结果为 4 failed，失败点分别是 `create_chat_message()` 不接受 `parent_message_id`、响应 `message` 缺少 `parent_message_id`、跨会话父消息未返回 `404 parent chat message not found`、SSE `done` 缺少分支字段。
 - 2026-06-28：任务 2 依据 `docs/design/new-architecture-design.md §5.5.3` 修改 `chat_messages` schema，新增 `parent_message_id` 与 `branch_index`；旧消息默认 `parent_message_id=""`、`branch_index=0`。
+- 2026-06-28：任务 3 将 `parent_message_id` 接入 `/api/answer` 与 `/api/answer/stream`，校验父消息同项目同会话。`tests/test_webapp/test_chat_history.py -q` 通过 15 项。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 21:25
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — feat: 增加聊天消息分支字段
-- **代码状态**：分支 `fix/B-128-chat-branch-edit-resend`；工作区已有未提交的非 B-128 改动；B-128 存储层已实现，API 仍未透传 `parent_message_id`
-- **下一步**：任务 3：让 `/api/answer` 与 `/api/answer/stream` 接收 `parent_message_id` 并保存分支消息
-- **续任务须知**：四个 B-128 红灯集合当前为 1 passed / 3 failed；任务 3 只应处理 API 校验、SSE query 透传和保存分支消息，不改前端。
+- **最后更新**：2026-06-28 21:35
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — feat: 接入问答分支父消息参数
+- **代码状态**：分支 `fix/B-128-chat-branch-edit-resend`；工作区已有未提交的非 B-128 改动；B-128 后端存储/API 已实现，前端尚未接入
+- **下一步**：任务 4：在 Vue 工作台接入历史消息编辑重发 UI 和 API helper
+- **续任务须知**：任务 4 会触碰当前已有 B-142 前端脏文件，必须只追加 B-128 事件、状态和 helper hunk，不回退既有聊天会话改动。

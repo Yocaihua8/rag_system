@@ -42,6 +42,7 @@ def answer_stream_events(
         "project_id": query_value(query, "project_id"),
         "question": query_value(query, "question"),
         "session_id": query_value(query, "session_id"),
+        "parent_message_id": query_value(query, "parent_message_id"),
         "tool_run_id": query_value(query, "tool_run_id"),
     }
     context, error = prepare_answer_context(store, payload, llm_client)

@@ -42,6 +42,9 @@ def prepare_answer_context(
     session_id = str(payload.get("session_id", "")).strip()
     if session_id and not _chat_session_belongs_to_project(store, session_id, project_id):
         return {}, ApiResponse(404, {"error": "chat session not found"})
+    parent_message_id = str(payload.get("parent_message_id", "")).strip()
+    if parent_message_id and not _parent_message_belongs_to_request(store, parent_message_id, project_id, session_id):
+        return {}, ApiResponse(404, {"error": "parent chat message not found"})
     retrieval_settings = project_retrieval_settings(store, project_id)
     hits = search_documents(
         store,
@@ -67,6 +70,7 @@ def prepare_answer_context(
         "project_id": project_id,
         "question": question,
         "session_id": session_id,
+        "parent_message_id": parent_message_id,
         "retrieval_settings": retrieval_settings,
         "useful_hits": useful_hits,
         "project": project,
@@ -93,6 +97,7 @@ def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answ
             warning=answer_result.warning,
             sources=sources,
             session_id=str(context["session_id"]),
+            parent_message_id=str(context["parent_message_id"]),
         )
     body = {
         "answer": answer_result.answer,
@@ -142,6 +147,16 @@ def _openai_compatible_chat_client_class():
 def _chat_session_belongs_to_project(store: KnowledgeStore, session_id: str, project_id: str) -> bool:
     session = store.get_chat_session(session_id)
     return bool(session and session.project_id == project_id)
+
+
+def _parent_message_belongs_to_request(
+    store: KnowledgeStore,
+    parent_message_id: str,
+    project_id: str,
+    session_id: str,
+) -> bool:
+    message = store.get_chat_message(parent_message_id)
+    return bool(message and message.project_id == project_id and message.session_id == session_id)
 
 
 def _answer_observability(
