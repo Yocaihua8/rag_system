@@ -31,7 +31,8 @@ B-137 为知识工作者提供两个本地优先导入入口：
 - 后端递归读取 vault 下 Markdown / 文本类文件。
 - 跳过 `.obsidian`、`.trash`、`.git`、`node_modules` 等系统或缓存目录。
 - 保留 vault 内相对路径，并统一加 `obsidian/` 前缀。
-- 文档 `source_path` 使用本地文件路径；目录同步删除清理只针对本次 Obsidian 导入集合，不删除 `note:`、`url:`、`notion-zip:` 等虚拟来源。
+- 文档 `source_path` 使用虚拟来源前缀 `obsidian-vault:`，并带上 vault 根目录和相对路径，避免后续目录同步误删。
+- 第一版 Obsidian 导入不会做删除清理；用户删除 vault 文件后再次导入，不会自动删除已入库记录。
 - 导入结果写入 `import_batches`，`source_type=obsidian_vault`。
 
 ## 3. 接口边界

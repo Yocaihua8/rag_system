@@ -25,7 +25,7 @@
 - [x] 任务 2：实现 Notion zip 与 Obsidian vault 后端导入服务和 API
 - [x] 任务 3：为 Vue 导入入口写红灯测试
 - [x] 任务 4：接入 Vue 资料库导入面板、API helper 和 App 刷新流程
-- [ ] 任务 5：同步接口与功能文档，运行回归验证
+- [x] 任务 5：同步接口与功能文档，运行回归验证
 - [ ] 任务 6：关闭 B-137，删除 plan
 
 ## 4. 影响范围
@@ -63,20 +63,20 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/notion-obsidian-sync.md`
-- [ ] 后端 API 测试覆盖成功导入、跳过不支持文件、缺失/非法参数
-- [ ] Vue 契约测试覆盖 API helper、导入面板入口和 App 事件接线
-- [ ] `tests/test_webapp` 相关测试通过
-- [ ] `npm run build` 通过
-- [ ] 文档已同步
+- [x] 功能行为符合 `docs/features/notion-obsidian-sync.md`
+- [x] 后端 API 测试覆盖成功导入、跳过不支持文件、缺失/非法参数
+- [x] Vue 契约测试覆盖 API helper、导入面板入口和 App 事件接线
+- [x] `tests/test_webapp` 相关测试通过
+- [x] `npm run build` 通过
+- [x] 文档已同步
 - [ ] BACKLOG 条目 B-137 状态已更新为 `done`
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| B-137 功能范围与非目标 | `docs/features/notion-obsidian-sync.md` | [ ] |
-| Notion zip / Obsidian vault API 契约 | `docs/design/api-spec.md` | [ ] |
+| B-137 功能范围与非目标 | `docs/features/notion-obsidian-sync.md` | [x] |
+| Notion zip / Obsidian vault API 契约 | `docs/design/api-spec.md` | [x] |
 | 功能文档索引 | `docs/features/README.md` | [x] |
 | BACKLOG 状态与完成说明 | `docs/BACKLOG.md` | [ ] |
 
@@ -84,12 +84,13 @@
 
 - 2026-06-28：创建 plan 时发现当前 worktree 缺少 `docs/design/new-architecture-design.md`；按现有已跟踪文档落地 B-137 契约，避免吸收主 checkout 未提交大文档。
 - 2026-06-28：任务 4 已接入 Vue 导入入口与 App 刷新流程；定向前端契约测试 3 条通过，完整 `test_frontend_vue_app.py` 75 条通过。
+- 2026-06-28：任务 5 已同步功能/API 文档；`npm run build` 通过，`tests/test_webapp` 全量 309 条通过。首次全量测试在构建前因缺少 `webapp/static_dist/` 失败，构建后通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 23:10
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`9a10d41` — test: 增加 B-137 Vue 导入入口红灯测试
-- **代码状态**：`fix/B-137-notion-obsidian-sync`；Vue 导入入口已接入，等待任务 5 文档同步与回归验证
-- **下一步**：任务 5：同步接口与功能文档，运行回归验证
-- **续任务须知**：任务 4 验证已运行：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py::test_vue_import_api_helper_uses_notion_and_obsidian_contracts tests\test_webapp\test_frontend_vue_app.py::test_vue_document_import_panel_renders_notion_and_obsidian_import_controls tests\test_webapp\test_frontend_vue_app.py::test_vue_app_handles_notion_and_obsidian_import_response_and_refreshes_library -q`（3 passed）和 `E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q`（75 passed）。
+- **最后更新**：2026-06-28 23:22
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`6b0bef2` — feat: 接入 Vue 本地导出导入入口
+- **代码状态**：`fix/B-137-notion-obsidian-sync`；文档已同步，验证已通过，等待关闭 BACKLOG 并删除 plan
+- **下一步**：任务 6：关闭 B-137，删除 plan
+- **续任务须知**：任务 5 验证已运行：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q`（85 passed）、`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q`（75 passed）、`npm run build`（passed）、`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp -q`（309 passed）。
