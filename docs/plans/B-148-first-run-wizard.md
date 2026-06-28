@@ -27,7 +27,7 @@
 - [x] 任务 2：实现后端 Ollama 状态与拉取流，新增最小白名单推荐模型，不修改数据库 schema
 - [x] 任务 3：写前端 API/helper 红灯测试并新增 `frontend/src/api/ollama.js`
 - [x] 任务 4：接入 First-Run Wizard 前端入口，展示 Ollama 状态、模型拉取进度和创建知识库引导
-- [ ] 任务 5：同步 API、功能、setup/testing 文档和 BACKLOG 状态
+- [x] 任务 5：同步 API、功能、setup/testing 文档和 BACKLOG 状态
 - [ ] 任务 6：运行 B-148 验证清单，关闭 BACKLOG 状态并删除本 plan
 
 ## 4. 影响范围
@@ -78,11 +78,11 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| First-Run Wizard 范围与流程 | `docs/features/first-run-wizard.md` | [ ] |
-| `GET /api/ollama/status` 与 `POST /api/ollama/pull` 契约 | `docs/design/api-spec.md` | [ ] |
-| 本地 Ollama 首次配置说明 | `docs/guides/setup.md` | [ ] |
-| B-148 测试命令 | `docs/guides/testing.md` | [ ] |
-| §23.6 实际接口与前端入口 | `docs/design/new-architecture-design.md` | [ ] |
+| First-Run Wizard 范围与流程 | `docs/features/first-run-wizard.md` | [x] |
+| `GET /api/ollama/status` 与 `POST /api/ollama/pull` 契约 | `docs/design/api-spec.md` | [x] |
+| 本地 Ollama 首次配置说明 | `docs/guides/setup.md` | [x] |
+| B-148 测试命令 | `docs/guides/testing.md` | [x] |
+| §23.6 实际接口与前端入口 | `docs/design/new-architecture-design.md` | [ ] 未提交：该文件当前为 122KB 未跟踪整文件，避免在 B-148 吸收非本任务内容 |
 
 ## 8. 执行记录
 
@@ -91,12 +91,13 @@
 - 2026-06-28：任务 2 后端实现已完成；`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_ollama_wizard.py -q` 通过 4 项，`.venv\Scripts\python.exe -m pytest tests\test_backend\test_ollama_llm.py -q` 通过 5 项。
 - 2026-06-28：任务 3 前端 helper 红灯测试已先失败于 `frontend/src/api/ollama.js` 缺失；新增 helper 后，`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_ollama_api.py tests\test_webapp\test_ollama_wizard.py -q` 通过 5 项。
 - 2026-06-28：任务 4 Wizard UI 红灯测试已先失败于组件和接入缺失；新增 `FirstRunWizard`、App 状态/事件和 Workbench 入口后，`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_first_run_wizard.py tests\test_webapp\test_frontend_ollama_api.py tests\test_webapp\test_ollama_wizard.py -q` 通过 8 项，`npm run build` 通过。
+- 2026-06-28：任务 5 已同步 `docs/features/first-run-wizard.md`、`docs/design/api-spec.md`、`docs/guides/setup.md`、`docs/guides/testing.md`；`docs/design/new-architecture-design.md` 当前为未跟踪整文件，未纳入本次提交以避免吸收非 B-148 内容。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 15:25
-- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：3874903
+- **最后更新**：2026-06-28 16:05
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：53a2a1a
 - **代码状态**：`main` 分支；工作区已有与 B-148 无关或待确认的未提交改动
-- **下一步**：任务 4：接入 First-Run Wizard 前端入口，展示 Ollama 状态、模型拉取进度和创建知识库引导
+- **下一步**：任务 5：同步 API、功能、setup/testing 文档和 BACKLOG 状态
 - **续任务须知**：不要修改数据库 schema；不要扩大 Agent 工具权限；前端文件当前较脏，先从后端可测接口开始

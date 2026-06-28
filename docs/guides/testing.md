@@ -15,6 +15,7 @@
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_auth.py tests/test_webapp/test_auth_middleware.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_build.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q
+.venv\Scripts\python.exe -m pytest tests/test_webapp/test_ollama_wizard.py tests/test_webapp/test_frontend_ollama_api.py tests/test_webapp/test_frontend_first_run_wizard.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
 npm run build
@@ -33,6 +34,7 @@ docker compose config
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置或 `webapp/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
 - 变更 `src-tauri/`、Tauri 配置、Windows sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备 Rust/Cargo 和 PyInstaller 环境时继续运行 `npm run tauri:build:windows`，否则记录缺失工具链原因。
+- 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
 - 变更 Vue API helper、项目空间 helper、问答 helper、检索调试/复盘 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈/检索调试/项目级检索默认值/检索复盘/Agent 工具/工具来源上下文组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
@@ -98,7 +100,7 @@ docker compose config
 - Web MVP 问答可通过 SSE / EventSource 流式渲染回答，完成后仍保存聊天记录、来源、质量提示和观察性元数据
 - Web MVP 深色模式跟随系统偏好，并可通过侧栏按钮手动切换和持久化
 - Web MVP 掌握评估入口、三类题型生成、逐题作答进度、服务端参考要点评分、四档状态输出、答题记录、待复测列表、题目/回答/结果持久化、回答反馈
-- Web MVP 首次使用引导可见
+- Web MVP 首次使用引导可检测 Ollama、拉取推荐模型并引导创建第一个知识库
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
