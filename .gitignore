@@ -36,8 +36,8 @@ cache/
 temp/
 tmp/
 uploads/
-vector_store/
-vectorstore/
+/vector_store/
+/vectorstore/
 
 # Python test artifacts
 .pytest_cache/
