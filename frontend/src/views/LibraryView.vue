@@ -40,6 +40,8 @@
         @import-url="(payload) => $emit('import-url', payload)"
         @import-files="(files) => $emit('import-files', files)"
         @import-folder="(files) => $emit('import-folder', files)"
+        @import-notion-zip="(file) => $emit('import-notion-zip', file)"
+        @import-obsidian-vault="(payload) => $emit('import-obsidian-vault', payload)"
         @sync-directory="$emit('sync-directory')"
         @preview-import="$emit('preview-import')"
       />
@@ -331,6 +333,8 @@ defineEmits([
   "import-url",
   "import-files",
   "import-folder",
+  "import-notion-zip",
+  "import-obsidian-vault",
   "sync-directory",
   "preview-import",
   "refresh-batches",

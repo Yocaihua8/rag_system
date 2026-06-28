@@ -195,6 +195,8 @@
       @import-url="handleImportUrl"
       @import-files="handleImportFiles"
       @import-folder="handleImportFolder"
+      @import-notion-zip="handleImportNotionZip"
+      @import-obsidian-vault="handleImportObsidianVault"
       @sync-directory="handleSyncDirectory"
       @preview-import="handlePreviewImport"
       @refresh-batches="loadImportBatches"
@@ -255,6 +257,8 @@ import {
   getImportBatchDetail,
   importBrowserFolder,
   importBrowserFiles,
+  importNotionZip,
+  importObsidianVault,
   importPlainTextNote,
   importUrlExcerpt,
   listImportBatches,
@@ -1009,6 +1013,20 @@ async function handleImportUrl(payload) {
     url: payload.url,
     title: payload.title,
     content: payload.content,
+  }));
+}
+
+async function handleImportNotionZip(file) {
+  await submitLibraryImport("Notion 导出导入完成", () => importNotionZip({
+    projectId: appState.selectedProjectId,
+    file,
+  }));
+}
+
+async function handleImportObsidianVault(payload) {
+  await submitLibraryImport("Obsidian vault 导入完成", () => importObsidianVault({
+    projectId: appState.selectedProjectId,
+    vaultPath: payload.vaultPath,
   }));
 }
 

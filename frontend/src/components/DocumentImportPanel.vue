@@ -69,6 +69,37 @@
         </div>
       </section>
 
+      <section class="import-form">
+        <p class="section-kicker">Notion 导出</p>
+        <h3>导入 Notion zip</h3>
+        <p class="muted-line">选择 Notion 导出的 Markdown zip 包；只导入其中的 Markdown / 文本文件。</p>
+        <input ref="notionZipInput" type="file" accept=".zip" hidden @change="submitNotionZip" />
+        <div class="actions">
+          <button type="button" :disabled="importSubmitting || !selectedProjectId" @click="openNotionZipPicker">
+            {{ importSubmitting ? "导入中..." : "导入 Notion zip" }}
+          </button>
+        </div>
+      </section>
+
+      <form class="import-form" @submit.prevent="submitObsidianVault">
+        <p class="section-kicker">Obsidian vault</p>
+        <h3>导入 Obsidian vault</h3>
+        <p class="muted-line">输入本机 vault 目录路径；会递归导入 Markdown / 文本文件并跳过 .obsidian 配置目录。</p>
+        <label>
+          Vault 本机路径
+          <input
+            v-model.trim="obsidianVaultPath"
+            :disabled="importSubmitting"
+            placeholder="例如：D:\\Notes\\MyVault"
+          />
+        </label>
+        <div class="actions">
+          <button type="submit" :disabled="importSubmitting || !selectedProjectId">
+            {{ importSubmitting ? "导入中..." : "导入 Obsidian vault" }}
+          </button>
+        </div>
+      </form>
+
       <form class="import-form" @submit.prevent="submitNote">
         <p class="section-kicker">文本笔记</p>
         <h3>导入文本笔记</h3>
@@ -156,10 +187,21 @@ defineProps({
   },
 });
 
-const emit = defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"]);
+const emit = defineEmits([
+  "import-note",
+  "import-url",
+  "import-files",
+  "import-folder",
+  "import-notion-zip",
+  "import-obsidian-vault",
+  "sync-directory",
+  "preview-import",
+]);
 
 const fileInput = ref(null);
 const folderInput = ref(null);
+const notionZipInput = ref(null);
+const obsidianVaultPath = ref("");
 
 const noteForm = reactive({
   title: "",
@@ -195,6 +237,10 @@ function openFolderPicker() {
   folderInput.value?.click();
 }
 
+function openNotionZipPicker() {
+  notionZipInput.value?.click();
+}
+
 function submitFiles(event) {
   emit("import-files", event.target.files);
   event.target.value = "";
@@ -203,5 +249,17 @@ function submitFiles(event) {
 function submitFolder(event) {
   emit("import-folder", event.target.files);
   event.target.value = "";
+}
+
+function submitNotionZip(event) {
+  const [file] = Array.from(event.target.files || []);
+  emit("import-notion-zip", file);
+  event.target.value = "";
+}
+
+function submitObsidianVault() {
+  emit("import-obsidian-vault", {
+    vaultPath: obsidianVaultPath.value,
+  });
 }
 </script>

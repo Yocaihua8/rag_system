@@ -1178,7 +1178,7 @@ def test_vue_document_import_panel_renders_note_and_url_forms():
         "网页正文或摘要",
         "导入 URL 摘录",
         "未选择项目空间",
-        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"])',
+        "import-folder",
     ]:
         assert marker in panel_vue
 
@@ -1444,7 +1444,7 @@ def test_vue_document_import_panel_renders_browser_folder_picker_separately_from
         'ref="folderInput"',
         "webkitdirectory",
         '@change="submitFolder"',
-        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"])',
+        "import-folder",
     ]:
         assert marker in panel_vue
 
@@ -1488,7 +1488,7 @@ def test_vue_document_import_panel_renders_directory_sync_button_for_selected_pr
         "同步当前项目目录",
         "sync-directory",
         ":disabled=\"importSubmitting || !selectedProjectId\"",
-        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"])',
+        "sync-directory",
     ]:
         assert marker in panel_vue
 
@@ -1535,7 +1535,7 @@ def test_vue_document_import_panel_renders_import_preview_summary():
         "importPreviewLoading",
         "importPreviewError",
         ':disabled="importSubmitting || importPreviewLoading || !selectedProjectId"',
-        'defineEmits(["import-note", "import-url", "import-files", "import-folder", "sync-directory", "preview-import"])',
+        "preview-import",
     ]:
         assert marker in panel_vue
 

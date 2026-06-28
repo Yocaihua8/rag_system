@@ -87,6 +87,34 @@ export async function importBrowserFolder({ files }) {
   return apiPost("/api/import/upload", payload);
 }
 
+export async function importNotionZip({ projectId, file }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  if (!file || fileSuffix(file.name) !== ".zip") {
+    throw new Error("请选择 Notion 导出的 zip 文件");
+  }
+  return apiPost("/api/import/notion-zip", {
+    project_id: projectId,
+    filename: file.name,
+    content_base64: await fileToBase64(file),
+  });
+}
+
+export async function importObsidianVault({ projectId, vaultPath }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  const cleanVaultPath = String(vaultPath || "").trim();
+  if (!cleanVaultPath) {
+    throw new Error("请输入 Obsidian vault 本机目录");
+  }
+  return apiPost("/api/import/obsidian-vault", {
+    project_id: projectId,
+    vault_path: cleanVaultPath,
+  });
+}
+
 export async function listImportBatches(projectId) {
   if (!projectId) {
     return [];
