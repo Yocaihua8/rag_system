@@ -25,7 +25,7 @@
 
 - [x] 任务 1：写 B-133 后端红灯测试，覆盖 GitHub URL 校验、clone runner 注入、API 响应和导入批次记录
 - [x] 任务 2：实现 GitHub 仓库 clone + 目录导入后端能力，不修改数据库 schema、不接入 GitHub API
-- [ ] 任务 3：写 Vue 前端红灯测试，覆盖 API helper、导入面板表单和 App 事件串联
+- [x] 任务 3：写 Vue 前端红灯测试，覆盖 API helper、导入面板表单和 App 事件串联
 - [ ] 任务 4：实现 Vue 资料库 GitHub 导入入口，成功后刷新并选中新建项目
 - [ ] 任务 5：同步正式文档并运行 B-133 相关验证清单
 - [ ] 任务 6：关闭 B-133：BACKLOG 置 done、删除本 plan、提交最终收口
@@ -87,12 +87,13 @@
 - 2026-06-28：冲突扫描发现 B-145 plan 仍为 Interrupted，但其影响范围是 Tauri/sidecar 打包链路，与 B-133 导入 API 和资料库入口无代码重叠；采用分区策略。
 - 2026-06-28：任务 1 红灯测试已运行：`& 'E:\Code\knowledage_island\.venv\Scripts\python.exe' -m pytest tests\test_webapp\test_api.py -q -k "github_repo_import"`，结果 3 failed，失败点符合预期：缺少 `webapp.github_import`，且 `/api/import/github-repo` 仍返回 404。
 - 2026-06-28：任务 2 新增 `webapp/github_import.py` 和 `/api/import/github-repo`；使用受控 `runtime/webapp/github-repos` clone 目录、固定 `git clone` 参数列表和可注入 clone runner。复跑 `& 'E:\Code\knowledage_island\.venv\Scripts\python.exe' -m pytest tests\test_webapp\test_api.py -q -k "github_repo_import"` 结果 3 passed；复跑 `& 'E:\Code\knowledage_island\.venv\Scripts\python.exe' -m pytest tests\test_webapp\test_api.py tests\test_webapp\test_api_route_split.py -q` 结果 111 passed。
+- 2026-06-28：任务 3 红灯测试已运行：`& 'E:\Code\knowledage_island\.venv\Scripts\python.exe' -m pytest tests\test_webapp\test_frontend_vue_app.py -q -k "github_repo"`，结果 3 failed，失败点符合预期：Vue API helper、DocumentImportPanel 和 App 事件链均未接入 GitHub 仓库导入。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 00:30
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`2450805` — feat: 新增 GitHub 仓库导入后端接口
-- **代码状态**：`fix/B-133-github-repo-import` 分支；后端 GitHub clone + 目录导入接口已实现，前端入口尚未接入
-- **下一步**：任务 3：写 Vue 前端红灯测试，覆盖 API helper、导入面板表单和 App 事件串联
+- **最后更新**：2026-06-28 00:45
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — test: 增加 GitHub 仓库导入前端红灯测试
+- **代码状态**：`fix/B-133-github-repo-import` 分支；前端红灯测试已写入，尚未实现 Vue 入口
+- **下一步**：任务 4：实现 Vue 资料库 GitHub 导入入口，成功后刷新并选中新建项目
 - **续任务须知**：使用隔离 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-133-github-repo-import`；不要修改原始 checkout 的未提交改动。

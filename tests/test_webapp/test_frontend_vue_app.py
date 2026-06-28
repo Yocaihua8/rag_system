@@ -1338,6 +1338,20 @@ def test_vue_import_api_helper_uses_notion_and_obsidian_contracts():
         assert marker in imports_js
 
 
+def test_vue_import_api_helper_uses_github_repo_contract():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    for marker in [
+        "export async function importGithubRepo({ repoUrl, branch = \"\", projectName = \"\" })",
+        'throw new Error("请输入 GitHub 仓库地址")',
+        'apiPost("/api/import/github-repo"',
+        "repo_url: cleanRepoUrl",
+        "branch: cleanBranch",
+        "project_name: cleanProjectName",
+    ]:
+        assert marker in imports_js
+
+
 def test_vue_document_import_panel_renders_notion_and_obsidian_import_controls():
     panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
     library_vue = _read("frontend/src/views/LibraryView.vue")
@@ -1361,6 +1375,29 @@ def test_vue_document_import_panel_renders_notion_and_obsidian_import_controls()
     assert "@import-obsidian-vault" in library_vue
 
 
+def test_vue_document_import_panel_renders_github_repo_import_controls():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "GitHub 仓库",
+        "导入 GitHub 仓库",
+        "仓库地址",
+        "分支名",
+        "项目名称",
+        "githubRepoForm",
+        "repoUrl",
+        "branch",
+        "projectName",
+        "submitGithubRepo",
+        "import-github-repo",
+    ]:
+        assert marker in panel_vue
+
+    assert '@submit.prevent="submitGithubRepo"' in panel_vue
+    assert "@import-github-repo" in library_vue
+
+
 def test_vue_app_handles_notion_and_obsidian_import_response_and_refreshes_library():
     app_vue = _read("frontend/src/App.vue")
 
@@ -1380,6 +1417,26 @@ def test_vue_app_handles_notion_and_obsidian_import_response_and_refreshes_libra
         "Notion 导出导入完成",
         "Obsidian vault 导入完成",
         "await loadLibraryDocuments()",
+        "await loadImportBatches()",
+    ]:
+        assert marker in app_vue
+
+
+def test_vue_app_handles_github_repo_import_response_and_refreshes_library():
+    app_vue = _read("frontend/src/App.vue")
+
+    for marker in [
+        "importGithubRepo",
+        "@import-github-repo=\"handleImportGithubRepo\"",
+        "handleImportGithubRepo",
+        "importGithubRepo({",
+        "repoUrl: payload.repoUrl",
+        "branch: payload.branch",
+        "projectName: payload.projectName",
+        "selectProject(data.project.id)",
+        "appState.documents = data.documents || []",
+        "GitHub 仓库导入完成",
+        "await loadProjectSpaces()",
         "await loadImportBatches()",
     ]:
         assert marker in app_vue
