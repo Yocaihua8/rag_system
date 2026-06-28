@@ -23,7 +23,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 未完成项不得删除。
 
-- [ ] 任务 1：写 B-135 红灯测试，覆盖 `/api/answer/compare` 选择 2 个 Profile、复用检索上下文、错误校验和 Vue 工作台 wiring
+- [x] 任务 1：写 B-135 红灯测试，覆盖 `/api/answer/compare` 选择 2 个 Profile、复用检索上下文、错误校验和 Vue 工作台 wiring
 - [ ] 任务 2：实现后端 compare API，新增 Profile 客户端构造、结果结构和路由分发，不改变 `/api/answer` 与 SSE 行为
 - [ ] 任务 3：实现 Vue 工作台最小并排对比入口，包含 Profile 选择、提交状态、错误状态和双列结果展示
 - [ ] 任务 4：同步 `docs/features/multi-model-comparison.md` 与 `docs/design/api-spec.md`
@@ -81,6 +81,7 @@
 ## 8. 执行记录
 
 - 2026-06-29：创建 plan。当前隔离 worktree 基于 B-134 完成基线；B-145 为打包验证阻塞，按文件边界分区处理。
+- 2026-06-29：任务 1 红灯测试已运行：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q -k "answer_compare"` 结果 2 failed，失败原因为 `/api/answer/compare` 当前返回 404；`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q -k "multi_model_comparison"` 结果 2 failed，失败原因为缺少 `compareAnswers` helper 和 `ModelComparisonPanel.vue`。
 
 ## 9. 状态快照
 
@@ -90,4 +91,3 @@
 - **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；计划创建阶段
 - **下一步**：任务 1：写 B-135 红灯测试
 - **续任务须知**：B-136 应在 B-135 完成后执行，以便 OpenAPI schema 覆盖新增 `/api/answer/compare`。
-

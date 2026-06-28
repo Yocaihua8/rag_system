@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import quote
 from zipfile import ZipFile
 
+import webapp.answer_api as answer_api_module
 import webapp.api as api_module
 from webapp.api import dispatch
 from webapp.ingestion import import_directory
@@ -993,6 +994,139 @@ def test_answer_api_uses_default_model_profile_when_no_client_is_injected(tmp_pa
     assert FakeProfileClient.instances[0].config.api_key == "sk-profile-secret"
     assert FakeProfileClient.instances[0].config.temperature == 0.2
     assert FakeProfileClient.instances[0].config.max_tokens == 512
+
+
+def test_answer_compare_api_runs_same_context_against_two_model_profiles(tmp_path: Path, monkeypatch):
+    class FakeProfileClient:
+        instances = []
+
+        def __init__(self, config, timeout=60.0):
+            self.config = config
+            self.provider = config.model
+            self.calls = []
+            FakeProfileClient.instances.append(self)
+
+        def is_configured(self):
+            return True
+
+        def generate_answer(self, question, hits, history_messages=None, prompt_preset=None):
+            self.calls.append(
+                {
+                    "question": question,
+                    "hit_paths": [hit.document.relative_path for hit in hits],
+                    "history": history_messages or [],
+                    "prompt_preset": prompt_preset,
+                }
+            )
+            return f"{self.config.model} 回答：{hits[0].document.relative_path}"
+
+    monkeypatch.setenv("RAG_LLM_API_KEY", "sk-profile-secret")
+    monkeypatch.setattr(
+        answer_api_module,
+        "build_llm_client",
+        lambda config, timeout=60.0: FakeProfileClient(config, timeout=timeout),
+        raising=False,
+    )
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    preset = store.create_prompt_preset(
+        project.id,
+        "项目问答",
+        "说明",
+        "优先说明依据文件。",
+        "按要点回答。",
+    )
+    store.set_default_prompt_preset(project.id, preset.id)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "默认入口是 app.py。")
+    first_profile = store.create_model_profile(
+        name="OpenAI 轻量",
+        provider="api",
+        api_base="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        temperature=0.2,
+        max_tokens=512,
+        api_key_ref="env:RAG_LLM_API_KEY",
+    )
+    second_profile = store.create_model_profile(
+        name="DeepSeek 默认",
+        provider="api",
+        api_base="https://api.deepseek.com/v1",
+        model="deepseek-chat",
+        temperature=0.3,
+        max_tokens=1024,
+        api_key_ref="env:RAG_LLM_API_KEY",
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/answer/compare",
+        {
+            "project_id": project.id,
+            "question": "默认入口是什么？",
+            "profile_ids": [first_profile.id, second_profile.id],
+        },
+    )
+
+    assert response.status == 200
+    assert response.body["question"] == "默认入口是什么？"
+    assert response.body["sources"][0]["path"] == "stack.md"
+    assert response.body["source_quality"]["level"] == "good"
+    assert response.body["observability"]["model_comparison"]["profile_count"] == 2
+    assert "message" not in response.body
+    assert store.list_chat_messages(project.id) == []
+    assert [result["profile_id"] for result in response.body["results"]] == [first_profile.id, second_profile.id]
+    assert [result["profile_name"] for result in response.body["results"]] == ["OpenAI 轻量", "DeepSeek 默认"]
+    assert [result["model"] for result in response.body["results"]] == ["gpt-4o-mini", "deepseek-chat"]
+    assert [result["answer"] for result in response.body["results"]] == [
+        "gpt-4o-mini 回答：stack.md",
+        "deepseek-chat 回答：stack.md",
+    ]
+    assert all(result["mode"] == "api" for result in response.body["results"])
+    assert FakeProfileClient.instances[0].calls[0]["prompt_preset"].id == preset.id
+    assert FakeProfileClient.instances[1].calls[0]["hit_paths"] == ["stack.md"]
+    assert "sk-profile-secret" not in str(response.body)
+
+
+def test_answer_compare_api_validates_two_distinct_existing_profiles(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    profile = store.create_model_profile(
+        name="OpenAI 轻量",
+        provider="api",
+        api_base="https://api.openai.com/v1",
+        model="gpt-4o-mini",
+        temperature=0.2,
+        max_tokens=512,
+        api_key_ref="",
+    )
+
+    missing_count = dispatch(
+        store,
+        "POST",
+        "/api/answer/compare",
+        {"project_id": "project", "question": "问题", "profile_ids": [profile.id]},
+    )
+    duplicate_profiles = dispatch(
+        store,
+        "POST",
+        "/api/answer/compare",
+        {"project_id": "project", "question": "问题", "profile_ids": [profile.id, profile.id]},
+    )
+    missing_profile = dispatch(
+        store,
+        "POST",
+        "/api/answer/compare",
+        {"project_id": "project", "question": "问题", "profile_ids": [profile.id, "missing"]},
+    )
+
+    assert missing_count.status == 400
+    assert missing_count.body["error"] == "profile_ids must contain exactly 2 model profile ids"
+    assert duplicate_profiles.status == 400
+    assert duplicate_profiles.body["error"] == "profile_ids must contain 2 different model profile ids"
+    assert missing_profile.status == 404
+    assert missing_profile.body["error"] == "model profile not found"
 
 
 def test_model_profile_test_api_requires_resolvable_key_without_changing_default(tmp_path: Path, monkeypatch):

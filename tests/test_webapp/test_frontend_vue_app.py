@@ -342,6 +342,69 @@ def test_vue_answer_api_helper_uses_existing_feedback_contract():
         assert marker in answer_js
 
 
+def test_vue_answer_api_helper_supports_multi_model_comparison_contract():
+    answer_js = _read("frontend/src/api/answer.js")
+
+    for marker in [
+        "export async function compareAnswers({",
+        "profileIds = []",
+        'throw new Error("请选择 2 个模型 Profile")',
+        'apiPost("/api/answer/compare"',
+        "profile_ids: profileIds",
+        "tool_run_id: toolRunId",
+        "parent_message_id: parentMessageId",
+    ]:
+        assert marker in answer_js
+
+
+def test_vue_workbench_wires_multi_model_comparison_state_and_panel():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+    workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
+    panel_path = Path("frontend/src/components/ModelComparisonPanel.vue")
+    assert panel_path.exists(), "B-135 should add a Vue comparison panel component"
+    panel_vue = _read(str(panel_path))
+
+    for state_field in [
+        "modelComparisonResult",
+        "modelComparisonLoading",
+        "modelComparisonError",
+        "modelComparisonStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+    for marker in [
+        "compareAnswers",
+        ":model-comparison-result=\"appState.modelComparisonResult\"",
+        ":model-comparison-loading=\"appState.modelComparisonLoading\"",
+        ":model-comparison-error=\"appState.modelComparisonError\"",
+        ":model-comparison-status=\"appState.modelComparisonStatus\"",
+        "@compare-answers=\"handleCompareAnswers\"",
+        "async function handleCompareAnswers(payload)",
+        "appState.modelComparisonResult = data",
+        "appState.modelComparisonStatus = \"对比回答已生成\"",
+    ]:
+        assert marker in app_vue
+
+    for marker in [
+        "ModelComparisonPanel",
+        ":model-profiles=\"modelProfiles\"",
+        ":model-comparison-result=\"modelComparisonResult\"",
+        "@compare-answers",
+    ]:
+        assert marker in workbench_vue
+
+    for marker in [
+        "模型并排对比",
+        "选择 2 个模型 Profile",
+        "开始对比",
+        "result.profile_name",
+        "result.answer",
+        'defineEmits(["compare-answers"])',
+    ]:
+        assert marker in panel_vue
+
+
 def test_vue_workbench_question_and_answer_panels_render_entrypoint():
     question_panel_vue = _read("frontend/src/components/QuestionPanel.vue")
     answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
