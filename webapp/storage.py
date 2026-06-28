@@ -3,10 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from backend.config.vector_store import get_default_vector_store
+from backend.providers.base import BaseVectorStore, VectorUpsertRecord
 from webapp.chunking import count_tokens, split_into_chunks
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import (
@@ -43,10 +46,21 @@ class DocumentWriteResult:
         self.action = action
 
 
+_DEFAULT_VECTOR_STORE = object()
+
+
 class KnowledgeStore:
-    def __init__(self, db_path: Path, embedding_client: EmbeddingClient | None = None):
+    def __init__(
+        self,
+        db_path: Path,
+        embedding_client: EmbeddingClient | None = None,
+        vector_store: BaseVectorStore | None | object = _DEFAULT_VECTOR_STORE,
+    ):
         self.db_path = Path(db_path)
         self._embedding_client = embedding_client or get_default_embedding_client()
+        self._vector_store = (
+            get_default_vector_store() if vector_store is _DEFAULT_VECTOR_STORE else vector_store
+        )
         if str(self.db_path) != ":memory:":
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
@@ -128,6 +142,7 @@ class KnowledgeStore:
         now = _now()
         chunk_rows = []
         vector_rows = []
+        vector_records: list[VectorUpsertRecord] = []
         for fallback_index, item in enumerate(chunks or []):
             if not isinstance(item, dict):
                 continue
@@ -153,14 +168,29 @@ class KnowledgeStore:
             if isinstance(vector_body, dict):
                 vector = _snapshot_vector(vector_body.get("values"))
                 if vector:
+                    provider = str(vector_body.get("provider", "")).strip() or "local"
+                    model = str(vector_body.get("model", "")).strip() or "hashing-96"
                     vector_rows.append(
                         (
                             chunk_id,
                             document.project_id,
                             serialize_vector(vector),
-                            str(vector_body.get("provider", "")).strip() or "local",
-                            str(vector_body.get("model", "")).strip() or "hashing-96",
+                            provider,
+                            model,
                             str(vector_body.get("updated_at", "")).strip() or now,
+                        )
+                    )
+                    vector_records.append(
+                        VectorUpsertRecord(
+                            project_id=document.project_id,
+                            document_id=document.id,
+                            chunk_id=chunk_id,
+                            chunk_index=_int_snapshot_value(item.get("chunk_index"), fallback_index),
+                            path=document.relative_path,
+                            content=chunk_content,
+                            vector=vector,
+                            provider=provider,
+                            model=model,
                         )
                     )
         with self._connect() as conn:
@@ -197,6 +227,7 @@ class KnowledgeStore:
                     """,
                     vector_rows,
                 )
+                self._sync_vector_upsert(vector_records)
             elif document.content:
                 self._replace_document_chunks(conn, document)
                 rows = conn.execute(
@@ -619,7 +650,10 @@ class KnowledgeStore:
     def delete_project(self, project_id: str) -> bool:
         with self._connect() as conn:
             result = conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
-        return result.rowcount > 0
+        deleted = result.rowcount > 0
+        if deleted:
+            self._sync_vector_delete(project_id, None)
+        return deleted
 
     def create_document_collection(
         self,
@@ -1713,7 +1747,9 @@ class KnowledgeStore:
         if not document:
             return None
         with self._connect() as conn:
+            chunk_ids = _chunk_ids_for_documents(conn, [document.id])
             conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+        self._sync_vector_delete(document.project_id, chunk_ids)
         return document
 
     def delete_documents_not_in(
@@ -1733,11 +1769,14 @@ class KnowledgeStore:
         stale_paths = sorted(existing_paths - relative_paths)
         if not stale_paths:
             return 0
+        stale_document_ids = [doc.id for doc in documents if doc.relative_path in stale_paths]
         with self._connect() as conn:
+            chunk_ids = _chunk_ids_for_documents(conn, stale_document_ids)
             conn.executemany(
                 "DELETE FROM documents WHERE project_id = ? AND relative_path = ?",
                 [(project_id, relative_path) for relative_path in stale_paths],
             )
+        self._sync_vector_delete(project_id, chunk_ids)
         return len(stale_paths)
 
     def _connect(self) -> sqlite3.Connection:
@@ -2049,9 +2088,11 @@ class KnowledgeStore:
             self._backfill_chunk_vectors(conn)
 
     def _replace_document_chunks(self, conn: sqlite3.Connection, document: Document) -> None:
+        old_chunk_ids = _chunk_ids_for_documents(conn, [document.id])
         conn.execute("DELETE FROM document_chunks WHERE document_id = ?", (document.id,))
         chunk_rows = []
         vector_rows = []
+        vector_records: list[VectorUpsertRecord] = []
         now = _now()
         chunks = split_into_chunks(document.content)
         vectors, provider, model = embed_with_fallback(self._embedding_client, chunks)
@@ -2078,6 +2119,19 @@ class KnowledgeStore:
                     now,
                 )
             )
+            vector_records.append(
+                VectorUpsertRecord(
+                    project_id=document.project_id,
+                    document_id=document.id,
+                    chunk_id=chunk_id,
+                    chunk_index=index,
+                    path=document.relative_path,
+                    content=chunk,
+                    vector=vectors[index],
+                    provider=provider,
+                    model=model,
+                )
+            )
         conn.executemany(
             """
             INSERT INTO document_chunks
@@ -2094,6 +2148,8 @@ class KnowledgeStore:
             """,
             vector_rows,
         )
+        self._sync_vector_delete(document.project_id, old_chunk_ids)
+        self._sync_vector_upsert(vector_records)
 
     def _backfill_document_chunks(self, conn: sqlite3.Connection) -> None:
         rows = conn.execute(
@@ -2144,6 +2200,38 @@ class KnowledgeStore:
                 for index, row in enumerate(rows)
             ],
         )
+
+    def _sync_vector_upsert(self, records: list[VectorUpsertRecord]) -> None:
+        if not self._vector_store or not records:
+            return
+        try:
+            self._vector_store.upsert(records)
+        except Exception as exc:
+            print(f"WARNING: vector store upsert failed: {exc}", file=sys.stderr)
+
+    def _sync_vector_delete(self, project_id: str, chunk_ids: list[str] | None) -> None:
+        if not self._vector_store or chunk_ids == []:
+            return
+        try:
+            self._vector_store.delete(project_id, chunk_ids)
+        except Exception as exc:
+            print(f"WARNING: vector store delete failed: {exc}", file=sys.stderr)
+
+
+def _chunk_ids_for_documents(conn: sqlite3.Connection, document_ids: list[str]) -> list[str]:
+    if not document_ids:
+        return []
+    placeholders = ",".join("?" for _ in document_ids)
+    rows = conn.execute(
+        f"""
+        SELECT id
+        FROM document_chunks
+        WHERE document_id IN ({placeholders})
+        ORDER BY document_id ASC, chunk_index ASC
+        """,
+        document_ids,
+    ).fetchall()
+    return [row["id"] for row in rows]
 
 
 def _int_snapshot_value(value: object, default: int) -> int:

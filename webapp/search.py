@@ -8,6 +8,7 @@ import re
 import sys
 
 from backend.config.reranker import get_default_reranker
+from backend.config.vector_store import get_default_vector_store
 from backend.providers.base import BaseReranker, BaseVectorStore
 from webapp.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from webapp.models import DocumentChunk, SearchHit
@@ -16,6 +17,7 @@ from webapp.vector_index import cosine_similarity
 
 
 _DEFAULT_RERANKER = object()
+_DEFAULT_VECTOR_STORE = object()
 
 
 def search_documents(
@@ -26,7 +28,7 @@ def search_documents(
     embedding_client: EmbeddingClient | None = None,
     use_keyword: bool = True,
     use_vector: bool = True,
-    vector_store: BaseVectorStore | None = None,
+    vector_store: BaseVectorStore | None | object = _DEFAULT_VECTOR_STORE,
     reranker: BaseReranker | None | object = _DEFAULT_RERANKER,
 ) -> list[SearchHit]:
     tokens = _tokenize(query)
@@ -40,20 +42,21 @@ def search_documents(
         )
         query_vector = query_vectors[0] if query_vectors else {}
     candidate_limit = max(limit * 3, limit)
+    active_vector_store = get_default_vector_store() if vector_store is _DEFAULT_VECTOR_STORE else vector_store
     vector_records = _vector_records(
         store=store,
         project_id=project_id,
         query_vector=query_vector,
         limit=candidate_limit,
         use_vector=use_vector,
-        vector_store=vector_store,
+        vector_store=active_vector_store,
     )
     candidate_chunks = _candidate_chunks(
         chunks,
         keyword_scores=keyword_scores,
         vector_records=vector_records,
         use_keyword=use_keyword,
-        use_vector_store=use_vector and vector_store is not None and bool(query_vector),
+        use_vector_store=use_vector and active_vector_store is not None and bool(query_vector),
         limit=candidate_limit,
     )
     retrieval = _retrieval_label(use_keyword, use_vector)
