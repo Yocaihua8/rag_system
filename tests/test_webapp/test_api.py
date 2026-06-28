@@ -1,5 +1,8 @@
+import base64
+import io
 from pathlib import Path
 from urllib.parse import quote
+from zipfile import ZipFile
 
 import webapp.api as api_module
 from webapp.api import dispatch
@@ -1591,6 +1594,148 @@ def test_upload_import_api_reuses_selected_project_and_applies_import_rules(tmp_
         {"path": "../escape.md", "reason": "invalid relative path"},
     ]
     assert [doc["relative_path"] for doc in response.body["documents"]] == ["README.md"]
+
+
+def test_notion_zip_import_api_imports_markdown_export_and_records_batch(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", Path("browser-upload:知识岛"))
+    export_content = _build_zip_base64({
+        "Product Wiki.md": "# 产品知识库\n\n知识岛路线图来自 Notion 导出。",
+        "Archive/Meeting Notes.md": "会议记录包含 RAG MVP 决策。",
+        "assets/logo.png": "not a real image",
+    })
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/notion-zip",
+        {
+            "project_id": project.id,
+            "filename": "notion-export.zip",
+            "content_base64": export_content,
+        },
+    )
+    search_response = dispatch(
+        store,
+        "POST",
+        "/api/search",
+        {"project_id": project.id, "query": "Notion 导出"},
+    )
+
+    assert response.status == 200
+    assert response.body["result"]["imported"] == 2
+    assert response.body["result"]["created"] == 2
+    assert response.body["result"]["skipped"] == 1
+    assert response.body["result"]["skipped_details"] == [
+        {"path": "assets/logo.png", "reason": "unsupported file type"}
+    ]
+    assert response.body["batch"]["source_type"] == "notion_zip"
+    assert [doc["relative_path"] for doc in response.body["documents"]] == [
+        "notion/Archive/Meeting Notes.md",
+        "notion/Product Wiki.md",
+    ]
+    assert all(doc["source_path"].startswith("notion-zip:notion-export.zip#") for doc in response.body["documents"])
+    assert search_response.body["hits"][0]["path"] == "notion/Product Wiki.md"
+
+
+def test_obsidian_vault_import_api_imports_markdown_vault_and_records_batch(tmp_path: Path):
+    vault = tmp_path / "obsidian-vault"
+    vault.mkdir()
+    (vault / "README.md").write_text("# Vault\n\nObsidian vault 保存长期笔记。", encoding="utf-8")
+    daily_dir = vault / "Daily"
+    daily_dir.mkdir()
+    (daily_dir / "2026-06-28.md").write_text("今日记录 Knowledge Island 同步方案。", encoding="utf-8")
+    obsidian_config = vault / ".obsidian"
+    obsidian_config.mkdir()
+    (obsidian_config / "app.json").write_text("{}", encoding="utf-8")
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", Path("browser-upload:知识岛"))
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/obsidian-vault",
+        {
+            "project_id": project.id,
+            "vault_path": str(vault),
+        },
+    )
+    search_response = dispatch(
+        store,
+        "POST",
+        "/api/search",
+        {"project_id": project.id, "query": "长期笔记"},
+    )
+
+    assert response.status == 200
+    assert response.body["result"]["imported"] == 2
+    assert response.body["result"]["created"] == 2
+    assert response.body["result"]["skipped"] == 0
+    assert response.body["batch"]["source_type"] == "obsidian_vault"
+    assert [doc["relative_path"] for doc in response.body["documents"]] == [
+        "obsidian/Daily/2026-06-28.md",
+        "obsidian/README.md",
+    ]
+    assert search_response.body["hits"][0]["path"] == "obsidian/README.md"
+
+
+def test_notion_and_obsidian_import_apis_reject_invalid_payloads(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", Path("browser-upload:知识岛"))
+
+    missing_zip_content = dispatch(
+        store,
+        "POST",
+        "/api/import/notion-zip",
+        {"project_id": project.id, "filename": "export.zip"},
+    )
+    invalid_zip = dispatch(
+        store,
+        "POST",
+        "/api/import/notion-zip",
+        {
+            "project_id": project.id,
+            "filename": "export.zip",
+            "content_base64": base64.b64encode(b"not a zip").decode("ascii"),
+        },
+    )
+    missing_vault_path = dispatch(
+        store,
+        "POST",
+        "/api/import/obsidian-vault",
+        {"project_id": project.id},
+    )
+    unknown_project = dispatch(
+        store,
+        "POST",
+        "/api/import/obsidian-vault",
+        {"project_id": "missing", "vault_path": str(tmp_path)},
+    )
+    missing_vault_directory = dispatch(
+        store,
+        "POST",
+        "/api/import/obsidian-vault",
+        {"project_id": project.id, "vault_path": str(tmp_path / "missing")},
+    )
+
+    assert missing_zip_content.status == 400
+    assert missing_zip_content.body["error"] == "content_base64 is required"
+    assert invalid_zip.status == 400
+    assert invalid_zip.body["error"] == "invalid notion zip"
+    assert missing_vault_path.status == 400
+    assert missing_vault_path.body["error"] == "vault_path is required"
+    assert unknown_project.status == 404
+    assert unknown_project.body["error"] == "project not found"
+    assert missing_vault_directory.status == 400
+    assert missing_vault_directory.body["error"] == "obsidian vault path does not exist"
+
+
+def _build_zip_base64(entries: dict[str, str]) -> str:
+    buffer = io.BytesIO()
+    with ZipFile(buffer, "w") as archive:
+        for name, content in entries.items():
+            archive.writestr(name, content)
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
 
 
 def test_import_note_api_creates_searchable_document(tmp_path: Path):

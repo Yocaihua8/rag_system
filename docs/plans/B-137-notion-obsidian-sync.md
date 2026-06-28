@@ -21,7 +21,7 @@
 
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
-- [ ] 任务 1：为 Notion zip / Obsidian vault 导入写后端红灯测试
+- [x] 任务 1：为 Notion zip / Obsidian vault 导入写后端红灯测试
 - [ ] 任务 2：实现 Notion zip 与 Obsidian vault 后端导入服务和 API
 - [ ] 任务 3：为 Vue 导入入口写红灯测试
 - [ ] 任务 4：接入 Vue 资料库导入面板、API helper 和 App 刷新流程
@@ -86,9 +86,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 22:24
-- **进度**：已完成 0 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`N/A` — plan 创建后提交
-- **代码状态**：`fix/B-137-notion-obsidian-sync`；仅计划和文档启动改动
-- **下一步**：任务 1：为 Notion zip / Obsidian vault 导入写后端红灯测试
-- **续任务须知**：后端第一版走本地文件和 base64 zip，不接第三方 API、不改数据库 schema。
+- **最后更新**：2026-06-28 22:31
+- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`3ffbc09` — docs: 启动 B-137 本地导出同步
+- **代码状态**：`fix/B-137-notion-obsidian-sync`；新增后端红灯测试，尚未实现接口
+- **下一步**：任务 2：实现 Notion zip 与 Obsidian vault 后端导入服务和 API
+- **续任务须知**：红灯命令：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py::test_notion_zip_import_api_imports_markdown_export_and_records_batch tests\test_webapp\test_api.py::test_obsidian_vault_import_api_imports_markdown_vault_and_records_batch tests\test_webapp\test_api.py::test_notion_and_obsidian_import_apis_reject_invalid_payloads -q`；当前失败原因为两个新路由返回 `404 not found`。
