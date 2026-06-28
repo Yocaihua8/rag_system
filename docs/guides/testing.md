@@ -36,7 +36,7 @@ docker compose config
 - 变更 `src-tauri/`、Tauri 配置、Windows sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备 Rust/Cargo 和 PyInstaller 环境时继续运行 `npm run tauri:build:windows`，否则记录缺失工具链原因。
 - 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
 - 变更 Vue API helper、项目空间 helper、问答 helper、检索调试/复盘 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈/检索调试/项目级检索默认值/检索复盘/Agent 工具/工具来源上下文组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
-- 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
+- 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、Qdrant provider 同步/降级、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
 - 变更导入预检时，必须覆盖 `/api/import/preview`、前端预检入口、未选项目禁用、可导入/跳过摘要和跳过原因展示，并确认预检不会刷新文档列表或创建导入批次。
@@ -81,6 +81,7 @@ docker compose config
 - Markdown 安全渲染链路
 - 增量增删改（含源文件删除）
 - 向量检索 + 来源返回一致性
+- Qdrant 向量 provider 同步、查询候选和 SQLite fallback 一致性
 - 用例级错误消息与状态码（若有）
 - Web MVP 创建项目空间、导入目录、分块生成、向量索引生成、问答来源返回
 - Web MVP 提问后可持久化聊天记录，并能按项目重新加载 `question/answer/mode/provider/sources`；真实 LLM prompt 会包含最近 3 轮历史

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-28
 
 ADR（Architecture Decision Record）用于记录重要架构决策，重点不是"做了什么"，而是"为什么这样做"。
 
@@ -36,6 +36,7 @@ ADR-002-short-title.md
 | ADR-001 | 迁移至 FastAPI（替代 Python stdlib HTTP） | Accepted | 2026-05-26 |
 | ADR-005 | 远程访问认证机制（API Key + JWT） | Accepted | 2026-05-26 |
 | ADR-006 | 前端框架选型（Vue 3 + Vite） | Accepted | 2026-05-26 |
+| ADR-007 | Qdrant 本地向量存储 | Accepted | 2026-06-28 |
 
 ## 5. 待新建 ADR（已识别但尚未落地）
 
@@ -43,6 +44,6 @@ ADR-002-short-title.md
 
 | 草稿编号 | 决策主题 | 触发条件 | 关联 BACKLOG |
 |---------|----------|----------|-------------|
-| ADR-002 | SQLite 作为全量存储（含向量） | 存储模型选择，影响 search / ingestion / backup | B-134（Qdrant 替换评估） |
+| ADR-002 | SQLite 作为关系数据源与兼容副本 | 存储模型选择，影响 ingestion / backup；向量查询替换见 ADR-007 | — |
 | ADR-003 | Agent 工具只读白名单硬编码 | 权限模型，影响安全边界 | — |
 | ADR-004 | API Key 只保存引用（`env:*` / `saved:*`），不持久化明文 | 安全约束，影响 settings / profiles | — |

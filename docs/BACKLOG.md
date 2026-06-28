@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-28（启动 B-134 Qdrant 替换 SQLite 向量存储）
+> Last Updated：2026-06-28（完成 B-134 Qdrant 替换 SQLite 向量存储）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -88,7 +88,7 @@
 | B-119 | research | 网页自动抓取研究 | todo | P3 | S | backlog | RAG 团队 | docs/requirements/functional-modules.md | 当前 URL 来源只做人工粘贴正文；自动抓取涉及网络、权限和依赖，暂缓 |
 | B-132 | feature | 网页自动爬取（可选依赖） | todo | P3 | XL | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 对接 `playwright` 或 `requests-html` 实现 URL 来源自动抓取；需解决动态页面、robots.txt 遵守和依赖隔离；B-119 的细化实现；预估 7 天 |
 | B-133 | feature | GitHub 仓库整体导入 | done | P2 | L | v1.0.0 | RAG 团队 | docs/features/github-repo-import.md, docs/design/api-spec.md, docs/requirements/functional-modules.md | 已完成：通过本机 `git clone --depth 1` 导入 GitHub 仓库并创建项目空间；新增 `/api/import/github-repo`、Vue 资料库入口和 `github_repo` 导入批次记录；不接入 GitHub API，不保存凭据 |
-| B-134 | feature | Qdrant 替换 SQLite 向量存储 | doing | P3 | L | v1.0.0 | RAG 团队 | docs/features/qdrant-vector-store.md, docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-007-qdrant-vector-store.md | SQLite 全扫描在 > 5000 chunks 时性能下降（见 ISSUE-002）；Qdrant 本地单文件模式，无服务依赖，支持 HNSW；替代 B-67；预估 5 天；plan：docs/plans/B-134-qdrant-vector-store.md |
+| B-134 | feature | Qdrant 替换 SQLite 向量存储 | done | P3 | L | v1.0.0 | RAG 团队 | docs/features/qdrant-vector-store.md, docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-007-qdrant-vector-store.md | 已完成：新增 Qdrant local mode provider、配置开关、文档向量同步和搜索候选接入；默认关闭，Qdrant 不可用时回退 SQLite `chunk_vectors`；不改 API 契约或 SQLite schema |
 | B-135 | feature | 多模型并排对比 | todo | P3 | L | backlog | RAG 团队 | docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天 |
 | B-136 | docs | OpenAPI / Swagger 接口文档 | todo | P3 | M | backlog | RAG 团队 | docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
 | B-137 | feature | Notion / Obsidian 本地导出同步 | done | P2 | L | v1.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md | 已完成：新增 Notion Markdown zip 与 Obsidian vault 本地导入 API、Vue 资料库入口、导入批次记录和文档契约；不接入 Notion API，不修改 SQLite schema |
@@ -98,14 +98,6 @@
 ---
 
 ## 6. 已知问题
-
-### ISSUE-002 大规模 chunk 时向量检索响应变慢
-
-- **现象**：项目 chunk 数量超过 5000 时，`/api/search` 响应耗时随 chunk 数线性增长，可达数秒
-- **影响范围**：文件数量较多（> 200 个文件）的大型项目
-- **复现条件**：导入大型代码仓库或文档库后提问，观察 `/api/search` 耗时
-- **临时规避方案**：控制单个项目导入文件数量，或通过文档集合缩小检索范围
-- **计划处理方式**：B-134（Qdrant 替换 SQLite 全扫描，v1.0.0）
 
 ### ISSUE-003 文档一致性脚本要求缺失的 docs/DEVLOG.md
 

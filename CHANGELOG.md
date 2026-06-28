@@ -44,6 +44,7 @@
 - **回答评估用例**：Web MVP `/api/assessment/answer` 按服务端已保存题目的参考要点评分，输出已掌握 / 基本理解 / 需要补充 / 暂未掌握四档状态
 - **评估前端闭环**：评估页支持一轮多题进度、逐题提交、下一题、答题记录和待复测列表
 - **完整备份恢复**：项目备份导出包含文档正文、chunk 和 vector；恢复到新项目后无需重新导入即可检索问答
+- **Qdrant 本地向量存储**：可通过 `RAG_VECTOR_STORE_PROVIDER=qdrant` 启用 Qdrant local mode，文档入库/更新/删除同步本地向量索引，搜索时由 Qdrant 返回向量候选
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
@@ -52,11 +53,13 @@
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示
 - **关键词检索评分**：Web MVP 关键词召回从 regex 词频累加改为内置 BM25 评分，降低重复常见词压过稀有命中的风险
+- **向量检索路径**：启用 Qdrant 时不再查询时全量遍历 SQLite `chunk_vectors`；默认和降级路径继续使用 SQLite 兼容副本
 - **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到 `webapp/routes/*` 时保持 HTTP 契约和 `dispatch()` 入口不变
 - **API 路由拆分实施**：新增 `webapp/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`webapp/api.py` 仅保留兼容入口和 SSE 入口
 
 ### Fixed
 - **Docker 前端构建产物**：Docker 镜像构建阶段会生成并内置 `webapp/static_dist/`，避免宿主机未预构建或旧产物导致容器展示 legacy 静态前端。
+- **大项目向量检索线性变慢**：B-134 提供 Qdrant HNSW 候选检索路径，解决大型项目查询时 SQLite 向量全扫描的性能瓶颈。
 
 ### Security
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥

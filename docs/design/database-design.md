@@ -111,7 +111,9 @@
 
 ### chunk_vectors（Web MVP）
 - `chunk_id / project_id / vector_json / provider / model / updated_at`
-- `chunk_id` 与 `document_chunks.id` 一一对应，用于 Web MVP keyword + vector 混合召回。
+- `chunk_id` 与 `document_chunks.id` 一一对应。
+- B-134 后该表继续保存 Web MVP 向量兼容副本，用于备份恢复、项目健康统计和 Qdrant 未启用/不可用时的 SQLite fallback。
+- 启用 `RAG_VECTOR_STORE_PROVIDER=qdrant` 时，查询时的向量候选由 Qdrant 本地索引返回，不再为了向量相似度遍历本表全量记录。
 - `provider/model` 记录向量来源；配置 OpenAI-compatible Embeddings 时写入真实 embedding，否则写入本地 hashing 向量。
 
 ### chat_sessions（Web MVP）
@@ -169,7 +171,7 @@
 - Web MVP 删除或重建文档时会同步删除并重建 `document_chunks`，避免旧 chunk 残留影响检索来源。
 - Web MVP 删除文档时通过外键级联清理 `document_collection_items`；删除集合不删除文档。
 - Web MVP 删除项目空间时通过外键级联清理 `import_batches` 和 `import_batch_items`；导入批次历史不是备份，不提供回滚。
-- Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。Embedding API 失败时回退本地 hashing，不阻断文档入库。
+- Web MVP 删除或重建 `document_chunks` 时级联清理 `chunk_vectors`，并在同一写入流程中重建向量。启用 Qdrant 时，同步删除旧 point 并 upsert 新 point；Qdrant 同步失败只打印 `WARNING`，不阻断 SQLite 入库。
 - Web MVP 删除项目空间时通过外键级联清理 `chat_messages`，避免孤立聊天记录。
 - Web MVP 删除项目空间或聊天消息时通过外键级联清理 `answer_feedback`，避免孤立回答反馈。
 - Web MVP 删除项目空间时通过外键级联清理 `assessment_questions`、`assessment_answers` 和 `assessment_results`；删除题目时级联清理对应回答与结果。
@@ -178,8 +180,8 @@
 - Web MVP 项目级检索默认值直接随 `projects` 记录保存，删除项目空间时一并消失；不会影响其他项目空间。
 - Web MVP Prompt 预设按项目隔离保存；默认预设只保存预设 ID，不影响其他项目，也不改变检索设置。
 - Web MVP 模型 Profile 是本机全局配置，不随项目删除；删除默认 Profile 时默认选择会消失，问答回退到现有单配置行为。
-- Web MVP 增量摄入中会按 `document_id` 删除旧 `document_chunks` 与 `chunk_vectors`，防止重建重复。
-- Web MVP 备份恢复会把导出的 `documents.content`、`document_chunks` 和 `chunk_vectors` 写入新的项目空间，并为文档、chunk 生成新 ID；聊天来源中的旧 ID 会映射到新 ID。
+- Web MVP 增量摄入中会按 `document_id` 删除旧 `document_chunks` 与 `chunk_vectors`，并在启用 Qdrant 时删除旧 point，防止重建重复。
+- Web MVP 备份恢复会把导出的 `documents.content`、`document_chunks` 和 `chunk_vectors` 写入新的项目空间，并为文档、chunk 生成新 ID；聊天来源中的旧 ID 会映射到新 ID。启用 Qdrant 时，恢复写入的 chunk 向量也会同步 upsert 到 Qdrant。
 - legacy 向量库侧与 `chunks.id` 保持一一对应便于回填来源。
 
 ## 4. 当前不在定稿范围

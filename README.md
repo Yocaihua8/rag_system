@@ -35,7 +35,7 @@
 | **文件路径过滤** | 已导入文件列表支持按路径本地过滤，便于在大量文件中快速定位 |
 | **文件数量提示** | 已导入文件列表显示当前过滤结果数和总文件数 |
 | **独立检索** | 不提问也可直接搜索文件分块片段，并点击结果打开文件预览 |
-| **RAG 分块检索** | 导入时生成 SQLite 文档分块和向量，检索和问答使用 BM25 keyword + vector 混合召回；配置 OpenAI-compatible Embeddings 后优先使用真实 embedding，否则回退本地 hashing 向量 |
+| **RAG 分块检索** | 导入时生成 SQLite 文档分块和向量兼容副本，检索和问答使用 BM25 keyword + vector 混合召回；配置 OpenAI-compatible Embeddings 后优先使用真实 embedding，否则回退本地 hashing 向量；可启用 Qdrant local mode 避免查询时全量扫描 SQLite 向量 |
 | **检索调试** | 工作台可按 `top_k`、最低分、关键词/向量开关运行检索诊断，查看命中 chunk、分数、来源质量和上下文预览 |
 | **项目级检索默认值** | 工作台可把 `top_k`、最低分、关键词/向量开关保存为当前项目默认值，问答和检索诊断共用这组设置 |
 | **检索复盘** | 可把一次检索诊断保存为复盘记录，保留查询词、参数、命中来源、来源质量和人工备注；列表支持查看单条详情和二次确认删除，删除只移除复盘记录，不调整检索参数 |
@@ -114,7 +114,11 @@ cp .env.example .env
 | `RAG_EMBED_API_BASE` | `https://api.deepseek.com/v1` | Embedding API 地址；需要服务实际支持 `/embeddings` |
 | `RAG_EMBED_API_MODEL` | `text-embedding-3-small` | Embedding 模型名 |
 | `RAG_EMBED_API_KEY` | _(空)_ | Embedding API Key；不复用或回显 LLM Key |
-| `RAG_RETRIEVER_KIND` | `vector` | `vector`（ChromaDB）或 `keyword` |
+| `RAG_VECTOR_STORE_PROVIDER` | `sqlite` | Web MVP 向量存储 provider；设置为 `qdrant` 后使用 Qdrant local mode 做向量候选检索 |
+| `RAG_QDRANT_PATH` | appdata `KnowledgeIsland/qdrant` | Qdrant local mode 持久化目录 |
+| `RAG_QDRANT_COLLECTION` | `knowledge_island_chunks` | Qdrant collection 名称 |
+| `RAG_QDRANT_VECTOR_SIZE` | `96` | 将当前 sparse dict 向量转换为 Qdrant dense vector 的维度 |
+| `RAG_RETRIEVER_KIND` | `vector` | legacy 检索配置；Web MVP 向量存储切换使用 `RAG_VECTOR_STORE_PROVIDER` |
 | `RAG_LLM_PROVIDER` | `ollama` | `ollama` 或 `api` |
 | `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明）；兼容本机 DeepSeek Key 别名 |
 | `RAG_LLM_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
@@ -123,6 +127,8 @@ cp .env.example .env
 Web 端问答会优先读取这些变量。未配置 API Key 时，自动回退到本地片段组合回答。
 
 Web 端检索会优先使用 `RAG_EMBED_PROVIDER=api` 对应的 OpenAI-compatible Embeddings；未配置、请求失败或服务不支持 `/embeddings` 时，自动回退到本地 hashing 向量，导入不中断。DeepSeek 当前主要用于聊天回答；如果所用 DeepSeek 端点不提供 embeddings，请单独配置支持 `/embeddings` 的服务。
+
+如需在大项目中避免查询时全量扫描 SQLite 向量，可设置 `RAG_VECTOR_STORE_PROVIDER=qdrant` 启用 Qdrant local mode。文档入库、更新、删除和备份恢复会同步 Qdrant point；Qdrant 未安装、不可用或查询失败时会打印 `WARNING` 并回退到 SQLite `chunk_vectors`。
 
 ---
 
