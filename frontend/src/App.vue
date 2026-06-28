@@ -15,6 +15,14 @@
       :project-mutation-error="appState.projectMutationError"
       :project-mutation-status="appState.projectMutationStatus"
       :project-status-message="projectStatusMessage"
+      :first-run-visible="firstRunWizardVisible"
+      :ollama-status="appState.ollamaStatus"
+      :ollama-status-loading="appState.ollamaStatusLoading"
+      :ollama-status-error="appState.ollamaStatusError"
+      :ollama-pulling-model="appState.ollamaPullingModel"
+      :ollama-pull-progress="appState.ollamaPullProgress"
+      :ollama-pull-status="appState.ollamaPullStatus"
+      :ollama-pull-error="appState.ollamaPullError"
       :import-submitting="appState.importSubmitting"
       :import-error="appState.importError"
       :import-status="appState.importStatus"
@@ -138,6 +146,9 @@
       @rename-project="handleRenameProject"
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
+      @refresh-ollama-status="loadOllamaStatus"
+      @pull-ollama-model="handlePullOllamaModel"
+      @dismiss-first-run="dismissFirstRunWizard"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
       @run-tool-suggestion="handleRunToolSuggestion"
       @use-tool-result-context="handleUseToolResultContext"
@@ -201,6 +212,7 @@ import {
 import { askQuestion, submitAnswerFeedback } from "./api/answer.js";
 import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
+import { getOllamaStatus, pullOllamaModel } from "./api/ollama.js";
 import {
   addDocumentToCollection,
   createDocumentCollection,
@@ -286,7 +298,21 @@ const projectStatusMessage = computed(() => {
   return selectedProject ? `当前项目：${selectedProject.name}` : "未选择项目空间";
 });
 
+const firstRunWizardVisible = computed(() => {
+  if (appState.firstRunWizardDismissed) {
+    return false;
+  }
+  if (!appState.selectedProjectId) {
+    return true;
+  }
+  if (!appState.ollamaStatus) {
+    return true;
+  }
+  return appState.ollamaStatus.available === false || (appState.ollamaStatus.models || []).length === 0;
+});
+
 onMounted(() => {
+  loadOllamaStatus();
   loadProjectSpaces();
   loadSettingsPage();
   loadAgentTools();
@@ -300,6 +326,63 @@ async function checkHealth() {
   } catch (error) {
     statusMessage.value = "本地服务暂时不可用";
   }
+}
+
+async function loadOllamaStatus() {
+  appState.ollamaStatusLoading = true;
+  appState.ollamaStatusError = "";
+  try {
+    const data = await getOllamaStatus();
+    appState.ollamaStatus = data;
+    appState.ollamaStatusError = data.available ? "" : data.error || "Ollama 不可用";
+  } catch (error) {
+    appState.ollamaStatus = null;
+    appState.ollamaStatusError = error.message || "Ollama 检测失败";
+  } finally {
+    appState.ollamaStatusLoading = false;
+  }
+}
+
+async function handlePullOllamaModel(model) {
+  appState.ollamaPullingModel = model;
+  appState.ollamaPullProgress = null;
+  appState.ollamaPullStatus = `正在下载模型：${model}`;
+  appState.ollamaPullError = "";
+  try {
+    await pullOllamaModel({
+      model,
+      handlers: {
+        onProgress(data) {
+          appState.ollamaPullProgress = data;
+          appState.ollamaPullStatus = formatOllamaPullStatus(data);
+        },
+        onDone(data) {
+          appState.ollamaPullProgress = data;
+          appState.ollamaPullStatus = "模型下载完成";
+        },
+        onError(data) {
+          appState.ollamaPullError = data.error || "模型下载失败";
+        },
+      },
+    });
+    await loadOllamaStatus();
+  } catch (error) {
+    appState.ollamaPullError = error.message || "模型下载失败";
+    appState.ollamaPullStatus = "模型下载失败";
+  } finally {
+    appState.ollamaPullingModel = "";
+  }
+}
+
+function dismissFirstRunWizard() {
+  appState.firstRunWizardDismissed = true;
+}
+
+function formatOllamaPullStatus(data) {
+  if (typeof data.progress === "number") {
+    return `${data.status || "下载中"}：${Math.round(data.progress * 100)}%`;
+  }
+  return data.status || "正在下载模型";
 }
 
 async function loadSettingsPage() {

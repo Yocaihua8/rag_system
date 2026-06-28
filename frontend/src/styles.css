@@ -566,6 +566,70 @@ button:focus-visible {
   color: #b42318;
 }
 
+.first-run-wizard {
+  border-top: 1px solid #d9e2ec;
+  display: grid;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding-top: 24px;
+}
+
+.first-run-wizard h2 {
+  font-size: 20px;
+}
+
+.first-run-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.first-run-step {
+  border: 1px solid #d9e2ec;
+  border-radius: 6px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.step-index {
+  align-items: center;
+  background: #e6f4f1;
+  border-radius: 999px;
+  color: #0b5f56;
+  display: inline-flex;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  margin: 0;
+  width: 28px;
+}
+
+.model-choice-list {
+  display: grid;
+  gap: 8px;
+}
+
+.model-choice-list button {
+  align-items: flex-start;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  text-align: left;
+}
+
+.model-choice-list small {
+  color: #52616f;
+}
+
+.status-line.success {
+  color: #0b5f56;
+}
+
+.first-run-step progress {
+  width: 100%;
+}
+
 .workbench-grid {
   display: grid;
   gap: 18px;

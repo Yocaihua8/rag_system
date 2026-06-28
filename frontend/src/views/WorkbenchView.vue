@@ -8,6 +8,25 @@
       </div>
     </header>
 
+    <FirstRunWizard
+      v-if="firstRunVisible"
+      :selected-project-id="selectedProjectId"
+      :ollama-status="ollamaStatus"
+      :ollama-status-loading="ollamaStatusLoading"
+      :ollama-status-error="ollamaStatusError"
+      :ollama-pulling-model="ollamaPullingModel"
+      :ollama-pull-progress="ollamaPullProgress"
+      :ollama-pull-status="ollamaPullStatus"
+      :ollama-pull-error="ollamaPullError"
+      :project-form-submitting="projectFormSubmitting"
+      :project-form-error="projectFormError"
+      :project-form-status="projectFormStatus"
+      @refresh-ollama-status="$emit('refresh-ollama-status')"
+      @pull-ollama-model="(model) => $emit('pull-ollama-model', model)"
+      @create-project="(payload) => $emit('create-project', payload)"
+      @dismiss-first-run="$emit('dismiss-first-run')"
+    />
+
     <div class="workbench-grid">
       <QuestionPanel
         :selected-project-id="selectedProjectId"
@@ -88,6 +107,7 @@
 <script setup>
 import AnswerPanel from "../components/AnswerPanel.vue";
 import AgentToolsPanel from "../components/AgentToolsPanel.vue";
+import FirstRunWizard from "../components/FirstRunWizard.vue";
 import QuestionPanel from "../components/QuestionPanel.vue";
 import SearchDebugPanel from "../components/SearchDebugPanel.vue";
 
@@ -113,6 +133,38 @@ defineProps({
     default: "",
   },
   answerStatus: {
+    type: String,
+    default: "",
+  },
+  firstRunVisible: {
+    type: Boolean,
+    default: false,
+  },
+  ollamaStatus: {
+    type: Object,
+    default: null,
+  },
+  ollamaStatusLoading: {
+    type: Boolean,
+    default: false,
+  },
+  ollamaStatusError: {
+    type: String,
+    default: "",
+  },
+  ollamaPullingModel: {
+    type: String,
+    default: "",
+  },
+  ollamaPullProgress: {
+    type: Object,
+    default: null,
+  },
+  ollamaPullStatus: {
+    type: String,
+    default: "",
+  },
+  ollamaPullError: {
     type: String,
     default: "",
   },
@@ -274,5 +326,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "create-project", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>
