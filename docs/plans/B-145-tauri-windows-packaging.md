@@ -26,7 +26,7 @@
 - [x] 任务 1：写 B-145 红灯测试，覆盖 Tauri 配置、Windows sidecar 脚本、npm 脚本和桌面打包文档入口
 - [x] 任务 2：建立 `src-tauri/` Tauri 2 最小壳，包含 sidecar 声明、Vue 构建产物加载、Rust 入口和托盘/关闭隐藏逻辑
 - [x] 任务 3：新增 Windows sidecar 打包脚本与 npm/Tauri 构建脚本，接入 PyInstaller 和目标 triple 文件名
-- [ ] 任务 4：补齐测试通过所需的静态校验与最小构建验证，不引入后端 API、数据库 schema 或 Vue 源码改动
+- [x] 任务 4：补齐测试通过所需的静态校验与最小构建验证，不引入后端 API、数据库 schema 或 Vue 源码改动
 - [ ] 任务 5：同步正式文档，覆盖 setup/testing/frontend/new architecture 中的桌面打包入口和限制
 - [ ] 任务 6：运行 B-145 验证清单，关闭 BACKLOG 状态并删除本 plan
 
@@ -88,12 +88,13 @@
 - 2026-06-28：任务 1 红灯测试已运行：`.venv\Scripts\python.exe -m pytest tests\test_webapp\test_tauri_packaging.py -q`，结果 5 failed，失败点符合预期，集中在缺少 Tauri 配置、Rust 入口、sidecar 脚本、npm scripts 和 setup/testing 文档入口。
 - 2026-06-28：任务 2 新增 `src-tauri/` 最小壳后复跑 B-145 测试，结果 2 passed / 3 failed；已转绿部分为 Tauri 配置和 Rust 入口，剩余失败对应任务 3/5。
 - 2026-06-28：任务 3 新增 Windows sidecar 脚本、Tauri npm scripts、`@tauri-apps/cli` 和 PyInstaller 开发依赖；复跑 B-145 测试结果 4 passed / 1 failed，剩余失败为正式文档入口。
+- 2026-06-28：任务 4 验证结果：`npm run build` 通过；首次 `npx tauri --version` 因 npm optional dependency 未安装 `@tauri-apps/cli-win32-x64-msvc` 失败，执行 `npm install --include=optional` 后 `npx tauri --version` 通过（2.11.3）；`npx tauri info` 可读取配置并显示 WebView2/MSVC 可用、`frontendDist` 正确，阻塞项为本机未安装 `rustc`/`cargo`/`rustup`；`cargo check --manifest-path src-tauri\Cargo.toml` 因 `cargo` 不存在无法运行。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 14:14
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`7a3f0c8` — feat: 新增 Tauri 桌面壳骨架
-- **代码状态**：`main` 分支；工作区仍存在与 B-145 无关的未提交改动；B-145 已新增 `src-tauri/`，测试剩余失败对应 sidecar 脚本、npm scripts 和文档入口
-- **下一步**：任务 3：新增 Windows sidecar 打包脚本与 npm/Tauri 构建脚本，接入 PyInstaller 和目标 triple 文件名
+- **最后更新**：2026-06-28 14:21
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`7db0c66` — feat: 接入 Windows sidecar 打包脚本
+- **代码状态**：`main` 分支；工作区仍存在与 B-145 无关的未提交改动；B-145 测试剩余失败对应 setup/testing 文档入口
+- **下一步**：任务 4：补齐测试通过所需的静态校验与最小构建验证，不引入后端 API、数据库 schema 或 Vue 源码改动
 - **续任务须知**：不要修改后端 API、数据库 schema 或 `frontend/src/`；B-145 只覆盖 Windows 打包验证，不包含 B-148/B-149/B-150
