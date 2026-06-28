@@ -1320,6 +1320,71 @@ def test_vue_import_api_helper_uses_existing_file_upload_contract():
     assert 'new Set([".docx", ".pdf"])' in imports_js
 
 
+def test_vue_import_api_helper_uses_notion_and_obsidian_contracts():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    for marker in [
+        "export async function importNotionZip({ projectId, file })",
+        'throw new Error("请选择 Notion 导出的 zip 文件")',
+        'apiPost("/api/import/notion-zip"',
+        "project_id: projectId",
+        "filename: file.name",
+        "content_base64",
+        "export async function importObsidianVault({ projectId, vaultPath })",
+        'throw new Error("请输入 Obsidian vault 本机目录")',
+        'apiPost("/api/import/obsidian-vault"',
+        "vault_path: cleanVaultPath",
+    ]:
+        assert marker in imports_js
+
+
+def test_vue_document_import_panel_renders_notion_and_obsidian_import_controls():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "Notion 导出",
+        "导入 Notion zip",
+        'ref="notionZipInput"',
+        '@change="submitNotionZip"',
+        "Obsidian vault",
+        "Vault 本机路径",
+        "导入 Obsidian vault",
+        "obsidianVaultPath",
+        "submitObsidianVault",
+        "import-notion-zip",
+        "import-obsidian-vault",
+    ]:
+        assert marker in panel_vue
+
+    assert "@import-notion-zip" in library_vue
+    assert "@import-obsidian-vault" in library_vue
+
+
+def test_vue_app_handles_notion_and_obsidian_import_response_and_refreshes_library():
+    app_vue = _read("frontend/src/App.vue")
+
+    for imported_name in [
+        "importNotionZip",
+        "importObsidianVault",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        "@import-notion-zip=\"handleImportNotionZip\"",
+        "@import-obsidian-vault=\"handleImportObsidianVault\"",
+        "handleImportNotionZip",
+        "handleImportObsidianVault",
+        "importNotionZip({",
+        "importObsidianVault({",
+        "Notion 导出导入完成",
+        "Obsidian vault 导入完成",
+        "await loadLibraryDocuments()",
+        "await loadImportBatches()",
+    ]:
+        assert marker in app_vue
+
+
 def test_vue_document_import_panel_renders_file_upload_without_directory_picker():
     panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
     library_vue = _read("frontend/src/views/LibraryView.vue")

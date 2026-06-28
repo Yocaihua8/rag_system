@@ -23,7 +23,7 @@
 
 - [x] 任务 1：为 Notion zip / Obsidian vault 导入写后端红灯测试
 - [x] 任务 2：实现 Notion zip 与 Obsidian vault 后端导入服务和 API
-- [ ] 任务 3：为 Vue 导入入口写红灯测试
+- [x] 任务 3：为 Vue 导入入口写红灯测试
 - [ ] 任务 4：接入 Vue 资料库导入面板、API helper 和 App 刷新流程
 - [ ] 任务 5：同步接口与功能文档，运行回归验证
 - [ ] 任务 6：关闭 B-137，删除 plan
@@ -86,9 +86,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 22:43
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`a303d7c` — test: 增加 B-137 本地导出导入红灯测试
-- **代码状态**：`fix/B-137-notion-obsidian-sync`；后端接口已实现，待提交
-- **下一步**：任务 3：为 Vue 导入入口写红灯测试
-- **续任务须知**：后端验证命令已通过：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q`，结果 `85 passed`。
+- **最后更新**：2026-06-28 22:49
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`ab6b7f2` — feat: 接入 Notion zip 与 Obsidian vault 导入接口
+- **代码状态**：`fix/B-137-notion-obsidian-sync`；Vue 红灯测试已新增，尚未接前端实现
+- **下一步**：任务 4：接入 Vue 资料库导入面板、API helper 和 App 刷新流程
+- **续任务须知**：Vue 红灯命令：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py::test_vue_import_api_helper_uses_notion_and_obsidian_contracts tests\test_webapp\test_frontend_vue_app.py::test_vue_document_import_panel_renders_notion_and_obsidian_import_controls tests\test_webapp\test_vue_app_handles_notion_and_obsidian_import_response_and_refreshes_library -q`；失败点为缺少新 helper、导入控件和 App 接线。
