@@ -31,7 +31,7 @@
 - [x] 任务 2：实现向量存储抽象与 `webapp/search.py` 集成；默认仍走 SQLite fallback，显式传入 provider 时使用 provider 候选。
 - [x] 任务 3：写 Qdrant provider 红灯测试，覆盖本地 collection 创建、upsert、query、软依赖缺失降级和向量维度转换。
 - [x] 任务 4：实现 `backend/providers/vector_store/` Qdrant 本地 provider、配置读取和依赖声明。
-- [ ] 任务 5：写 storage 同步红灯测试，覆盖文档摄入/更新/删除时向量 provider 的 upsert/delete 调用，以及 provider 异常时不破坏 SQLite 写入。
+- [x] 任务 5：写 storage 同步红灯测试，覆盖文档摄入/更新/删除时向量 provider 的 upsert/delete 调用，以及 provider 异常时不破坏 SQLite 写入。
 - [ ] 任务 6：实现 `webapp/storage.py` 与 Qdrant provider 同步逻辑，保留 SQLite `chunk_vectors` 兼容数据和恢复路径。
 - [ ] 任务 7：同步功能文档、设计文档、API/DB 说明和 ADR；运行相关验证；关闭 BACKLOG 并删除本 plan。
 
@@ -103,6 +103,7 @@
 - 2026-06-28：任务 2 实现 `BaseVectorStore` / `VectorSearchHit` / `VectorUpsertRecord`，并让 `search_documents(..., vector_store=...)` 使用 provider 候选；验证 `tests/test_webapp/test_search.py` 20 passed。
 - 2026-06-28：任务 3 红灯测试命令 `& E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests/test_backend/test_qdrant_vector_store.py -q`；4 failed，失败点均为 `backend.config.vector_store` / `backend.providers.vector_store.qdrant` 模块尚不存在。
 - 2026-06-28：任务 4 实现 Qdrant 本地 provider、`backend.config.vector_store` 和 `qdrant-client` 依赖声明；验证 `tests/test_backend tests/test_webapp/test_search.py` 34 passed。
+- 2026-06-28：任务 5 红灯测试命令 `& E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests/test_webapp/test_vector_store_sync.py -q`；4 failed，失败点为 `KnowledgeStore.__init__()` 尚无 `vector_store` 参数。
 
 ## 9. 状态快照
 
@@ -111,8 +112,8 @@
 > 正常完成后随 plan 一起删除。
 
 - **最后更新**：2026-06-28 00:00
-- **进度**：已完成 3 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`d27a4b4` — test: 增加 Qdrant provider 红灯测试
-- **代码状态**：`fix/B-134-qdrant-vector-store`；任务 3 已提交；§9 快照已更新；Qdrant provider 模块尚未实现
-- **下一步**：任务 4：实现 `backend/providers/vector_store/` Qdrant 本地 provider、配置读取和依赖声明。
-- **续任务须知**：在 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-134-qdrant-vector-store` 执行；测试使用 `E:\Code\knowledage_island\.venv\Scripts\python.exe`；任务 3 红灯失败为 provider/config 模块缺失。
+- **进度**：已完成 4 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`1e4e21c` — feat: 新增 Qdrant 本地向量存储
+- **代码状态**：`fix/B-134-qdrant-vector-store`；任务 4 已提交；§9 快照已更新；storage 同步尚未实现
+- **下一步**：任务 5：写 storage 同步红灯测试，覆盖文档摄入/更新/删除时向量 provider 的 upsert/delete 调用，以及 provider 异常时不破坏 SQLite 写入。
+- **续任务须知**：在 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-134-qdrant-vector-store` 执行；测试使用 `E:\Code\knowledage_island\.venv\Scripts\python.exe`；任务 4 验证 `tests/test_backend tests/test_webapp/test_search.py` 34 passed；`.gitignore` 已将运行时 `/vector_store/` 规则收窄，避免误忽略 `backend/providers/vector_store/` 代码。
