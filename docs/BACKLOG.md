@@ -89,8 +89,8 @@
 | B-132 | feature | 网页自动爬取（可选依赖） | todo | P3 | XL | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md | 对接 `playwright` 或 `requests-html` 实现 URL 来源自动抓取；需解决动态页面、robots.txt 遵守和依赖隔离；B-119 的细化实现；预估 7 天 |
 | B-133 | feature | GitHub 仓库整体导入 | done | P2 | L | v1.0.0 | RAG 团队 | docs/features/github-repo-import.md, docs/design/api-spec.md, docs/requirements/functional-modules.md | 已完成：通过本机 `git clone --depth 1` 导入 GitHub 仓库并创建项目空间；新增 `/api/import/github-repo`、Vue 资料库入口和 `github_repo` 导入批次记录；不接入 GitHub API，不保存凭据 |
 | B-134 | feature | Qdrant 替换 SQLite 向量存储 | done | P3 | L | v1.0.0 | RAG 团队 | docs/features/qdrant-vector-store.md, docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-007-qdrant-vector-store.md | 已完成：新增 Qdrant local mode provider、配置开关、文档向量同步和搜索候选接入；默认关闭，Qdrant 不可用时回退 SQLite `chunk_vectors`；不改 API 契约或 SQLite schema |
-| B-135 | feature | 多模型并排对比 | todo | P3 | L | backlog | RAG 团队 | docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天 |
-| B-136 | docs | OpenAPI / Swagger 接口文档 | todo | P3 | M | backlog | RAG 团队 | docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天 |
+| B-135 | feature | 多模型并排对比 | doing | P3 | L | backlog | RAG 团队 | docs/features/multi-model-comparison.md, docs/design/api-spec.md | 同一问题同时发给 2 个不同 Profile 展示对比回答；预估 5 天；plan：docs/plans/B-135-multi-model-comparison.md |
+| B-136 | docs | OpenAPI / Swagger 接口文档 | doing | P3 | M | backlog | RAG 团队 | docs/features/openapi-swagger-docs.md, docs/design/api-spec.md | 为当前 61 个 API 端点生成 OpenAPI 3.0 规范文档，支持 Swagger UI；预估 2 天；plan：docs/plans/B-136-openapi-swagger-docs.md |
 | B-137 | feature | Notion / Obsidian 本地导出同步 | done | P2 | L | v1.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md | 已完成：新增 Notion Markdown zip 与 Obsidian vault 本地导入 API、Vue 资料库入口、导入批次记录和文档契约；不接入 Notion API，不修改 SQLite schema |
 | B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
 | B-67 | feature | Web 向量库与 Reranker 接入（legacy 规划） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-134（Qdrant）和 B-125（Reranker）拆分替代 |
