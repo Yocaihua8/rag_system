@@ -1679,6 +1679,119 @@ def test_obsidian_vault_import_api_imports_markdown_vault_and_records_batch(tmp_
     assert search_response.body["hits"][0]["path"] == "obsidian/README.md"
 
 
+def test_github_repo_import_service_clones_repo_and_imports_supported_files(tmp_path: Path):
+    from webapp.github_import import import_github_repo
+
+    store = KnowledgeStore(tmp_path / "app.db")
+    clone_root = tmp_path / "github-repos"
+    commands: list[list[str]] = []
+
+    def fake_clone(command: list[str]) -> None:
+        commands.append(command)
+        target = Path(command[-1])
+        target.mkdir(parents=True)
+        (target / "README.md").write_text("# Island\n\nGitHub repo import.", encoding="utf-8")
+        src_dir = target / "src"
+        src_dir.mkdir()
+        (src_dir / "app.py").write_text("print('hello island')", encoding="utf-8")
+        ignored_dir = target / "node_modules" / "pkg"
+        ignored_dir.mkdir(parents=True)
+        (ignored_dir / "index.js").write_text("ignored dependency", encoding="utf-8")
+        git_dir = target / ".git"
+        git_dir.mkdir()
+        (git_dir / "config").write_text("ignored git metadata", encoding="utf-8")
+
+    imported = import_github_repo(
+        store,
+        repo_url="https://github.com/acme/island.git",
+        branch="main",
+        project_name="Island Code",
+        clone_root=clone_root,
+        clone_runner=fake_clone,
+    )
+
+    assert len(commands) == 1
+    command = commands[0]
+    assert command[:4] == ["git", "clone", "--depth", "1"]
+    assert command[4:6] == ["--branch", "main"]
+    assert command[-2] == "https://github.com/acme/island.git"
+    assert Path(command[-1]).parent == clone_root
+    assert imported.project.name == "Island Code"
+    assert imported.project.root_path == Path(command[-1])
+    assert imported.result.imported == 2
+    assert imported.result.created == 2
+    assert imported.result.skipped == 1
+    assert imported.result.skipped_details == [
+        {"path": "node_modules/pkg/index.js", "reason": "ignored directory"}
+    ]
+    assert [doc.relative_path for doc in store.list_documents(imported.project.id)] == ["README.md", "src/app.py"]
+
+
+def test_github_repo_import_api_creates_project_and_records_batch(tmp_path: Path, monkeypatch):
+    import webapp.github_import as github_import
+
+    store = KnowledgeStore(tmp_path / "app.db")
+    clone_root = tmp_path / "github-repos"
+    commands: list[list[str]] = []
+
+    def fake_clone(command: list[str]) -> None:
+        commands.append(command)
+        target = Path(command[-1])
+        target.mkdir(parents=True)
+        (target / "README.md").write_text("# Island\n\nGitHub repo import.", encoding="utf-8")
+        src_dir = target / "src"
+        src_dir.mkdir()
+        (src_dir / "app.py").write_text("print('hello island')", encoding="utf-8")
+
+    monkeypatch.setattr(github_import, "github_clone_root", lambda: clone_root)
+    monkeypatch.setattr(github_import, "run_git_clone", fake_clone)
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/github-repo",
+        {
+            "repo_url": "https://github.com/acme/island.git",
+            "branch": "main",
+            "project_name": "Island Code",
+        },
+    )
+
+    assert response.status == 200
+    assert len(commands) == 1
+    assert response.body["project"]["name"] == "Island Code"
+    assert response.body["project"]["root_exists"] is True
+    assert response.body["result"]["imported"] == 2
+    assert response.body["result"]["created"] == 2
+    assert response.body["batch"]["source_type"] == "github_repo"
+    assert response.body["batch"]["status"] == "success"
+    assert [doc["relative_path"] for doc in response.body["documents"]] == ["README.md", "src/app.py"]
+
+    list_response = dispatch(
+        store,
+        "GET",
+        f"/api/import/batches?project_id={response.body['project']['id']}",
+    )
+    assert [batch["source_type"] for batch in list_response.body["batches"]] == ["github_repo"]
+
+
+def test_github_repo_import_api_rejects_invalid_payloads(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    missing_url = dispatch(store, "POST", "/api/import/github-repo", {})
+    invalid_host = dispatch(
+        store,
+        "POST",
+        "/api/import/github-repo",
+        {"repo_url": "https://gitlab.com/acme/island.git"},
+    )
+
+    assert missing_url.status == 400
+    assert missing_url.body["error"] == "repo_url is required"
+    assert invalid_host.status == 400
+    assert invalid_host.body["error"] == "github repository url is invalid"
+
+
 def test_notion_and_obsidian_import_apis_reject_invalid_payloads(tmp_path: Path):
     store = KnowledgeStore(tmp_path / "app.db")
     project = store.create_project("知识岛", Path("browser-upload:知识岛"))

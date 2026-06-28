@@ -23,7 +23,7 @@
 
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
-- [ ] 任务 1：写 B-133 后端红灯测试，覆盖 GitHub URL 校验、clone runner 注入、API 响应和导入批次记录
+- [x] 任务 1：写 B-133 后端红灯测试，覆盖 GitHub URL 校验、clone runner 注入、API 响应和导入批次记录
 - [ ] 任务 2：实现 GitHub 仓库 clone + 目录导入后端能力，不修改数据库 schema、不接入 GitHub API
 - [ ] 任务 3：写 Vue 前端红灯测试，覆盖 API helper、导入面板表单和 App 事件串联
 - [ ] 任务 4：实现 Vue 资料库 GitHub 导入入口，成功后刷新并选中新建项目
@@ -85,12 +85,13 @@
 
 - 2026-06-28：创建 plan。用户指定参考 `docs/design/new-architecture-design.md §5.7`，但当前隔离 worktree 中该文件不存在；为避免混入其他工作区未跟踪的大型设计文档，本任务只同步已跟踪的 `docs/design/api-spec.md`、`docs/requirements/functional-modules.md` 和新功能文档。
 - 2026-06-28：冲突扫描发现 B-145 plan 仍为 Interrupted，但其影响范围是 Tauri/sidecar 打包链路，与 B-133 导入 API 和资料库入口无代码重叠；采用分区策略。
+- 2026-06-28：任务 1 红灯测试已运行：`& 'E:\Code\knowledage_island\.venv\Scripts\python.exe' -m pytest tests\test_webapp\test_api.py -q -k "github_repo_import"`，结果 3 failed，失败点符合预期：缺少 `webapp.github_import`，且 `/api/import/github-repo` 仍返回 404。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-28 00:00
-- **进度**：已完成 0 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`N/A` — 尚未完成首个子任务提交
-- **代码状态**：`fix/B-133-github-repo-import` 分支；仅创建计划和功能文档
-- **下一步**：任务 1：写 B-133 后端红灯测试，覆盖 GitHub URL 校验、clone runner 注入、API 响应和导入批次记录
+- **最后更新**：2026-06-28 00:15
+- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`待提交` — test: 增加 GitHub 仓库导入红灯测试
+- **代码状态**：`fix/B-133-github-repo-import` 分支；后端红灯测试已写入，尚无实现
+- **下一步**：任务 2：实现 GitHub 仓库 clone + 目录导入后端能力，不修改数据库 schema、不接入 GitHub API
 - **续任务须知**：使用隔离 worktree `C:\Users\Lenovo\.config\superpowers\worktrees\knowledage_island\fix-B-133-github-repo-import`；不要修改原始 checkout 的未提交改动。
