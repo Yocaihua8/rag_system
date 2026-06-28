@@ -1720,10 +1720,8 @@ def test_github_repo_import_service_clones_repo_and_imports_supported_files(tmp_
     assert imported.project.root_path == Path(command[-1])
     assert imported.result.imported == 2
     assert imported.result.created == 2
-    assert imported.result.skipped == 1
-    assert imported.result.skipped_details == [
-        {"path": "node_modules/pkg/index.js", "reason": "ignored directory"}
-    ]
+    assert imported.result.skipped == 0
+    assert imported.result.skipped_details == []
     assert [doc.relative_path for doc in store.list_documents(imported.project.id)] == ["README.md", "src/app.py"]
 
 

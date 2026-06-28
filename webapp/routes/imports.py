@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from webapp.api_support import query_value
+from webapp.github_import import import_github_repo
 from webapp.ingestion import import_directory, preview_import_directory
 from webapp.models import ApiResponse, Document, ImportResult
 from webapp.notion_obsidian_import import import_notion_zip, import_obsidian_vault
@@ -97,6 +98,28 @@ def handle_imports_route(
         batch = _record_import_batch(store, project_id, "obsidian_vault", result)
         documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         return ApiResponse(200, {"result": result.to_dict(), "batch": batch.to_dict(), "documents": documents})
+
+    if method == "POST" and path == "/api/import/github-repo":
+        try:
+            imported = import_github_repo(
+                store,
+                repo_url=str(payload.get("repo_url", "")),
+                branch=str(payload.get("branch", "")),
+                project_name=str(payload.get("project_name", "")),
+            )
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        batch = _record_import_batch(store, imported.project.id, "github_repo", imported.result)
+        documents = [doc.to_dict() for doc in store.list_documents(imported.project.id)]
+        return ApiResponse(
+            200,
+            {
+                "project": imported.project.to_dict(),
+                "result": imported.result.to_dict(),
+                "batch": batch.to_dict(),
+                "documents": documents,
+            },
+        )
 
     if method == "POST" and path == "/api/import/note":
         project_id = str(payload.get("project_id", ""))
