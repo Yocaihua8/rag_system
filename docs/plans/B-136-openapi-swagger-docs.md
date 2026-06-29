@@ -83,8 +83,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29
-- **进度**：已完成 0 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`TBD` — 尚未完成首个子任务
-- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；计划创建阶段
-- **下一步**：等待 B-135 完成后执行任务 1：写 B-136 红灯测试
+- **进度**：已完成 1 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`c4254bb` — test: 增加 OpenAPI 文档红灯测试
+- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；B-136 红灯测试已提交，失败点为运行时 schema 缺少显式 API paths
+- **下一步**：任务 2：实现运行时 OpenAPI schema
 - **续任务须知**：B-136 不改业务分发行为，只补 OpenAPI schema；认证开启时 `/docs`、`/redoc`、`/openapi.json` 仍需凭证。
