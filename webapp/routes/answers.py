@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from webapp.answer_api import answer_response
+from webapp.answer_api import answer_compare_response, answer_response
 from webapp.models import ApiResponse
 from webapp.storage import KnowledgeStore
 
@@ -42,5 +42,8 @@ def handle_answer_route(
 
     if method == "POST" and path == "/api/answer":
         return answer_response(store, payload, llm_client)
+
+    if method == "POST" and path == "/api/answer/compare":
+        return answer_compare_response(store, payload)
 
     return None

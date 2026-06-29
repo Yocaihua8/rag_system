@@ -6,11 +6,13 @@ from typing import Any
 
 from webapp.answers import compose_answer
 from webapp.api_support import project_retrieval_settings, source_quality
-from webapp.llm import OpenAICompatibleChatClient
+from webapp.llm import OpenAICompatibleChatClient, build_llm_client
 from webapp.model_profiles import llm_config_from_profile
-from webapp.models import AgentToolRun, ApiResponse, SearchHit
+from webapp.models import AgentToolRun, ApiResponse, ModelProfile, SearchHit
 from webapp.search import search_documents
 from webapp.storage import KnowledgeStore
+
+_COMPARE_CONTEXT_CLIENT = object()
 
 
 def answer_response(
@@ -29,6 +31,51 @@ def answer_response(
         prompt_preset=context["prompt_preset"],
     )
     return ApiResponse(200, answer_body_from_result(store, context, answer_result))
+
+
+def answer_compare_response(store: KnowledgeStore, payload: dict[str, Any]) -> ApiResponse:
+    profiles_response, profiles = _compare_profiles_from_payload(store, payload)
+    if profiles_response is not None:
+        return profiles_response
+
+    context, error = prepare_answer_context(store, payload, _COMPARE_CONTEXT_CLIENT)
+    if error:
+        return error
+
+    results = []
+    for profile in profiles:
+        client = build_llm_client(llm_config_from_profile(profile))
+        answer_result = compose_answer(
+            str(context["question"]),
+            context["useful_hits"],
+            llm_client=client,
+            history_messages=context["history_messages"],
+            prompt_preset=context["prompt_preset"],
+        )
+        results.append(_comparison_result(profile, answer_result))
+
+    useful_hits = context["useful_hits"]
+    body = {
+        "question": str(context["question"]),
+        "results": results,
+        "sources": [hit.to_dict() for hit in useful_hits[:5]],
+        "source_quality": source_quality(useful_hits),
+        "pipeline_trace": _pipeline_trace(useful_hits),
+        "observability": _comparison_observability(
+            useful_hits,
+            context["retrieval_settings"],
+            profiles,
+            float(context["started_at"]),
+        ),
+    }
+    tool_context_run = context["tool_context_run"]
+    if tool_context_run:
+        body["tool_context"] = {
+            "tool_run_id": tool_context_run.id,
+            "query": str(tool_context_run.result.get("query", "")),
+            "hit_count": len(context["tool_context_hits"]),
+        }
+    return ApiResponse(200, body)
 
 
 def prepare_answer_context(
@@ -137,6 +184,68 @@ def _default_model_profile_client(store: KnowledgeStore) -> OpenAICompatibleChat
     client_class = _openai_compatible_chat_client_class()
     client = client_class(llm_config_from_profile(profile))
     return client if client.is_configured() else None
+
+
+def _compare_profiles_from_payload(
+    store: KnowledgeStore,
+    payload: dict[str, Any],
+) -> tuple[ApiResponse | None, list[ModelProfile]]:
+    raw_profile_ids = payload.get("profile_ids", [])
+    if not isinstance(raw_profile_ids, list):
+        return ApiResponse(400, {"error": "profile_ids must contain exactly 2 model profile ids"}), []
+    profile_ids = [str(profile_id).strip() for profile_id in raw_profile_ids if str(profile_id).strip()]
+    if len(profile_ids) != 2:
+        return ApiResponse(400, {"error": "profile_ids must contain exactly 2 model profile ids"}), []
+    if len(set(profile_ids)) != 2:
+        return ApiResponse(400, {"error": "profile_ids must contain 2 different model profile ids"}), []
+
+    profiles = []
+    for profile_id in profile_ids:
+        profile = store.get_model_profile(profile_id)
+        if not profile:
+            return ApiResponse(404, {"error": "model profile not found"}), []
+        profiles.append(profile)
+    return None, profiles
+
+
+def _comparison_result(profile: ModelProfile, answer_result: Any) -> dict[str, Any]:
+    result = {
+        "profile_id": profile.id,
+        "profile_name": profile.name,
+        "profile_provider": profile.provider,
+        "model": profile.model,
+        "answer": answer_result.answer,
+        "mode": answer_result.mode,
+        "provider": answer_result.provider,
+    }
+    if answer_result.warning:
+        result["warning"] = answer_result.warning
+    if answer_result.tool_suggestion:
+        result["tool_suggestion"] = answer_result.tool_suggestion
+    return result
+
+
+def _comparison_observability(
+    hits: list[SearchHit],
+    retrieval_settings: dict[str, object],
+    profiles: list[ModelProfile],
+    started_at: float,
+) -> dict[str, Any]:
+    return {
+        "retrieval": {
+            "top_k": int(retrieval_settings["top_k"]),
+            "min_score": float(retrieval_settings["min_score"]),
+            "use_keyword": bool(retrieval_settings["use_keyword"]),
+            "use_vector": bool(retrieval_settings["use_vector"]),
+            "hit_count": len(hits),
+        },
+        "model_comparison": {
+            "profile_count": len(profiles),
+            "profile_ids": [profile.id for profile in profiles],
+            "models": [profile.model for profile in profiles],
+        },
+        "elapsed_ms": max(0, round((time.perf_counter() - started_at) * 1000)),
+    }
 
 
 def _openai_compatible_chat_client_class():
