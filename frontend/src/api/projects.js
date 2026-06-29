@@ -65,6 +65,14 @@ export async function getRetrievalSettings(projectId) {
   return data.settings || null;
 }
 
+export async function getProjectSummary(projectId) {
+  if (!projectId) {
+    return null;
+  }
+  const data = await apiGet(`/api/projects/summary?project_id=${encodeURIComponent(projectId)}`);
+  return data.summary || null;
+}
+
 export async function saveRetrievalSettings({ projectId, topK, minScore, useKeyword, useVector }) {
   if (!projectId) {
     throw new Error("请先创建或选择项目空间");

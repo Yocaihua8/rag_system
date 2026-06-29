@@ -1,4 +1,4 @@
-import { apiPost } from "./client.js";
+import { apiGet, apiPost } from "./client.js";
 
 export async function startAssessmentSession(projectId) {
   if (!projectId) {
@@ -25,4 +25,12 @@ export async function submitAssessmentAnswer({ projectId, question, answer }) {
     question,
     answer: cleanAnswer,
   });
+}
+
+export async function loadAssessmentLibrary(projectId) {
+  if (!projectId) {
+    return null;
+  }
+  const data = await apiGet(`/api/assessment/library?project_id=${encodeURIComponent(projectId)}`);
+  return data.library || null;
 }

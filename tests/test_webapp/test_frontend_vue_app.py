@@ -101,7 +101,7 @@ def test_vue_assessment_api_helper_uses_existing_assessment_contracts():
     assessment_js = _read(str(assessment_path))
 
     for marker in [
-        'import { apiPost } from "./client.js";',
+        'import { apiGet, apiPost } from "./client.js";',
         "export async function startAssessmentSession(projectId)",
         'throw new Error("请先创建或选择项目空间")',
         'apiPost("/api/assessment/start"',
@@ -112,6 +112,9 @@ def test_vue_assessment_api_helper_uses_existing_assessment_contracts():
         'apiPost("/api/assessment/answer"',
         "question",
         "answer: cleanAnswer",
+        "export async function loadAssessmentLibrary(projectId)",
+        'apiGet(`/api/assessment/library?project_id=${encodeURIComponent(projectId)}`)',
+        "return data.library || null",
     ]:
         assert marker in assessment_js
 
@@ -220,6 +223,77 @@ def test_vue_project_api_helper_preserves_project_selection_contract():
     assert "localStorage.removeItem(PROJECT_SELECTION_STORAGE_KEY)" in projects_js
     assert "appState.projects" in projects_js
     assert "appState.selectedProjectId" in projects_js
+    assert "export async function getProjectSummary(projectId)" in projects_js
+    assert 'apiGet(`/api/projects/summary?project_id=${encodeURIComponent(projectId)}`)' in projects_js
+    assert "return data.summary || null" in projects_js
+
+
+def test_vue_knowledge_base_management_panel_renders_daily_management_overview():
+    panel_path = Path("frontend/src/components/KnowledgeBaseManagementPanel.vue")
+    assert panel_path.exists(), "B-42 should add KnowledgeBaseManagementPanel"
+    panel_vue = _read(str(panel_path))
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "知识库辅助管理",
+        "项目状态",
+        "检索健康",
+        "摄入进度",
+        "文件列表",
+        "评估题库",
+        "最近结果",
+        "请选择项目空间后查看知识库管理概览",
+        "知识库为空",
+        "暂无导入批次历史",
+        "暂无评估题目",
+        "projectSummary",
+        "assessmentLibrary",
+        "latestImportBatch",
+        "retrievalHealthLabel",
+        "questionTypeRows",
+        "statusCountRows",
+    ]:
+        assert marker in panel_vue
+
+    assert "KnowledgeBaseManagementPanel" in library_vue
+    assert ":project-summary=\"projectSummary\"" in library_vue
+    assert ":assessment-library=\"assessmentLibrary\"" in library_vue
+    assert ":import-batches=\"importBatches\"" in library_vue
+    assert ":documents=\"documents\"" in library_vue
+
+
+def test_vue_app_loads_knowledge_base_management_overview_for_library_page():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "getProjectSummary",
+        "loadAssessmentLibrary",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":project-summary=\"appState.projectSummary\"",
+        ":project-summary-loading=\"appState.projectSummaryLoading\"",
+        ":project-summary-error=\"appState.projectSummaryError\"",
+        ":assessment-library=\"appState.assessmentLibrary\"",
+        ":assessment-library-loading=\"appState.assessmentLibraryLoading\"",
+        ":assessment-library-error=\"appState.assessmentLibraryError\"",
+        "loadKnowledgeBaseManagementOverview",
+        "clearKnowledgeBaseManagementOverview",
+        "await loadKnowledgeBaseManagementOverview()",
+    ]:
+        assert marker in app_vue
+
+    for state_field in [
+        "projectSummary",
+        "projectSummaryLoading",
+        "projectSummaryError",
+        "assessmentLibrary",
+        "assessmentLibraryLoading",
+        "assessmentLibraryError",
+    ]:
+        assert f"{state_field}:" in state_js
 
 
 def test_vue_project_space_panel_renders_project_selection_and_creation_form():

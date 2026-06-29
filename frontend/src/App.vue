@@ -74,6 +74,12 @@
       :retrieval-review-detail-loading="appState.retrievalReviewDetailLoading"
       :retrieval-review-detail-error="appState.retrievalReviewDetailError"
       :deleting-retrieval-review-id="appState.deletingRetrievalReviewId"
+      :project-summary="appState.projectSummary"
+      :project-summary-loading="appState.projectSummaryLoading"
+      :project-summary-error="appState.projectSummaryError"
+      :assessment-library="appState.assessmentLibrary"
+      :assessment-library-loading="appState.assessmentLibraryLoading"
+      :assessment-library-error="appState.assessmentLibraryError"
       :agent-tools="appState.agentTools"
       :agent-tools-loading="appState.agentToolsLoading"
       :agent-tools-error="appState.agentToolsError"
@@ -248,7 +254,7 @@ import {
   renameChatSession,
   submitAnswerFeedback,
 } from "./api/answer.js";
-import { startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
+import { loadAssessmentLibrary, startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
 import { getOllamaStatus, pullOllamaModel } from "./api/ollama.js";
 import {
@@ -276,6 +282,7 @@ import {
 import {
   createProject,
   deleteProject,
+  getProjectSummary,
   getRetrievalSettings,
   loadProjects,
   renameProject,
@@ -640,6 +647,7 @@ async function handleStartAssessment() {
     appState.assessmentAnsweredCurrent = false;
     appState.assessmentQuestion = currentAssessmentQuestion();
     appState.assessmentStatus = "评估题已生成";
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.assessmentError = error.message || "评估题生成失败";
     appState.assessmentStatus = "评估题生成失败";
@@ -666,6 +674,7 @@ async function handleSubmitAssessmentAnswer(answer) {
     appState.assessmentMissedQuestions = appState.assessmentResults.filter((item) => item.result?.status !== "已掌握");
     appState.assessmentAnsweredCurrent = true;
     appState.assessmentStatus = "评估反馈已生成";
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.assessmentError = error.message || "评估回答失败";
     appState.assessmentStatus = "评估回答失败";
@@ -724,6 +733,7 @@ async function loadProjectSpaces() {
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadKnowledgeBaseManagementOverview();
     await loadPromptPresets();
     await loadChatSessions();
     await loadChatMessages();
@@ -757,6 +767,7 @@ async function handleSelectProject(projectId) {
   await loadRetrievalReviews();
   await loadLibraryDocuments();
   await loadImportBatches();
+  await loadKnowledgeBaseManagementOverview();
   await loadPromptPresets();
   await loadChatSessions();
   await loadChatMessages();
@@ -926,6 +937,7 @@ async function handleCreateProject(payload) {
     await loadRetrievalReviews();
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadKnowledgeBaseManagementOverview();
     await loadPromptPresets();
     await loadChatSessions();
     await loadChatMessages();
@@ -999,6 +1011,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearRetrievalSettingsState();
   clearRetrievalReviewState();
   clearAgentToolState();
+  clearKnowledgeBaseManagementOverview();
   resetAssessmentState();
   clearImportPreview();
   clearCollectionFormStatus();
@@ -1080,6 +1093,7 @@ async function handleImportFiles(files) {
     appState.importStatus = formatImportResult("文件上传导入完成", data.result);
     await loadProjectSpaces();
     await loadImportBatches();
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.importError = error.message || "文件上传导入失败";
   } finally {
@@ -1101,6 +1115,7 @@ async function handleImportFolder(files) {
     appState.importStatus = formatImportResult("浏览器文件夹导入完成", data.result);
     await loadProjectSpaces();
     await loadImportBatches();
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.importError = error.message || "浏览器文件夹导入失败";
   } finally {
@@ -1121,6 +1136,7 @@ async function handleSyncDirectory() {
     appState.importStatus = formatImportResult("同步当前项目目录完成", data.result);
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.importError = error.message || "同步当前项目目录失败";
   } finally {
@@ -1156,6 +1172,7 @@ async function submitLibraryImport(successMessage, action) {
     appState.importStatus = successMessage;
     await loadLibraryDocuments();
     await loadImportBatches();
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.importError = error.message || "资料导入失败";
   } finally {
@@ -1228,6 +1245,40 @@ function clearRetrievalReviewState() {
   appState.retrievalReviewDetailLoading = false;
   appState.retrievalReviewDetailError = "";
   appState.deletingRetrievalReviewId = "";
+}
+
+function clearKnowledgeBaseManagementOverview() {
+  appState.projectSummary = null;
+  appState.projectSummaryLoading = false;
+  appState.projectSummaryError = "";
+  appState.assessmentLibrary = null;
+  appState.assessmentLibraryLoading = false;
+  appState.assessmentLibraryError = "";
+}
+
+async function loadKnowledgeBaseManagementOverview() {
+  clearKnowledgeBaseManagementOverview();
+  if (!appState.selectedProjectId) {
+    return;
+  }
+
+  appState.projectSummaryLoading = true;
+  try {
+    appState.projectSummary = await getProjectSummary(appState.selectedProjectId);
+  } catch (error) {
+    appState.projectSummaryError = error.message || "项目状态读取失败";
+  } finally {
+    appState.projectSummaryLoading = false;
+  }
+
+  appState.assessmentLibraryLoading = true;
+  try {
+    appState.assessmentLibrary = await loadAssessmentLibrary(appState.selectedProjectId);
+  } catch (error) {
+    appState.assessmentLibraryError = error.message || "评估题库读取失败";
+  } finally {
+    appState.assessmentLibraryLoading = false;
+  }
 }
 
 function clearAgentToolState() {
@@ -1815,6 +1866,7 @@ async function handleDeleteDocument(documentId) {
     appState.documentDeleteStatus = "文档已删除";
     await loadDocumentCollections();
     await loadLibraryDocuments();
+    await loadKnowledgeBaseManagementOverview();
   } catch (error) {
     appState.documentDeleteError = error.message || "文档删除失败";
   } finally {

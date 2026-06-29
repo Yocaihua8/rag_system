@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-28
+> Last Updated：2026-06-29
 
 本目录用于存放各个功能模块的详细说明。每个功能应尽量独立成文，避免把多个模块混写在一个文件里。
 
@@ -43,6 +43,7 @@
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界
 - `github-repo-import.md`：B-133 GitHub 仓库整体导入
+- `knowledge-base-management.md`：B-42 知识库辅助管理页
 - `multi-model-comparison.md`：B-135 多模型并排对比
 - `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步
 - `openapi-swagger-docs.md`：B-136 OpenAPI / Swagger 接口文档

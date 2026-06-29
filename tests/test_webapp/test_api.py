@@ -1367,6 +1367,27 @@ def test_project_summary_api_returns_current_project_health_counts(tmp_path: Pat
         source_quality={"level": "none"},
         note="",
     )
+    assessment_question = store.create_assessment_question(
+        project_id=project.id,
+        source_path="stack.md",
+        prompt="默认入口是什么？",
+        expected_points=["app.py"],
+        reference_snippet="默认入口是 app.py",
+        question_type="concept",
+        knowledge_point="默认入口",
+    )
+    assessment_answer = store.create_assessment_answer(project.id, assessment_question.id, "app.py")
+    assessment_result = store.create_assessment_result(
+        project_id=project.id,
+        question_id=assessment_question.id,
+        answer_id=assessment_answer.id,
+        status="已掌握",
+        score=1.0,
+        matched_points=["app.py"],
+        missing_points=[],
+        feedback="回答命中主要依据。",
+        source_path="stack.md",
+    )
 
     response = dispatch(store, "GET", f"/api/projects/summary?project_id={project.id}")
 
@@ -1379,12 +1400,15 @@ def test_project_summary_api_returns_current_project_health_counts(tmp_path: Pat
     assert response.body["summary"]["chat_message_count"] == 1
     assert response.body["summary"]["agent_tool_run_count"] == 1
     assert response.body["summary"]["retrieval_review_count"] == 1
+    assert response.body["summary"]["assessment_question_count"] == 1
+    assert response.body["summary"]["assessment_result_count"] == 1
     assert response.body["summary"]["last_activity_at"] == max(
         project.created_at,
         document_result.document.updated_at,
         chat_message.created_at,
         tool_run.created_at,
         retrieval_review.created_at,
+        assessment_result.created_at,
     )
 
 
@@ -1413,6 +1437,27 @@ def test_project_summary_api_counts_only_requested_project(tmp_path: Path):
         source_quality={"level": "none"},
         note="",
     )
+    question_b = store.create_assessment_question(
+        project_id=project_b.id,
+        source_path="b1.md",
+        prompt="B 项目资料是什么？",
+        expected_points=["B 项目"],
+        reference_snippet="B 项目资料一",
+        question_type="concept",
+        knowledge_point="B 项目资料",
+    )
+    answer_b = store.create_assessment_answer(project_b.id, question_b.id, "B 项目")
+    store.create_assessment_result(
+        project_id=project_b.id,
+        question_id=question_b.id,
+        answer_id=answer_b.id,
+        status="基本理解",
+        score=0.5,
+        matched_points=["B 项目"],
+        missing_points=[],
+        feedback="回答覆盖部分关键点。",
+        source_path="b1.md",
+    )
 
     response = dispatch(store, "GET", f"/api/projects/summary?project_id={project_a.id}")
 
@@ -1424,6 +1469,8 @@ def test_project_summary_api_counts_only_requested_project(tmp_path: Path):
     assert response.body["summary"]["chat_message_count"] == 1
     assert response.body["summary"]["agent_tool_run_count"] == 0
     assert response.body["summary"]["retrieval_review_count"] == 0
+    assert response.body["summary"]["assessment_question_count"] == 0
+    assert response.body["summary"]["assessment_result_count"] == 0
 
 
 def test_project_summary_api_rejects_missing_or_unknown_project(tmp_path: Path):

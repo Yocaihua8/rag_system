@@ -82,6 +82,7 @@ B-136 起，`/openapi.json` 使用 `webapp/openapi_schema.py` 中维护的显式
 - `GET /api/settings/llm`
 - `POST /api/settings/llm`
 - `POST /api/settings/llm/test`
+- `GET /api/assessment/library`
 - `POST /api/assessment/start`
 - `POST /api/assessment/answer`
 
@@ -163,7 +164,9 @@ data: {"status":"done","model":"qwen2.5:3b"}
 | `chat_message_count` | 当前项目聊天消息数 |
 | `agent_tool_run_count` | 当前项目 Agent 工具运行审计数 |
 | `retrieval_review_count` | 当前项目检索复盘记录数 |
-| `last_activity_at` | 当前项目最近活动时间，取项目创建、文档更新、向量更新、聊天、工具运行和检索复盘中的最新时间 |
+| `assessment_question_count` | 当前项目已生成评估题目数 |
+| `assessment_result_count` | 当前项目已保存评估结果数 |
+| `last_activity_at` | 当前项目最近活动时间，取项目创建、文档更新、向量更新、聊天、工具运行、检索复盘、评估题目和评估结果中的最新时间 |
 
 `GET/POST /api/projects/retrieval-settings` 用于读取和保存项目级检索默认值。字段包括 `top_k`、`min_score`、`use_keyword`、`use_vector`，保存到当前项目记录中。`top_k` 会限制在 1-20，`min_score` 最小为 0；布尔字段按 `true/false` 保存。问答和检索诊断共用这组默认值：`/api/answer` 会直接使用当前项目默认值，`/api/search/debug` 在请求未显式传入参数时使用当前项目默认值；如果诊断请求显式传入参数，则以本次请求参数为准。该接口不创建检索复盘、不执行检索、不调用模型。
 
@@ -434,10 +437,13 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 | 方法 | 路径 | 请求 | 成功响应 | 错误 |
 |------|------|------|----------|------|
+| GET | `/api/assessment/library?project_id=...` | query `project_id` | `{"library":{"project_id":"...","question_count":3,"result_count":2,"question_type_counts":{"concept":1},"status_counts":{"已掌握":1},"questions":[...],"recent_results":[...]}}` | `400 project_id is required`、`404 project not found` |
 | POST | `/api/assessment/start` | `project_id` | `{"session":{"id":"...","project_id":"...","questions":[{"id":"...","question_type":"concept|flow|code_location","knowledge_point":"...","source_path":"...","prompt":"...","expected_points":[...]}]}}` | `404 project not found`、`400 assessment requires imported documents` |
 | POST | `/api/assessment/answer` | `project_id`、`question`、`answer` | `{"result":{"result_id":"...","answer_id":"...","status":"已掌握|基本理解|需要补充|暂未掌握","score":0.0,"matched_points":[],"missing_points":[],"source_path":"..."}}` | `404 project not found`、`400 assessment question not found`、`400 answer is required` |
 
 Web MVP 评估是最小闭环：题目从已导入文档规则化生成，当前支持 `concept`（概念理解）、`flow`（流程说明）和 `code_location`（代码定位）三类；每题保存轻量 `knowledge_point` 标签和 `source_path`。提交回答时服务端会按题目 ID 读取已保存题目，使用服务端持久化的 `expected_points` 和 `reference_snippet` 评分，不信任前端回传的参考要点；评分结果保存到 `assessment_results`，回答保存到 `assessment_answers`。该实现不等同于 legacy 桌面端完整 Knowledge Mastery 存储模型。
+
+`GET /api/assessment/library` 是资料库管理概览使用的只读题库接口。它按当前项目返回题库数量、评估结果数量、题型分布、掌握状态分布、最近题目快照和最近评估结果；不生成新题、不评分、不修改评估会话，也不新增数据库表。
 
 ## 2. legacy 内部接口边界（应用层）
 

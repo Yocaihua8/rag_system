@@ -282,13 +282,17 @@ class KnowledgeStore:
                     (SELECT COUNT(*) FROM chat_messages m WHERE m.project_id = p.id) AS chat_message_count,
                     (SELECT COUNT(*) FROM agent_tool_runs r WHERE r.project_id = p.id) AS agent_tool_run_count,
                     (SELECT COUNT(*) FROM retrieval_reviews rr WHERE rr.project_id = p.id) AS retrieval_review_count,
+                    (SELECT COUNT(*) FROM assessment_questions aq WHERE aq.project_id = p.id) AS assessment_question_count,
+                    (SELECT COUNT(*) FROM assessment_results ar WHERE ar.project_id = p.id) AS assessment_result_count,
                     MAX(
                         p.created_at,
                         COALESCE((SELECT MAX(d.updated_at) FROM documents d WHERE d.project_id = p.id), p.created_at),
                         COALESCE((SELECT MAX(v.updated_at) FROM chunk_vectors v WHERE v.project_id = p.id), p.created_at),
                         COALESCE((SELECT MAX(m.created_at) FROM chat_messages m WHERE m.project_id = p.id), p.created_at),
                         COALESCE((SELECT MAX(r.created_at) FROM agent_tool_runs r WHERE r.project_id = p.id), p.created_at),
-                        COALESCE((SELECT MAX(rr.created_at) FROM retrieval_reviews rr WHERE rr.project_id = p.id), p.created_at)
+                        COALESCE((SELECT MAX(rr.created_at) FROM retrieval_reviews rr WHERE rr.project_id = p.id), p.created_at),
+                        COALESCE((SELECT MAX(aq.created_at) FROM assessment_questions aq WHERE aq.project_id = p.id), p.created_at),
+                        COALESCE((SELECT MAX(ar.created_at) FROM assessment_results ar WHERE ar.project_id = p.id), p.created_at)
                     ) AS last_activity_at
                 FROM projects p
                 WHERE p.id = ?
@@ -306,6 +310,8 @@ class KnowledgeStore:
             "chat_message_count": int(row["chat_message_count"]),
             "agent_tool_run_count": int(row["agent_tool_run_count"]),
             "retrieval_review_count": int(row["retrieval_review_count"]),
+            "assessment_question_count": int(row["assessment_question_count"]),
+            "assessment_result_count": int(row["assessment_result_count"]),
             "last_activity_at": row["last_activity_at"],
         }
 

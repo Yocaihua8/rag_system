@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from webapp.assessment import create_assessment_session, evaluate_assessment_answer
+from webapp.api_support import query_value
 from webapp.models import ApiResponse
 from webapp.storage import KnowledgeStore
 
@@ -14,6 +15,14 @@ def handle_assessment_route(
     query: dict[str, list[str]],
     payload: dict[str, Any],
 ) -> ApiResponse | None:
+    if method == "GET" and path == "/api/assessment/library":
+        project_id = query_value(query, "project_id")
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        return ApiResponse(200, {"library": _assessment_library_payload(store, project_id)})
+
     if method == "POST" and path == "/api/assessment/start":
         project_id = str(payload.get("project_id", ""))
         if not store.get_project(project_id):
@@ -63,3 +72,25 @@ def handle_assessment_route(
         return ApiResponse(200, {"result": result})
 
     return None
+
+
+def _assessment_library_payload(store: KnowledgeStore, project_id: str) -> dict[str, Any]:
+    questions = [question.to_dict() for question in store.list_assessment_questions(project_id)]
+    results = [result.to_dict() for result in store.list_assessment_results(project_id)]
+    question_type_counts: dict[str, int] = {}
+    status_counts: dict[str, int] = {}
+    for question in questions:
+        question_type = str(question.get("question_type") or "unknown")
+        question_type_counts[question_type] = question_type_counts.get(question_type, 0) + 1
+    for result in results:
+        status = str(result.get("status") or "unknown")
+        status_counts[status] = status_counts.get(status, 0) + 1
+    return {
+        "project_id": project_id,
+        "question_count": len(questions),
+        "result_count": len(results),
+        "question_type_counts": question_type_counts,
+        "status_counts": status_counts,
+        "questions": questions[:20],
+        "recent_results": list(reversed(results))[:10],
+    }

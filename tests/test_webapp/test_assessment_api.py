@@ -243,3 +243,54 @@ def test_assessment_answer_persists_answer_and_result(tmp_path: Path):
     assert results[0].status == response.body["result"]["status"]
     assert results[0].score == response.body["result"]["score"]
     assert results[0].matched_points == response.body["result"]["matched_points"]
+
+
+def test_assessment_library_api_returns_question_bank_and_recent_results(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(
+        project.id,
+        project_dir / "README.md",
+        "README.md",
+        "# 默认入口\n\napp.py 启动本地 Web 服务，SQLite 保存项目资料。",
+    )
+    start = dispatch(store, "POST", "/api/assessment/start", {"project_id": project.id})
+    question = start.body["session"]["questions"][0]
+    dispatch(
+        store,
+        "POST",
+        "/api/assessment/answer",
+        {
+            "project_id": project.id,
+            "question": question,
+            "answer": "app.py 启动 Web 服务，并使用 SQLite 保存项目资料。",
+        },
+    )
+
+    response = dispatch(store, "GET", f"/api/assessment/library?project_id={project.id}")
+
+    assert response.status == 200
+    library = response.body["library"]
+    assert library["project_id"] == project.id
+    assert library["question_count"] == len(start.body["session"]["questions"])
+    assert library["result_count"] == 1
+    assert library["question_type_counts"]["concept"] >= 1
+    assert library["status_counts"]
+    assert library["questions"][0]["id"] == question["id"]
+    assert library["questions"][0]["knowledge_point"]
+    assert library["recent_results"][0]["source_path"] == "README.md"
+    assert library["recent_results"][0]["status"] in {"已掌握", "基本理解", "需要补充", "暂未掌握"}
+
+
+def test_assessment_library_api_rejects_missing_or_unknown_project(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+
+    missing_id_response = dispatch(store, "GET", "/api/assessment/library")
+    unknown_project_response = dispatch(store, "GET", "/api/assessment/library?project_id=missing")
+
+    assert missing_id_response.status == 400
+    assert missing_id_response.body["error"] == "project_id is required"
+    assert unknown_project_response.status == 404
+    assert unknown_project_response.body["error"] == "project not found"

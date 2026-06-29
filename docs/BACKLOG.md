@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29（完成 B-147 src 桌面遗留代码归档）
+> Last Updated：2026-06-29（完成 B-42 知识库辅助管理页；保留 B-147 src 桌面遗留代码归档记录）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -74,7 +74,7 @@
 | B-148 | feature | First-Run Wizard（首次运行向导） | done | P1 | M | Tauri MVP 1 | RAG 团队 | docs/design/new-architecture-design.md §23.6, docs/features/first-run-wizard.md | 已完成：新增 Ollama 检测 `/api/ollama/status`、模型拉取 SSE `/api/ollama/pull`、Vue First-Run Wizard 和首个知识库创建入口；完成后删除 plan |
 | B-147 | tech-debt | 归档 src/ 桌面遗留代码 | done | P2 | XS | Tauri MVP 0 | RAG 团队 | docs/design/architecture-overview.md | 已完成：Web/Tauri/Docker 活动链路不再引用 `src/`；配置入口迁移到 `backend/config/`；旧 PySide6 / 六边形代码、legacy 测试和旧桌面脚本已归档到 `archive/src-desktop-legacy/`；不再接受 legacy PR |
 | B-144 | tech-debt | Docker 镜像内置 Vue 构建产物 | done | P1 | S | v0.11.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md | 已完成：Docker 镜像构建阶段执行 Vue/Vite 构建并复制 `webapp/static_dist/`，避免依赖宿主机预先运行 `npm run build`；完成后已删除 plan |
-| B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
+| B-42 | feature | 知识库辅助管理页 | done | P2 | L | v1.0.0 | RAG 团队 | docs/design/ui-wireframes.md, docs/features/knowledge-base-management.md | 已完成：资料库页顶部新增知识库辅助管理概览，展示项目状态、文件列表、摄入进度、评估题库和最近结果；新增只读 `/api/assessment/library` 和项目摘要评估计数字段；完成后删除 plan |
 | B-125 | feature | Reranker 重排序接入 | done | P1 | L | v1.0.0 | RAG 团队 | docs/design/new-architecture-design.md §5.4, docs/guides/setup.md, docs/design/api-spec.md | 已完成：BM25 + 向量候选后可选接入本地 Cross-Encoder reranker；默认关闭；`sentence-transformers` 为软依赖；命中返回 `rerank_score`，回答返回 `pipeline_trace.reranker_used` |
 | B-128 | feature | 对话分支与历史消息编辑重发 | done | P2 | M | v1.0.0 | RAG 团队 | docs/design/new-architecture-design.md §5.5.3, docs/features/chat-branching.md | 已完成：支持在历史消息上编辑并重发，写入 `parent_message_id` / `branch_index`；Vue 工作台提供编辑重发入口；完成后删除 plan |
 | B-126 | feature | 知识图谱接入检索流程 | todo | P2 | L | v1.0.0 | RAG 团队 | docs/design/database-design.md | `graph_nodes` / `graph_edges` 已建表（B-48），当前检索未使用；补充 Graph-enhanced 检索，扩展关联节点提升多跳推理；预估 5 天 |

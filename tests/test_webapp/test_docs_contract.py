@@ -11,6 +11,7 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "GET /api/projects/summary",
         "GET /api/projects/retrieval-settings",
         "GET /api/prompt-presets",
+        "GET /api/assessment/library",
         "POST /api/projects",
         "POST /api/projects/retrieval-settings",
         "POST /api/prompt-presets",
@@ -57,6 +58,8 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "chat_message_count",
         "agent_tool_run_count",
         "retrieval_review_count",
+        "assessment_question_count",
+        "assessment_result_count",
         "last_activity_at",
     ]:
         assert summary_field in api_spec

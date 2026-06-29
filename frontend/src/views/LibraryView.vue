@@ -8,6 +8,18 @@
       </div>
     </header>
 
+    <KnowledgeBaseManagementPanel
+      :selected-project-id="selectedProjectId"
+      :project-summary="projectSummary"
+      :project-summary-loading="projectSummaryLoading"
+      :project-summary-error="projectSummaryError"
+      :assessment-library="assessmentLibrary"
+      :assessment-library-loading="assessmentLibraryLoading"
+      :assessment-library-error="assessmentLibraryError"
+      :import-batches="importBatches"
+      :documents="documents"
+    />
+
     <div class="library-grid">
       <ProjectSpacePanel
         :projects="projects"
@@ -113,6 +125,7 @@ import DocumentImportPanel from "../components/DocumentImportPanel.vue";
 import DocumentListPanel from "../components/DocumentListPanel.vue";
 import DocumentPreviewPanel from "../components/DocumentPreviewPanel.vue";
 import ImportBatchHistoryPanel from "../components/ImportBatchHistoryPanel.vue";
+import KnowledgeBaseManagementPanel from "../components/KnowledgeBaseManagementPanel.vue";
 import ProjectSpacePanel from "../components/ProjectSpacePanel.vue";
 
 defineProps({
@@ -161,6 +174,30 @@ defineProps({
     default: "",
   },
   projectStatusMessage: {
+    type: String,
+    default: "",
+  },
+  projectSummary: {
+    type: Object,
+    default: null,
+  },
+  projectSummaryLoading: {
+    type: Boolean,
+    default: false,
+  },
+  projectSummaryError: {
+    type: String,
+    default: "",
+  },
+  assessmentLibrary: {
+    type: Object,
+    default: null,
+  },
+  assessmentLibraryLoading: {
+    type: Boolean,
+    default: false,
+  },
+  assessmentLibraryError: {
     type: String,
     default: "",
   },

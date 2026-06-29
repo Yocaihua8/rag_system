@@ -76,6 +76,7 @@ WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("GET", "/api/settings/llm", "Get LLM settings"),
     ("POST", "/api/settings/llm", "Save LLM settings"),
     ("POST", "/api/settings/llm/test", "Test LLM settings"),
+    ("GET", "/api/assessment/library", "Get assessment library summary"),
     ("POST", "/api/assessment/start", "Start assessment session"),
     ("POST", "/api/assessment/answer", "Submit assessment answer"),
 ]
