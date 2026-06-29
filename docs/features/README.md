@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-06-30
 
 本目录用于存放各个功能模块的详细说明。每个功能应尽量独立成文，避免把多个模块混写在一个文件里。
 
@@ -40,6 +40,7 @@
 ## 现有功能文档
 
 - `authentication.md`：B-140 API Key + JWT 认证中间件
+- `agent-tooling-mcp-research.md`：B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
 - `concurrent-indexing.md`：B-08 多工作区并发索引
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界

@@ -21,7 +21,7 @@
 ## 3. 任务拆解
 
 - [x] 梳理当前 Agent 工具边界与 MCP 能力映射，形成研究文档初稿。
-- [ ] 同步正式文档索引和权限/系统设计边界，运行文档验证。
+- [x] 同步正式文档索引和权限/系统设计边界，运行文档验证。
 - [ ] 同步 BACKLOG 完成状态，删除本 plan。
 
 ## 4. 影响范围
@@ -63,21 +63,22 @@
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
 | MCP / 插件能力研究结论、准入边界、拒绝范围 | `docs/features/agent-tooling-mcp-research.md` | [x] |
-| 只读工具与 MCP 未来接入的权限边界 | `docs/design/permission-matrix.md` | [ ] |
-| 系统设计中的 Agent 工具扩展边界 | `docs/design/system-design-overview.md` | [ ] |
-| 新研究文档索引 | `docs/README.md` | [ ] |
+| 只读工具与 MCP 未来接入的权限边界 | `docs/design/permission-matrix.md` | [x] |
+| 系统设计中的 Agent 工具扩展边界 | `docs/design/system-design-overview.md` | [x] |
+| 新研究文档索引 | `docs/README.md` | [x] |
 | B-117 完成状态 | `docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
 
 - 2026-06-30：B-117 明确为 research 小项，只做文档结论和后续任务拆分，不改运行时代码和 API。
 - 2026-06-30：新增 `docs/features/agent-tooling-mcp-research.md`，结论为当前不接入插件市场或任意 MCP server；后续仅可按 allowlist、只读、手动触发、审计记录方式研究最小适配层。
+- 2026-06-30：同步 `docs/README.md`、`docs/features/README.md`、`docs/design/permission-matrix.md`、`docs/design/system-design-overview.md`；验证 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_docs_contract.py -q` 通过 23 项，`.venv\Scripts\python.exe scripts\check_docs_consistency.py` 通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-30 00:00
-- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：`2628a36` — `docs: 启动 B-117 MCP 研究计划`
+- **进度**：已完成 2 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：`b97cb9e` — `docs: 完成 MCP 插件能力研究初稿`
 - **代码状态**：`fix/b-08-concurrent-index`；工作区存在非 B-117 既有改动，需精确暂存
-- **下一步**：同步正式文档索引和权限/系统设计边界，运行文档验证
+- **下一步**：同步 BACKLOG 完成状态，删除本 plan
 - **续任务须知**：只暂存 B-117 相关文件和 `docs/BACKLOG.md` 的 B-117 hunk

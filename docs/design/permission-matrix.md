@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-30
 > Scope：Knowledge Island Web MVP 本地单用户权限边界
 > Related：docs/design/api-spec.md, docs/design/architecture-overview.md
 
@@ -37,6 +37,7 @@
 | 跨项目工具注入拒绝 | `tool_run_id` 与当前 `project_id` 不匹配时拒绝注入上下文 | `webapp/answers.py` |
 | 跨项目集合操作拒绝 | 文档与集合必须属于同一 `project_id` | `webapp/api.py` |
 | 工具只读约束 | Agent 工具不开放文件写入、shell 执行或任意命令 | `webapp/agent_tools.py` |
+| MCP / 插件接入禁用 | 当前不加载第三方 MCP server、插件市场或任意外部工具；B-117 后续若进入实现，也必须先走只读 allowlist、用户手动触发和审计记录 | 研究结论：`docs/features/agent-tooling-mcp-research.md` |
 
 ## 3. 数据级权限规则
 
@@ -57,4 +58,5 @@
 ## 5. 计划变更
 
 - **B-118（P3）**：多用户 / 团队空间研究，实施前须引入认证层（JWT / Session）和 RBAC 模型
+- **B-117（P3）**：MCP / 插件能力研究已收口；当前仍不开放插件市场、shell、文件写入或任意命令执行
 - **B-136（P3）**：OpenAPI 对外开放，须评估是否需要 API Key 鉴权

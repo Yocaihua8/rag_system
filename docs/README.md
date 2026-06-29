@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-30
 > Related：CONTRIBUTING.md, CHANGELOG.md, AGENTS.md
 
 本仓库的文档按"项目约束 → 架构设计 → 开发流程"分层组织，遵循 `docs/style-guide.md` 写作规范。新的文档目录降低历史冗余，并保持与现有 `docs/architecture`、`docs/release` 历史文档的兼容。
@@ -46,7 +46,8 @@
 25. `design/api-changes.md` — API 变更分级与迁移指南
 26. `style-guide.md` — 文档写作规范
 27. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
-28. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
+28. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
+29. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
 
 ---
 

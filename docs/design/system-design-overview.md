@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-26
+> Last Updated：2026-06-30
 > Scope：Knowledge Island Web MVP 系统级设计
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/requirements/functional-modules.md
 
@@ -84,6 +84,7 @@
 - API Key 只保存引用（`env:` / `saved:`），不持久化明文
 - Agent 工具仅开放只读操作，工具白名单硬编码在 `agent_tools.py`
 - 不支持任意命令执行或文件写入
+- B-117 研究结论：MCP / 插件能力当前不接入运行时；未来如试验，只能作为显式配置的只读 allowlist 工具或资源适配层，不启用插件市场或模型自动调用外部工具
 - 服务只监听 127.0.0.1，不对外暴露网络端口
 
 ### 5.3 可维护性
@@ -99,8 +100,8 @@
 - LLM 层：`RAG_LLM_PROVIDER` 切换 ollama / api 模式
 - 模型 Profile 支持多配置，为未来模型路由预留接口
 - 向量存储层计划迁移至专用 vector store（Qdrant，B-134，P3）
+- Agent 工具层：只允许在现有只读白名单和审计模型内扩展；MCP 适配若进入实现，必须先落在该层而不是绕过 API / storage 边界
 
 ## 6. 待补充设计
 
-- Reranker 重排序接入设计（B-125，P2）
-- 专用向量库迁移方案（Qdrant，B-134，P3）
+- MCP / 插件能力研究已完成（B-117），结论见 `docs/features/agent-tooling-mcp-research.md`
