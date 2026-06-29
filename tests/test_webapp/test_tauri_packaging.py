@@ -13,6 +13,7 @@ def test_tauri_config_bundles_vue_build_and_backend_sidecar():
     assert config["build"]["beforeBuildCommand"] == "npm run build"
     assert config["build"]["frontendDist"] == "../webapp/static_dist"
     assert config["bundle"]["active"] is True
+    assert config["bundle"]["targets"] == ["nsis"]
     assert config["bundle"]["externalBin"] == ["binaries/knowledge-island-backend"]
 
 
@@ -56,28 +57,62 @@ def test_windows_sidecar_script_builds_pyinstaller_binary_for_tauri_triple():
     assert "knowledge-island-backend-x86_64-pc-windows-msvc.exe" in script
 
 
-def test_package_json_exposes_tauri_windows_packaging_scripts():
+def test_unix_sidecar_script_builds_pyinstaller_binary_for_native_tauri_triple():
+    script_path = Path("scripts/build-backend-sidecar.sh")
+
+    assert script_path.exists(), "B-24 must add a macOS/Linux sidecar build script"
+    script = script_path.read_text(encoding="utf-8")
+
+    assert "set -euo pipefail" in script
+    assert "npm run build" in script
+    assert "-m PyInstaller" in script
+    assert "--onefile" in script
+    assert "--name" in script
+    assert "knowledge-island-backend" in script
+    assert "webapp/static_dist:webapp/static_dist" in script
+    assert "rustc -vV" in script
+    assert "KI_TAURI_TARGET_TRIPLE" in script
+    assert "src-tauri/binaries" in script
+    assert "knowledge-island-backend-${TARGET_TRIPLE}" in script
+
+
+def test_package_json_exposes_tauri_cross_platform_packaging_scripts():
     package_data = json.loads(Path("package.json").read_text(encoding="utf-8"))
 
     assert package_data["scripts"]["sidecar:build"] == (
         "powershell -ExecutionPolicy Bypass -File scripts/build-backend-sidecar.ps1"
     )
+    assert package_data["scripts"]["sidecar:build:unix"] == "bash scripts/build-backend-sidecar.sh"
     assert package_data["scripts"]["tauri:dev"] == "tauri dev"
     assert package_data["scripts"]["tauri:build"] == "tauri build"
     assert package_data["scripts"]["tauri:build:windows"] == (
         "npm run sidecar:build && tauri build"
     )
+    assert package_data["scripts"]["tauri:build:macos"] == (
+        "npm run sidecar:build:unix && tauri build -- --bundles dmg"
+    )
+    assert package_data["scripts"]["tauri:build:linux"] == (
+        "npm run sidecar:build:unix && tauri build -- --bundles appimage"
+    )
     assert package_data["devDependencies"]["@tauri-apps/cli"]
 
 
-def test_desktop_packaging_docs_describe_windows_validation_commands():
+def test_desktop_packaging_docs_describe_cross_platform_validation_commands():
     setup = Path("docs/guides/setup.md").read_text(encoding="utf-8")
     testing = Path("docs/guides/testing.md").read_text(encoding="utf-8")
+    release = Path("docs/guides/release-process.md").read_text(encoding="utf-8")
     feature = Path("docs/features/desktop-packaging.md").read_text(encoding="utf-8")
 
     assert "npm run tauri:build:windows" in setup
     assert "scripts/build-backend-sidecar.ps1" in setup
     assert "npm run tauri:build:windows" in testing
+    assert "npm run tauri:build:macos" in testing
+    assert "npm run tauri:build:linux" in testing
     assert "tests/test_webapp/test_tauri_packaging.py" in testing
     assert "Tauri MVP 0" in feature
     assert "src-tauri/binaries/knowledge-island-backend-*-windows-msvc.exe" in feature
+    assert "macOS `.dmg`" in feature
+    assert "Linux `.AppImage`" in feature
+    assert "scripts/build-backend-sidecar.sh" in feature
+    assert "npm run tauri:build:macos" in release
+    assert "npm run tauri:build:linux" in release
