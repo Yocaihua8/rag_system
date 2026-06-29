@@ -56,3 +56,49 @@ def test_fastapi_app_streams_answer_as_sse(tmp_path):
     assert response.headers["content-type"].startswith("text/event-stream")
     assert "event: token" in response.text
     assert "event: done" in response.text
+
+
+def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
+    client = _client(tmp_path / "app.db")
+
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    assert schema["openapi"].startswith("3.")
+    assert schema["info"]["title"] == "Knowledge Island"
+    operations = {
+        (path, method)
+        for path, methods in schema["paths"].items()
+        for method in methods
+        if method in {"get", "post"}
+    }
+    assert len(operations) >= 62
+    for operation in [
+        ("/api/health", "get"),
+        ("/api/projects", "get"),
+        ("/api/projects", "post"),
+        ("/api/model-profiles", "get"),
+        ("/api/model-profiles", "post"),
+        ("/api/search", "post"),
+        ("/api/answer", "post"),
+        ("/api/answer/compare", "post"),
+        ("/api/answer/stream", "get"),
+        ("/api/agent/tools/run", "post"),
+        ("/api/assessment/start", "post"),
+    ]:
+        assert operation in operations
+    compare_operation = schema["paths"]["/api/answer/compare"]["post"]
+    assert compare_operation["summary"] == "Compare answers from two model profiles"
+    assert "requestBody" in compare_operation
+    assert "responses" in compare_operation
+
+
+def test_fastapi_swagger_ui_loads_local_openapi_schema(tmp_path):
+    client = _client(tmp_path / "app.db")
+
+    response = client.get("/docs")
+
+    assert response.status_code == 200
+    assert "Swagger UI" in response.text
+    assert "/openapi.json" in response.text

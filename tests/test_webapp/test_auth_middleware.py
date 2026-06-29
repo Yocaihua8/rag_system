@@ -97,8 +97,11 @@ def test_auth_enabled_protects_fastapi_docs(tmp_path):
     docs_response = client.get("/docs")
     openapi_response = client.get("/openapi.json")
     authorized_docs_response = client.get("/docs", headers={"X-API-Key": "secret-key"})
+    authorized_openapi_response = client.get("/openapi.json", headers={"X-API-Key": "secret-key"})
 
     assert docs_response.status_code == 401
     assert docs_response.json() == {"error": "authentication required"}
     assert openapi_response.status_code == 401
     assert authorized_docs_response.status_code == 200
+    assert authorized_openapi_response.status_code == 200
+    assert "/api/answer/compare" in authorized_openapi_response.json()["paths"]

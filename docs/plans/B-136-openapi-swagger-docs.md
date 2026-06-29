@@ -24,7 +24,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 未完成项不得删除。
 
-- [ ] 任务 1：写 B-136 红灯测试，覆盖 `/openapi.json` 的 OpenAPI 版本、显式 API paths、Swagger UI、认证保护和 compare 端点
+- [x] 任务 1：写 B-136 红灯测试，覆盖 `/openapi.json` 的 OpenAPI 版本、显式 API paths、Swagger UI、认证保护和 compare 端点
 - [ ] 任务 2：实现运行时 OpenAPI schema，补齐兼容分发 API 的 path/summary/request/response 元数据，不改业务路由
 - [ ] 任务 3：同步 `docs/features/openapi-swagger-docs.md` 与 `docs/design/api-spec.md`
 - [ ] 任务 4：运行 B-136 验证清单，关闭 BACKLOG 状态并删除本 plan
@@ -78,6 +78,7 @@
 ## 8. 执行记录
 
 - 2026-06-29：创建 plan。ctx7 FastAPI 文档确认可通过 `app.openapi = custom_openapi` 和 `fastapi.openapi.utils.get_openapi()` 自定义 schema；本任务保留 FastAPI 默认 docs 路由。
+- 2026-06-29：任务 1 红灯测试已运行：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_fastapi_server.py -q -k "openapi or swagger"` 结果 1 failed / 1 passed，失败原因为 `/openapi.json` 只有 5 个操作且缺少显式 Web MVP paths；`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_auth_middleware.py -q -k "protects_fastapi_docs"` 结果 1 failed，失败原因为授权后的 schema 缺少 `/api/answer/compare`。
 
 ## 9. 状态快照
 
@@ -87,4 +88,3 @@
 - **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；计划创建阶段
 - **下一步**：等待 B-135 完成后执行任务 1：写 B-136 红灯测试
 - **续任务须知**：B-136 不改业务分发行为，只补 OpenAPI schema；认证开启时 `/docs`、`/redoc`、`/openapi.json` 仍需凭证。
-
