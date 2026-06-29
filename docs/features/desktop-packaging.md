@@ -2,7 +2,7 @@
 
 > 状态：Draft
 > Owner：RAG 团队
-> Last Updated：2026-06-28
+> Last Updated：2026-06-29
 > Scope：B-145 Tauri 桌面壳 — Windows 打包验证
 
 ## 1. 目标
@@ -28,11 +28,15 @@ Tauri 桌面模式不修改现有 HTTP API。Vue 内部请求仍访问 `http://1
 - `npm run tauri:build:windows` 调用后端 sidecar 打包，再执行 Tauri Windows 构建。
 - Tauri 启动时拉起 sidecar；窗口关闭时隐藏到托盘；通过托盘菜单退出时结束应用。
 - 本机执行 Tauri 构建需要 Rust/Cargo/rustup；缺失时可先用 `npx tauri info` 确认环境缺口。
+- Windows 资源生成需要 `src-tauri/icons/icon.ico`；缺失时 `cargo check` 会在 Tauri build script 阶段失败。
+- 首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；网络超时会阻塞 installer 生成，但不代表 Rust release exe 构建失败。
 
 ## 4. 验收标准
 
 - `src-tauri/` 存在 Tauri 2 最小壳配置。
 - `src-tauri/tauri.conf.json` 声明 `bundle.externalBin`，并将 `frontendDist` 指向 Vue/Vite 生产构建产物。
+- `src-tauri/icons/icon.ico` 存在，可用于 Windows resource 生成。
 - Windows sidecar 构建脚本生成 `knowledge-island-backend-x86_64-pc-windows-msvc.exe`。
 - Tauri Rust 入口包含 sidecar 启动、托盘菜单和关闭隐藏逻辑。
 - 文档和测试命令覆盖桌面打包链路。
+- 完整 Windows 打包可生成 `src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe`。

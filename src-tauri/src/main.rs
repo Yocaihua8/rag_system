@@ -116,10 +116,8 @@ fn show_main_window(app: &tauri::AppHandle) {
 fn kill_backend_sidecar(app: &tauri::AppHandle) {
     let state = app.state::<BackendSidecar>();
     if let Ok(mut guard) = state.child.lock() {
-        if let Some(child) = guard.as_mut() {
+        if let Some(child) = guard.take() {
             let _ = child.kill();
         }
-        *guard = None;
-    }
+    };
 }
-

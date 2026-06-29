@@ -105,5 +105,5 @@ docker compose config
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
-- B-145 Tauri Windows 打包链路包含 `src-tauri/`、`scripts/build-backend-sidecar.ps1`、`npm run tauri:build:windows`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 时只能完成静态与 `npx tauri info` 验证。
+- B-145 Tauri Windows 打包链路包含 `src-tauri/`、`src-tauri/icons/icon.ico`、`scripts/build-backend-sidecar.ps1`、`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run tauri:build:windows`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 时只能完成静态与 `npx tauri info` 验证。
 - Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；B-141 已完成资料库项目空间选择/创建/改名/删除、文档列表/单文档预览/删除、文本笔记/URL 摘录导入、导入批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出，设置页模型设置/Profile/Prompt 预设，评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文入口；B-142 已补齐 Vue 工作台 SSE/取消、会话历史和消息管理验证

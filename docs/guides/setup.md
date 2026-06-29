@@ -63,6 +63,16 @@ npm install --include=optional
 
 `npm install --include=optional` 用于确保 `@tauri-apps/cli` 的 Windows native binding（例如 `@tauri-apps/cli-win32-x64-msvc`）被安装；如果 `npx tauri --version` 提示缺少 native binding，先重跑该命令。
 
+完整 Tauri 构建还需要 Rust stable MSVC 工具链。可用以下命令检查：
+
+```powershell
+cargo --version
+rustc --version
+rustup --version
+```
+
+如果新终端找不到 `cargo`，确认 `%USERPROFILE%\.cargo\bin` 已加入当前 PowerShell 的 `Path`。
+
 单独构建 FastAPI sidecar：
 
 ```powershell
@@ -82,6 +92,12 @@ npm run tauri:build:windows
 ```
 
 该命令会先运行 `scripts/build-backend-sidecar.ps1`，再执行 `tauri build`。本机必须能运行 `cargo`；未安装 Rust 工具链时，`npx tauri info` 会显示 `rustc` / `Cargo` 缺失，需先安装 rustup。
+
+首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；如果下载超时，先确认网络/代理后重试。成功后会生成：
+
+```text
+src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe
+```
 
 启用 API Key + JWT 认证（可选）：
 

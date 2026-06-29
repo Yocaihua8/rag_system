@@ -16,6 +16,13 @@ def test_tauri_config_bundles_vue_build_and_backend_sidecar():
     assert config["bundle"]["externalBin"] == ["binaries/knowledge-island-backend"]
 
 
+def test_tauri_windows_icon_exists_for_resource_generation():
+    icon_path = Path("src-tauri/icons/icon.ico")
+
+    assert icon_path.exists(), "Tauri Windows builds require src-tauri/icons/icon.ico"
+    assert icon_path.stat().st_size > 0
+
+
 def test_tauri_rust_entry_starts_sidecar_and_minimizes_to_tray():
     main_rs = Path("src-tauri/src/main.rs")
 
@@ -30,6 +37,7 @@ def test_tauri_rust_entry_starts_sidecar_and_minimizes_to_tray():
     assert "prevent_close" in source
     assert ".hide()" in source
     assert "kill_backend_sidecar" in source
+    assert "guard.take()" in source
 
 
 def test_windows_sidecar_script_builds_pyinstaller_binary_for_tauri_triple():
