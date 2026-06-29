@@ -1178,6 +1178,37 @@ class KnowledgeStore:
             ).fetchone()
         return int(row["total"])
 
+    def rebuild_index(self, project_id: str = "") -> dict[str, int]:
+        document_rows_query = """
+            SELECT id, project_id, source_path, relative_path, content, checksum, updated_at
+            FROM documents
+        """
+        params: tuple[str, ...] = ()
+        if project_id:
+            document_rows_query += " WHERE project_id = ?"
+            params = (project_id,)
+        document_rows_query += " ORDER BY project_id ASC, relative_path ASC"
+
+        with self._connect() as conn:
+            if project_id:
+                project_row = conn.execute("SELECT 1 FROM projects WHERE id = ?", (project_id,)).fetchone()
+                project_count = 1 if project_row else 0
+            else:
+                project_row = conn.execute("SELECT COUNT(*) AS total FROM projects").fetchone()
+                project_count = int(project_row["total"])
+            rows = conn.execute(document_rows_query, params).fetchall()
+            documents = [_document_from_row(row) for row in rows]
+            chunk_count = 0
+            for document in documents:
+                chunk_count += self._replace_document_chunks(conn, document)
+
+        return {
+            "projects": project_count,
+            "documents": len(documents),
+            "chunks": chunk_count,
+            "vectors": chunk_count,
+        }
+
     def create_chat_message(
         self,
         project_id: str,
@@ -2179,7 +2210,7 @@ class KnowledgeStore:
             self._backfill_document_chunks(conn)
             self._backfill_chunk_vectors(conn)
 
-    def _replace_document_chunks(self, conn: sqlite3.Connection, document: Document) -> None:
+    def _replace_document_chunks(self, conn: sqlite3.Connection, document: Document) -> int:
         old_chunk_ids = _chunk_ids_for_documents(conn, [document.id])
         conn.execute("DELETE FROM document_chunks WHERE document_id = ?", (document.id,))
         chunk_rows = []
@@ -2242,6 +2273,7 @@ class KnowledgeStore:
         )
         self._sync_vector_delete(document.project_id, old_chunk_ids)
         self._sync_vector_upsert(vector_records)
+        return len(chunks)
 
     def _backfill_document_chunks(self, conn: sqlite3.Connection) -> None:
         rows = conn.execute(

@@ -1,5 +1,6 @@
 import base64
 import io
+import sqlite3
 from pathlib import Path
 from urllib.parse import quote
 from zipfile import ZipFile
@@ -3032,6 +3033,39 @@ def test_delete_project_api_returns_404_for_missing_project(tmp_path: Path):
 
     assert response.status == 404
     assert response.body["error"] == "project not found"
+
+
+def test_admin_rebuild_index_api_rebuilds_missing_project_chunks_and_vectors(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    other_dir = tmp_path / "other"
+    project_dir.mkdir()
+    other_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db", embedding_client=FakeEmbeddingClient())
+    project = store.create_project("知识岛", project_dir)
+    other_project = store.create_project("其他项目", other_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "DeepSeek API Key setup")
+    store.upsert_document(other_project.id, other_dir / "other.md", "other.md", "Other project content")
+    other_chunk_ids = [chunk.id for chunk in store.list_chunks(other_project.id)]
+
+    with sqlite3.connect(store.db_path) as conn:
+        conn.execute("DELETE FROM chunk_vectors WHERE project_id = ?", (project.id,))
+        conn.execute("DELETE FROM document_chunks WHERE project_id = ?", (project.id,))
+
+    response = dispatch(store, "POST", "/api/admin/rebuild-index", {"project_id": project.id})
+    missing_project = dispatch(store, "POST", "/api/admin/rebuild-index", {"project_id": "missing"})
+
+    rebuilt_chunks = store.list_chunks(project.id)
+    assert response.status == 200
+    assert response.body == {
+        "rebuilt": True,
+        "project_ids": [project.id],
+        "summary": {"projects": 1, "documents": 1, "chunks": 1, "vectors": 1},
+    }
+    assert [chunk.document.relative_path for chunk in rebuilt_chunks] == ["stack.md"]
+    assert store.count_chunk_vectors(project.id) == 1
+    assert [chunk.id for chunk in store.list_chunks(other_project.id)] == other_chunk_ids
+    assert missing_project.status == 404
+    assert missing_project.body["error"] == "project not found"
 
 
 def test_rename_project_api_updates_project_name(tmp_path: Path):

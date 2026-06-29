@@ -96,6 +96,37 @@ def test_delete_documents_not_in_removes_stale_vectors_from_vector_store(tmp_pat
     }
 
 
+def test_rebuild_index_replaces_project_chunks_and_syncs_vector_store_points(tmp_path: Path):
+    vector_store = RecordingVectorStore()
+    store = KnowledgeStore(
+        tmp_path / "app.db",
+        embedding_client=FakeEmbeddingClient(),
+        vector_store=vector_store,
+    )
+    project = store.create_project("Demo", tmp_path / "demo")
+    other_project = store.create_project("Other", tmp_path / "other")
+    store.upsert_document(project.id, tmp_path / "guide.md", "guide.md", "DeepSeek API Key setup")
+    store.upsert_document(other_project.id, tmp_path / "other.md", "other.md", "Other project content")
+    old_chunk_ids = [chunk.id for chunk in store.list_chunks(project.id)]
+    other_chunk_ids = [chunk.id for chunk in store.list_chunks(other_project.id)]
+
+    summary = store.rebuild_index(project.id)
+
+    rebuilt_chunks = store.list_chunks(project.id)
+    rebuilt_chunk_ids = [chunk.id for chunk in rebuilt_chunks]
+    assert summary == {"projects": 1, "documents": 1, "chunks": 1, "vectors": 1}
+    assert rebuilt_chunk_ids != old_chunk_ids
+    assert [chunk.document.relative_path for chunk in rebuilt_chunks] == ["guide.md"]
+    assert store.count_chunk_vectors(project.id) == 1
+    assert [chunk.id for chunk in store.list_chunks(other_project.id)] == other_chunk_ids
+    assert vector_store.deletes[-1] == {
+        "project_id": project.id,
+        "chunk_ids": old_chunk_ids,
+    }
+    assert [record.chunk_id for record in vector_store.upserts[-1]] == rebuilt_chunk_ids
+    assert {record.document_id for record in vector_store.upserts[-1]} == {rebuilt_chunks[0].document.id}
+
+
 def test_vector_store_failure_does_not_break_sqlite_write(tmp_path: Path, capsys):
     store = KnowledgeStore(
         tmp_path / "app.db",
