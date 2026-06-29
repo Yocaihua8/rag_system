@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-06-30
 > Scope：本地 Web MVP HTTP API + legacy 进程内接口
 
 ## 1. 本地 Web MVP HTTP API
@@ -280,7 +280,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
 
 `/api/import/note` 用于导入资料库页手写文本笔记。后端按 `title` 生成稳定虚拟来源 `note:<project_id>/<hash>`，文档相对路径写为 `notes/<safe-title>-<hash>.txt`；`safe-title` 会清洗特殊字符并截断长度。同一项目空间内相同标题会更新原笔记，不创建重复文档。目录同步和浏览器文件夹导入只清理真实文件来源，不会删除 `note:` 或 `url:` 虚拟来源；如果真实文件或上传文件撞到已存在笔记的相对路径，会跳过该真实文件并返回 `reserved note path`。
 
-`/api/import/url` 用于保存 URL 摘录占位来源。第一版只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。
+`/api/import/url` 用于保存 URL 摘录占位来源。第一版只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。B-119 研究结论不改变该契约；未来 B-132 若实现自动抓取，应使用独立预览/确认入口和新的来源语义，避免把手动摘录误解释为服务端抓取。
 
 `/api/import/notion-zip` 用于导入 Notion 导出的 Markdown zip 包。后端只读取 zip 内 Markdown / 文本类文件，跳过附件、图片、二进制、不支持后缀、过大文件和非法相对路径；入库文档 `relative_path` 统一加 `notion/` 前缀，`source_path` 标记为 `notion-zip:<filename>#<relative_path>` 虚拟来源。该接口不调用 Notion API、不联网、不保存第三方 token，也不会做删除清理。
 

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-30
 > Scope：Knowledge Island Web MVP 功能模块边界
 > Related：docs/requirements/project-background-and-scope.md, docs/design/api-spec.md, docs/design/database-design.md
 
@@ -59,7 +59,7 @@
 2. 浏览器文件夹导入（通过 `webkitdirectory` 在浏览器内选择并上传）
 3. 单文件 / 多文件上传（PDF / DOCX / Markdown / TXT 及代码文件）
 4. 文本笔记手动录入（`note:` 虚拟来源，同标题再次导入只更新）
-5. URL 摘录（保存 URL + 标题 + 手动粘贴正文，`url:` 虚拟来源）
+5. URL 摘录（保存 URL + 标题 + 手动粘贴正文，`url:` 虚拟来源；不自动抓取网页）
 6. GitHub 仓库整体导入（通过本机 `git clone --depth 1` 拉取 GitHub 仓库并创建项目空间）
 7. 剪贴板文本快速导入（复用笔记导入通道）
 8. 导入预检（只读估算可导入数量和跳过原因，不写数据库）
@@ -77,7 +77,7 @@
 
 ### 3.5 边界说明
 
-- 不支持网页自动爬取，URL 来源只保存手动粘贴的正文
+- 不支持网页自动爬取，URL 来源只保存手动粘贴的正文；B-119 研究结论为当前保持手动 URL 摘录，B-132 若进入实现必须先满足 robots.txt、SSRF 防护、内容净化、大小/超时限制和可选依赖隔离
 - PDF 解析依赖可选的 `pymupdf`，未安装时明确跳过并说明原因
 - 不支持 OCR（扫描件 PDF 无法提取文本）
 - 单文件 > 1 MB 时跳过，防止阻塞导入流程

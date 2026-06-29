@@ -62,7 +62,7 @@ B-119 结论：Knowledge Island 当前继续保持**手动 URL 摘录**能力，
 1. 默认关闭；没有配置时 `/api/import/url` 行为完全不变。
 2. 新增独立入口，例如 `/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit`，不复用 `url_excerpt` 的语义。
 3. 用户每次输入一个 URL 并手动点击预览；系统不得后台递归抓取页面链接。
-4. URL 校验只接受 `http` / `https`，拒绝凭据、非标准端口策略待确认，拒绝 `file:`、`data:`、`gopher:` 等非 Web scheme。
+4. URL 校验只接受 `http` / `https`，拒绝凭据；非标准端口默认不放开，未来如确需支持必须单独配置 allowlist；拒绝 `file:`、`data:`、`gopher:` 等非 Web scheme。
 5. DNS 解析和每次重定向后都检查目标 IP，拒绝回环、私网、链路本地、保留地址和本机 host。
 6. 访问前读取 robots.txt，按固定 user-agent 判断是否允许抓取；禁止时返回可解释错误。
 7. 设置请求超时、响应大小上限、最大重定向次数、content-type allowlist 和单项目并发上限。

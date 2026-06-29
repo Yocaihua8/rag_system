@@ -26,7 +26,7 @@
 未完成项不得删除。
 
 - [x] 梳理当前 URL 摘录边界、网页抓取能力差距和外部标准/依赖风险，形成研究文档。
-- [ ] 同步需求、接口、系统设计和文档索引，运行文档验证。
+- [x] 同步需求、接口、系统设计和文档索引，运行文档验证。
 - [ ] 同步 BACKLOG 完成状态，删除本 plan。
 
 ## 4. 影响范围
@@ -72,11 +72,11 @@
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
 | 网页自动抓取研究结论和推荐边界 | `docs/features/web-crawling-research.md` | [x] |
-| URL 摘录当前能力与不支持自动抓取的边界 | `docs/requirements/functional-modules.md` | [ ] |
-| B-119 / B-132 范围边界 | `docs/requirements/project-background-and-scope.md` | [ ] |
-| `/api/import/url` 当前不联网、不抓取的接口契约 | `docs/design/api-spec.md` | [ ] |
-| 系统边界、安全约束和待补充设计 | `docs/design/system-design-overview.md` | [ ] |
-| 新功能文档索引 | `docs/features/README.md`, `docs/README.md` | [ ] |
+| URL 摘录当前能力与不支持自动抓取的边界 | `docs/requirements/functional-modules.md` | [x] |
+| B-119 / B-132 范围边界 | `docs/requirements/project-background-and-scope.md` | [x] |
+| `/api/import/url` 当前不联网、不抓取的接口契约 | `docs/design/api-spec.md` | [x] |
+| 系统边界、安全约束和待补充设计 | `docs/design/system-design-overview.md` | [x] |
+| 新功能文档索引 | `docs/features/README.md`, `docs/README.md` | [x] |
 
 若产生了重大技术决策，**必须**在删除 plan 前新建对应 ADR。
 
@@ -84,12 +84,13 @@
 
 - 2026-06-30：创建计划。当前工作区存在与本任务无关的未提交改动，B-119 仅暂存和提交本计划列出的文件。
 - 2026-06-30：完成研究文档初稿。结论为当前保持手动 URL 摘录，B-132 若进入实现必须先满足 robots、SSRF、防登录态、内容净化和依赖隔离约束。
+- 2026-06-30：完成需求、项目范围、API 契约、系统设计和文档索引回流；未修改运行时代码、接口实现或数据库 schema。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-30 00:48
-- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：`176fc4d` — docs: 启动 B-119 网页抓取研究计划
-- **代码状态**：`fix/b-08-concurrent-index`；工作区存在与本任务无关的未提交改动；研究文档已完成，待同步需求/API/系统设计文档
-- **下一步**：同步需求、接口、系统设计和文档索引，运行文档验证。
+- **最后更新**：2026-06-30 00:56
+- **进度**：已完成 2 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：`f833395` — docs: 完成 B-119 网页抓取研究结论
+- **代码状态**：`fix/b-08-concurrent-index`；工作区存在与本任务无关的未提交改动；正式文档已回流，待验证后关闭 B-119
+- **下一步**：同步 BACKLOG 完成状态，删除本 plan。
 - **续任务须知**：只暂存 B-119 相关文件；不要吸收既有 `docs/architecture/*` 与 `scripts/check_docs_consistency.py` 改动。
