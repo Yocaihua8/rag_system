@@ -2,14 +2,16 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-28
+> Last Updated：2026-06-29
 > Scope：本地 Web MVP HTTP API + legacy 进程内接口
 
 ## 1. 本地 Web MVP HTTP API
 
-当前默认入口为本地 Web MVP：`app.py` -> `webapp.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，仅用于本机浏览器访问，不作为远程多用户 API 承诺。FastAPI 自动文档可在本地 `/docs` 查看，但正式契约仍以本文档为准。
+当前默认入口为本地 Web MVP：`app.py` -> `webapp.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，仅用于本机浏览器访问，不作为远程多用户 API 承诺。FastAPI 自动文档可在本地 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但正式契约仍以本文档为准。
 
 B-140 起支持可选认证层。默认认证关闭，现有本地访问方式不变；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token`、`/` 与静态资源外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。
+
+B-136 起，`/openapi.json` 使用 `webapp/openapi_schema.py` 中维护的显式 Web MVP API operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 保留 FastAPI 默认 UI，只读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载，字段级正式契约仍以本文档各小节为准。新增、删除或修改 API 时，需要同时更新 `webapp/openapi_schema.py` 和本文档端点速览。
 
 端点速览：
 
