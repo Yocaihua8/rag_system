@@ -1,3 +1,5 @@
+import inspect
+
 from fastapi.testclient import TestClient
 
 import webapp.server as server
@@ -37,6 +39,13 @@ def test_fastapi_app_returns_json_not_found_for_unknown_api(tmp_path):
     assert response.status_code == 404
     assert response.headers["content-type"].startswith("application/json")
     assert response.json() == {"error": "not found"}
+
+
+def test_fastapi_api_dispatch_offloads_sync_routes_to_threadpool():
+    create_app_source = inspect.getsource(server.create_app)
+
+    assert "run_in_threadpool" in create_app_source
+    assert "await run_in_threadpool(" in create_app_source
 
 
 def test_fastapi_app_streams_answer_as_sse(tmp_path):

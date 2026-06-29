@@ -8,6 +8,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.concurrency import run_in_threadpool
 
 from webapp.api import answer_stream_events, dispatch
 from webapp.auth import AuthSettings, issue_jwt, load_auth_settings, validate_api_key, validate_jwt
@@ -82,7 +83,8 @@ def create_app(
 
     @app.api_route("/api/{path:path}", methods=["GET", "POST"])
     async def api_dispatch(request: Request) -> JSONResponse:
-        response = dispatch(
+        response = await run_in_threadpool(
+            dispatch,
             knowledge_store,
             request.method,
             _raw_path(request),

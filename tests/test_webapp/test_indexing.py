@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import time
+import inspect
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -133,3 +134,10 @@ def test_project_indexing_coordinator_serializes_per_project():
         second.result(timeout=2)
 
     assert second_entered.is_set()
+
+
+def test_knowledge_store_configures_sqlite_busy_timeout():
+    connect_source = inspect.getsource(KnowledgeStore._connect)
+
+    assert "timeout=30.0" in connect_source
+    assert "PRAGMA busy_timeout = 30000" in connect_source
