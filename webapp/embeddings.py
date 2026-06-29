@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Callable, Protocol
 from urllib.request import Request, urlopen
 
-from src.config.settings import AppSettings, load_settings
+from backend.config.settings import AppSettings, load_settings
 from webapp.vector_index import text_vector
 
 

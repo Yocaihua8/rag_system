@@ -21,6 +21,8 @@ B-145 验证 Knowledge Island 的 C 端 Windows 桌面发行链路：Tauri 2 负
 
 Tauri 桌面模式不修改现有 HTTP API。Vue 内部请求仍访问 `http://127.0.0.1:8765/api/*`。
 
+B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-desktop-legacy/`。Tauri sidecar 只打包当前 `app.py`、`webapp/`、`backend/` 和 Vue/Vite 构建产物，不依赖 legacy 桌面代码。
+
 ## 3. Windows 打包边界
 
 - `npm run build` 生成 Vue/Vite 生产构建产物。

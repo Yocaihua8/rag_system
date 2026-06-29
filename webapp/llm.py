@@ -6,7 +6,7 @@ from typing import Callable, Iterator
 from urllib.request import Request, urlopen
 
 from backend.providers.llm.ollama import DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL, OllamaLLM
-from src.config.settings import AppSettings, load_settings
+from backend.config.settings import AppSettings, load_settings
 from webapp.models import ChatMessage, PromptPreset, SearchHit
 
 

@@ -1,5 +1,5 @@
 """
-check_import_paths.py — 检查 src/ 和 scripts/ 中是否存在旧架构 import。
+check_import_paths.py — 检查活动 Web/backend 代码中是否存在 legacy import。
 
 用法：
     py -3 scripts/check_import_paths.py
@@ -15,28 +15,25 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-# 扫描范围：新架构代码目录
+# 扫描范围：当前活动代码目录
 ACTIVE_DIRS = [
-    PROJECT_ROOT / "src",
+    PROJECT_ROOT / "backend",
+    PROJECT_ROOT / "webapp",
     PROJECT_ROOT / "scripts",
 ]
 
-# 禁止出现的旧 import 前缀
+# 禁止出现的 legacy import 前缀
 BLOCKED_IMPORT_PREFIXES = (
-    # 旧三分结构
-    "from backend.",
-    "import backend.",
+    "from src.",
+    "import src.",
     "from desktop.",
     "import desktop.",
-    # 更早期的旧路径
     "from core",
     "import core",
     "from infra",
     "import infra",
     "from app.qt",
     "import app.qt",
-    "from backend.app",
-    "from backend.infra",
     "from desktop.app",
     "from desktop.ui",
     "from desktop.services",

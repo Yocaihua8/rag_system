@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.config.settings import load_settings
+from backend.config.settings import load_settings
 
 _s = load_settings()
 _KB = _s.kb_root
@@ -144,7 +144,7 @@ SEED_CONTENT: dict[Path, str] = {
 - Draft / Export
 
 ## Stack
-- Python, PySide6, SQLite, ChromaDB, Ollama
+- Python, FastAPI, SQLite, Qdrant local mode, Vue, Tauri, Ollama
 
 ## Current Stage
 - Core workflow ready; integration and stability are improving.
@@ -152,7 +152,7 @@ SEED_CONTENT: dict[Path, str] = {
 ## Talking Points
 - End-to-end RAG flow closure
 - Interface alignment and debugging efficiency
-- Local desktop integration with Python-first runtime
+- Local Web and Tauri integration with Python-first runtime
 
 ## Next Plan
 - Add automated tests for critical APIs.

@@ -11,9 +11,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.config.settings import load_settings
-from src.config.paths import ensure_runtime_dirs, ensure_kb_dirs
-from src.adapters.storage.db import create_connection, init_schema
+from backend.config.paths import ensure_kb_dirs, ensure_runtime_dirs
+from backend.config.settings import load_settings
+from webapp.storage import KnowledgeStore
 
 
 def main() -> None:
@@ -26,9 +26,7 @@ def main() -> None:
     print(f"[OK] 知识库根目录: {s.kb_root}")
 
     # 初始化数据库 Schema
-    conn = create_connection(s.db_path)
-    init_schema(conn)
-    conn.close()
+    KnowledgeStore(s.db_path)
     print(f"[OK] 数据库初始化完成: {s.db_path}")
 
     print("\n[DONE] 存储层初始化成功。")

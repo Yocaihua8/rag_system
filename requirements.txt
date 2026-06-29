@@ -5,19 +5,8 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 
-# ── Qt 桌面 UI ──
-PySide6>=6.5.0
-
-# ── 本地 LLM（Ollama 模式）──
-ollama>=0.3.0
-
 # ── 向量存储 ──
-chromadb>=0.5.0
-numpy>=1.24.0
 qdrant-client>=1.10.0
-
-# ── 云端 LLM（API 模式，可选）──
-openai>=1.0.0
 
 # ── 中文分词（可选，提升关键词检索精度）──
 jieba>=0.42.0

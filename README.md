@@ -1,8 +1,8 @@
 # 知识岛 Knowledge Island
 
-知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口已切换为本地 Web MVP（FastAPI + Uvicorn + SQLite + 原生 HTML/CSS/JS），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
+知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口是本地 Web MVP（FastAPI + Uvicorn + SQLite + Vue/Vite），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
 
-旧 PySide6 桌面端代码暂时保留在 `src/desktop/` 作为 legacy 参考，不再是默认启动入口。
+旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/` 作为历史参考，不再是默认启动入口，也不再参与 Web/Tauri 链路。
 
 ---
 
@@ -59,7 +59,7 @@
 | **Prompt 预设** | Web 设置页可为当前项目空间保存“项目问答 / 代码解释 / 学习复盘”等 Prompt 预设，选择默认预设后真实 LLM 问答会按该预设调整回答风格和结构；固定来源约束仍优先，不保存 API Key |
 | **掌握评估** | Web 端可从已导入文件生成概念理解、流程说明、代码定位三类评估题，按题逐步作答并展示进度、答题记录、待复测题目和能力概览；提交回答后对照服务端保存的参考要点评估为已掌握 / 基本理解 / 需要补充 / 暂未掌握，题目、回答和评估结果会保存到本地 SQLite |
 | **首次使用引导** | Web 首页展示设置页创建项目空间、选择本机文件夹导入、提问/评估、配置 DeepSeek 的最小步骤；关键异步按钮会在运行中禁用并显示进行中状态 |
-| **格式标准化** | legacy PySide6 链路已支持 `raw_content / normalized_markdown / plain_text / rendered_html`，Web MVP 后续迁移 |
+| **格式标准化** | Web MVP 以当前导入管线保存文档正文、分块和来源信息；旧 PySide6 标准化链路已随 legacy 归档 |
 | **知识掌握地图** | 已新增 SkillArea / KnowledgePoint / MasteryRecord / Evidence 的数据模型与状态定义 |
 | **轻量知识图谱** | 计划用 SQLite 关系表表达 Project、Document、KnowledgePoint、Evidence 等节点关系 |
 
@@ -92,8 +92,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **Web MVP 最小依赖**：需要 FastAPI + Uvicorn 作为 HTTP 运行时，核心存储仍使用 Python 标准库 SQLite。
-> **legacy PySide6** 仍需要 PySide6、chromadb、sentence-transformers、openai 等依赖。Web 端 DeepSeek 调用使用 Python 标准库 `urllib`，不依赖 `openai` SDK。
+> **Web MVP 最小依赖**：需要 FastAPI + Uvicorn 作为 HTTP 运行时，核心存储仍使用 Python 标准库 SQLite。Web 端 DeepSeek / OpenAI-compatible / Ollama 调用使用 Python 标准库 `urllib`，不依赖 `openai` 或 `ollama` SDK。
 > **PDF 可选解析**：如需 Web MVP 抽取 PDF 正文，可额外安装 `pip install pymupdf`；未安装时 PDF 仍会明确跳过，不阻断其他文件入库。
 
 ### 3. 配置（可选）
@@ -118,7 +117,7 @@ cp .env.example .env
 | `RAG_QDRANT_PATH` | appdata `KnowledgeIsland/qdrant` | Qdrant local mode 持久化目录 |
 | `RAG_QDRANT_COLLECTION` | `knowledge_island_chunks` | Qdrant collection 名称 |
 | `RAG_QDRANT_VECTOR_SIZE` | `96` | 将当前 sparse dict 向量转换为 Qdrant dense vector 的维度 |
-| `RAG_RETRIEVER_KIND` | `vector` | legacy 检索配置；Web MVP 向量存储切换使用 `RAG_VECTOR_STORE_PROVIDER` |
+| `RAG_RETRIEVER_KIND` | `vector` | 兼容保留；Web MVP 向量存储切换使用 `RAG_VECTOR_STORE_PROVIDER` |
 | `RAG_LLM_PROVIDER` | `ollama` | `ollama` 或 `api` |
 | `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明）；兼容本机 DeepSeek Key 别名 |
 | `RAG_LLM_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
@@ -216,7 +215,7 @@ ollama pull nomic-embed-text
 
 ## 云端 API 配置
 
-Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API，也可在 Web **设置 → 模型设置** 中填写 API Base、模型名和 API Key；legacy 桌面端仍可在 **设置 → LLM 提供商** 中选择「API 模式」。
+Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API，也可在 Web **设置 → 模型设置** 中填写 API Base、模型名和 API Key。
 
 | 字段 | DeepSeek | OpenAI | 通义千问 | Kimi |
 |------|----------|--------|----------|------|
@@ -261,40 +260,20 @@ knowledage_island/
 │   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
 │   ├── search.py             # 基于分块的 BM25 关键词召回与排序
 │   ├── answers.py            # LLM 优先回答与本地片段回退
-│   ├── llm.py                # OpenAI-compatible Chat Completions 标准库客户端
+│   ├── llm.py                # OpenAI-compatible / Ollama Chat 标准库客户端
 │   ├── models.py             # Web MVP 响应模型、搜索命中和聊天记录模型
 │   ├── assessment.py         # Web 掌握评估最小闭环
-│   └── static/               # 原生 HTML/CSS/JS 前端
-├── src/
-│   ├── config/               # 配置层（defaults / settings / paths）
-│   ├── domain/               # 领域层：不可变数据模型 + 业务错误
-│   │   ├── models/           #   Project / Document / Chunk / Tag / Source / Workspace / Task / Mastery
-│   │   └── errors.py         #   NotFoundError / ValidationError / ...
-│   ├── ports/                # 端口层：接口定义（IWorkspaceStore 兼容层 / ILLMClient / ...）
-│   ├── adapters/             # 适配器层：具体实现
-│   │   ├── storage/          #   SQLite（5 个 Store）
-│   │   ├── llm/              #   OllamaAdapter / OpenAICompatAdapter
-│   │   ├── embedding/        #   OllamaEmbedder / DummyEmbedder
-│   │   ├── retrieval/        #   VectorRetriever / KeywordRetriever
-│   │   └── vector_store/     #   ChromaVectorStore / NumpyVectorStore
-│   ├── application/          # 应用层：用例 + 依赖组装
-│   │   ├── container.py      #   AppContainer（唯一 Composition Root）
-│   │   ├── workspace_usecases.py
-│   │   ├── ingestion_usecases.py
-│   │   ├── query_usecases.py
-│   │   ├── generation_usecases.py
-│   │   └── settings_usecases.py
-│   └── desktop/              # legacy 桌面层：PySide6 UI
-│       ├── bootstrap.py      #   程序启动入口
-│       ├── style.py          #   全局 QSS 主题（Codex 暗色风格）
-│       ├── views/            #   MainWindow / 各功能视图 / 使用指引
-│       ├── controllers/      #   Controller（UI → UseCase 桥接）
-│       └── workers/          #   QThread Worker（I/O 异步化）
+│   └── static_dist/          # Vue/Vite 生产构建产物（不入库）
+├── backend/                  # Web/Tauri 共享后端配置与 provider
+│   ├── config/               # settings / paths / vector_store / reranker
+│   └── providers/            # LLM、Embedding、VectorStore、Reranker provider
+├── archive/src-desktop-legacy/
+│   ├── src/                  # 已归档 PySide6 / 六边形 legacy 代码
+│   ├── tests/                # 已归档 legacy 测试
+│   └── scripts/              # 已归档 legacy 脚本
 ├── tests/
-│   ├── conftest.py           # 共用 Fixtures（内存 SQLite + FakeLLM）
-│   ├── test_domain/          # 领域模型测试
-│   ├── test_adapters/        # SQLite Store 测试
-│   ├── test_application/     # 用例测试（项目空间兼容层 / 摄入 / 查询）
+│   ├── conftest.py           # 当前 Web/backend pytest 根配置
+│   ├── backend/              # backend provider/config 测试
 │   └── test_webapp/          # Web MVP API、导入、检索与前端静态约束测试
 ├── docs/
 │   ├── BACKLOG.md
@@ -313,10 +292,10 @@ knowledage_island/
 
 ### 架构原则
 
-- **六边形架构**：`domain` → `ports` → `adapters`，依赖方向单向向内
-- **唯一组装点**：只有 `AppContainer` 可以 import adapter 类
-- **不可变模型**：所有领域对象使用 `@dataclass(frozen=True)`，跨线程安全
-- **Qt 线程隔离**：所有 I/O 在 `QThread` Worker 中执行，通过 Signal 返回结果
+- **三层 Web 架构**：表现层 `frontend/` / `webapp.server`，业务层 `webapp/*`，数据层 `webapp.storage`
+- **配置归口**：Web/Tauri 运行配置由 `backend.config.settings` 和 `backend.config.paths` 提供
+- **本地优先**：无 API Key 或外部服务不可达时，问答和向量化必须有本地 fallback
+- **legacy 隔离**：`archive/src-desktop-legacy/` 仅作历史参考，不再被当前代码引用
 
 ---
 
@@ -333,7 +312,7 @@ knowledage_island/
 
 | 文档 | 内容 |
 |------|------|
-| `docs/design/api-spec.md` | 本地 Web MVP HTTP API 与 legacy 进程内接口契约 |
+| `docs/design/api-spec.md` | 本地 Web MVP HTTP API 契约 |
 | `docs/guides/setup.md` | 环境启动指引 |
 | `docs/guides/testing.md` | 测试与验证方式 |
 | `docs/release/WEB_MVP_READINESS_2026-05-20.md` | 本地 Web MVP 收口与浏览器验收清单 |

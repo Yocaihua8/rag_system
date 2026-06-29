@@ -19,9 +19,8 @@ RUN python -m pip install --no-cache-dir "fastapi>=0.115.0" "uvicorn[standard]>=
 
 COPY app.py ./app.py
 COPY webapp ./webapp
+COPY backend ./backend
 COPY --from=frontend-build /app/webapp/static_dist ./webapp/static_dist
-COPY src/__init__.py ./src/__init__.py
-COPY src/config ./src/config
 
 EXPOSE 8765
 

@@ -20,9 +20,6 @@
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
 npm run build
 npm run tauri:build:windows
-.venv\Scripts\python.exe -m pytest tests/test_application/test_markdown_content.py -q
-.venv\Scripts\python.exe -m pytest tests/test_application/test_ingestion_usecases.py -q
-.venv\Scripts\python.exe -m pytest tests/test_adapters/test_storage.py tests/test_domain/test_models.py -q
 docker compose config
 ```
 
@@ -31,6 +28,7 @@ docker compose config
 - 受环境限制时，`pytest` 可能因依赖/网络导致不能完整运行，需在提交说明里写出失败原因与替代验证。
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/test_webapp`。
+- B-147 后，旧 PySide6 / 六边形 `src/` 代码与对应旧测试已归档到 `archive/src-desktop-legacy/`，不再作为当前测试基线。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置或 `webapp/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
 - 变更 `src-tauri/`、Tauri 配置、Windows sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备 Rust/Cargo 和 PyInstaller 环境时继续运行 `npm run tauri:build:windows`，否则记录缺失工具链原因。

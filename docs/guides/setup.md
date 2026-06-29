@@ -40,7 +40,7 @@ cp .env .env.local # 按需
 http://127.0.0.1:8765
 ```
 
-当前默认入口使用 FastAPI + Uvicorn、SQLite、可选 Qdrant local mode 和 Vue/Vite 生产前端；`pip install -r requirements.txt` 会安装必需 Web 运行时和 Qdrant Python client。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码仍保留在 `src/desktop/`，后续按功能迁移。
+当前默认入口使用 FastAPI + Uvicorn、SQLite、可选 Qdrant local mode 和 Vue/Vite 生产前端；`pip install -r requirements.txt` 会安装必需 Web 运行时和 Qdrant Python client。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/`，不再参与 Web/Tauri 启动链路。
 
 B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
 

@@ -96,16 +96,16 @@ docs(backlog): 新增竞品差距分析待办项
 - Agent 工具只允许只读操作，白名单硬编码在 `agent_tools.py`
 - API Key 只保存引用（`env:*` / `saved:*`），任何接口响应不得包含明文 Key
 
-### 前端（webapp/static/）
+### 前端（frontend/ + webapp/static_dist/）
 
-- 所有业务规则在后端实现，前端只负责展示和 API 调用
-- 新的 JS 逻辑按职责放入对应文件（api.js / state.js / ui.js / projects.js）
-- 提交前验证语法：`node --check webapp\static\js\<file>.js`
+- 所有业务规则在后端实现，前端只负责展示和 API 调用。
+- Vue 源码放在 `frontend/src/`，生产构建产物输出到 `webapp/static_dist/`，不得提交构建产物。
+- 修改前端后运行 `npm run build`，并按 `docs/guides/testing.md` 选择对应 Web 测试。
 
-### Legacy（src/）
+### Legacy（archive/src-desktop-legacy/）
 
-- 保持六边形分层约束：配置 → 领域 → 端口 → 适配器 → 应用 → 表现
-- 新任务不应同时修改 `webapp/` 和 `src/desktop/`，除非明确为迁移任务
+- 旧 PySide6 / 六边形代码已归档，仅历史参考。
+- 新任务不得重新接入 legacy 代码到当前 Web/Tauri 链路，除非 BACKLOG 明确要求并先完成 plan。
 
 ---
 

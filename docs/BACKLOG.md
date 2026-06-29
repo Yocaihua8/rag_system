@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29（完成 B-136 OpenAPI / Swagger 接口文档）
+> Last Updated：2026-06-29（完成 B-147 src 桌面遗留代码归档）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -72,7 +72,7 @@
 | B-146 | tech-debt | 移植 Ollama + 平台路径到 backend/ | done | P1 | S | Tauri MVP 0 | RAG 团队 | docs/design/new-architecture-design.md §23.7, docs/guides/setup.md | 已完成：`src/adapters/llm/ollama_adapter.py` → `backend/providers/llm/ollama.py`；`src/adapters/embedding/ollama_embedder.py` → `backend/providers/embedder/ollama.py`；`_app_data_dir()` → `backend/config/paths.py`；Web MVP 设置接口支持 `provider=ollama` |
 | B-145 | feature | Tauri 桌面壳 — Windows 打包验证 | done | P1 | L | Tauri MVP 0 | RAG 团队 | docs/design/new-architecture-design.md §23, docs/features/desktop-packaging.md | 已完成：Tauri 壳、Windows sidecar、Windows icon、测试和文档；`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run sidecar:build`、`npm run tauri:build:windows` 均通过，生成 NSIS installer：`src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe`；完成后删除 plan |
 | B-148 | feature | First-Run Wizard（首次运行向导） | done | P1 | M | Tauri MVP 1 | RAG 团队 | docs/design/new-architecture-design.md §23.6, docs/features/first-run-wizard.md | 已完成：新增 Ollama 检测 `/api/ollama/status`、模型拉取 SSE `/api/ollama/pull`、Vue First-Run Wizard 和首个知识库创建入口；完成后删除 plan |
-| B-147 | tech-debt | 归档 src/ 桌面遗留代码 | todo | P2 | XS | Tauri MVP 0 | RAG 团队 | docs/design/new-architecture-design.md §23.7 | B-146 已完成关键移植；归档前需再次确认 `src/` 无仍被 Web/Tauri 链路引用，再整体移至 `archive/src-desktop-legacy/`；不再接受 PR |
+| B-147 | tech-debt | 归档 src/ 桌面遗留代码 | done | P2 | XS | Tauri MVP 0 | RAG 团队 | docs/design/architecture-overview.md | 已完成：Web/Tauri/Docker 活动链路不再引用 `src/`；配置入口迁移到 `backend/config/`；旧 PySide6 / 六边形代码、legacy 测试和旧桌面脚本已归档到 `archive/src-desktop-legacy/`；不再接受 legacy PR |
 | B-144 | tech-debt | Docker 镜像内置 Vue 构建产物 | done | P1 | S | v0.11.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/guides/setup.md | 已完成：Docker 镜像构建阶段执行 Vue/Vite 构建并复制 `webapp/static_dist/`，避免依赖宿主机预先运行 `npm run build`；完成后已删除 plan |
 | B-42 | feature | 知识库辅助管理页 | todo | P2 | L | v0.11.0 | RAG 团队 | docs/design/ui-wireframes.md | 参考 SAS 后台式知识库，展示项目状态、文件列表、项目知识点、评估题库和最近结果 |
 | B-125 | feature | Reranker 重排序接入 | done | P1 | L | v1.0.0 | RAG 团队 | docs/design/new-architecture-design.md §5.4, docs/guides/setup.md, docs/design/api-spec.md | 已完成：BM25 + 向量候选后可选接入本地 Cross-Encoder reranker；默认关闭；`sentence-transformers` 为软依赖；命中返回 `rerank_score`，回答返回 `pipeline_trace.reranker_used` |

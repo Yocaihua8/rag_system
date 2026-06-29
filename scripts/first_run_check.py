@@ -13,9 +13,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from src.config.settings import load_settings
-from src.config.paths import ensure_runtime_dirs, ensure_kb_dirs
-from src.adapters.storage.db import create_connection, init_schema
+from backend.config.paths import ensure_kb_dirs, ensure_runtime_dirs
+from backend.config.settings import load_settings
+from backend.providers.llm.ollama import OllamaLLM
+from webapp.storage import KnowledgeStore
 
 
 @dataclass
@@ -38,18 +39,15 @@ def run_checks() -> CheckResult:
 
     # 2. 数据库 Schema
     try:
-        conn = create_connection(s.db_path)
-        init_schema(conn)
-        conn.close()
+        KnowledgeStore(s.db_path)
         print(f"[OK] 数据库 Schema 已就绪: {s.db_path}")
     except Exception as exc:
         warnings.append(f"数据库初始化失败: {exc}")
 
     # 3. Ollama 可用性（非阻断）
     try:
-        import ollama
-        client = ollama.Client(host=s.ollama_host)
-        client.list()
+        client = OllamaLLM(host=s.ollama_host, model=s.ollama_model, timeout=5.0)
+        client.get_tags()
         print(f"[OK] Ollama 服务可达: {s.ollama_host}")
     except Exception:
         warnings.append(

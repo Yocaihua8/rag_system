@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from src.config.settings import _persistent_env, load_settings
+from backend.config.settings import _persistent_env, load_settings
 from webapp.llm import LlmConfig
 from webapp.models import ModelProfile
 
