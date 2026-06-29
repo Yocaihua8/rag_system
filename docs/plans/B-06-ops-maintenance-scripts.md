@@ -24,7 +24,7 @@
 
 - [x] 创建本 plan、关联 B-06，并新增 ops 维护功能文档占位
 - [x] 以 TDD 补齐 `POST /api/admin/rebuild-index` 管理端点与索引重建逻辑
-- [ ] 以 TDD 补齐 `ops/scripts/backup_db.sh`、`cleanup_runtime.sh`、`rebuild_index.sh`
+- [x] 以 TDD 补齐 `ops/scripts/backup_db.sh`、`cleanup_runtime.sh`、`rebuild_index.sh`
 - [ ] 同步 `ops/README.md`、API/架构/OpenAPI 文档并完成 B-06 收尾
 
 ## 4. 影响范围
@@ -89,8 +89,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29 00:00
-- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：待提交 — feat: 增加索引重建管理端点
-- **代码状态**：`fix/b-08-concurrent-index`；存在用户未提交改动；admin rebuild-index 代码和测试已完成
-- **下一步**：以 TDD 补齐 `ops/scripts/backup_db.sh`、`cleanup_runtime.sh`、`rebuild_index.sh`
+- **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：待提交 — chore: 新增本地运维脚本
+- **代码状态**：`fix/b-08-concurrent-index`；存在用户未提交改动；ops scripts 和测试已完成
+- **下一步**：同步 `ops/README.md`、API/架构/OpenAPI 文档并完成 B-06 收尾
 - **续任务须知**：工作区已有用户改动，提交时必须精确 staging。
