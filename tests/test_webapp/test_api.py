@@ -1597,6 +1597,136 @@ def test_project_export_api_rejects_missing_or_unknown_project(tmp_path: Path):
     assert unknown_project_response.body["error"] == "project not found"
 
 
+def test_result_export_api_writes_markdown_file_for_chat_message(tmp_path: Path, monkeypatch):
+    output_dir = tmp_path / "outputs"
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(output_dir))
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    document = store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "默认入口是 app.py。").document
+    chunk = store.list_chunks(project.id)[0]
+    message = store.create_chat_message(
+        project_id=project.id,
+        question="默认入口是什么？",
+        answer="默认入口是 app.py。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[
+            {
+                "path": "stack.md",
+                "snippet": "默认入口是 app.py。",
+                "document_id": document.id,
+                "chunk_id": chunk.id,
+            }
+        ],
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {
+            "project_id": project.id,
+            "message_id": message.id,
+            "format": "markdown",
+            "title": "默认入口回答",
+        },
+    )
+
+    assert response.status == 200
+    export = response.body["export"]
+    exported_path = Path(export["path"])
+    assert export["format"] == "markdown"
+    assert export["mime_type"] == "text/markdown; charset=utf-8"
+    assert export["filename"].endswith(".md")
+    assert exported_path.parent == output_dir
+    assert exported_path.name == export["filename"]
+    content = exported_path.read_text(encoding="utf-8")
+    assert "# 默认入口回答" in content
+    assert "## 问题" in content
+    assert "默认入口是什么？" in content
+    assert "## 回答" in content
+    assert "默认入口是 app.py。" in content
+    assert "## 来源" in content
+    assert "stack.md" in content
+    assert export["bytes"] == exported_path.stat().st_size
+
+
+def test_result_export_api_writes_pdf_file_for_chat_message(tmp_path: Path, monkeypatch):
+    output_dir = tmp_path / "outputs"
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(output_dir))
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    message = store.create_chat_message(
+        project_id=project.id,
+        question="默认入口是什么？",
+        answer="默认入口是 app.py。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[],
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {"project_id": project.id, "message_id": message.id, "format": "pdf"},
+    )
+
+    assert response.status == 200
+    export = response.body["export"]
+    exported_path = Path(export["path"])
+    assert export["format"] == "pdf"
+    assert export["mime_type"] == "application/pdf"
+    assert export["filename"].endswith(".pdf")
+    assert exported_path.parent == output_dir
+    assert exported_path.read_bytes().startswith(b"%PDF-")
+    assert export["bytes"] == exported_path.stat().st_size
+
+
+def test_result_export_api_rejects_invalid_format_and_cross_project_message(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(tmp_path / "outputs"))
+    first_dir = tmp_path / "first"
+    second_dir = tmp_path / "second"
+    first_dir.mkdir()
+    second_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    first_project = store.create_project("项目 A", first_dir)
+    second_project = store.create_project("项目 B", second_dir)
+    message = store.create_chat_message(
+        project_id=first_project.id,
+        question="默认入口是什么？",
+        answer="默认入口是 app.py。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[],
+    )
+
+    invalid_format = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {"project_id": first_project.id, "message_id": message.id, "format": "docx"},
+    )
+    cross_project = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {"project_id": second_project.id, "message_id": message.id, "format": "markdown"},
+    )
+
+    assert invalid_format.status == 400
+    assert invalid_format.body["error"] == "format must be markdown or pdf"
+    assert cross_project.status == 404
+    assert cross_project.body["error"] == "chat message not found"
+
+
 def test_project_restore_api_restores_backup_as_new_project_with_document_content_chunks_and_vectors(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()

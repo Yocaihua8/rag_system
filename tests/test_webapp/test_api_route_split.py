@@ -451,6 +451,39 @@ def test_export_route_module_handles_project_export_and_restore(tmp_path):
     assert missing_project_response.body["error"] == "project_id is required"
 
 
+def test_export_route_module_handles_result_export(tmp_path, monkeypatch):
+    output_dir = tmp_path / "outputs"
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(output_dir))
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    message = store.create_chat_message(
+        project.id,
+        "默认入口是什么？",
+        "默认入口是 app.py。",
+        "local",
+        "local",
+        "",
+        [],
+    )
+
+    response = handle_export_route(
+        store,
+        "POST",
+        "/api/export/result",
+        {},
+        {"project_id": project.id, "message_id": message.id, "format": "markdown"},
+    )
+    invalid_method_response = handle_export_route(store, "GET", "/api/export/result", {}, {})
+
+    assert response is not None
+    assert response.status == 200
+    assert response.body["export"]["format"] == "markdown"
+    assert Path(response.body["export"]["path"]).parent == output_dir
+    assert invalid_method_response is None
+
+
 def test_answer_route_module_handles_answer_and_feedback(tmp_path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()
@@ -1005,5 +1038,6 @@ def test_migrated_routes_are_removed_from_legacy_dispatch():
     assert 'path == "/api/assessment/answer"' not in api_source
     assert 'path == "/api/export/project"' not in api_source
     assert 'path == "/api/export/project/restore"' not in api_source
+    assert 'path == "/api/export/result"' not in api_source
     assert 'path == "/api/answer"' not in api_source
     assert 'path == "/api/answer/feedback"' not in api_source
