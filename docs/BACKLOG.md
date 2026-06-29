@@ -80,7 +80,7 @@
 | B-126 | feature | 知识图谱接入检索流程 | done | P2 | L | v1.0.0 | RAG 团队 | docs/design/database-design.md, docs/features/graph-enhanced-retrieval.md, docs/design/api-spec.md | 已完成：在 Web MVP 检索中只读兼容 legacy `graph_nodes` / `graph_edges`；当图谱表存在且可映射到当前项目 chunk 时，一跳相邻来源会以 `graph_score` / `graph_depth` 并入候选池；表不存在时保持原检索行为；不修改 SQLite schema |
 | B-06 | tech-debt | ops/ 运维脚本 | todo | P3 | S | backlog | RAG 团队 | — | `ops/scripts/` 目前是空框架，补充：备份 db、清理 runtime、一键重建索引 |
 | B-07 | feature | 结果导出（Markdown / PDF） | todo | P3 | M | backlog | RAG 团队 | — | `data/outputs/` 预留了输出目录，支持将生成结果导出为 Markdown / PDF |
-| B-08 | feature | 多工作区并发索引 | doing | P3 | L | backlog | RAG 团队 | docs/design/architecture-overview.md, docs/features/concurrent-indexing.md | 当前同一时间只允许一个工作区摄入任务；本次按 `docs/plans/B-08-concurrent-indexing.md` 补充进程内轻量队列，支持跨项目并发、同项目串行；不修改 SQLite schema |
+| B-08 | feature | 多工作区并发索引 | done | P3 | L | backlog | RAG 团队 | docs/design/architecture-overview.md, docs/features/concurrent-indexing.md | 已完成：新增进程内项目级摄入协调器；FastAPI `/api/*` 同步分发移入线程池；写入型导入入口同项目串行、跨项目可并发；SQLite 连接设置 busy timeout；不修改 SQLite schema；完成后删除 plan |
 | B-24 | feature | 跨平台打包 | todo | P3 | M | backlog | RAG 团队 | docs/guides/release-process.md | 使用 PyInstaller / Nuitka 打包为独立可执行文件，降低非技术用户使用门槛 |
 | B-25 | test | 端到端 UI 自动化测试 | todo | P3 | M | backlog | RAG 团队 | docs/guides/testing.md | 目前测试全部在单元层面，缺少 Web UI 的自动化集成测试 |
 | B-117 | research | MCP / 插件能力研究 | todo | P3 | S | backlog | RAG 团队 | — | 仅研究可控只读工具接入，不引入插件市场或任意命令执行 |

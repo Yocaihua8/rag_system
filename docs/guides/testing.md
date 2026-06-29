@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-26
+> Last Updated：2026-06-29
 
 ## 1. 目标
 
@@ -37,6 +37,7 @@ docker compose config
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、Qdrant provider 同步/降级、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
+- 变更多工作区并发索引、导入线程池分发或项目级导入锁时，必须覆盖同一 `project_id` 导入串行、不同 `project_id` 导入可重叠、SQLite busy timeout 和 FastAPI `/api/*` 同步分发线程池约束。
 - 变更导入预检时，必须覆盖 `/api/import/preview`、前端预检入口、未选项目禁用、可导入/跳过摘要和跳过原因展示，并确认预检不会刷新文档列表或创建导入批次。
 - 变更浏览器文件夹导入时，必须覆盖 `/api/import/upload`、前端 `webkitdirectory` 入口、`webkitRelativePath` 到 `project_name/relative_path` 的转换和导入规则跳过行为。
 - 变更普通文件上传导入时，必须覆盖 `/api/import/upload`、前端普通 `multiple` file input、无 `webkitdirectory`、当前项目上传、无项目时创建 `browser-upload` 项目、DOCX/PDF `content_base64` 和文本文件 `content` 请求体。

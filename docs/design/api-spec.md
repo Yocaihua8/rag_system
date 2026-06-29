@@ -263,6 +263,8 @@ data: {"status":"done","model":"qwen2.5:3b"}
 
 导入批次历史由 `import_batches` 和 `import_batch_items` 保存。`source_type` 支持 `directory_sync / browser_folder_upload / file_upload / text_note / url_excerpt / notion_zip / obsidian_vault / github_repo`；`status` 支持 `success / partial / failed`。当前第一片在成功完成的导入响应中追加 `batch` 摘要，并支持按项目读取最近批次、按 `batch_id` 读取详情。批次字段包含 `id/project_id/source_type/status/started_at/finished_at/summary/message/created_at`；批次 `summary` 包含 `imported/created/updated/unchanged/deleted/skipped/errors` 计数，详情 `items` 展示 `kind/relative_path/document_id/reason`，前端只展示跳过和读取失败明细。导入批次历史不会保存文档正文、上传原始内容、chunk/vector、API Key 或模型配置；第一片不做回滚、不删除批次、不重试历史批次。`/api/import/preview` 是只读预检，不创建导入批次。
 
+B-08 后，`/api/import*` 响应契约保持同步兼容，不新增 job 状态接口或持久化队列表。FastAPI `/api/*` 兼容分发在线程池中执行同步业务逻辑；写入型导入入口在进程内按 `project_id` 串行，同一项目的并发导入请求会等待前一个导入完成，不同项目可重叠执行。
+
 Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf` 后可抽取 PDF 正文；没有可选解析器时返回跳过原因 `pdf extraction requires optional parser`，不会阻断其他文件入库。PDF 未提取到文本时返回 `no extractable text`，常见于扫描件或图片型 PDF。
 
 导入结果字段：

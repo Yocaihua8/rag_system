@@ -40,6 +40,7 @@
 ## 现有功能文档
 
 - `authentication.md`：B-140 API Key + JWT 认证中间件
+- `concurrent-indexing.md`：B-08 多工作区并发索引
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界
 - `github-repo-import.md`：B-133 GitHub 仓库整体导入

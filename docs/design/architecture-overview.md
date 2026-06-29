@@ -8,7 +8,7 @@
 
 ## 1. 架构结论
 
-Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 `webapp/static/` legacy 静态前端 fallback，Web 首页只服务 `webapp/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无消息队列和微服务。
+Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 `webapp/static/` legacy 静态前端 fallback，Web 首页只服务 `webapp/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
 
 | 字段 | 值 |
 |------|----|
@@ -134,6 +134,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | HTTP 服务 | `webapp.server.create_app` / `webapp.server.run_server` | `app.py` / Uvicorn |
 | API 分发 | `webapp.api.dispatch` + `webapp.routes.dispatch_to_routes` | `webapp.server` |
 | SQLite 存储 | `KnowledgeStore` | `webapp.routes/*`、导入/检索/工具模块 |
+| 进程内摄入协调 | `ProjectIndexingCoordinator` | `webapp.routes.imports` |
 | 后端配置 | `backend.config.settings` / `backend.config.paths` | `webapp.llm`、`webapp.embeddings`、设置 API、脚本 |
 | Qdrant 向量索引 | `backend.providers.vector_store.QdrantVectorStore` | `KnowledgeStore` 写入同步、`search_documents` 向量候选 |
 | 本地目录导入 | `import_project_documents` | `POST /api/import` |
@@ -170,7 +171,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 ## 7. 关键设计约束
 
-- **单进程**：所有处理在 `app.py` 进程内，无后台 worker 或消息队列
+- **单进程**：所有处理在 `app.py` 进程内，无外部后台 worker 或消息队列；写入型导入使用进程内项目锁，跨项目可并发，同项目串行
 - **本地优先**：所有核心功能在无网络时可用（LLM 降级本地片段，Embedding 降级 hash）
 - **可选依赖隔离**：`pymupdf` 等可选能力通过隔离入口引入，失败不影响主流程
 - **API Key 安全**：Profile 只保存引用 token，不持久化明文 Key
