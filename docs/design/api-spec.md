@@ -27,6 +27,7 @@ B-136 起，`/openapi.json` 使用 `webapp/openapi_schema.py` 中维护的显式
 - `POST /api/projects/delete`
 - `GET /api/export/project`
 - `POST /api/export/project/restore`
+- `POST /api/export/result`
 - `GET /api/documents`
 - `GET /api/document`
 - `POST /api/documents/delete`
@@ -150,6 +151,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
 | POST | `/api/projects/delete` | `project_id` | `{"deleted":true}` | `404 project not found` |
 | GET | `/api/export/project?project_id=...` | query `project_id` | `{"export":...}` | `400 project_id is required`、`404 project not found` |
 | POST | `/api/export/project/restore` | `export`、`name`（可选） | `{"project":...,"restored":{"documents":1,"chunks":1,"vectors":1,"chat_sessions":1,"chat_messages":1}}` | `400 export is required`、`400 export project is required`、`400 unsupported export version` |
+| POST | `/api/export/result` | `project_id`、`message_id`、`format`、`title`（可选） | `{"export":{"format":"markdown","filename":"...","path":"...","mime_type":"...","bytes":123}}` | `400 project_id is required`、`400 message_id is required`、`400 format must be markdown or pdf`、`404 project not found`、`404 chat message not found` |
 
 项目对象字段：
 
@@ -230,6 +232,22 @@ data: {"status":"done","model":"qwen2.5:3b"}
 `documents` 导出当前 SQLite 中的文档正文 `content`、`document_chunks` 快照和 `chunk_vectors` 快照，恢复后无需重新导入即可执行检索和问答。该接口只读取本地数据库，不重新读取原磁盘文件；因此导出内容以当前入库状态为准。启用 Qdrant 时，导出仍以 SQLite `chunk_vectors` 兼容副本为准，不直接读取 Qdrant 本地索引。`chat_sessions` 和 `chat_messages` 导出本地会话与聊天记录快照。`settings_summary` 只能包含 `provider`、`api_base`、`model`、`key_configured` 这类摘要；不导出 API Key 明文、掩码或 `api_key_source`。
 
 项目备份恢复 `/api/export/project/restore` 用于把同版本 `version=1` 备份恢复为新项目空间。恢复项目的 `root_path` 写为 `browser-upload:<项目名>`，不会覆盖原项目，也不会读取或写入原磁盘路径。恢复会写入文档正文、chunk 和 vector，并把聊天来源中的 `document_id` / `chunk_id` 映射到恢复后的新记录 ID；启用 Qdrant 时，恢复写入的 chunk vector 会同步 upsert 到 Qdrant。本接口响应中的 `restored` 返回 `documents`、`chunks`、`vectors`、`chat_sessions` 和 `chat_messages` 数量。恢复接口不恢复 API Key、不恢复 `settings_summary` 为真实配置，也不把 `key_configured` 当成凭证来源。
+
+结果导出 `POST /api/export/result` 用于把当前项目内已生成的单条 `chat_messages` 问答结果写入本地输出目录，默认目录为 `data/outputs/`，可通过 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖。请求中的 `format` 只允许 `markdown` 或 `pdf`；`message_id` 必须存在且属于请求的 `project_id`，跨项目消息按 `404 chat message not found` 处理。Markdown 文件包含标题、项目名、消息 ID、导出时间、问题、回答和来源列表；PDF 文件使用同一内容生成轻量文本 PDF，不新增大型 PDF 渲染依赖。接口只写导出文件，不新增数据库表、不修改聊天记录、不读取磁盘源文件，也不返回文件内容。
+
+成功响应示例：
+
+```json
+{
+  "export": {
+    "format": "markdown",
+    "filename": "result-20260629-120000-abcd1234.md",
+    "path": "data/outputs/result-20260629-120000-abcd1234.md",
+    "mime_type": "text/markdown; charset=utf-8",
+    "bytes": 1024
+  }
+}
+```
 
 ### 1.3 文档与导入
 

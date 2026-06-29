@@ -26,6 +26,7 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "POST /api/model-profiles/test",
         "GET /api/export/project",
         "POST /api/export/project/restore",
+        "POST /api/export/result",
         "GET /api/import/preview",
         "POST /api/import",
         "POST /api/search",
@@ -83,6 +84,22 @@ def test_project_export_contract_is_documented():
     assert "unsupported export version" in api_spec
     assert "备份恢复" in readme
     assert "备份导出" in readme
+
+
+def test_result_export_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    feature_doc = Path("docs/features/result-export.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "POST /api/export/result" in api_spec
+    assert "message_id" in api_spec
+    assert "markdown" in api_spec
+    assert "pdf" in api_spec
+    assert "data/outputs/" in api_spec
+    assert "format must be markdown or pdf" in api_spec
+    assert "chat message not found" in api_spec
+    assert "结果导出" in feature_doc
+    assert "结果导出" in readme
 
 
 def test_answer_stream_contract_is_documented():

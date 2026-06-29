@@ -94,6 +94,7 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
         ("/api/answer", "post"),
         ("/api/answer/compare", "post"),
         ("/api/answer/stream", "get"),
+        ("/api/export/result", "post"),
         ("/api/agent/tools/run", "post"),
         ("/api/assessment/library", "get"),
         ("/api/assessment/start", "post"),

@@ -114,11 +114,12 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 - 错误分类与 HTTP 状态码映射
 - 必须：不承载复杂业务规则，不直接操作 SQLite
 
-### 4.3 业务层（ingestion / search / answers / agent_tools）
+### 4.3 业务层（ingestion / search / answers / agent_tools / result_export）
 
-- 实现核心知识处理逻辑（分块、向量化、检索、回答生成）
+- 实现核心知识处理逻辑（分块、向量化、检索、回答生成、结果导出）
 - 编排多个存储操作构成完整用例
 - 管理可选依赖的降级逻辑（API 失败时 fallback）
+- `webapp/result_export.py` 负责将已生成问答消息格式化为 Markdown / PDF 文件并写入本地输出目录
 - 必须：不引入 HTTP 概念（无 request/response），不格式化最终 JSON
 
 ### 4.4 数据层（webapp/storage.py）
@@ -145,6 +146,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | 文本笔记导入 | `build_note_document` | `POST /api/import/note` |
 | 检索 | `search_documents` / `KnowledgeStore.list_graph_related_chunks` / `build_source_quality` | `/api/search*` / `/api/answer` / 只读工具 |
 | 回答生成 | `build_local_answer` / OpenAI-compatible Chat | `POST /api/answer` |
+| 结果导出 | `export_chat_message_result` | `POST /api/export/result` |
 | Agent 只读工具 | `run_agent_tool` | `POST /api/agent/tools/run` |
 | Vue API helper | `frontend/src/api/client.js` | Vue 组件 / 后续页面模块 |
 | Vue 项目空间 helper | `frontend/src/api/projects.js` | `App.vue` / `ProjectSpacePanel.vue` / `SearchDebugPanel.vue` |

@@ -21,6 +21,7 @@ WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("POST", "/api/projects/delete", "Delete project space"),
     ("GET", "/api/export/project", "Export project backup"),
     ("POST", "/api/export/project/restore", "Restore project backup"),
+    ("POST", "/api/export/result", "Export answer result"),
     ("GET", "/api/documents", "List project documents"),
     ("GET", "/api/document", "Get document detail"),
     ("POST", "/api/documents/delete", "Delete document record"),

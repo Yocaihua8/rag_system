@@ -52,3 +52,4 @@
 - `ops-maintenance.md`：B-06 本地维护脚本与索引重建管理入口
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
 - `qdrant-vector-store.md`：B-134 Qdrant 本地向量存储替换 SQLite 全扫描
+- `result-export.md`：B-07 生成结果导出为 Markdown / PDF
