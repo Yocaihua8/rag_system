@@ -26,7 +26,7 @@
 - [x] 任务 1：写 B-135 红灯测试，覆盖 `/api/answer/compare` 选择 2 个 Profile、复用检索上下文、错误校验和 Vue 工作台 wiring
 - [x] 任务 2：实现后端 compare API，新增 Profile 客户端构造、结果结构和路由分发，不改变 `/api/answer` 与 SSE 行为
 - [x] 任务 3：实现 Vue 工作台最小并排对比入口，包含 Profile 选择、提交状态、错误状态和双列结果展示
-- [ ] 任务 4：同步 `docs/features/multi-model-comparison.md` 与 `docs/design/api-spec.md`
+- [x] 任务 4：同步 `docs/features/multi-model-comparison.md` 与 `docs/design/api-spec.md`
 - [ ] 任务 5：运行 B-135 验证清单，关闭 BACKLOG 状态并删除本 plan
 
 ## 4. 影响范围
@@ -75,8 +75,8 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 多模型并排对比功能边界和 UI 行为 | `docs/features/multi-model-comparison.md` | [ ] |
-| `/api/answer/compare` 请求、响应和错误契约 | `docs/design/api-spec.md` | [ ] |
+| 多模型并排对比功能边界和 UI 行为 | `docs/features/multi-model-comparison.md` | [x] |
+| `/api/answer/compare` 请求、响应和错误契约 | `docs/design/api-spec.md` | [x] |
 
 ## 8. 执行记录
 
@@ -84,6 +84,7 @@
 - 2026-06-29：任务 1 红灯测试已运行：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q -k "answer_compare"` 结果 2 failed，失败原因为 `/api/answer/compare` 当前返回 404；`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q -k "multi_model_comparison"` 结果 2 failed，失败原因为缺少 `compareAnswers` helper 和 `ModelComparisonPanel.vue`。
 - 2026-06-29：任务 2 后端实现新增 `/api/answer/compare`，复用检索上下文但不写聊天消息；验证命令：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q -k "answer_compare"` 为 2 passed；`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q -k "answer_compare or default_model_profile or answer_stream"` 为 4 passed。
 - 2026-06-29：任务 3 新增 Vue compare helper、状态、工作台面板和 App wiring；验证命令：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q` 为 80 passed；`npm run build` 首次因隔离 worktree 未安装 `node_modules` 失败，执行 `npm ci` 后重跑通过；`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q -k "answer_compare"` 为 2 passed。
+- 2026-06-29：任务 4 同步 `docs/features/multi-model-comparison.md` 和 `docs/design/api-spec.md`，补齐 `/api/answer/compare` 的请求、响应、错误、UI 和不写聊天消息边界；验证命令：`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_api.py -q -k "answer_compare"` 为 2 passed，`E:\Code\knowledage_island\.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_vue_app.py -q -k "multi_model_comparison"` 为 2 passed。
 
 ## 9. 状态快照
 
