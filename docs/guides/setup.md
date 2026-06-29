@@ -2,14 +2,15 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-26
+> Last Updated：2026-06-29
 
 ## 1. 环境要求
 
 - Python 3.10+（仓库默认以 3.11 为主）
 - Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；当前本机验证为 Node 24 + npm 11）
-- Rust stable + Cargo + rustup（仅 B-145 Tauri Windows 桌面打包需要；Web MVP 浏览器模式不需要）
-- Windows WebView2 + MSVC Build Tools（仅 B-145 Tauri Windows 桌面打包需要）
+- Rust stable + Cargo + rustup（仅 Tauri 原生桌面打包需要；Web MVP 浏览器模式不需要）
+- Windows WebView2 + MSVC Build Tools（仅 Windows Tauri 桌面打包需要）
+- macOS / Linux Tauri 平台依赖（仅 macOS `.dmg` / Linux `.AppImage` 原生桌面打包需要）
 - Web MVP 不强依赖 Ollama 或 API Key；配置 Ollama 或 DeepSeek Key 后可启用真实 LLM 回答
 - 可选：Ollama 本地服务（B-146 起可作为 Web MVP 本地 LLM provider）
 - 可选：API Key（DeepSeek/OpenAI/兼容端点）
@@ -52,9 +53,9 @@ npm run build
 
 Docker 镜像构建会在独立 Node 阶段执行 `npm ci && npm run build`，并把生成的 `webapp/static_dist/` 复制到最终 Python 镜像中。运行阶段只安装 `requirements-docker.txt` 中的 Web 运行依赖，并以非 root `appuser` 启动。因此 Docker 启动不需要宿主机提前执行 `npm run build`，但重新拉取或修改前端源码后仍需重新 `docker compose --project-directory . -f compose.yaml up --build -d`。
 
-## 3. Tauri Windows 桌面打包验证（B-145）
+## 3. Tauri 桌面打包验证（B-145 / B-24）
 
-Tauri 桌面壳复用同一份 Vue/Vite 生产构建产物和 FastAPI API。Windows 打包前需要额外安装开发依赖：
+Tauri 桌面壳复用同一份 Vue/Vite 生产构建产物和 FastAPI API。打包前需要额外安装开发依赖：
 
 ```powershell
 pip install -r requirements-dev.txt
@@ -63,7 +64,7 @@ npm install --include=optional
 
 `npm install --include=optional` 用于确保 `@tauri-apps/cli` 的 Windows native binding（例如 `@tauri-apps/cli-win32-x64-msvc`）被安装；如果 `npx tauri --version` 提示缺少 native binding，先重跑该命令。
 
-完整 Tauri 构建还需要 Rust stable MSVC 工具链。可用以下命令检查：
+完整 Windows Tauri 构建还需要 Rust stable MSVC 工具链。可用以下命令检查：
 
 ```powershell
 cargo --version
@@ -73,7 +74,7 @@ rustup --version
 
 如果新终端找不到 `cargo`，确认 `%USERPROFILE%\.cargo\bin` 已加入当前 PowerShell 的 `Path`。
 
-单独构建 FastAPI sidecar：
+单独构建 Windows FastAPI sidecar：
 
 ```powershell
 .\scripts\build-backend-sidecar.ps1
@@ -98,6 +99,16 @@ npm run tauri:build:windows
 ```text
 src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe
 ```
+
+macOS `.dmg` 和 Linux `.AppImage` 需要在对应原生系统执行，不在 Windows 上交叉生成。先安装该平台的 Tauri 依赖、Python 依赖和 `requirements-dev.txt`，再运行：
+
+```bash
+bash scripts/build-backend-sidecar.sh
+npm run tauri:build:macos  # macOS only
+npm run tauri:build:linux  # Linux only
+```
+
+Unix sidecar 脚本会从 `rustc -vV` 读取 target triple，并生成 `src-tauri/binaries/knowledge-island-backend-<target-triple>`；需要覆盖时可设置 `KI_TAURI_TARGET_TRIPLE`。
 
 启用 API Key + JWT 认证（可选）：
 

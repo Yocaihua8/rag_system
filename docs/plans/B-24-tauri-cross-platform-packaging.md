@@ -20,9 +20,10 @@
 
 ## 3. 任务拆解
 
-- [ ] 补充 Tauri 跨平台打包红灯测试，覆盖 Unix sidecar 脚本、macOS/Linux npm scripts、文档契约和 Windows 链路兼容。
-- [ ] 新增 `scripts/build-backend-sidecar.sh`，补 `package.json` 的 macOS/Linux 打包命令，并保持 Windows NSIS 命令不变。
-- [ ] 同步桌面打包、发布流程、测试指南和 BACKLOG，完成验证后删除本 plan。
+- [x] 补充 Tauri 跨平台打包红灯测试，覆盖 Unix sidecar 脚本、macOS/Linux npm scripts、文档契约和 Windows 链路兼容。
+- [x] 新增 `scripts/build-backend-sidecar.sh`，补 `package.json` 的 macOS/Linux 打包命令，并保持 Windows NSIS 命令不变。
+- [x] 同步桌面打包、发布流程、测试指南和安装指南。
+- [ ] 同步 BACKLOG，完成验证后删除本 plan。
 
 ## 4. 影响范围
 
@@ -34,6 +35,7 @@
 | 文档 | `docs/features/desktop-packaging.md` | 修改 |
 | 文档 | `docs/guides/release-process.md` | 修改 |
 | 文档 | `docs/guides/testing.md` | 修改 |
+| 文档 | `docs/guides/setup.md` | 修改 |
 | 文档 | `docs/BACKLOG.md` | 修改 |
 
 ## 5. 依赖与冲突
@@ -65,21 +67,24 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| macOS `.dmg` / Linux `.AppImage` 打包入口与限制 | `docs/features/desktop-packaging.md` | [ ] |
-| 发布流程跨平台桌面打包步骤 | `docs/guides/release-process.md` | [ ] |
-| Tauri 打包验证命令 | `docs/guides/testing.md` | [ ] |
+| macOS `.dmg` / Linux `.AppImage` 打包入口与限制 | `docs/features/desktop-packaging.md` | [x] |
+| 发布流程跨平台桌面打包步骤 | `docs/guides/release-process.md` | [x] |
+| Tauri 打包验证命令 | `docs/guides/testing.md` | [x] |
+| Tauri 跨平台桌面打包环境与命令 | `docs/guides/setup.md` | [x] |
 | B-24 完成状态 | `docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
 
 - 2026-06-29：B-24 不尝试在 Windows 上交叉编译 `.dmg` / `.AppImage`；只补本机 macOS/Linux 打包入口和静态契约验证。
 - 2026-06-29：保持 `npm run tauri:build:windows` 继续走 `scripts/build-backend-sidecar.ps1` + NSIS，不把 Linux/macOS bundle target 写成 Windows 默认构建目标。
+- 2026-06-29：已完成红灯测试提交 `8643e29` 和脚本实现提交 `dd61d56`；文档同步阶段追加 `docs/guides/setup.md`，避免安装指南继续声明 Tauri 仅覆盖 Windows。
+- 2026-06-29：文档同步后已通过 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_tauri_packaging.py -q`、`npm run build`、`npx tauri info`；macOS/Linux 原生包未在 Windows 上交叉构建。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29 00:00
-- **进度**：已完成 0 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：`N/A` — 尚未提交
+- **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`dd61d56` — `feat: 增加 macOS Linux Tauri 打包脚本`
 - **代码状态**：`fix/b-08-concurrent-index`；工作区存在非 B-24 既有改动，需精确暂存
-- **下一步**：补充 Tauri 跨平台打包红灯测试，覆盖 Unix sidecar 脚本、macOS/Linux npm scripts、文档契约和 Windows 链路兼容
+- **下一步**：同步 BACKLOG，完成验证后删除本 plan
 - **续任务须知**：只暂存 B-24 相关文件和 `docs/BACKLOG.md` 的 B-24 hunk

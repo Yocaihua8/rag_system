@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-25
+> Last Updated：2026-06-29（§4 桌面打包对齐到 Tauri sidecar 链路）
 > Scope：Knowledge Island 版本发布检查与步骤
 > Related：docs/guides/testing.md, docs/guides/branch-conventions.md, CHANGELOG.md
 
@@ -23,7 +23,7 @@
 3. 在 `docs/devlog/` 下添加当日日志条目
 4. 提交：`git commit -m "chore: release vX.Y.Z"`
 5. 打 Tag：`git tag vX.Y.Z`
-6. 若有 Windows 打包需求，执行打包脚本（见下方）
+6. 若有桌面打包需求，执行 Tauri 打包链路（见 §4）
 
 ## 3. 回滚方案
 
@@ -31,19 +31,54 @@
 - **回滚步骤**：`git checkout <上一个 tag>`，重新启动 `python app.py`
 - **数据回滚**：SQLite 数据库文件（`runtime/docker/knowledge.db`）可手动备份和替换；无自动回滚机制
 
-## 4. Windows 打包（可选）
+## 4. 桌面打包（可选）
+
+桌面发行走 **Tauri 桌面壳 + PyInstaller sidecar** 链路，详见 `docs/features/desktop-packaging.md`。前置：目标平台本机已安装 Node.js / npm、Python 依赖、`requirements-dev.txt`、Rust / Cargo / rustup，并可用 `npx tauri info` 确认环境缺口。
+
+### 4.1 Windows NSIS
 
 ```powershell
-# 首次执行，自动安装 PyInstaller
-powershell -ExecutionPolicy Bypass -File scripts\release_windows.ps1 -SkipCheck -InstallPyInstaller
+# 1. 生成 Vue/Vite 生产构建产物
+npm run build
 
-# 已安装 PyInstaller 时直接打包
-powershell -ExecutionPolicy Bypass -File scripts\release_windows.ps1 -SkipCheck
+# 2. 用 PyInstaller 打包 app.py 为后端 sidecar，并复制到 src-tauri/binaries/
+powershell -ExecutionPolicy Bypass -File scripts\build-backend-sidecar.ps1
+
+# 3. 构建 Windows 桌面包（内部会先确保 sidecar 已生成）
+npm run tauri:build:windows
 ```
 
-输出目录：`release\dist\KnowledgeIsland\KnowledgeIsland.exe`
+输出：`src-tauri\target\release\bundle\nsis\Knowledge Island_<version>_x64-setup.exe`（NSIS installer）。
 
-同目录还会生成 `Run_KnowledgeIsland.bat`，双击即可启动。脚本将 PyInstaller 缓存写入仓库内 `release-cache/`，不污染系统目录。
+### 4.2 macOS `.dmg`
+
+macOS 原生桌面包需要在 macOS 本机执行：
+
+```bash
+# 1. 安装依赖后生成 Vue/Vite 生产构建产物和 Unix sidecar
+bash scripts/build-backend-sidecar.sh
+
+# 2. 构建 macOS dmg 包（内部会先确保 Unix sidecar 已生成）
+npm run tauri:build:macos
+```
+
+输出：`src-tauri/target/release/bundle/dmg/*.dmg`。
+
+### 4.3 Linux `.AppImage`
+
+Linux 原生桌面包需要在 Linux 本机执行：
+
+```bash
+# 1. 安装依赖后生成 Vue/Vite 生产构建产物和 Unix sidecar
+bash scripts/build-backend-sidecar.sh
+
+# 2. 构建 Linux AppImage 包（内部会先确保 Unix sidecar 已生成）
+npm run tauri:build:linux
+```
+
+输出：`src-tauri/target/release/bundle/appimage/*.AppImage`。
+
+> 本仓库当前不从 Windows 交叉生成 macOS `.dmg` / Linux `.AppImage`。跨平台“一键启动”仍由 Docker（`docker compose up`）覆盖；原生桌面包用于需要系统级桌面分发的场景。
 
 ## 5. 发布记录
 
