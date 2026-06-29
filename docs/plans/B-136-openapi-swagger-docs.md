@@ -85,8 +85,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29
-- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`8ee0f0b` — feat: 为 Web MVP 生成 OpenAPI schema
-- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；运行时 OpenAPI schema 已提交，正式文档仍待同步
-- **下一步**：任务 3：同步 `docs/features/openapi-swagger-docs.md` 与 `docs/design/api-spec.md`
+- **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`ad27894` — docs: 同步 OpenAPI Swagger 文档
+- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；B-136 代码和正式文档已提交，待最终验证与 BACKLOG 收口
+- **下一步**：任务 4：运行 B-136 验证清单，关闭 BACKLOG 状态并删除本 plan
 - **续任务须知**：B-136 不改业务分发行为，只补 OpenAPI schema；认证开启时 `/docs`、`/redoc`、`/openapi.json` 仍需凭证。
