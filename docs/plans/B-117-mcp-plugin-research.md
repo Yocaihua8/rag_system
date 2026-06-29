@@ -20,7 +20,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 梳理当前 Agent 工具边界与 MCP 能力映射，形成研究文档初稿。
+- [x] 梳理当前 Agent 工具边界与 MCP 能力映射，形成研究文档初稿。
 - [ ] 同步正式文档索引和权限/系统设计边界，运行文档验证。
 - [ ] 同步 BACKLOG 完成状态，删除本 plan。
 
@@ -62,7 +62,7 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| MCP / 插件能力研究结论、准入边界、拒绝范围 | `docs/features/agent-tooling-mcp-research.md` | [ ] |
+| MCP / 插件能力研究结论、准入边界、拒绝范围 | `docs/features/agent-tooling-mcp-research.md` | [x] |
 | 只读工具与 MCP 未来接入的权限边界 | `docs/design/permission-matrix.md` | [ ] |
 | 系统设计中的 Agent 工具扩展边界 | `docs/design/system-design-overview.md` | [ ] |
 | 新研究文档索引 | `docs/README.md` | [ ] |
@@ -71,12 +71,13 @@
 ## 8. 执行记录
 
 - 2026-06-30：B-117 明确为 research 小项，只做文档结论和后续任务拆分，不改运行时代码和 API。
+- 2026-06-30：新增 `docs/features/agent-tooling-mcp-research.md`，结论为当前不接入插件市场或任意 MCP server；后续仅可按 allowlist、只读、手动触发、审计记录方式研究最小适配层。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-30 00:00
-- **进度**：已完成 0 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：N/A
+- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：`2628a36` — `docs: 启动 B-117 MCP 研究计划`
 - **代码状态**：`fix/b-08-concurrent-index`；工作区存在非 B-117 既有改动，需精确暂存
-- **下一步**：梳理当前 Agent 工具边界与 MCP 能力映射，形成研究文档初稿
+- **下一步**：同步正式文档索引和权限/系统设计边界，运行文档验证
 - **续任务须知**：只暂存 B-117 相关文件和 `docs/BACKLOG.md` 的 B-117 hunk
