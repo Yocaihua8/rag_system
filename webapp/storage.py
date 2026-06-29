@@ -23,6 +23,7 @@ from webapp.models import (
     Document,
     DocumentChunk,
     DocumentCollection,
+    GraphRelatedChunk,
     ImportBatch,
     ImportBatchItem,
     ModelProfile,
@@ -1054,6 +1055,90 @@ class KnowledgeStore:
                 (project_id,),
             ).fetchall()
         return [_chunk_from_row(row) for row in rows]
+
+    def list_graph_related_chunks(
+        self,
+        project_id: str,
+        seed_chunks: list[DocumentChunk],
+        limit: int = 10,
+    ) -> list[GraphRelatedChunk]:
+        seeds = [chunk for chunk in seed_chunks if chunk.document.project_id == project_id]
+        if not seeds or limit <= 0:
+            return []
+        seed_refs = _unique_non_empty([ref for chunk in seeds for ref in _chunk_graph_refs(chunk)])
+        if not seed_refs:
+            return []
+        try:
+            with self._connect() as conn:
+                if not _graph_tables_available(conn):
+                    return []
+                placeholders = ",".join("?" for _ in seed_refs)
+                seed_node_rows = conn.execute(
+                    f"""
+                    SELECT id
+                    FROM graph_nodes
+                    WHERE workspace_id = ?
+                      AND source_ref IN ({placeholders})
+                    """,
+                    [project_id, *seed_refs],
+                ).fetchall()
+                seed_node_ids = [row["id"] for row in seed_node_rows]
+                if not seed_node_ids:
+                    return []
+                node_placeholders = ",".join("?" for _ in seed_node_ids)
+                rows = conn.execute(
+                    f"""
+                    SELECT
+                        n.source_ref AS source_ref,
+                        e.relationship AS relationship,
+                        e.confidence AS edge_confidence
+                    FROM graph_edges e
+                    JOIN graph_nodes n
+                      ON n.id = e.target_node_id
+                     AND n.workspace_id = e.workspace_id
+                    WHERE e.workspace_id = ?
+                      AND e.source_node_id IN ({node_placeholders})
+                      AND n.source_ref != ''
+                    UNION ALL
+                    SELECT
+                        n.source_ref AS source_ref,
+                        e.relationship AS relationship,
+                        e.confidence AS edge_confidence
+                    FROM graph_edges e
+                    JOIN graph_nodes n
+                      ON n.id = e.source_node_id
+                     AND n.workspace_id = e.workspace_id
+                    WHERE e.workspace_id = ?
+                      AND e.target_node_id IN ({node_placeholders})
+                      AND n.source_ref != ''
+                    ORDER BY edge_confidence DESC
+                    """,
+                    [project_id, *seed_node_ids, project_id, *seed_node_ids],
+                ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+
+        seed_chunk_ids = {chunk.id for chunk in seeds}
+        chunks = self.list_chunks(project_id)
+        chunks_by_ref = _chunks_by_graph_ref(chunks)
+        related: list[GraphRelatedChunk] = []
+        seen_chunk_ids = set(seed_chunk_ids)
+        for row in rows:
+            for chunk in chunks_by_ref.get(str(row["source_ref"]), []):
+                if chunk.id in seen_chunk_ids:
+                    continue
+                seen_chunk_ids.add(chunk.id)
+                related.append(
+                    GraphRelatedChunk(
+                        chunk=chunk,
+                        score=float(row["edge_confidence"] or 0.0),
+                        depth=1,
+                        relationship=str(row["relationship"] or "related_to"),
+                    )
+                )
+                if len(related) >= limit:
+                    return related
+        return related
 
     def list_chunk_vectors(self, project_id: str) -> dict[str, dict[str, float]]:
         with self._connect() as conn:
@@ -2238,6 +2323,38 @@ def _chunk_ids_for_documents(conn: sqlite3.Connection, document_ids: list[str]) 
         document_ids,
     ).fetchall()
     return [row["id"] for row in rows]
+
+
+def _graph_tables_available(conn: sqlite3.Connection) -> bool:
+    rows = conn.execute(
+        """
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+          AND name IN ('graph_nodes', 'graph_edges')
+        """
+    ).fetchall()
+    return {row["name"] for row in rows} == {"graph_nodes", "graph_edges"}
+
+
+def _chunk_graph_refs(chunk: DocumentChunk) -> list[str]:
+    return [
+        chunk.id,
+        chunk.document.id,
+        chunk.document.relative_path,
+        str(chunk.document.source_path),
+        chunk.document.source_path.as_posix(),
+    ]
+
+
+def _chunks_by_graph_ref(chunks: list[DocumentChunk]) -> dict[str, list[DocumentChunk]]:
+    refs: dict[str, list[DocumentChunk]] = {}
+    for chunk in chunks:
+        for ref in _chunk_graph_refs(chunk):
+            if not ref:
+                continue
+            refs.setdefault(ref, []).append(chunk)
+    return refs
 
 
 def _int_snapshot_value(value: object, default: int) -> int:

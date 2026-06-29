@@ -156,6 +156,8 @@ class SearchHit:
     vector_provider: str = "local"
     vector_model: str = "hashing-96"
     rerank_score: float | None = None
+    graph_score: float = 0.0
+    graph_depth: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -169,11 +171,21 @@ class SearchHit:
             "vector_provider": self.vector_provider,
             "vector_model": self.vector_model,
             "rerank_score": self.rerank_score,
+            "graph_score": self.graph_score,
+            "graph_depth": self.graph_depth,
         }
         if self.chunk is not None:
             data["chunk_id"] = self.chunk.id
             data["chunk_index"] = self.chunk.chunk_index
         return data
+
+
+@dataclass(frozen=True)
+class GraphRelatedChunk:
+    chunk: DocumentChunk
+    score: float
+    depth: int
+    relationship: str
 
 
 @dataclass(frozen=True)

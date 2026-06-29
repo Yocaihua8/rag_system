@@ -271,6 +271,72 @@ def test_search_returns_hybrid_scores_for_vector_retrieval(tmp_path: Path):
     assert body["score"] == body["keyword_score"] + body["vector_score"]
 
 
+def test_store_lists_graph_related_chunks_from_existing_graph_tables(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(
+        project.id,
+        tmp_path / "api.md",
+        "api.md",
+        "FastAPI request handler validates incoming payloads.",
+    )
+    store.upsert_document(
+        project.id,
+        tmp_path / "database.md",
+        "database.md",
+        "SQLite graph_edges records describe related concepts.",
+    )
+    _create_legacy_graph_tables(store)
+    _insert_graph_node(store, "node-api", project.id, "FastAPI Handler", "api.md", 0.9)
+    _insert_graph_node(store, "node-db", project.id, "SQLite Graph", "database.md", 0.8)
+    _insert_graph_edge(store, "edge-api-db", project.id, "node-api", "node-db", "related_to", 0.75)
+    seed_chunk = next(chunk for chunk in store.list_chunks(project.id) if chunk.document.relative_path == "api.md")
+
+    related = store.list_graph_related_chunks(project.id, [seed_chunk], limit=5)
+
+    assert [(item.chunk.document.relative_path, item.score, item.depth, item.relationship) for item in related] == [
+        ("database.md", 0.75, 1, "related_to")
+    ]
+
+
+def test_search_expands_results_with_graph_related_chunks(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("Demo", tmp_path)
+    store.upsert_document(
+        project.id,
+        tmp_path / "api.md",
+        "api.md",
+        "FastAPI request handler validates incoming payloads.",
+    )
+    store.upsert_document(
+        project.id,
+        tmp_path / "database.md",
+        "database.md",
+        "SQLite graph_edges records describe related concepts.",
+    )
+    _create_legacy_graph_tables(store)
+    _insert_graph_node(store, "node-api", project.id, "FastAPI Handler", "api.md", 0.9)
+    _insert_graph_node(store, "node-db", project.id, "SQLite Graph", "database.md", 0.8)
+    _insert_graph_edge(store, "edge-api-db", project.id, "node-api", "node-db", "depends_on", 0.82)
+
+    hits = search_documents(
+        store,
+        project.id,
+        "request handler",
+        limit=2,
+        use_keyword=True,
+        use_vector=False,
+        reranker=None,
+    )
+    bodies = [hit.to_dict() for hit in hits]
+
+    assert [body["path"] for body in bodies] == ["api.md", "database.md"]
+    assert bodies[1]["retrieval"] == "graph"
+    assert bodies[1]["graph_score"] == 0.82
+    assert bodies[1]["graph_depth"] == 1
+    assert bodies[1]["score"] == bodies[1]["graph_score"]
+
+
 def test_upsert_document_can_use_api_embedding_client(tmp_path: Path):
     embedding_client = FakeEmbeddingClient()
     store = KnowledgeStore(tmp_path / "app.db", embedding_client=embedding_client)
@@ -506,3 +572,95 @@ class ReverseReranker:
         self.calls.append((query, [hit.document.relative_path for hit in candidates], top_n))
         ranked = list(reversed(candidates))
         return ranked[:top_n] if top_n is not None else ranked
+
+
+def _create_legacy_graph_tables(store: KnowledgeStore) -> None:
+    with store._connect() as conn:
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS graph_nodes (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                label TEXT NOT NULL,
+                node_type TEXT NOT NULL,
+                source_ref TEXT NOT NULL DEFAULT '',
+                confidence REAL NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS graph_edges (
+                id TEXT PRIMARY KEY,
+                workspace_id TEXT NOT NULL,
+                source_node_id TEXT NOT NULL,
+                target_node_id TEXT NOT NULL,
+                relationship TEXT NOT NULL,
+                confidence REAL NOT NULL,
+                source_path TEXT NOT NULL DEFAULT '',
+                source_snippet TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+
+def _insert_graph_node(
+    store: KnowledgeStore,
+    node_id: str,
+    workspace_id: str,
+    name: str,
+    source_ref: str,
+    confidence: float,
+) -> None:
+    with store._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO graph_nodes
+                (id, workspace_id, name, label, node_type, source_ref, confidence, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                node_id,
+                workspace_id,
+                name,
+                name,
+                "concept",
+                source_ref,
+                confidence,
+                "2026-06-29T00:00:00+00:00",
+                "2026-06-29T00:00:00+00:00",
+            ),
+        )
+
+
+def _insert_graph_edge(
+    store: KnowledgeStore,
+    edge_id: str,
+    workspace_id: str,
+    source_node_id: str,
+    target_node_id: str,
+    relationship: str,
+    confidence: float,
+) -> None:
+    with store._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO graph_edges
+                (id, workspace_id, source_node_id, target_node_id, relationship, confidence, source_path, source_snippet, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                edge_id,
+                workspace_id,
+                source_node_id,
+                target_node_id,
+                relationship,
+                confidence,
+                "",
+                "",
+                "2026-06-29T00:00:00+00:00",
+                "2026-06-29T00:00:00+00:00",
+            ),
+        )

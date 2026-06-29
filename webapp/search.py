@@ -59,17 +59,29 @@ def search_documents(
         use_vector_store=use_vector and active_vector_store is not None and bool(query_vector),
         limit=candidate_limit,
     )
+    graph_seed_chunks = _graph_seed_chunks(
+        candidate_chunks,
+        keyword_scores=keyword_scores,
+        vector_records=vector_records,
+        use_keyword=use_keyword,
+        use_vector_store=use_vector and active_vector_store is not None and bool(query_vector),
+    )
+    graph_related = store.list_graph_related_chunks(project_id, graph_seed_chunks, limit=candidate_limit)
+    graph_records = {item.chunk.id: item for item in graph_related}
+    candidate_chunks = _with_graph_candidate_chunks(candidate_chunks, graph_related)
     retrieval = _retrieval_label(use_keyword, use_vector)
     hits: list[SearchHit] = []
     for chunk in candidate_chunks:
         keyword_score = keyword_scores.get(chunk.id, 0.0)
         vector_record = vector_records.get(chunk.id, {})
+        graph_record = graph_records.get(chunk.id)
+        graph_score = graph_record.score if graph_record is not None else 0.0
         vector_score = (
             _vector_score(query_vector, vector_record)
             if use_vector
             else 0.0
         )
-        score = keyword_score + vector_score
+        score = keyword_score + vector_score + graph_score
         hits.append(
             SearchHit(
                 document=chunk.document,
@@ -78,9 +90,11 @@ def search_documents(
                 chunk=chunk,
                 keyword_score=keyword_score,
                 vector_score=vector_score,
-                retrieval=retrieval,
+                retrieval=_retrieval_with_graph(retrieval, keyword_score, vector_score, graph_score),
                 vector_provider=str(vector_record.get("provider", "local")),
                 vector_model=str(vector_record.get("model", "hashing-96")),
+                graph_score=graph_score,
+                graph_depth=graph_record.depth if graph_record is not None else None,
             )
         )
     hits.sort(
@@ -165,6 +179,38 @@ def _candidate_chunks(
 def _top_keyword_chunk_ids(keyword_scores: dict[str, float], limit: int) -> list[str]:
     ranked = sorted(keyword_scores.items(), key=lambda item: item[1], reverse=True)
     return [chunk_id for chunk_id, _ in ranked[:limit]]
+
+
+def _with_graph_candidate_chunks(
+    candidate_chunks: list[DocumentChunk],
+    graph_related: list[object],
+) -> list[DocumentChunk]:
+    chunks = list(candidate_chunks)
+    seen = {chunk.id for chunk in chunks}
+    for item in graph_related:
+        chunk = getattr(item, "chunk", None)
+        if not isinstance(chunk, DocumentChunk) or chunk.id in seen:
+            continue
+        seen.add(chunk.id)
+        chunks.append(chunk)
+    return chunks
+
+
+def _graph_seed_chunks(
+    candidate_chunks: list[DocumentChunk],
+    *,
+    keyword_scores: dict[str, float],
+    vector_records: dict[str, dict[str, object]],
+    use_keyword: bool,
+    use_vector_store: bool,
+) -> list[DocumentChunk]:
+    seeds: list[DocumentChunk] = []
+    for chunk in candidate_chunks:
+        keyword_hit = use_keyword and keyword_scores.get(chunk.id, 0.0) > 0
+        vector_hit = use_vector_store and chunk.id in vector_records
+        if keyword_hit or vector_hit:
+            seeds.append(chunk)
+    return seeds
 
 
 def _vector_score(query_vector: Mapping[str, float], vector_record: dict[str, object]) -> float:
@@ -254,6 +300,19 @@ def _retrieval_label(use_keyword: bool, use_vector: bool) -> str:
     if use_keyword:
         return "keyword"
     return "disabled"
+
+
+def _retrieval_with_graph(
+    base_retrieval: str,
+    keyword_score: float,
+    vector_score: float,
+    graph_score: float,
+) -> str:
+    if graph_score <= 0:
+        return base_retrieval
+    if keyword_score <= 0 and vector_score <= 0:
+        return "graph"
+    return f"{base_retrieval}+graph"
 
 
 def _chunk_index(hit: SearchHit) -> int:
