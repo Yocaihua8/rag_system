@@ -87,8 +87,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29
-- **进度**：已完成 1 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`2d55120` — test: 增加多模型对比红灯测试
-- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；红灯测试已提交，目标失败原因符合预期
-- **下一步**：任务 2：实现后端 compare API
+- **进度**：已完成 2 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`ea2d4df` — feat: 新增多模型回答对比接口
+- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；后端 compare API 已提交，前端 compare wiring 仍保持红灯
+- **下一步**：任务 3：实现 Vue 工作台最小并排对比入口
 - **续任务须知**：B-136 应在 B-135 完成后执行，以便 OpenAPI schema 覆盖新增 `/api/answer/compare`。
