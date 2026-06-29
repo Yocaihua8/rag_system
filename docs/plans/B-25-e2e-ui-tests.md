@@ -20,7 +20,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 补充红灯契约测试，约束 Playwright 配置、npm scripts、E2E 测试文件、临时 DB 启动脚本和测试指南文档。
+- [x] 补充红灯契约测试，约束 Playwright 配置、npm scripts、E2E 测试文件、临时 DB 启动脚本和测试指南文档。
 - [ ] 实现 Playwright E2E 基础设施：依赖、配置、测试服务启动脚本、临时 DB 覆盖和首条浏览器主流程测试。
 - [ ] 同步测试指南，运行静态契约、浏览器 E2E、前端构建和相关 pytest 验证。
 - [ ] 同步 BACKLOG 完成状态，删除本 plan。
@@ -75,12 +75,13 @@
 
 - 2026-06-29：选择 Playwright Test 作为首个浏览器 E2E 测试层，覆盖真实 Vue 生产构建和 FastAPI 测试服务；不扩展到多浏览器矩阵或视觉回归。
 - 2026-06-29：E2E 服务需使用临时 DB 与临时项目目录，避免污染本地用户运行数据。
+- 2026-06-29：红灯测试 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_e2e_ui.py -q` 按预期失败 6 项：缺少 npm scripts、`playwright.config.js`、`tests/e2e/` 启动脚本、首条 E2E spec、`KI_DB_PATH` 覆盖和测试指南说明。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29 00:00
-- **进度**：已完成 0 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`N/A` — 尚未提交
+- **进度**：已完成 1 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`14c3b96` — `docs: 启动 B-25 端到端测试计划`
 - **代码状态**：`fix/b-08-concurrent-index`；工作区存在非 B-25 既有改动，需精确暂存
-- **下一步**：补充红灯契约测试，约束 Playwright 配置、npm scripts、E2E 测试文件、临时 DB 启动脚本和测试指南文档
+- **下一步**：实现 Playwright E2E 基础设施：依赖、配置、测试服务启动脚本、临时 DB 覆盖和首条浏览器主流程测试
 - **续任务须知**：只暂存 B-25 相关文件和 `docs/BACKLOG.md` 的 B-25 hunk
