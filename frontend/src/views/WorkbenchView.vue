@@ -79,6 +79,15 @@
         @use-tool-result-context="(runId) => $emit('use-tool-result-context', runId)"
         @clear-tool-context="$emit('clear-tool-context')"
       />
+      <ModelComparisonPanel
+        :selected-project-id="selectedProjectId"
+        :model-profiles="modelProfiles"
+        :model-comparison-result="modelComparisonResult"
+        :loading="modelComparisonLoading"
+        :error="modelComparisonError"
+        :status="modelComparisonStatus"
+        @compare-answers="(payload) => $emit('compare-answers', payload)"
+      />
       </div>
 
       <div class="workbench-context-rail">
@@ -140,6 +149,7 @@ import AgentToolsPanel from "../components/AgentToolsPanel.vue";
 import ChatSessionPanel from "../components/ChatSessionPanel.vue";
 import ChatThread from "../components/ChatThread.vue";
 import FirstRunWizard from "../components/FirstRunWizard.vue";
+import ModelComparisonPanel from "../components/ModelComparisonPanel.vue";
 import QuestionComposer from "../components/QuestionComposer.vue";
 import QuestionPanel from "../components/QuestionPanel.vue";
 import SearchDebugPanel from "../components/SearchDebugPanel.vue";
@@ -206,6 +216,26 @@ defineProps({
     default: "",
   },
   answerCancelStatus: {
+    type: String,
+    default: "",
+  },
+  modelProfiles: {
+    type: Array,
+    default: () => [],
+  },
+  modelComparisonResult: {
+    type: Object,
+    default: null,
+  },
+  modelComparisonLoading: {
+    type: Boolean,
+    default: false,
+  },
+  modelComparisonError: {
+    type: String,
+    default: "",
+  },
+  modelComparisonStatus: {
     type: String,
     default: "",
   },
@@ -403,5 +433,5 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "cancel-answer", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "edit-chat-message", "delete-chat-message", "clear-chat-messages", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+defineEmits(["check-health", "submit-question", "cancel-answer", "compare-answers", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "edit-chat-message", "delete-chat-message", "clear-chat-messages", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
 </script>

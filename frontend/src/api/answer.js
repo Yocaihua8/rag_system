@@ -104,6 +104,33 @@ export function askQuestionStream({
   };
 }
 
+export async function compareAnswers({
+  projectId,
+  question,
+  profileIds = [],
+  toolRunId = "",
+  parentMessageId = "",
+}) {
+  const trimmedQuestion = (question || "").trim();
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  if (!trimmedQuestion) {
+    throw new Error("请输入问题");
+  }
+  if (!Array.isArray(profileIds) || profileIds.length !== 2 || new Set(profileIds).size !== 2) {
+    throw new Error("请选择 2 个模型 Profile");
+  }
+  const payload = {
+    project_id: projectId,
+    question: trimmedQuestion,
+    profile_ids: profileIds,
+    tool_run_id: toolRunId,
+    parent_message_id: parentMessageId,
+  };
+  return apiPost("/api/answer/compare", payload);
+}
+
 function parseStreamPayload(event) {
   try {
     return JSON.parse(event.data || "{}");

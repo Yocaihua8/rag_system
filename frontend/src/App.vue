@@ -35,6 +35,10 @@
       :answer-status="appState.answerStatus"
       :answer-streaming-text="appState.answerStreamingText"
       :answer-cancel-status="appState.answerCancelStatus"
+      :model-comparison-result="appState.modelComparisonResult"
+      :model-comparison-loading="appState.modelComparisonLoading"
+      :model-comparison-error="appState.modelComparisonError"
+      :model-comparison-status="appState.modelComparisonStatus"
       :chat-messages="appState.chatMessages"
       :chat-sessions="appState.chatSessions"
       :selected-chat-session-id="appState.selectedChatSessionId"
@@ -157,6 +161,7 @@
       @rename-project="handleRenameProject"
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
+      @compare-answers="handleCompareAnswers"
       @refresh-ollama-status="loadOllamaStatus"
       @pull-ollama-model="handlePullOllamaModel"
       @dismiss-first-run="dismissFirstRunWizard"
@@ -234,6 +239,7 @@ import {
 import {
   askQuestionStream,
   clearChatMessages,
+  compareAnswers,
   createChatSession,
   deleteChatMessage,
   deleteChatSession,
@@ -1190,6 +1196,10 @@ function clearChatState() {
   appState.answerStreamingText = "";
   appState.answerCancelStatus = "";
   appState.currentAnswerAbortController = null;
+  appState.modelComparisonResult = null;
+  appState.modelComparisonLoading = false;
+  appState.modelComparisonError = "";
+  appState.modelComparisonStatus = "";
 }
 
 function clearSearchDebugState() {
@@ -1536,6 +1546,31 @@ async function handleSubmitQuestion(input) {
   } finally {
     appState.answerLoading = false;
     appState.currentAnswerAbortController = null;
+  }
+}
+
+async function handleCompareAnswers(payload) {
+  appState.modelComparisonLoading = true;
+  appState.modelComparisonError = "";
+  appState.modelComparisonStatus = "正在生成对比回答...";
+  try {
+    const data = await compareAnswers({
+      projectId: appState.selectedProjectId,
+      question: payload.question,
+      profileIds: payload.profileIds,
+      toolRunId: appState.currentToolContextRunId,
+      parentMessageId: payload.parentMessageId || "",
+    });
+    appState.modelComparisonResult = data;
+    if (data.tool_context) {
+      consumeToolContext();
+    }
+    appState.modelComparisonStatus = "对比回答已生成";
+  } catch (error) {
+    appState.modelComparisonError = error.message || "对比回答生成失败";
+    appState.modelComparisonStatus = "对比回答生成失败";
+  } finally {
+    appState.modelComparisonLoading = false;
   }
 }
 
