@@ -173,7 +173,7 @@ Windows PowerShell：
 .\scripts\docker_up.ps1
 ```
 
-脚本会执行 `docker compose up --build -d`，启动后打开：
+脚本会执行 `docker compose --project-directory . -f compose.yaml up --build -d`，启动后打开：
 
 ```text
 http://127.0.0.1:8765
@@ -189,7 +189,7 @@ Docker 模式下，Web 页面创建项目空间时，本地目录请填写容器
 
 如果要直接导入 `E:\Code\your-project` 这类 Windows 本地目录，推荐点击 Web 侧栏的“选择本机文件夹导入”。浏览器会请求选择一个本地项目文件夹，并把允许的文本、DOCX 和 PDF 二进制内容上传给本地服务入库；这种方式不需要在页面填写 Windows 路径。临时 PDF、DOCX、Markdown 或少量文本文件可点击“选择文件上传导入”，有当前项目空间时写入当前项目，没有项目空间时创建 `browser-upload` 项目。PDF 正文抽取需要可选 `pymupdf`，未安装时会在导入结果中显示跳过原因。
 
-如果 Windows User 环境变量里存在 `DEEPSEEK_API_KEY`，一键脚本会注入给 Docker Compose，但不会打印 Key。运行数据持久化到 `runtime/docker/`。
+如果 Windows User 环境变量里存在 `DEEPSEEK_API_KEY` 或 `RAG_EMBED_API_KEY`，一键脚本会注入给 Docker Compose，但不会打印 Key。运行数据默认持久化到 Docker named volume `ki-runtime`。
 
 ---
 

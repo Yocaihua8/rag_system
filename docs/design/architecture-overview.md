@@ -15,7 +15,7 @@ Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 
 | 架构模式 | 本地单体（Local Monolith）|
 | 核心边界 | 127.0.0.1:8765，不对外暴露 |
 | 主要入口 | `app.py` → `webapp/server.py:create_app()` / `run_server()` |
-| 数据持久化 | SQLite（`runtime/docker/knowledge.db`）|
+| 数据持久化 | SQLite（本地默认 `runtime/app.db`；Docker 默认位于 `ki-runtime` volume 的 `/app/runtime/app.db`）|
 | 外部依赖 | 可选 LLM API / Embedding API（均有本地 fallback）|
 
 B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-legacy/`，仅作为历史参考，不再被 Web、Docker 或 Tauri sidecar 链路引用。

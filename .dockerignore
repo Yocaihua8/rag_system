@@ -1,20 +1,57 @@
-.git
-.idea
-.vscode
-.claude
-.venv
-__pycache__
-*.pyc
-.pytest_cache
-runtime
-release
-release-cache
-docker-workspace
-data
-logs
-cache
-tmp
-temp
-*.spec
+# Git / IDE
+.git/
+.github/
+.idea/
+.vscode/
+.claude/
+.agents/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Runtime and generated data
+runtime/
+data/backups/
+logs/
+cache/
+tmp/
+temp/
+release/
+release-cache/
+docker-workspace/
+
+# Tests and transient plans are not needed in production image builds
+tests/
+docs/plans/
+docs/superpowers/plans/
+
+# Local env / secrets
+.env
+.env.*
+*.local
 *.log
 test_output.txt
+
+# Local packaging artifacts
+*.spec
+build/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db

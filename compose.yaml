@@ -8,19 +8,23 @@ services:
     image: knowledge-island-web:local
     container_name: knowledge-island-web
     ports:
-      - "8765:8765"
+      - "${KI_PORT:-8765}:8765"
     environment:
       RAG_RUNTIME_DIR: /app/runtime
       RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-api}
       RAG_LLM_API_BASE: ${RAG_LLM_API_BASE:-https://api.deepseek.com/v1}
       RAG_LLM_API_MODEL: ${RAG_LLM_API_MODEL:-deepseek-chat}
+      RAG_LLM_API_KEY: ${RAG_LLM_API_KEY:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       RAG_EMBED_PROVIDER: ${RAG_EMBED_PROVIDER:-}
       RAG_EMBED_API_BASE: ${RAG_EMBED_API_BASE:-}
       RAG_EMBED_API_MODEL: ${RAG_EMBED_API_MODEL:-}
       RAG_EMBED_API_KEY: ${RAG_EMBED_API_KEY:-}
+      RAG_AUTH_ENABLED: ${RAG_AUTH_ENABLED:-false}
+      RAG_AUTH_API_KEY: ${RAG_AUTH_API_KEY:-}
+      RAG_AUTH_JWT_SECRET: ${RAG_AUTH_JWT_SECRET:-}
     volumes:
-      - ./runtime/docker:/app/runtime
+      - ki-runtime:/app/runtime
       - ${KNOWLEDGE_ISLAND_WORKSPACE:-./docker-workspace}:/workspace
     healthcheck:
       test:
@@ -34,3 +38,6 @@ services:
       timeout: 5s
       retries: 6
       start_period: 10s
+
+volumes:
+  ki-runtime:

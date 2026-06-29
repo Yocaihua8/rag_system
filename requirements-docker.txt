@@ -1,0 +1,6 @@
+# Knowledge Island container runtime dependencies.
+# Keep this smaller than requirements.txt so Docker does not install archived desktop dependencies.
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+qdrant-client>=1.10.0
+jieba>=0.42.0
