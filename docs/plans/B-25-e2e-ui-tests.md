@@ -22,7 +22,7 @@
 
 - [x] 补充红灯契约测试，约束 Playwright 配置、npm scripts、E2E 测试文件、临时 DB 启动脚本和测试指南文档。
 - [x] 实现 Playwright E2E 基础设施：依赖、配置、测试服务启动脚本、临时 DB 覆盖和首条浏览器主流程测试。
-- [ ] 同步测试指南，运行静态契约、浏览器 E2E、前端构建和相关 pytest 验证。
+- [x] 同步测试指南，运行静态契约、浏览器 E2E、前端构建和相关 pytest 验证。
 - [ ] 同步 BACKLOG 完成状态，删除本 plan。
 
 ## 4. 影响范围
@@ -57,18 +57,18 @@
 
 ## 6. 完成标准
 
-- [ ] `npm run test:e2e` 可启动临时测试服务并通过首条浏览器主流程测试。
-- [ ] E2E 服务使用临时 SQLite DB，不写入默认 `runtime/webapp/knowledge_island.db`。
-- [ ] `tests/test_webapp/test_e2e_ui.py` 通过。
-- [ ] `npm run build` 通过。
-- [ ] 相关文档已同步（见下方"回流清单"）。
+- [x] `npm run test:e2e` 可启动临时测试服务并通过首条浏览器主流程测试。
+- [x] E2E 服务使用临时 SQLite DB，不写入默认 `runtime/webapp/knowledge_island.db`。
+- [x] `tests/test_webapp/test_e2e_ui.py` 通过。
+- [x] `npm run build` 通过。
+- [x] 相关文档已同步（见下方"回流清单"）。
 - [ ] BACKLOG 条目 `B-25` 状态已更新为 `done`。
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| E2E UI 测试命令、浏览器安装命令和适用场景 | `docs/guides/testing.md` | [ ] |
+| E2E UI 测试命令、浏览器安装命令和适用场景 | `docs/guides/testing.md` | [x] |
 | B-25 完成状态 | `docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
@@ -77,12 +77,14 @@
 - 2026-06-29：E2E 服务需使用临时 DB 与临时项目目录，避免污染本地用户运行数据。
 - 2026-06-29：红灯测试 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_e2e_ui.py -q` 按预期失败 6 项：缺少 npm scripts、`playwright.config.js`、`tests/e2e/` 启动脚本、首条 E2E spec、`KI_DB_PATH` 覆盖和测试指南说明。
 - 2026-06-29：补齐 Playwright 配置、E2E 启动脚本、临时 DB 覆盖和首条 Web MVP smoke spec；静态契约 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_e2e_ui.py -q` 已通过 6 项。
+- 2026-06-29：`npm run e2e:install` 下载 Chromium 10 分钟无输出后超时；本机改用 `KI_E2E_BROWSER_CHANNEL=chrome` 验证 `npm run test:e2e`，已启动临时 FastAPI 服务并通过 1 条 smoke 测试。
+- 2026-06-29：复跑 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_frontend_build.py tests\test_webapp\test_fastapi_server.py tests\test_webapp\test_app_entrypoint.py -q`，通过 13 项。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29 00:00
-- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`608fcd3` — `test: 增加 B-25 E2E 红灯契约`
+- **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`df25b8b` — `test: 接入 Playwright 端到端 UI 测试`
 - **代码状态**：`fix/b-08-concurrent-index`；工作区存在非 B-25 既有改动，需精确暂存
-- **下一步**：同步测试指南并运行静态契约、浏览器 E2E、前端构建和相关 pytest 验证
+- **下一步**：同步 BACKLOG 完成状态，删除本 plan
 - **续任务须知**：只暂存 B-25 相关文件和 `docs/BACKLOG.md` 的 B-25 hunk

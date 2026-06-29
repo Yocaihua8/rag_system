@@ -13,10 +13,11 @@ test("creates a project, imports a note, and answers from local sources", async 
   await expect(page.locator(".view-panel").getByRole("heading", { name: "资料库" })).toBeVisible();
 
   const projectPanel = page.locator(".project-space-panel");
-  await projectPanel.getByLabel("项目名称").fill("E2E 知识库");
-  await projectPanel.getByLabel("本地目录").fill(workspaceDir);
-  await projectPanel.getByRole("button", { name: "创建项目空间" }).click();
-  await expect(projectPanel.getByText("已创建项目空间：E2E 知识库")).toBeVisible();
+  const createProjectForm = projectPanel.locator(".project-form");
+  await createProjectForm.getByLabel("项目名称").fill("E2E 知识库");
+  await createProjectForm.getByLabel("本地目录").fill(workspaceDir);
+  await createProjectForm.getByRole("button", { name: "创建项目空间" }).click();
+  await expect(createProjectForm.getByText("已创建项目空间：E2E 知识库")).toBeVisible();
 
   const importPanel = page.locator(".document-import-panel");
   await importPanel.getByLabel("笔记标题").fill("E2E 测试笔记");

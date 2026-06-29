@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const e2ePort = process.env.KI_E2E_PORT || "18765";
 const baseURL = process.env.KI_E2E_BASE_URL || `http://127.0.0.1:${e2ePort}`;
+const browserChannel = process.env.KI_E2E_BROWSER_CHANNEL;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -22,7 +23,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(browserChannel ? { channel: browserChannel } : {}),
+      },
     },
   ],
   webServer: {
