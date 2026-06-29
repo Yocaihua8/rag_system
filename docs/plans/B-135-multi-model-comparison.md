@@ -89,8 +89,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29
-- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`503dd39` — feat: 接入多模型并排对比工作台
-- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；后端 compare API 与 Vue 工作台入口已提交，文档仍待同步
-- **下一步**：任务 4：同步 `docs/features/multi-model-comparison.md` 与 `docs/design/api-spec.md`
+- **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`9622d6c` — docs: 同步多模型对比接口契约
+- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；B-135 代码和正式文档已提交，待最终验证与 BACKLOG 收口
+- **下一步**：任务 5：运行 B-135 验证清单，关闭 BACKLOG 状态并删除本 plan
 - **续任务须知**：B-136 应在 B-135 完成后执行，以便 OpenAPI schema 覆盖新增 `/api/answer/compare`。
