@@ -82,7 +82,7 @@
 | B-07 | feature | 结果导出（Markdown / PDF） | done | P3 | M | backlog | RAG 团队 | docs/features/result-export.md, docs/design/api-spec.md | 已完成：新增 `POST /api/export/result`，支持按 `project_id` + `message_id` 将已生成问答结果导出为 Markdown / PDF 文件，默认写入 `data/outputs/`；导出内容包含问题、回答和来源快照；不修改 SQLite schema；完成后删除 plan |
 | B-08 | feature | 多工作区并发索引 | done | P3 | L | backlog | RAG 团队 | docs/design/architecture-overview.md, docs/features/concurrent-indexing.md | 已完成：新增进程内项目级摄入协调器；FastAPI `/api/*` 同步分发移入线程池；写入型导入入口同项目串行、跨项目可并发；SQLite 连接设置 busy timeout；不修改 SQLite schema；完成后删除 plan |
 | B-24 | feature | Tauri 跨平台桌面打包（macOS / Linux） | done | P3 | M | backlog | RAG 团队 | docs/features/desktop-packaging.md | 已完成：沿用 B-145 Tauri sidecar 链路新增 macOS/Linux 本机打包入口；新增 Unix sidecar 脚本和 `npm run tauri:build:macos` / `npm run tauri:build:linux`，分别调用 `--bundles dmg` / `--bundles appimage`；Windows NSIS 默认目标保持不变；Windows 环境已完成静态契约、`npm run build` 与 `npx tauri info` 验证，macOS/Linux 原生包需在对应系统构建。 |
-| B-25 | test | 端到端 UI 自动化测试 | todo | P3 | M | backlog | RAG 团队 | docs/guides/testing.md | 目前测试全部在单元层面，缺少 Web UI 的自动化集成测试 |
+| B-25 | test | 端到端 UI 自动化测试 | doing | P3 | M | backlog | RAG 团队 | docs/guides/testing.md | 目前测试全部在单元层面，缺少 Web UI 的自动化集成测试；执行计划：docs/plans/B-25-e2e-ui-tests.md |
 | B-117 | research | MCP / 插件能力研究 | todo | P3 | S | backlog | RAG 团队 | — | 仅研究可控只读工具接入，不引入插件市场或任意命令执行 |
 | B-118 | research | 多用户 / 团队空间研究 | todo | P3 | S | backlog | RAG 团队 | docs/design/permission-matrix.md | 当前仍是本地个人应用；多用户、权限和团队空间暂不进入实现 |
 | B-119 | research | 网页自动抓取研究 | todo | P3 | S | backlog | RAG 团队 | docs/requirements/functional-modules.md | 当前 URL 来源只做人工粘贴正文；自动抓取涉及网络、权限和依赖，暂缓 |
