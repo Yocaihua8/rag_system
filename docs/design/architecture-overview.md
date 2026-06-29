@@ -108,6 +108,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 - `/api/answer/stream` 由 FastAPI `StreamingResponse` 输出既有 SSE 事件
 - 当前静态前端只服务 `webapp/static_dist/`；构建产物不存在时启动阶段抛出明确错误，不再回退 `webapp/static/`。
 - `webapp/routes/*` 按领域承载 REST 路由分支，提取 URL 参数和请求体
+- `webapp/routes/admin.py` 只承载本地维护入口，目前提供 `POST /api/admin/rebuild-index`，调用 `KnowledgeStore.rebuild_index()` 重建 chunk 与向量索引
 - 参数合法性校验（必填字段、类型、取值范围）
 - 调用业务模块，封装统一 JSON 响应格式
 - 错误分类与 HTTP 状态码映射
@@ -124,6 +125,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 - 初始化 SQLite schema（建表、兼容迁移）
 - 提供 CRUD 方法（`KnowledgeStore` 类统一封装）
+- 提供维护性索引重建方法（`KnowledgeStore.rebuild_index()`），基于已存文档正文重建 `document_chunks` / `chunk_vectors` 并同步 Qdrant provider
 - 管理连接复用与事务
 - 必须：不承载业务规则，不被前端 JS 直接调用
 
@@ -134,6 +136,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | HTTP 服务 | `webapp.server.create_app` / `webapp.server.run_server` | `app.py` / Uvicorn |
 | API 分发 | `webapp.api.dispatch` + `webapp.routes.dispatch_to_routes` | `webapp.server` |
 | SQLite 存储 | `KnowledgeStore` | `webapp.routes/*`、导入/检索/工具模块 |
+| 索引重建维护 | `KnowledgeStore.rebuild_index` / `ops/scripts/rebuild_index.sh` | `POST /api/admin/rebuild-index` |
 | 进程内摄入协调 | `ProjectIndexingCoordinator` | `webapp.routes.imports` |
 | 后端配置 | `backend.config.settings` / `backend.config.paths` | `webapp.llm`、`webapp.embeddings`、设置 API、脚本 |
 | Qdrant 向量索引 | `backend.providers.vector_store.QdrantVectorStore` | `KnowledgeStore` 写入同步、`search_documents` 向量候选 |

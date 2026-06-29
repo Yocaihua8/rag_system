@@ -11,6 +11,7 @@ OPENAPI_VERSION = "0.1.0"
 WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("GET", "/api/health", "Health check"),
     ("POST", "/api/auth/token", "Exchange API key for bearer token"),
+    ("POST", "/api/admin/rebuild-index", "Rebuild document chunks and vector index"),
     ("GET", "/api/ollama/status", "Check local Ollama status"),
     ("POST", "/api/ollama/pull", "Pull a recommended Ollama model"),
     ("GET", "/api/projects", "List project spaces"),

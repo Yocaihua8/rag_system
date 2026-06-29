@@ -17,6 +17,7 @@ B-136 起，`/openapi.json` 使用 `webapp/openapi_schema.py` 中维护的显式
 
 - `GET /api/health`
 - `POST /api/auth/token`
+- `POST /api/admin/rebuild-index`
 - `GET /api/ollama/status`
 - `POST /api/ollama/pull`
 - `GET /api/projects`
@@ -100,7 +101,15 @@ B-136 起，`/openapi.json` 使用 `webapp/openapi_schema.py` 中维护的显式
 
 `/api/auth/token` 仅在认证启用时有实际用途。客户端提交正确 `X-API-Key` 后，服务端用 `RAG_AUTH_JWT_SECRET` 签发 HMAC-SHA256 Bearer JWT；默认有效期 3600 秒，可通过 `RAG_AUTH_JWT_TTL_SECONDS` 调整，最小 60 秒。响应不包含 `RAG_AUTH_API_KEY` 或 `RAG_AUTH_JWT_SECRET`。JWT 不写入数据库，也不提供服务端撤销列表。
 
-### 1.1.2 Ollama 首次运行检测
+### 1.1.2 管理维护接口
+
+| 方法 | 路径 | 请求 | 成功响应 | 错误 |
+|------|------|------|----------|------|
+| POST | `/api/admin/rebuild-index` | 可选 `project_id` | `{"rebuilt":true,"project_ids":[...],"summary":{"projects":1,"documents":1,"chunks":1,"vectors":1}}` | `404 project not found` |
+
+`/api/admin/rebuild-index` 是本地维护入口，供 `ops/scripts/rebuild_index.sh` 调用。请求携带 `project_id` 时仅重建该项目；未携带时重建全部项目。后端基于 SQLite `documents.content` 重新生成 `document_chunks` 与 `chunk_vectors`，启用 Qdrant local mode 时同步删除旧 point 并写入新 point；不重新扫描文件系统、不创建导入批次、不修改 SQLite schema。认证规则与其他 `/api/*` 相同：默认关闭；启用 `RAG_AUTH_ENABLED=1` 后需要 `X-API-Key` 或 Bearer JWT。
+
+### 1.1.3 Ollama 首次运行检测
 
 | 方法 | 路径 | 请求 | 成功响应 | 错误 |
 |------|------|------|----------|------|

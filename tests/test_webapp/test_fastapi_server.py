@@ -82,9 +82,10 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
         for method in methods
         if method in {"get", "post"}
     }
-    assert len(operations) >= 63
+    assert len(operations) >= 64
     for operation in [
         ("/api/health", "get"),
+        ("/api/admin/rebuild-index", "post"),
         ("/api/projects", "get"),
         ("/api/projects", "post"),
         ("/api/model-profiles", "get"),

@@ -49,5 +49,6 @@
 - `multi-model-comparison.md`：B-135 多模型并排对比
 - `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步
 - `openapi-swagger-docs.md`：B-136 OpenAPI / Swagger 接口文档
+- `ops-maintenance.md`：B-06 本地维护脚本与索引重建管理入口
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
 - `qdrant-vector-store.md`：B-134 Qdrant 本地向量存储替换 SQLite 全扫描
