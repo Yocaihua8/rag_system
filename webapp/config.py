@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 
@@ -15,4 +16,7 @@ def runtime_dir() -> Path:
 
 
 def default_db_path() -> Path:
+    override = os.environ.get("KI_DB_PATH")
+    if override:
+        return Path(override).expanduser()
     return runtime_dir() / "knowledge_island.db"

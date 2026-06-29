@@ -19,6 +19,8 @@
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
 npm run build
+npm run e2e:install
+npm run test:e2e
 npm run tauri:build:windows
 npm run tauri:build:macos
 npm run tauri:build:linux
@@ -33,6 +35,7 @@ docker compose config
 - B-147 后，旧 PySide6 / 六边形 `src/` 代码与对应旧测试已归档到 `archive/src-desktop-legacy/`，不再作为当前测试基线。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置或 `webapp/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
+- 变更端到端 UI 自动化测试、Playwright 配置、`tests/e2e/` 或 Web MVP 主流程页面联动时，必须覆盖 `tests/test_webapp/test_e2e_ui.py`，首次本机运行前执行 `npm run e2e:install` 安装 Chromium，并运行 `npm run test:e2e`。E2E 服务通过 `KI_DB_PATH` 使用临时 SQLite DB，不应写入默认 runtime DB。
 - 变更 `src-tauri/`、Tauri 配置、Windows/Unix sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备目标平台 Rust/Cargo、PyInstaller 和 Tauri 原生依赖时继续运行对应平台命令：Windows `npm run tauri:build:windows`、macOS `npm run tauri:build:macos`、Linux `npm run tauri:build:linux`，否则记录缺失工具链或非目标系统原因。
 - 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
 - 变更 Vue API helper、项目空间 helper、问答 helper、检索调试/复盘 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈/检索调试/项目级检索默认值/检索复盘/Agent 工具/工具来源上下文组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
