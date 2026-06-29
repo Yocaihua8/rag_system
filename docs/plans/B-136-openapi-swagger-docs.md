@@ -84,8 +84,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-06-29
-- **进度**：已完成 1 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`c4254bb` — test: 增加 OpenAPI 文档红灯测试
-- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；B-136 红灯测试已提交，失败点为运行时 schema 缺少显式 API paths
-- **下一步**：任务 2：实现运行时 OpenAPI schema
+- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`8ee0f0b` — feat: 为 Web MVP 生成 OpenAPI schema
+- **代码状态**：`fix/B-135-b136-model-compare-openapi` 分支；运行时 OpenAPI schema 已提交，正式文档仍待同步
+- **下一步**：任务 3：同步 `docs/features/openapi-swagger-docs.md` 与 `docs/design/api-spec.md`
 - **续任务须知**：B-136 不改业务分发行为，只补 OpenAPI schema；认证开启时 `/docs`、`/redoc`、`/openapi.json` 仍需凭证。
