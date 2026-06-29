@@ -149,7 +149,15 @@ def test_search_api_spec_documents_hybrid_vector_fields():
     api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
     database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
 
-    for field in ["retrieval", "keyword_score", "vector_score", "vector_provider", "vector_model"]:
+    for field in [
+        "retrieval",
+        "keyword_score",
+        "vector_score",
+        "vector_provider",
+        "vector_model",
+        "graph_score",
+        "graph_depth",
+    ]:
         assert field in api_spec
     assert "source_quality" in api_spec
     for level in ["good", "weak", "none"]:

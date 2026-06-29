@@ -139,7 +139,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | 本地目录导入 | `import_project_documents` | `POST /api/import` |
 | 浏览器上传导入 | `import_uploaded_files` | `POST /api/import/upload` |
 | 文本笔记导入 | `build_note_document` | `POST /api/import/note` |
-| 检索 | `search_documents` / `build_source_quality` | `/api/search*` / `/api/answer` / 只读工具 |
+| 检索 | `search_documents` / `KnowledgeStore.list_graph_related_chunks` / `build_source_quality` | `/api/search*` / `/api/answer` / 只读工具 |
 | 回答生成 | `build_local_answer` / OpenAI-compatible Chat | `POST /api/answer` |
 | Agent 只读工具 | `run_agent_tool` | `POST /api/agent/tools/run` |
 | Vue API helper | `frontend/src/api/client.js` | Vue 组件 / 后续页面模块 |
@@ -183,6 +183,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | FastAPI 替代 `http.server` | 已采用（B-139）| ADR-001；保留 `webapp.api.dispatch()` 兼容入口，先迁移 HTTP 外壳，B-140/B-141 串行推进 |
 | Vue 3 + Vite 替代 Vanilla JS | 已采用（B-141A-Z、B-142、B-143 已收口）| ADR-006；B-141 已完成工程骨架和主要页面级入口迁移，B-142 已补齐 Workbench SSE/取消与会话历史；B-143 已删除 `webapp/static/` fallback |
 | Qdrant 替代 SQLite 向量全扫描 | 已采用（B-134）| Qdrant local mode 提供 HNSW 候选检索；SQLite `chunk_vectors` 保留为兼容副本和降级路径 |
+| Graph-enhanced 检索 | 已采用（B-126）| 不新增必需依赖，不修改 Web MVP schema；仅在当前数据库已有 legacy `graph_nodes` / `graph_edges` 时读取一跳相邻来源并入候选池 |
 | PostgreSQL 替代 SQLite | 否 | 本地单用户场景 SQLite 足够；多用户时再迁移 |
 | LangChain / LlamaIndex 替代自研 | 否 | 引入大型框架与本地极简原则冲突，增加不透明性 |
 | BM25 替代 regex 关键词检索 | 已采用（B-127）| `webapp/search.py` 使用内置 BM25 计算 `keyword_score`，不新增必需依赖 |

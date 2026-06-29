@@ -43,6 +43,7 @@
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界
 - `github-repo-import.md`：B-133 GitHub 仓库整体导入
+- `graph-enhanced-retrieval.md`：B-126 知识图谱候选扩展接入检索流程
 - `knowledge-base-management.md`：B-42 知识库辅助管理页
 - `multi-model-comparison.md`：B-135 多模型并排对比
 - `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步

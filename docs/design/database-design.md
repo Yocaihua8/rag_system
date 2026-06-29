@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-25
+> Last Updated：2026-06-29
 > Scope：Web MVP SQLite 存储与 legacy 数据模型边界
 
 ## 1. 当前已落地实体
@@ -38,8 +38,8 @@
 - `knowledge_points`
 - `evidences`
 - `mastery_records`
-- `graph_nodes`
-- `graph_edges`
+- `graph_nodes`（legacy；Web MVP B-126 只读兼容）
+- `graph_edges`（legacy；Web MVP B-126 只读兼容）
 
 ## 2. 字段要点
 
@@ -162,8 +162,15 @@
 ### mastery_records
 - `status` 三态：`claimed / evidence_found / verified`
 
-### graph_edges
-- `source_node_id`、`target_node_id`、`relationship`、`confidence`
+### graph_nodes（legacy；Web MVP B-126 只读兼容）
+- `id / workspace_id / name / label / node_type / source_ref / confidence / created_at / updated_at`
+- B-126 不在 Web MVP schema 中创建或迁移该表；仅当当前数据库已有该表时，`webapp/storage.py` 会只读查询。
+- Web MVP 只读兼容时将 `workspace_id` 视为当前 `project_id`，并把 `source_ref` 尝试映射到当前项目的 `document_chunks.id`、`documents.id`、`documents.relative_path` 或 `documents.source_path`。
+
+### graph_edges（legacy；Web MVP B-126 只读兼容）
+- `id / workspace_id / source_node_id / target_node_id / relationship / confidence / source_path / source_snippet / created_at / updated_at`
+- B-126 只读取一跳相邻关系，`confidence` 会作为检索结果的 `graph_score`。
+- 图谱表不存在、字段不兼容或无法映射到 Web MVP chunk 时，检索流程保持原有 BM25 / 向量行为。
 
 ## 3. 约束与策略
 
@@ -183,6 +190,7 @@
 - Web MVP 增量摄入中会按 `document_id` 删除旧 `document_chunks` 与 `chunk_vectors`，并在启用 Qdrant 时删除旧 point，防止重建重复。
 - Web MVP 备份恢复会把导出的 `documents.content`、`document_chunks` 和 `chunk_vectors` 写入新的项目空间，并为文档、chunk 生成新 ID；聊天来源中的旧 ID 会映射到新 ID。启用 Qdrant 时，恢复写入的 chunk 向量也会同步 upsert 到 Qdrant。
 - legacy 向量库侧与 `chunks.id` 保持一一对应便于回填来源。
+- Web MVP B-126 只读兼容 legacy `graph_nodes` / `graph_edges`，不会在 `_init_schema()` 中创建图谱表，也不会自动生成或修改图谱节点/关系。
 
 ## 4. 当前不在定稿范围
 
