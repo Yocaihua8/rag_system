@@ -81,7 +81,7 @@
 | B-06 | tech-debt | ops/ 运维脚本 | done | P3 | S | backlog | RAG 团队 | ops/README.md §维护脚本；docs/features/ops-maintenance.md；docs/design/api-spec.md | 已完成：新增 `ops/scripts/backup_db.sh`、`cleanup_runtime.sh`、`rebuild_index.sh`；新增 `POST /api/admin/rebuild-index` 本地维护端点；支持按项目或全量重建 chunk/vector 索引；不修改 SQLite schema；完成后删除 plan |
 | B-07 | feature | 结果导出（Markdown / PDF） | done | P3 | M | backlog | RAG 团队 | docs/features/result-export.md, docs/design/api-spec.md | 已完成：新增 `POST /api/export/result`，支持按 `project_id` + `message_id` 将已生成问答结果导出为 Markdown / PDF 文件，默认写入 `data/outputs/`；导出内容包含问题、回答和来源快照；不修改 SQLite schema；完成后删除 plan |
 | B-08 | feature | 多工作区并发索引 | done | P3 | L | backlog | RAG 团队 | docs/design/architecture-overview.md, docs/features/concurrent-indexing.md | 已完成：新增进程内项目级摄入协调器；FastAPI `/api/*` 同步分发移入线程池；写入型导入入口同项目串行、跨项目可并发；SQLite 连接设置 busy timeout；不修改 SQLite schema；完成后删除 plan |
-| B-24 | feature | 跨平台打包 | todo | P3 | M | backlog | RAG 团队 | docs/guides/release-process.md | 使用 PyInstaller / Nuitka 打包为独立可执行文件，降低非技术用户使用门槛 |
+| B-24 | feature | Tauri 跨平台桌面打包（macOS / Linux） | doing | P3 | M | backlog | RAG 团队 | docs/features/desktop-packaging.md | 原"PyInstaller / Nuitka 独立可执行文件"方案已取代：Windows 桌面包由 B-145（Tauri + NSIS）交付，跨平台一键启动由 B-144（Docker）覆盖。残留缺口仅为 macOS `.dmg` / Linux `.AppImage` 原生桌面打包，沿用 B-145 的 Tauri sidecar 链路扩展；执行计划：docs/plans/B-24-tauri-cross-platform-packaging.md |
 | B-25 | test | 端到端 UI 自动化测试 | todo | P3 | M | backlog | RAG 团队 | docs/guides/testing.md | 目前测试全部在单元层面，缺少 Web UI 的自动化集成测试 |
 | B-117 | research | MCP / 插件能力研究 | todo | P3 | S | backlog | RAG 团队 | — | 仅研究可控只读工具接入，不引入插件市场或任意命令执行 |
 | B-118 | research | 多用户 / 团队空间研究 | todo | P3 | S | backlog | RAG 团队 | docs/design/permission-matrix.md | 当前仍是本地个人应用；多用户、权限和团队空间暂不进入实现 |
