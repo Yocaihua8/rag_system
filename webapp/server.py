@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from webapp.api import answer_stream_events, dispatch
 from webapp.auth import AuthSettings, issue_jwt, load_auth_settings, validate_api_key, validate_jwt
 from webapp.config import DEFAULT_HOST, DEFAULT_PORT, default_db_path
+from webapp.openapi_schema import install_custom_openapi
 from webapp.routes.ollama import ollama_pull_events, validate_ollama_pull_payload
 from webapp.storage import KnowledgeStore
 
@@ -89,6 +90,7 @@ def create_app(
         )
         return JSONResponse(status_code=response.status, content=response.body)
 
+    install_custom_openapi(app)
     app.mount("/", StaticFiles(directory=_frontend_static_dir(), html=True), name="static")
     return app
 
