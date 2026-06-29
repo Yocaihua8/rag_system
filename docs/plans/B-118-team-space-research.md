@@ -21,7 +21,7 @@
 ## 3. 任务拆解
 
 - [x] 梳理当前单用户边界与团队空间能力差距，形成研究文档初稿。
-- [ ] 同步权限矩阵、系统范围和文档索引，运行文档验证。
+- [x] 同步权限矩阵、系统范围和文档索引，运行文档验证。
 - [ ] 同步 BACKLOG 完成状态，删除本 plan。
 
 ## 4. 影响范围
@@ -66,22 +66,23 @@
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
 | 多用户 / 团队空间研究结论、非目标、后续拆分 | `docs/features/team-workspace-research.md` | [x] |
-| 当前单用户权限边界与未来 RBAC 前置条件 | `docs/design/permission-matrix.md` | [ ] |
-| 系统边界中的单用户/团队空间结论 | `docs/design/system-design-overview.md` | [ ] |
-| 项目范围与功能模块边界同步 | `docs/requirements/project-background-and-scope.md`, `docs/requirements/functional-modules.md` | [ ] |
-| 新研究文档索引 | `docs/README.md`, `docs/features/README.md` | [ ] |
+| 当前单用户权限边界与未来 RBAC 前置条件 | `docs/design/permission-matrix.md` | [x] |
+| 系统边界中的单用户/团队空间结论 | `docs/design/system-design-overview.md` | [x] |
+| 项目范围与功能模块边界同步 | `docs/requirements/project-background-and-scope.md`, `docs/requirements/functional-modules.md` | [x] |
+| 新研究文档索引 | `docs/README.md`, `docs/features/README.md` | [x] |
 | B-118 完成状态 | `docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
 
 - 2026-06-30：B-118 明确为 research 小项，只做文档结论和后续任务拆分，不改运行时代码、API 或数据库 schema。
 - 2026-06-30：新增 `docs/features/team-workspace-research.md`，结论为当前继续本地单用户定位；团队空间需先拆分身份、租户、RBAC、审计、迁移等独立阶段。
+- 2026-06-30：同步权限矩阵、系统范围、需求范围、功能模块边界和文档索引；验证 `.venv\Scripts\python.exe -m pytest tests\test_webapp\test_docs_contract.py -q` 通过 23 项，`.venv\Scripts\python.exe scripts\check_docs_consistency.py` 通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-30 00:00
-- **进度**：已完成 1 / 3 项（见 § 3 勾选状态）
-- **最新 commit**：`011f05b` — `docs: 启动 B-118 团队空间研究计划`
+- **进度**：已完成 2 / 3 项（见 § 3 勾选状态）
+- **最新 commit**：`21301c9` — `docs: 完成团队空间研究初稿`
 - **代码状态**：`fix/b-08-concurrent-index`；工作区存在非 B-118 既有改动，需精确暂存
-- **下一步**：同步权限矩阵、系统范围和文档索引，运行文档验证
+- **下一步**：同步 BACKLOG 完成状态，删除本 plan
 - **续任务须知**：只暂存 B-118 相关文件和 `docs/BACKLOG.md` 的 B-118 hunk

@@ -54,3 +54,4 @@
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
 - `qdrant-vector-store.md`：B-134 Qdrant 本地向量存储替换 SQLite 全扫描
 - `result-export.md`：B-07 生成结果导出为 Markdown / PDF
+- `team-workspace-research.md`：B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
