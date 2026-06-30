@@ -137,6 +137,29 @@ def test_note_import_contract_is_documented():
     assert "文本笔记" in readme
 
 
+def test_web_fetch_import_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    functional_modules = Path("docs/requirements/functional-modules.md").read_text(encoding="utf-8")
+    research = Path("docs/features/web-crawling-research.md").read_text(encoding="utf-8")
+
+    for marker in [
+        "/api/import/web-fetch/preview",
+        "/api/import/web-fetch/commit",
+        "web:",
+        "web_fetch",
+        "robots.txt",
+        "content_hash",
+    ]:
+        assert marker in api_spec
+
+    assert "单 URL 网页抓取" in functional_modules
+    assert "web:" in functional_modules
+    assert "robots.txt" in functional_modules
+    assert "B-132 已落地" in research
+    assert "POST /api/import/url" in research
+    assert "不会自动抓取网页" in research
+
+
 def test_retrieval_review_contract_is_documented():
     api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
     database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")

@@ -21,6 +21,7 @@
 - **Vue 资料库浏览器文件夹导入薄片**：资料库视图新增 `webkitdirectory` 文件夹选择入口，复用既有 `/api/import/upload` 与 `browser_folder_upload` 契约
 - **Vue 资料库目录同步薄片**：资料库视图新增“同步当前项目目录”入口，复用既有 `/api/import` 契约
 - **Vue 资料库导入预检薄片**：资料库视图新增“预检当前项目目录”入口，复用既有 `/api/import/preview` 只读契约
+- **网页抓取导入**：资料库视图新增单 URL 网页抓取预览与确认入库，后端新增 `/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit`，写入 `web:` 虚拟来源与 `web_fetch` 导入批次；手动 `/api/import/url` 仍不联网
 - **Vue 资料库文档集合筛选薄片**：资料库视图新增文档集合只读筛选入口，复用既有 `/api/document-collections` 与 `/api/documents?collection_id=...` 契约
 - **Vue 资料库文档集合管理薄片**：资料库视图新增文档集合新建和删除入口，复用既有 `/api/document-collections` 与 `/api/document-collections/delete` 契约；删除集合不删除文档
 - **Vue 资料库文档集合重命名薄片**：资料库视图新增文档集合重命名入口，复用既有 `/api/document-collections/update` 契约
@@ -63,6 +64,7 @@
 - **大项目向量检索线性变慢**：B-134 提供 Qdrant HNSW 候选检索路径，解决大型项目查询时 SQLite 向量全扫描的性能瓶颈。
 
 ### Security
+- B-132 网页抓取预览只接受公开 `http/https`，拒绝凭据、非标准端口、localhost、私网、链路本地、保留地址和重定向后的非公网目标，并遵守 robots.txt、响应大小上限、超时和 content-type allowlist
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥
 
 ---

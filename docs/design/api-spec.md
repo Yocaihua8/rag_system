@@ -55,6 +55,8 @@ B-136 起，`/openapi.json` 使用 `webapp/openapi_schema.py` 中维护的显式
 - `POST /api/import/upload`
 - `POST /api/import/note`
 - `POST /api/import/url`
+- `POST /api/import/web-fetch/preview`
+- `POST /api/import/web-fetch/commit`
 - `POST /api/import/notion-zip`
 - `POST /api/import/obsidian-vault`
 - `POST /api/import/github-repo`
@@ -268,6 +270,8 @@ data: {"status":"done","model":"qwen2.5:3b"}
 | POST | `/api/import/upload` | `project_id`（可选）、`project_name`（新建时使用）、`source_type`（可选，`browser_folder_upload / file_upload`）、`files:[{relative_path,content}]` 或 `files:[{relative_path,content_base64,size}]` | `{"project":...,"result":...,"batch":...,"documents":[...]}` | `400 files is required`、`404 project not found` |
 | POST | `/api/import/note` | `project_id`、`title`、`content` | `{"result":...,"batch":...,"document":...,"documents":[...]}` | `400 title is required`、`400 content is required`、`400 content is too large`、`404 project not found` |
 | POST | `/api/import/url` | `project_id`、`url`、`title`、`content` | `{"result":...,"batch":...,"document":...,"documents":[...]}` | `400 url is required`、`400 url must start with http:// or https://`、`400 title is required`、`400 content is required`、`404 project not found` |
+| POST | `/api/import/web-fetch/preview` | `project_id`、`url` | `{"preview":{"url","final_url","title","content","content_length","content_type","fetched_at","robots_allowed","status_code","content_hash","extractor_version"}}` | `400 project_id is required`、`400 url is required`、`400 url must use http or https`、`400 url resolves to private or local network`、`400 robots.txt disallows fetching this URL`、`400 unsupported content type`、`400 response is too large`、`404 project not found` |
+| POST | `/api/import/web-fetch/commit` | `project_id`、`preview`（来自预览接口返回值） | `{"result":...,"batch":...,"document":...,"documents":[...]}` | `400 project_id is required`、`400 preview is required`、`400 content hash does not match`、`400 content length does not match`、`400 robots approval is required`、`404 project not found` |
 | POST | `/api/import/notion-zip` | `project_id`、`filename`、`content_base64` | `{"result":...,"batch":...,"documents":[...]}` | `400 filename is required`、`400 filename must end with .zip`、`400 content_base64 is required`、`400 content_base64 is invalid`、`400 invalid notion zip`、`404 project not found` |
 | POST | `/api/import/obsidian-vault` | `project_id`、`vault_path` | `{"result":...,"batch":...,"documents":[...]}` | `400 vault_path is required`、`400 obsidian vault path does not exist`、`404 project not found` |
 | POST | `/api/import/github-repo` | `repo_url`、`branch`（可选）、`project_name`（可选） | `{"project":...,"result":...,"batch":...,"documents":[...]}` | `400 repo_url is required`、`400 github repository url is invalid`、`400 git executable not found`、`400 git clone failed: ...`、`400 git clone timed out` |
@@ -282,13 +286,15 @@ data: {"status":"done","model":"qwen2.5:3b"}
 
 `/api/import/url` 用于保存 URL 摘录占位来源。第一版只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。B-119 研究结论不改变该契约；未来 B-132 若实现自动抓取，应使用独立预览/确认入口和新的来源语义，避免把手动摘录误解释为服务端抓取。
 
+`/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit` 用于 B-132 单 URL 网页抓取。`preview` 是唯一会访问外部网络的入口：仅接受 `http/https`，拒绝凭据、非标准端口、localhost、回环、私网、链路本地、保留地址和重定向后的非公网目标；抓取前读取并遵守 `robots.txt`；设置超时、最大响应大小、最大重定向次数和 content-type allowlist；HTML 正文会移除 script/style/form/noscript/template/svg/canvas 后转成纯文本。预览成功只返回 `preview`，不写 `documents`、不生成 chunk/vector、不创建导入批次。`commit` 只接收预览结果并校验 `content_hash`、`content_length` 和 `robots_allowed`，不重新联网；确认后写入 `web:` 虚拟来源，文档相对路径为 `web/<url-hash>.txt`，正文包含来源 URL、最终 URL、抓取时间、内容类型、`content_hash` 和抽取器版本；批次 `source_type` 为 `web_fetch`。手工 `/api/import/url` 仍保持不联网的 URL 摘录语义。
+
 `/api/import/notion-zip` 用于导入 Notion 导出的 Markdown zip 包。后端只读取 zip 内 Markdown / 文本类文件，跳过附件、图片、二进制、不支持后缀、过大文件和非法相对路径；入库文档 `relative_path` 统一加 `notion/` 前缀，`source_path` 标记为 `notion-zip:<filename>#<relative_path>` 虚拟来源。该接口不调用 Notion API、不联网、不保存第三方 token，也不会做删除清理。
 
 `/api/import/obsidian-vault` 用于导入本机 Obsidian vault 目录。后端递归读取 Markdown / 文本类文件，跳过 `.obsidian`、`.trash` 以及通用忽略目录；入库文档 `relative_path` 统一加 `obsidian/` 前缀，`source_path` 标记为 `obsidian-vault:<vault-root>#<relative_path>` 虚拟来源。第一版不会解析 wikilink/backlink，也不会做删除清理。
 
 `/api/import/github-repo` 用于通过本机 `git clone --depth 1` 导入 GitHub 仓库。后端只接受 `https://github.com/<owner>/<repo>`、`https://github.com/<owner>/<repo>.git` 和 `git@github.com:<owner>/<repo>.git` 形式的 GitHub 仓库 URL；请求中不允许携带用户名、密码或 token。clone 目录位于 Web MVP 受控运行时目录 `runtime/webapp/github-repos/` 下，接口会创建新的项目空间并复用目录导入规则读取 Markdown、代码和其他已支持文件类型，自动跳过 `.git`、`node_modules`、`.venv`、`dist` 等忽略目录。第一版不接入 GitHub API、不保存凭据、不提供增量同步或定时拉取；私有仓库只在本机 git 已具备访问权限时可由底层 clone 命令处理。
 
-导入批次历史由 `import_batches` 和 `import_batch_items` 保存。`source_type` 支持 `directory_sync / browser_folder_upload / file_upload / text_note / url_excerpt / notion_zip / obsidian_vault / github_repo`；`status` 支持 `success / partial / failed`。当前第一片在成功完成的导入响应中追加 `batch` 摘要，并支持按项目读取最近批次、按 `batch_id` 读取详情。批次字段包含 `id/project_id/source_type/status/started_at/finished_at/summary/message/created_at`；批次 `summary` 包含 `imported/created/updated/unchanged/deleted/skipped/errors` 计数，详情 `items` 展示 `kind/relative_path/document_id/reason`，前端只展示跳过和读取失败明细。导入批次历史不会保存文档正文、上传原始内容、chunk/vector、API Key 或模型配置；第一片不做回滚、不删除批次、不重试历史批次。`/api/import/preview` 是只读预检，不创建导入批次。
+导入批次历史由 `import_batches` 和 `import_batch_items` 保存。`source_type` 支持 `directory_sync / browser_folder_upload / file_upload / text_note / url_excerpt / web_fetch / notion_zip / obsidian_vault / github_repo`；`status` 支持 `success / partial / failed`。当前第一片在成功完成的导入响应中追加 `batch` 摘要，并支持按项目读取最近批次、按 `batch_id` 读取详情。批次字段包含 `id/project_id/source_type/status/started_at/finished_at/summary/message/created_at`；批次 `summary` 包含 `imported/created/updated/unchanged/deleted/skipped/errors` 计数，详情 `items` 展示 `kind/relative_path/document_id/reason`，前端只展示跳过和读取失败明细。导入批次历史不会保存文档正文、上传原始内容、chunk/vector、API Key 或模型配置；第一片不做回滚、不删除批次、不重试历史批次。`/api/import/preview` 和 `/api/import/web-fetch/preview` 是只读预检，不创建导入批次。
 
 B-08 后，`/api/import*` 响应契约保持同步兼容，不新增 job 状态接口或持久化队列表。FastAPI `/api/*` 兼容分发在线程池中执行同步业务逻辑；写入型导入入口在进程内按 `project_id` 串行，同一项目的并发导入请求会等待前一个导入完成，不同项目可重叠执行。
 
