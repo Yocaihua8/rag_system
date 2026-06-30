@@ -17,9 +17,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-node${{ env.NODE_VERSION }}-
 
       - name: Cache pip virtualenv
         uses: actions/cache@v4
@@ -28,6 +40,12 @@ jobs:
           key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
           restore-keys: |
             venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
 
       - name: Install Python dependencies
         run: |

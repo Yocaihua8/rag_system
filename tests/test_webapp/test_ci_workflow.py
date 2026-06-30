@@ -33,6 +33,18 @@ def test_ci_workflow_runs_backend_docs_build_and_e2e_commands():
         assert marker in workflow
 
 
+def test_python_tests_job_builds_frontend_before_pytest_collection():
+    workflow = _workflow()
+    python_job = workflow.split("  frontend-e2e:", 1)[0].split("  python-tests:", 1)[1]
+
+    assert "uses: actions/setup-node@v4" in python_job
+    assert "npm ci" in python_job
+    assert "npm run build" in python_job
+    assert python_job.index("npm run build") < python_job.index(
+        ".venv/bin/python -m pytest tests/test_backend tests/test_webapp -q"
+    )
+
+
 def test_ci_workflow_uses_current_actions_and_versioned_cache_keys():
     workflow = _workflow()
 
