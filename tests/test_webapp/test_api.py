@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import quote
 from zipfile import ZipFile
 
+from backend.config.paths import app_env_file
 import webapp.answer_api as answer_api_module
 import webapp.api as api_module
 import webapp.routes.imports as imports_route_module
@@ -806,8 +807,6 @@ def test_llm_settings_api_returns_masked_current_config(tmp_path: Path, monkeypa
 
 
 def test_llm_settings_api_saves_config_without_echoing_key(tmp_path: Path, monkeypatch):
-    appdata = tmp_path / "appdata"
-    monkeypatch.setenv("APPDATA", str(appdata))
     monkeypatch.setenv("RAG_RUNTIME_DIR", str(tmp_path / "runtime"))
     monkeypatch.delenv("RAG_LLM_API_KEY", raising=False)
     store = KnowledgeStore(tmp_path / "app.db")
@@ -824,7 +823,7 @@ def test_llm_settings_api_saves_config_without_echoing_key(tmp_path: Path, monke
         },
     )
 
-    saved_env = (appdata / "KnowledgeIsland" / ".env").read_text(encoding="utf-8")
+    saved_env = app_env_file().read_text(encoding="utf-8")
     assert response.status == 200
     assert response.body["settings"]["has_api_key"] is True
     assert response.body["settings"]["api_key_source"] == "saved"

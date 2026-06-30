@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import platform
 from collections.abc import Mapping
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -24,7 +24,13 @@ def app_data_dir(
     current_home = home if home is not None else Path.home()
 
     if current_system == "Windows":
-        base = Path(current_env.get("APPDATA") or current_home / "AppData" / "Roaming")
+        appdata = current_env.get("APPDATA")
+        if appdata:
+            if platform.system() != "Windows":
+                return PureWindowsPath(appdata) / app_name
+            base = Path(appdata)
+        else:
+            base = current_home / "AppData" / "Roaming"
     elif current_system == "Darwin":
         base = current_home / "Library" / "Application Support"
     else:
