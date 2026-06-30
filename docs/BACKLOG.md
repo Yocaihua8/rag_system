@@ -70,8 +70,6 @@
 | B-153 | docs | v1.0.0 发布门禁与回归清单 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/release/, docs/guides/release-process.md | Phase 2 硬化主线：制定 v1.0.0 发布 readiness 清单与回归脚本，覆盖导入/检索/问答/导出/打包主流程，明确 go/no-go 门禁；沿用既有 `docs/release/*READINESS*` 模板 |
 | B-154 | tech-debt | 依赖与安全审计基线 | todo | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI |
 | B-155 | tech-debt | webapp/ 全量重组至 backend/ | todo | P2 | XL | v1.1.0 | RAG 团队 | docs/design/architecture-overview.md | v1.0.0 后执行：废弃 `webapp/` 目录，按职责重组至 `backend/api/`、`backend/storage/`、`backend/domain/`、`backend/routes/` 等子包；一次性迁移 60+ Python 文件 import 路径、测试和文档引用；不改 API 契约、不改 SQLite schema、不改 `frontend/`；完成后 `webapp/` 目录删除 |
-| B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
-| B-67 | feature | Web 向量库与 Reranker 接入（legacy 规划） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-134（Qdrant）和 B-125（Reranker）拆分替代 |
 
 ---
 
