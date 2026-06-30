@@ -25,7 +25,7 @@
 
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
-- [ ] 后端核心抓取服务：TDD 新增 URL 校验、SSRF 拦截、robots.txt 判断、大小/类型限制、HTML 正文净化测试与实现。
+- [x] 后端核心抓取服务：TDD 新增 URL 校验、SSRF 拦截、robots.txt 判断、大小/类型限制、HTML 正文净化测试与实现。
 - [ ] 后端导入接口：TDD 新增 `/api/import/web-fetch/preview` 与 `/api/import/web-fetch/commit`，确认入库使用独立 `web:` 虚拟来源和 `web_fetch` 批次类型。
 - [ ] 前端资料库入口：TDD 新增 API helper、导入面板预览/确认交互、App 状态刷新，复用现有导入状态和批次历史。
 - [ ] 文档回流：同步 `api-spec`、功能模块、研究文档、OpenAPI 显式路径、CHANGELOG 和必要测试说明。
@@ -92,12 +92,13 @@
 
 - 2026-06-30：启动 B-132。Context7 `library Playwright` 首次 `fetch failed`，设置 `NO_PROXY=*` 后成功匹配 `/microsoft/playwright-python`；`docs` 获取仍 `fetch failed`。本片按 B-119 建议采用 Python 标准库静态抓取，不新增 Playwright 必需依赖。
 - 2026-06-30：使用当前 checkout 执行；未创建新 worktree。当前分支 `fix/b-08-concurrent-index`，启动前工作区干净。
+- 2026-06-30：完成后端核心抓取服务。红灯为 `ModuleNotFoundError: No module named 'webapp.web_fetch'`，实现后 `tests/test_webapp/test_web_fetch.py` 5 个测试通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-30 17:10
-- **进度**：已完成 0 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`7b816cc` — docs: 归档 BACKLOG 已完成任务
-- **代码状态**：`fix/b-08-concurrent-index`；B-132 plan 已创建，待运行基线测试和 TDD 红灯
-- **下一步**：后端核心抓取服务：TDD 新增 URL 校验、SSRF 拦截、robots.txt 判断、大小/类型限制、HTML 正文净化测试与实现。
+- **最后更新**：2026-06-30 17:22
+- **进度**：已完成 1 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`abb005e` — docs: 启动 B-132 网页抓取实现计划
+- **代码状态**：`fix/b-08-concurrent-index`；后端核心抓取服务已完成，待接入 preview / commit API
+- **下一步**：后端导入接口：TDD 新增 `/api/import/web-fetch/preview` 与 `/api/import/web-fetch/commit`，确认入库使用独立 `web:` 虚拟来源和 `web_fetch` 批次类型。
 - **续任务须知**：不要修改 B-149 CI plan 负责的 `.github/workflows/ci.yml`、`docs/guides/testing.md`、`docs/guides/release-process.md`；B-132 只处理网页抓取导入。
