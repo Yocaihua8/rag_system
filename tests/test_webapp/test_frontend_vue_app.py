@@ -1713,6 +1713,20 @@ def test_vue_import_api_helper_uses_existing_import_preview_contract():
     assert "return data.preview || null" in imports_js
 
 
+def test_vue_import_api_helper_uses_web_fetch_preview_and_commit_contracts():
+    imports_js = _read("frontend/src/api/imports.js")
+
+    assert "export async function previewWebFetch({ projectId, url })" in imports_js
+    assert 'apiPost("/api/import/web-fetch/preview"' in imports_js
+    assert "project_id: projectId" in imports_js
+    assert "return data.preview || null" in imports_js
+    assert "export async function commitWebFetch({ projectId, preview })" in imports_js
+    assert 'apiPost("/api/import/web-fetch/commit"' in imports_js
+    assert "preview" in imports_js
+    assert "请输入要抓取的网页地址" in imports_js
+    assert "请先抓取网页预览" in imports_js
+
+
 def test_vue_document_import_panel_renders_import_preview_summary():
     panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
     library_vue = _read("frontend/src/views/LibraryView.vue")
@@ -1739,6 +1753,39 @@ def test_vue_document_import_panel_renders_import_preview_summary():
     assert ":import-preview-error=\"importPreviewError\"" in library_vue
 
 
+def test_vue_document_import_panel_renders_web_fetch_preview_controls():
+    panel_vue = _read("frontend/src/components/DocumentImportPanel.vue")
+    library_vue = _read("frontend/src/views/LibraryView.vue")
+
+    for marker in [
+        "网页抓取",
+        "抓取公开网页",
+        "网页抓取预览",
+        "webFetchPreview",
+        "webFetchPreviewLoading",
+        "webFetchPreviewError",
+        "preview-web-fetch",
+        "commit-web-fetch",
+        "抓取网页预览",
+        "确认导入网页快照",
+        "robots.txt",
+        "content_length",
+        "final_url",
+        "fetched_at",
+    ]:
+        assert marker in panel_vue
+
+    assert "@submit.prevent=\"previewWebFetchUrl\"" in panel_vue
+    assert "@click=\"commitWebFetchPreview\"" in panel_vue
+    assert ":disabled=\"importSubmitting || webFetchPreviewLoading || !selectedProjectId\"" in panel_vue
+    assert ":disabled=\"importSubmitting || !selectedProjectId || !webFetchPreview\"" in panel_vue
+    assert "@preview-web-fetch" in library_vue
+    assert "@commit-web-fetch" in library_vue
+    assert ":web-fetch-preview=\"webFetchPreview\"" in library_vue
+    assert ":web-fetch-preview-loading=\"webFetchPreviewLoading\"" in library_vue
+    assert ":web-fetch-preview-error=\"webFetchPreviewError\"" in library_vue
+
+
 def test_vue_app_handles_import_preview_state_without_import_side_effects():
     app_vue = _read("frontend/src/App.vue")
     state_js = _read("frontend/src/state/app-state.js")
@@ -1763,6 +1810,47 @@ def test_vue_app_handles_import_preview_state_without_import_side_effects():
         "importPreview",
         "importPreviewLoading",
         "importPreviewError",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_handles_web_fetch_preview_and_commit_state():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+
+    for imported_name in [
+        "previewWebFetch",
+        "commitWebFetch",
+    ]:
+        assert imported_name in app_vue
+
+    assert "handlePreviewWebFetch" in app_vue
+    assert "handleCommitWebFetch" in app_vue
+    assert "@preview-web-fetch=\"handlePreviewWebFetch\"" in app_vue
+    assert "@commit-web-fetch=\"handleCommitWebFetch\"" in app_vue
+    assert ":web-fetch-preview=\"appState.webFetchPreview\"" in app_vue
+    assert ":web-fetch-preview-loading=\"appState.webFetchPreviewLoading\"" in app_vue
+    assert ":web-fetch-preview-error=\"appState.webFetchPreviewError\"" in app_vue
+    assert "网页抓取预览完成" in app_vue
+    assert "网页抓取已导入" in app_vue
+
+    preview_block = app_vue.split("async function handlePreviewWebFetch", 1)[1].split("\nasync function", 1)[0]
+    assert "previewWebFetch({" in preview_block
+    assert "projectId: appState.selectedProjectId" in preview_block
+    assert "appState.webFetchPreview = preview" in preview_block
+    assert "await loadLibraryDocuments()" not in preview_block
+    assert "await loadImportBatches()" not in preview_block
+
+    commit_block = app_vue.split("async function handleCommitWebFetch", 1)[1].split("\nasync function", 1)[0]
+    assert "commitWebFetch({" in commit_block
+    assert "preview: payload.preview || appState.webFetchPreview" in commit_block
+    assert "await loadLibraryDocuments()" not in commit_block
+    assert "clearWebFetchPreview()" in commit_block
+
+    for state_field in [
+        "webFetchPreview",
+        "webFetchPreviewLoading",
+        "webFetchPreviewError",
     ]:
         assert f"{state_field}:" in state_js
 

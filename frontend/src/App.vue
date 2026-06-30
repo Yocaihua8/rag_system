@@ -29,6 +29,9 @@
       :import-preview="appState.importPreview"
       :import-preview-loading="appState.importPreviewLoading"
       :import-preview-error="appState.importPreviewError"
+      :web-fetch-preview="appState.webFetchPreview"
+      :web-fetch-preview-loading="appState.webFetchPreviewLoading"
+      :web-fetch-preview-error="appState.webFetchPreviewError"
       :answer-result="appState.answerResult"
       :answer-loading="appState.answerLoading"
       :answer-error="appState.answerError"
@@ -204,6 +207,8 @@
       @delete-document="handleDeleteDocument"
       @import-note="handleImportNote"
       @import-url="handleImportUrl"
+      @preview-web-fetch="handlePreviewWebFetch"
+      @commit-web-fetch="handleCommitWebFetch"
       @import-files="handleImportFiles"
       @import-folder="handleImportFolder"
       @import-notion-zip="handleImportNotionZip"
@@ -268,6 +273,7 @@ import {
 import { deleteDocument, getDocument, listDocuments } from "./api/documents.js";
 import {
   getImportBatchDetail,
+  commitWebFetch,
   importBrowserFolder,
   importBrowserFiles,
   importGithubRepo,
@@ -277,6 +283,7 @@ import {
   importUrlExcerpt,
   listImportBatches,
   previewProjectImport,
+  previewWebFetch,
   syncProjectDirectory,
 } from "./api/imports.js";
 import {
@@ -1014,6 +1021,7 @@ function resetLibraryStateAfterProjectDelete() {
   clearKnowledgeBaseManagementOverview();
   resetAssessmentState();
   clearImportPreview();
+  clearWebFetchPreview();
   clearCollectionFormStatus();
   clearCollectionRenameStatus();
   clearCollectionItemStatus();
@@ -1037,6 +1045,37 @@ async function handleImportUrl(payload) {
   }));
 }
 
+async function handlePreviewWebFetch(payload) {
+  appState.webFetchPreviewLoading = true;
+  appState.webFetchPreviewError = "";
+  appState.importError = "";
+  appState.importStatus = "";
+  appState.webFetchPreview = null;
+  clearImportPreview();
+  try {
+    const preview = await previewWebFetch({
+      projectId: appState.selectedProjectId,
+      url: payload.url,
+    });
+    appState.webFetchPreview = preview;
+    appState.importStatus = formatWebFetchPreview(preview);
+  } catch (error) {
+    appState.webFetchPreviewError = error.message || "网页抓取预览失败";
+  } finally {
+    appState.webFetchPreviewLoading = false;
+  }
+}
+
+async function handleCommitWebFetch(payload) {
+  await submitLibraryImport("网页抓取已导入", async () => {
+    await commitWebFetch({
+      projectId: appState.selectedProjectId,
+      preview: payload.preview || appState.webFetchPreview,
+    });
+    clearWebFetchPreview();
+  });
+}
+
 async function handleImportNotionZip(file) {
   await submitLibraryImport("Notion 导出导入完成", () => importNotionZip({
     projectId: appState.selectedProjectId,
@@ -1056,6 +1095,7 @@ async function handleImportGithubRepo(payload) {
   appState.importError = "";
   appState.importStatus = "";
   clearImportPreview();
+  clearWebFetchPreview();
   try {
     const data = await importGithubRepo({
       repoUrl: payload.repoUrl,
@@ -1081,6 +1121,7 @@ async function handleImportFiles(files) {
   appState.importError = "";
   appState.importStatus = "";
   clearImportPreview();
+  clearWebFetchPreview();
   try {
     const data = await importBrowserFiles({
       projectId: appState.selectedProjectId,
@@ -1106,6 +1147,7 @@ async function handleImportFolder(files) {
   appState.importError = "";
   appState.importStatus = "";
   clearImportPreview();
+  clearWebFetchPreview();
   try {
     const data = await importBrowserFolder({ files });
     if (data.project?.id) {
@@ -1128,6 +1170,7 @@ async function handleSyncDirectory() {
   appState.importError = "";
   appState.importStatus = "";
   clearImportPreview();
+  clearWebFetchPreview();
   try {
     const data = await syncProjectDirectory({
       projectId: appState.selectedProjectId,
@@ -1149,6 +1192,7 @@ async function handlePreviewImport() {
   appState.importPreviewError = "";
   appState.importError = "";
   appState.importStatus = "";
+  clearWebFetchPreview();
   try {
     const preview = await previewProjectImport({
       projectId: appState.selectedProjectId,
@@ -1167,6 +1211,7 @@ async function submitLibraryImport(successMessage, action) {
   appState.importError = "";
   appState.importStatus = "";
   clearImportPreview();
+  clearWebFetchPreview();
   try {
     await action();
     appState.importStatus = successMessage;
@@ -1188,9 +1233,19 @@ function formatImportPreview(preview = {}) {
   return `导入预检完成：可导入 ${preview?.importable ?? 0}，跳过 ${preview?.skipped ?? 0}`;
 }
 
+function formatWebFetchPreview(preview = {}) {
+  const title = preview?.title || preview?.final_url || "网页";
+  return `网页抓取预览完成：${title}，正文 ${preview?.content_length ?? 0} 字节`;
+}
+
 function clearImportPreview() {
   appState.importPreview = null;
   appState.importPreviewError = "";
+}
+
+function clearWebFetchPreview() {
+  appState.webFetchPreview = null;
+  appState.webFetchPreviewError = "";
 }
 
 function clearAnswerFeedbackState() {

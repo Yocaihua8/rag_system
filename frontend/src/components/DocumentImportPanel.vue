@@ -176,6 +176,51 @@
           </button>
         </div>
       </form>
+
+      <form class="import-form" @submit.prevent="previewWebFetchUrl">
+        <p class="section-kicker">网页抓取</p>
+        <h3>抓取公开网页</h3>
+        <p class="muted-line">仅处理公开 http/https 页面；后端检查 robots.txt、网络边界和正文大小。</p>
+        <label>
+          网页地址
+          <input
+            v-model.trim="webFetchForm.url"
+            :disabled="importSubmitting || webFetchPreviewLoading"
+            placeholder="https://example.com/article"
+          />
+        </label>
+        <div class="actions">
+          <button type="submit" :disabled="importSubmitting || webFetchPreviewLoading || !selectedProjectId">
+            {{ webFetchPreviewLoading ? "抓取预览中..." : "抓取网页预览" }}
+          </button>
+          <button
+            type="button"
+            :disabled="importSubmitting || !selectedProjectId || !webFetchPreview"
+            @click="commitWebFetchPreview"
+          >
+            {{ importSubmitting ? "导入中..." : "确认导入网页快照" }}
+          </button>
+        </div>
+        <p v-if="webFetchPreviewError" class="status-line error">{{ webFetchPreviewError }}</p>
+        <div v-if="webFetchPreview" class="import-preview" aria-label="网页抓取预览">
+          <h4>{{ webFetchPreview.title }}</h4>
+          <dl class="metadata-list">
+            <div>
+              <dt>最终 URL</dt>
+              <dd>{{ webFetchPreview.final_url }}</dd>
+            </div>
+            <div>
+              <dt>正文大小</dt>
+              <dd>{{ webFetchPreview.content_length }} 字节</dd>
+            </div>
+            <div>
+              <dt>抓取时间</dt>
+              <dd>{{ webFetchPreview.fetched_at }}</dd>
+            </div>
+          </dl>
+          <pre class="web-fetch-preview-content">{{ webFetchPreview.content }}</pre>
+        </div>
+      </form>
     </div>
   </section>
 </template>
@@ -183,7 +228,7 @@
 <script setup>
 import { reactive, ref } from "vue";
 
-defineProps({
+const props = defineProps({
   selectedProjectId: {
     type: String,
     required: true,
@@ -212,11 +257,25 @@ defineProps({
     type: String,
     default: "",
   },
+  webFetchPreview: {
+    type: Object,
+    default: null,
+  },
+  webFetchPreviewLoading: {
+    type: Boolean,
+    default: false,
+  },
+  webFetchPreviewError: {
+    type: String,
+    default: "",
+  },
 });
 
 const emit = defineEmits([
   "import-note",
   "import-url",
+  "preview-web-fetch",
+  "commit-web-fetch",
   "import-files",
   "import-folder",
   "import-notion-zip",
@@ -248,6 +307,10 @@ const urlForm = reactive({
   content: "",
 });
 
+const webFetchForm = reactive({
+  url: "",
+});
+
 function submitNote() {
   emit("import-note", {
     title: noteForm.title,
@@ -260,6 +323,18 @@ function submitUrl() {
     url: urlForm.url,
     title: urlForm.title,
     content: urlForm.content,
+  });
+}
+
+function previewWebFetchUrl() {
+  emit("preview-web-fetch", {
+    url: webFetchForm.url,
+  });
+}
+
+function commitWebFetchPreview() {
+  emit("commit-web-fetch", {
+    preview: props.webFetchPreview,
   });
 }
 
