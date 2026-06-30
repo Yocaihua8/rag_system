@@ -69,12 +69,14 @@
 - 2026-06-30：当前会话运行在 Windows，不能直接生成 macOS `.dmg` 或 Linux `.AppImage`；本 plan 将如实区分“本地静态/预检完成”和“原生产物待目标系统验证”。
 - 2026-06-30：本地补齐 Tauri 桌面 bundle 图标，修正 macOS/Linux npm 脚本中的 `tauri build -- --bundles ...` 参数位置，新增手动 GitHub Actions 原生打包 workflow。
 - 2026-06-30：本地验证已通过 `tests/test_webapp/test_tauri_packaging.py`、`npm run build`、`npx tauri info`、`cargo check --manifest-path src-tauri\Cargo.toml`、`scripts/check_docs_consistency.py`。
+- 2026-06-30：首次 GitHub Actions run `28454079423` 在 macOS / Linux 的 `Build native Tauri bundle` 步骤均以 141 退出。根因定位为 Unix sidecar 脚本在 `set -euo pipefail` 下使用 `rustc -vV | awk '/^host:/ { print $2; exit }'`，`awk exit` 可能让 `rustc` 收到 SIGPIPE。已增加静态回归测试并移除该 early exit。
+- 2026-06-30：本机 `bash -n scripts/build-backend-sidecar.sh` 无法运行，原因是 Windows `bash` 入口连接到缺少 `/bin/bash` 的 WSL；Unix shell 实际验证继续依赖 GitHub macOS/Linux runner。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-06-30 00:00
 - **进度**：已完成 0 / 1 项（见 § 3 勾选状态）
 - **最新 commit**：N/A
-- **代码状态**：main；本地有待提交改动；本地分支较 `origin/main` ahead 3
-- **下一步**：提交并推送本地预检改动，触发 `.github/workflows/tauri-packaging.yml`，等待 macOS / Linux runner 结果
+- **代码状态**：main；本地有待提交改动；本地分支与 `origin/main` 同步
+- **下一步**：提交并推送 sidecar pipefail 修复，重新触发 `.github/workflows/tauri-packaging.yml`，等待 macOS / Linux runner 结果
 - **续任务须知**：GitHub Actions 通过后，将 run URL、`.dmg` / `.AppImage` 产物证据回流到 `docs/features/desktop-packaging.md`，再将 B-152 标记为完成并删除本 plan；若失败，保留 B-152 为 `doing` 或 `blocked` 并记录失败日志

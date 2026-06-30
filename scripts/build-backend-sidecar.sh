@@ -21,7 +21,7 @@ if [ -z "$TARGET_TRIPLE" ]; then
     echo "rustc is required to detect the Tauri target triple. Set KI_TAURI_TARGET_TRIPLE to override." >&2
     exit 1
   fi
-  TARGET_TRIPLE="$(rustc -vV | awk '/^host:/ { print $2; exit }')"
+  TARGET_TRIPLE="$(rustc -vV | awk '/^host:/ { print $2 }')"
 fi
 
 if [ -z "$TARGET_TRIPLE" ]; then

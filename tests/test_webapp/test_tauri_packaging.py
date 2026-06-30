@@ -95,6 +95,13 @@ def test_unix_sidecar_script_builds_pyinstaller_binary_for_native_tauri_triple()
     assert "knowledge-island-backend-${TARGET_TRIPLE}" in script
 
 
+def test_unix_sidecar_target_detection_is_safe_with_pipefail():
+    script = Path("scripts/build-backend-sidecar.sh").read_text(encoding="utf-8")
+
+    assert "set -euo pipefail" in script
+    assert "awk '/^host:/ { print $2; exit }'" not in script
+
+
 def test_package_json_exposes_tauri_cross_platform_packaging_scripts():
     package_data = json.loads(Path("package.json").read_text(encoding="utf-8"))
 
