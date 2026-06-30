@@ -65,7 +65,7 @@
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 里程碑 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|--------|----------|------|
 | B-150 | test | backend/ 单元测试补齐 | done | P1 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md | Phase 2 硬化主线：已补齐 `backend/providers/llm`、`backend/providers/embedder`、`backend/config/paths`、`backend/config/settings` 与 Qdrant provider 降级路径单元测试，并在 `docs/guides/testing.md` 记录 backend/provider 验证命令 |
-| B-151 | test | 前端 Vitest 单元测试 | todo | P2 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/features/frontend-engineering.md | Phase 2 硬化主线：引入 Vitest，覆盖 `frontend/src/api/*` helper 的请求/错误归一化与关键组件状态；与 Playwright E2E 分层，单测跑纯逻辑、E2E 跑主流程 |
+| B-151 | test | 前端 Vitest 单元测试 | doing | P2 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/features/frontend-engineering.md | Phase 2 硬化主线：引入 Vitest，覆盖 `frontend/src/api/*` helper 的请求/错误归一化与关键组件状态；与 Playwright E2E 分层，单测跑纯逻辑、E2E 跑主流程；plan: docs/plans/B-151-frontend-vitest-unit-tests.md |
 | B-152 | test | macOS/Linux Tauri 打包原生验证 | todo | P2 | M | v1.0.0 | RAG 团队 | docs/features/desktop-packaging.md | Phase 2 硬化主线：在 macOS/Linux 原生系统实测 B-24 的 `tauri:build:macos`（dmg）/`tauri:build:linux`（appimage）链路，补齐 Unix sidecar 与图标，记录平台差异与已知限制 |
 | B-153 | docs | v1.0.0 发布门禁与回归清单 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/release/, docs/guides/release-process.md | Phase 2 硬化主线：制定 v1.0.0 发布 readiness 清单与回归脚本，覆盖导入/检索/问答/导出/打包主流程，明确 go/no-go 门禁；沿用既有 `docs/release/*READINESS*` 模板 |
 | B-154 | tech-debt | 依赖与安全审计基线 | todo | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI |

@@ -7,6 +7,8 @@
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "npm run test:unit",
+    "test:unit": "vitest run --config frontend/vite.config.js",
     "e2e:install": "playwright install chromium",
     "test:e2e": "npm run build && playwright test",
     "sidecar:build": "powershell -ExecutionPolicy Bypass -File scripts/build-backend-sidecar.ps1",
@@ -24,6 +26,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
-    "@tauri-apps/cli": "^2.11.3"
+    "@tauri-apps/cli": "^2.11.3",
+    "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.9"
   }
 }

@@ -2,7 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import vue from "@vitejs/plugin-vue";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -27,5 +27,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "../webapp/static_dist"),
     emptyOutDir: true,
+  },
+  test: {
+    environment: "jsdom",
+    include: ["src/**/*.test.js"],
+    clearMocks: true,
+    restoreMocks: true,
   },
 });
