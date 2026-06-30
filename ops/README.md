@@ -76,11 +76,24 @@ Linux / macOS 可使用：
 
 ## 维护脚本
 
-| 脚本 | 说明 |
-|------|------|
-| `ops/scripts/backup_db.sh` | 通过 `sqlite3 .dump` 备份 `KI_DB_PATH`，并在存在 Qdrant local 目录时打包 `KI_QDRANT_DIR`；默认保留最近 7 份 |
-| `ops/scripts/rebuild_index.sh` | 调用本地 `POST /api/admin/rebuild-index`，重建当前 `VectorBackend` 索引 |
-| `ops/scripts/cleanup_runtime.sh` | 清理 `runtime/` 下临时文件和 `__pycache__`，不删除数据库或 Qdrant 数据目录 |
+以下脚本由 BACKLOG **B-06** 落地，面向本地开发和自托管维护场景。脚本默认只操作仓库内 `runtime/`，不保存或输出 API Key。
+
+| 脚本 | 用途 | 常用变量 |
+|------|------|----------|
+| `ops/scripts/backup_db.sh` | 使用 `sqlite3 .backup` 备份 SQLite DB；未安装 `sqlite3` 时回退文件复制；存在 Qdrant local 目录时打包为 `tar.gz`；默认保留最近 7 份 | `KI_DB_PATH`、`KI_BACKUP_DIR`、`KI_BACKUP_RETENTION`、`KI_QDRANT_DIR` / `RAG_QDRANT_PATH` |
+| `ops/scripts/cleanup_runtime.sh` | 清理 `runtime/` 下 `__pycache__`、`.pytest_cache`、`*.pyc`、临时文件；保留 SQLite DB、`runtime/backups` 和 Qdrant 数据目录 | `KI_RUNTIME_DIR`、`KI_BACKUP_DIR`、`KI_QDRANT_DIR` / `RAG_QDRANT_PATH` |
+| `ops/scripts/rebuild_index.sh` | 调用本地 `POST /api/admin/rebuild-index`，基于 SQLite 已存文档内容重建 chunk 与向量索引 | `KI_BASE_URL`、`KI_PROJECT_ID`、`KI_API_KEY`、`KI_BEARER_TOKEN` |
+
+示例：
+
+```bash
+./ops/scripts/backup_db.sh
+./ops/scripts/cleanup_runtime.sh
+KI_BASE_URL=http://127.0.0.1:8765 ./ops/scripts/rebuild_index.sh
+KI_PROJECT_ID=<project-id> ./ops/scripts/rebuild_index.sh
+```
+
+启用 `RAG_AUTH_ENABLED=1` 时，`rebuild_index.sh` 需传入 `KI_API_KEY` 或 `KI_BEARER_TOKEN`。未传 `KI_PROJECT_ID` 时，后端会重建全部项目；传入后仅重建指定项目。
 
 ## 验收命令
 

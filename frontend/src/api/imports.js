@@ -43,6 +43,34 @@ export async function importUrlExcerpt({ projectId, url, title, content }) {
   });
 }
 
+export async function previewWebFetch({ projectId, url }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  const cleanUrl = String(url || "").trim();
+  if (!cleanUrl) {
+    throw new Error("请输入要抓取的网页地址");
+  }
+  const data = await apiPost("/api/import/web-fetch/preview", {
+    project_id: projectId,
+    url: cleanUrl,
+  });
+  return data.preview || null;
+}
+
+export async function commitWebFetch({ projectId, preview }) {
+  if (!projectId) {
+    throw new Error("请先创建或选择项目空间");
+  }
+  if (!preview) {
+    throw new Error("请先抓取网页预览");
+  }
+  return apiPost("/api/import/web-fetch/commit", {
+    project_id: projectId,
+    preview,
+  });
+}
+
 export async function syncProjectDirectory({ projectId }) {
   if (!projectId) {
     throw new Error("请先创建或选择项目空间");

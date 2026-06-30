@@ -4,12 +4,14 @@ from typing import Any
 
 from webapp.api_support import query_value
 from webapp.github_import import import_github_repo
+from webapp.indexing import default_indexing_coordinator
 from webapp.ingestion import import_directory, preview_import_directory
 from webapp.models import ApiResponse, Document, ImportResult
 from webapp.notion_obsidian_import import import_notion_zip, import_obsidian_vault
-from webapp.source_import import import_plain_text_note, import_url_excerpt
+from webapp.source_import import import_plain_text_note, import_url_excerpt, import_web_fetch_result
 from webapp.storage import KnowledgeStore
 from webapp.upload_import import create_browser_upload_project, import_uploaded_files
+from webapp.web_fetch import WebFetchError, fetch_web_preview
 
 
 def handle_imports_route(
@@ -26,9 +28,10 @@ def handle_imports_route(
             return ApiResponse(404, {"error": "project not found"})
         if not project.root_path.exists() or not project.root_path.is_dir():
             return ApiResponse(400, {"error": "project root path does not exist"})
-        result = import_directory(store, project.id, project.root_path)
-        batch = _record_import_batch(store, project.id, "directory_sync", result)
-        documents = [doc.to_dict() for doc in store.list_documents(project.id)]
+        with default_indexing_coordinator.project_scope(project.id):
+            result = import_directory(store, project.id, project.root_path)
+            batch = _record_import_batch(store, project.id, "directory_sync", result)
+            documents = [doc.to_dict() for doc in store.list_documents(project.id)]
         return ApiResponse(200, {"result": result.to_dict(), "batch": batch.to_dict(), "documents": documents})
 
     if method == "GET" and path == "/api/import/preview":
@@ -53,9 +56,10 @@ def handle_imports_route(
             return ApiResponse(404, {"error": "project not found"})
         if not project:
             project = create_browser_upload_project(store, str(payload.get("project_name", "")))
-        result = import_uploaded_files(store, files, project)
-        batch = _record_import_batch(store, project.id, _upload_source_type(payload, bool(project_id)), result)
-        documents = [doc.to_dict() for doc in store.list_documents(project.id)]
+        with default_indexing_coordinator.project_scope(project.id):
+            result = import_uploaded_files(store, files, project)
+            batch = _record_import_batch(store, project.id, _upload_source_type(payload, bool(project_id)), result)
+            documents = [doc.to_dict() for doc in store.list_documents(project.id)]
         return ApiResponse(
             200,
             {
@@ -71,16 +75,17 @@ def handle_imports_route(
         if not store.get_project(project_id):
             return ApiResponse(404, {"error": "project not found"})
         try:
-            result = import_notion_zip(
-                store,
-                project_id,
-                payload.get("filename", ""),
-                payload.get("content_base64", ""),
-            )
+            with default_indexing_coordinator.project_scope(project_id):
+                result = import_notion_zip(
+                    store,
+                    project_id,
+                    payload.get("filename", ""),
+                    payload.get("content_base64", ""),
+                )
+                batch = _record_import_batch(store, project_id, "notion_zip", result)
+                documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
-        batch = _record_import_batch(store, project_id, "notion_zip", result)
-        documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         return ApiResponse(200, {"result": result.to_dict(), "batch": batch.to_dict(), "documents": documents})
 
     if method == "POST" and path == "/api/import/obsidian-vault":
@@ -88,15 +93,16 @@ def handle_imports_route(
         if not store.get_project(project_id):
             return ApiResponse(404, {"error": "project not found"})
         try:
-            result = import_obsidian_vault(
-                store,
-                project_id,
-                payload.get("vault_path", ""),
-            )
+            with default_indexing_coordinator.project_scope(project_id):
+                result = import_obsidian_vault(
+                    store,
+                    project_id,
+                    payload.get("vault_path", ""),
+                )
+                batch = _record_import_batch(store, project_id, "obsidian_vault", result)
+                documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
-        batch = _record_import_batch(store, project_id, "obsidian_vault", result)
-        documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         return ApiResponse(200, {"result": result.to_dict(), "batch": batch.to_dict(), "documents": documents})
 
     if method == "POST" and path == "/api/import/github-repo":
@@ -126,16 +132,17 @@ def handle_imports_route(
         if not store.get_project(project_id):
             return ApiResponse(404, {"error": "project not found"})
         try:
-            write_result, result = import_plain_text_note(
-                store,
-                project_id,
-                payload.get("title", ""),
-                payload.get("content", ""),
-            )
+            with default_indexing_coordinator.project_scope(project_id):
+                write_result, result = import_plain_text_note(
+                    store,
+                    project_id,
+                    payload.get("title", ""),
+                    payload.get("content", ""),
+                )
+                batch = _record_import_batch(store, project_id, "text_note", result, document=write_result.document)
+                documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
-        batch = _record_import_batch(store, project_id, "text_note", result, document=write_result.document)
-        documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         return ApiResponse(
             200,
             {
@@ -151,17 +158,57 @@ def handle_imports_route(
         if not store.get_project(project_id):
             return ApiResponse(404, {"error": "project not found"})
         try:
-            write_result, result = import_url_excerpt(
-                store,
-                project_id,
-                payload.get("url", ""),
-                payload.get("title", ""),
-                payload.get("content", ""),
-            )
+            with default_indexing_coordinator.project_scope(project_id):
+                write_result, result = import_url_excerpt(
+                    store,
+                    project_id,
+                    payload.get("url", ""),
+                    payload.get("title", ""),
+                    payload.get("content", ""),
+                )
+                batch = _record_import_batch(store, project_id, "url_excerpt", result, document=write_result.document)
+                documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
-        batch = _record_import_batch(store, project_id, "url_excerpt", result, document=write_result.document)
-        documents = [doc.to_dict() for doc in store.list_documents(project_id)]
+        return ApiResponse(
+            200,
+            {
+                "result": result.to_dict(),
+                "batch": batch.to_dict(),
+                "document": write_result.document.to_dict(include_content=True),
+                "documents": documents,
+            },
+        )
+
+    if method == "POST" and path == "/api/import/web-fetch/preview":
+        project_id = str(payload.get("project_id", ""))
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            preview = fetch_web_preview(payload.get("url", ""))
+        except (ValueError, WebFetchError) as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, {"preview": preview.to_dict()})
+
+    if method == "POST" and path == "/api/import/web-fetch/commit":
+        project_id = str(payload.get("project_id", ""))
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            with default_indexing_coordinator.project_scope(project_id):
+                write_result, result = import_web_fetch_result(
+                    store,
+                    project_id,
+                    payload.get("preview"),
+                )
+                batch = _record_import_batch(store, project_id, "web_fetch", result, document=write_result.document)
+                documents = [doc.to_dict() for doc in store.list_documents(project_id)]
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
         return ApiResponse(
             200,
             {

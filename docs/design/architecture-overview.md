@@ -8,7 +8,7 @@
 
 ## 1. 架构结论
 
-Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 `webapp/static/` legacy 静态前端 fallback，Web 首页只服务 `webapp/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无消息队列和微服务。
+Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 `webapp/static/` legacy 静态前端 fallback，Web 首页只服务 `webapp/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
 
 | 字段 | 值 |
 |------|----|
@@ -108,22 +108,25 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 - `/api/answer/stream` 由 FastAPI `StreamingResponse` 输出既有 SSE 事件
 - 当前静态前端只服务 `webapp/static_dist/`；构建产物不存在时启动阶段抛出明确错误，不再回退 `webapp/static/`。
 - `webapp/routes/*` 按领域承载 REST 路由分支，提取 URL 参数和请求体
+- `webapp/routes/admin.py` 只承载本地维护入口，目前提供 `POST /api/admin/rebuild-index`，调用 `KnowledgeStore.rebuild_index()` 重建 chunk 与向量索引
 - 参数合法性校验（必填字段、类型、取值范围）
 - 调用业务模块，封装统一 JSON 响应格式
 - 错误分类与 HTTP 状态码映射
 - 必须：不承载复杂业务规则，不直接操作 SQLite
 
-### 4.3 业务层（ingestion / search / answers / agent_tools）
+### 4.3 业务层（ingestion / search / answers / agent_tools / result_export）
 
-- 实现核心知识处理逻辑（分块、向量化、检索、回答生成）
+- 实现核心知识处理逻辑（分块、向量化、检索、回答生成、结果导出）
 - 编排多个存储操作构成完整用例
 - 管理可选依赖的降级逻辑（API 失败时 fallback）
+- `webapp/result_export.py` 负责将已生成问答消息格式化为 Markdown / PDF 文件并写入本地输出目录
 - 必须：不引入 HTTP 概念（无 request/response），不格式化最终 JSON
 
 ### 4.4 数据层（webapp/storage.py）
 
 - 初始化 SQLite schema（建表、兼容迁移）
 - 提供 CRUD 方法（`KnowledgeStore` 类统一封装）
+- 提供维护性索引重建方法（`KnowledgeStore.rebuild_index()`），基于已存文档正文重建 `document_chunks` / `chunk_vectors` 并同步 Qdrant provider
 - 管理连接复用与事务
 - 必须：不承载业务规则，不被前端 JS 直接调用
 
@@ -134,6 +137,8 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | HTTP 服务 | `webapp.server.create_app` / `webapp.server.run_server` | `app.py` / Uvicorn |
 | API 分发 | `webapp.api.dispatch` + `webapp.routes.dispatch_to_routes` | `webapp.server` |
 | SQLite 存储 | `KnowledgeStore` | `webapp.routes/*`、导入/检索/工具模块 |
+| 索引重建维护 | `KnowledgeStore.rebuild_index` / `ops/scripts/rebuild_index.sh` | `POST /api/admin/rebuild-index` |
+| 进程内摄入协调 | `ProjectIndexingCoordinator` | `webapp.routes.imports` |
 | 后端配置 | `backend.config.settings` / `backend.config.paths` | `webapp.llm`、`webapp.embeddings`、设置 API、脚本 |
 | Qdrant 向量索引 | `backend.providers.vector_store.QdrantVectorStore` | `KnowledgeStore` 写入同步、`search_documents` 向量候选 |
 | 本地目录导入 | `import_project_documents` | `POST /api/import` |
@@ -141,6 +146,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | 文本笔记导入 | `build_note_document` | `POST /api/import/note` |
 | 检索 | `search_documents` / `KnowledgeStore.list_graph_related_chunks` / `build_source_quality` | `/api/search*` / `/api/answer` / 只读工具 |
 | 回答生成 | `build_local_answer` / OpenAI-compatible Chat | `POST /api/answer` |
+| 结果导出 | `export_chat_message_result` | `POST /api/export/result` |
 | Agent 只读工具 | `run_agent_tool` | `POST /api/agent/tools/run` |
 | Vue API helper | `frontend/src/api/client.js` | Vue 组件 / 后续页面模块 |
 | Vue 项目空间 helper | `frontend/src/api/projects.js` | `App.vue` / `ProjectSpacePanel.vue` / `SearchDebugPanel.vue` |
@@ -170,7 +176,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 ## 7. 关键设计约束
 
-- **单进程**：所有处理在 `app.py` 进程内，无后台 worker 或消息队列
+- **单进程**：所有处理在 `app.py` 进程内，无外部后台 worker 或消息队列；写入型导入使用进程内项目锁，跨项目可并发，同项目串行
 - **本地优先**：所有核心功能在无网络时可用（LLM 降级本地片段，Embedding 降级 hash）
 - **可选依赖隔离**：`pymupdf` 等可选能力通过隔离入口引入，失败不影响主流程
 - **API Key 安全**：Profile 只保存引用 token，不持久化明文 Key

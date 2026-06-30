@@ -26,6 +26,7 @@ def test_web_mvp_api_spec_documents_http_endpoints():
         "POST /api/model-profiles/test",
         "GET /api/export/project",
         "POST /api/export/project/restore",
+        "POST /api/export/result",
         "GET /api/import/preview",
         "POST /api/import",
         "POST /api/search",
@@ -85,6 +86,22 @@ def test_project_export_contract_is_documented():
     assert "备份导出" in readme
 
 
+def test_result_export_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    feature_doc = Path("docs/features/result-export.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "POST /api/export/result" in api_spec
+    assert "message_id" in api_spec
+    assert "markdown" in api_spec
+    assert "pdf" in api_spec
+    assert "data/outputs/" in api_spec
+    assert "format must be markdown or pdf" in api_spec
+    assert "chat message not found" in api_spec
+    assert "结果导出" in feature_doc
+    assert "结果导出" in readme
+
+
 def test_answer_stream_contract_is_documented():
     api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
     testing = Path("docs/guides/testing.md").read_text(encoding="utf-8")
@@ -118,6 +135,29 @@ def test_note_import_contract_is_documented():
     assert "note:" in api_spec
     assert "url:" in api_spec
     assert "文本笔记" in readme
+
+
+def test_web_fetch_import_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    functional_modules = Path("docs/requirements/functional-modules.md").read_text(encoding="utf-8")
+    research = Path("docs/features/web-crawling-research.md").read_text(encoding="utf-8")
+
+    for marker in [
+        "/api/import/web-fetch/preview",
+        "/api/import/web-fetch/commit",
+        "web:",
+        "web_fetch",
+        "robots.txt",
+        "content_hash",
+    ]:
+        assert marker in api_spec
+
+    assert "单 URL 网页抓取" in functional_modules
+    assert "web:" in functional_modules
+    assert "robots.txt" in functional_modules
+    assert "B-132 已落地" in research
+    assert "POST /api/import/url" in research
+    assert "不会自动抓取网页" in research
 
 
 def test_retrieval_review_contract_is_documented():

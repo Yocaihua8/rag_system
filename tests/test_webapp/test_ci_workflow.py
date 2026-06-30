@@ -1,0 +1,49 @@
+from pathlib import Path
+
+
+def _workflow() -> str:
+    path = Path(".github/workflows/ci.yml")
+    assert path.exists(), "B-149 must add a GitHub Actions CI workflow"
+    return path.read_text(encoding="utf-8")
+
+
+def test_ci_workflow_triggers_on_main_push_and_pull_request():
+    workflow = _workflow()
+
+    assert "name: CI" in workflow
+    assert "push:" in workflow
+    assert "pull_request:" in workflow
+    assert "branches: [main]" in workflow
+    assert "python-tests:" in workflow
+    assert "frontend-e2e:" in workflow
+
+
+def test_ci_workflow_runs_backend_docs_build_and_e2e_commands():
+    workflow = _workflow()
+
+    for marker in [
+        ".venv/bin/python -m pytest tests/test_backend tests/test_webapp -q",
+        ".venv/bin/python scripts/check_docs_consistency.py",
+        "npm ci",
+        "npm run build",
+        "npx playwright install chromium --with-deps",
+        "npx playwright test",
+    ]:
+        assert marker in workflow
+
+
+def test_ci_workflow_uses_current_actions_and_versioned_cache_keys():
+    workflow = _workflow()
+
+    for marker in [
+        'PYTHON_VERSION: "3.11"',
+        'NODE_VERSION: "20"',
+        "uses: actions/checkout@v6",
+        "uses: actions/setup-python@v5",
+        "uses: actions/setup-node@v4",
+        "uses: actions/cache@v4",
+        "venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}",
+        "npm-${{ runner.os }}-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json') }}",
+        "restore-keys:",
+    ]:
+        assert marker in workflow

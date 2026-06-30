@@ -48,8 +48,13 @@
         :import-preview="importPreview"
         :import-preview-loading="importPreviewLoading"
         :import-preview-error="importPreviewError"
+        :web-fetch-preview="webFetchPreview"
+        :web-fetch-preview-loading="webFetchPreviewLoading"
+        :web-fetch-preview-error="webFetchPreviewError"
         @import-note="(payload) => $emit('import-note', payload)"
         @import-url="(payload) => $emit('import-url', payload)"
+        @preview-web-fetch="(payload) => $emit('preview-web-fetch', payload)"
+        @commit-web-fetch="(payload) => $emit('commit-web-fetch', payload)"
         @import-files="(files) => $emit('import-files', files)"
         @import-folder="(files) => $emit('import-folder', files)"
         @import-notion-zip="(file) => $emit('import-notion-zip', file)"
@@ -225,6 +230,18 @@ defineProps({
     type: String,
     default: "",
   },
+  webFetchPreview: {
+    type: Object,
+    default: null,
+  },
+  webFetchPreviewLoading: {
+    type: Boolean,
+    default: false,
+  },
+  webFetchPreviewError: {
+    type: String,
+    default: "",
+  },
   documents: {
     type: Array,
     default: () => [],
@@ -369,6 +386,8 @@ defineEmits([
   "delete-document",
   "import-note",
   "import-url",
+  "preview-web-fetch",
+  "commit-web-fetch",
   "import-files",
   "import-folder",
   "import-notion-zip",

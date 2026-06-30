@@ -21,6 +21,8 @@
 - **Vue 资料库浏览器文件夹导入薄片**：资料库视图新增 `webkitdirectory` 文件夹选择入口，复用既有 `/api/import/upload` 与 `browser_folder_upload` 契约
 - **Vue 资料库目录同步薄片**：资料库视图新增“同步当前项目目录”入口，复用既有 `/api/import` 契约
 - **Vue 资料库导入预检薄片**：资料库视图新增“预检当前项目目录”入口，复用既有 `/api/import/preview` 只读契约
+- **网页抓取导入**：资料库视图新增单 URL 网页抓取预览与确认入库，后端新增 `/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit`，写入 `web:` 虚拟来源与 `web_fetch` 导入批次；手动 `/api/import/url` 仍不联网
+- **GitHub Actions CI 流水线**：新增 `.github/workflows/ci.yml`，在 `main` push / PR 上并行运行 `python-tests`（backend + webapp pytest、文档一致性）和 `frontend-e2e`（Vue/Vite build、Playwright E2E），并为 pip/npm 依赖配置版本化缓存
 - **Vue 资料库文档集合筛选薄片**：资料库视图新增文档集合只读筛选入口，复用既有 `/api/document-collections` 与 `/api/documents?collection_id=...` 契约
 - **Vue 资料库文档集合管理薄片**：资料库视图新增文档集合新建和删除入口，复用既有 `/api/document-collections` 与 `/api/document-collections/delete` 契约；删除集合不删除文档
 - **Vue 资料库文档集合重命名薄片**：资料库视图新增文档集合重命名入口，复用既有 `/api/document-collections/update` 契约
@@ -48,6 +50,8 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
+- **BACKLOG 完成项归档**：B-149 CI 持续集成流水线已完成并从 `docs/BACKLOG.md §5` 移除；对应能力见 Added 中 GitHub Actions CI 流水线条目。
+- **BACKLOG 完成项归档**：按 BACKLOG 流转规则从 `docs/BACKLOG.md §5` 移除 27 个已完成项，并保留在本变更记录中追溯：B-06、B-07、B-08、B-24、B-25、B-42、B-117、B-118、B-119、B-125、B-126、B-128、B-133、B-134、B-135、B-136、B-137、B-139、B-140、B-141、B-142、B-143、B-144、B-145、B-146、B-147、B-148；未完成项、`doing` 项和 `wontfix` legacy 项继续留在 BACKLOG。
 - **静态前端托管策略**：FastAPI 优先服务 Vite 构建产物；构建产物缺失时回退 legacy `webapp/static/`
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
@@ -62,6 +66,7 @@
 - **大项目向量检索线性变慢**：B-134 提供 Qdrant HNSW 候选检索路径，解决大型项目查询时 SQLite 向量全扫描的性能瓶颈。
 
 ### Security
+- B-132 网页抓取预览只接受公开 `http/https`，拒绝凭据、非标准端口、localhost、私网、链路本地、保留地址和重定向后的非公网目标，并遵守 robots.txt、响应大小上限、超时和 content-type allowlist
 - 认证启用时，`/api/health` 和静态首页保持放行；其他受保护接口缺少凭证返回 401，凭证错误或过期返回 401，不回显认证密钥
 
 ---

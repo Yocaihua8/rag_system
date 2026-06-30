@@ -1,12 +1,14 @@
-# 结构基线（2026-04，v2）
+# 结构基线（2026-04，v2 · 历史参考，已被取代）
 
-> **状态**：Active
-> **取代**：旧版 STRUCTURE_BASELINE（2026-04 初版，记录三分法迁移状态）
-> **主文档**：见 `SYSTEM_ARCHITECTURE.md`
+> **状态**：Superseded（已被取代，仅供历史参考）
+> **取代文档**：`docs/design/architecture-overview.md`（Web MVP 当前分层与目录职责）
+> **保留原因**：本文档描述的 **`src/` 统一源码根**桌面架构已随 B-147 归档到 `archive/src-desktop-legacy/`，根目录已不存在 `src/`。下文的目录结构与"主路径"**不反映当前代码**，勿据此判断当前待办。
 
 ---
 
-## 1. 主路径（Active）
+## 1. 主路径（历史，已归档）
+
+> ⚠️ 下述 `src/` 结构已归档，当前代码以 `backend/` + `webapp/` + `frontend/` 为准（见 `docs/design/architecture-overview.md`）。
 
 新架构采用 **`src/` 统一源码根**，按职责分五层：
 

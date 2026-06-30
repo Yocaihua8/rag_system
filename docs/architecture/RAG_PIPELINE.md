@@ -1,8 +1,10 @@
-# RAG 全流程设计
+# RAG 全流程设计（历史参考，已被取代）
 
 > **版本**：v2.0
 > **日期**：2026-04
-> **状态**：Active
+> **状态**：Superseded（已被取代，仅供历史参考）
+> **取代文档**：`docs/design/architecture-overview.md` 及 `docs/features/`（qdrant-vector-store、graph-enhanced-retrieval、reranker 等当前检索实现）
+> **保留原因**：本文档为旧架构阶段（2026-04）的 RAG 设计，早于 Qdrant 向量库、Reranker、图谱增强检索等 Web MVP 能力，**不反映当前检索链路**，仅供历史参考。
 
 ---
 

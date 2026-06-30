@@ -1,7 +1,7 @@
 # 企业化架构基线（阶段 1-2 历史记录）
 
 > **状态**：Superseded（已被取代）
-> **取代文档**：`SYSTEM_ARCHITECTURE.md`（v3.0，2026-04）
+> **取代文档**：当前架构以 `docs/design/architecture-overview.md`（Web MVP）为准；中间历史版本见 `SYSTEM_ARCHITECTURE.md`（v3.0，2026-04，亦已 Superseded）
 > **保留原因**：记录阶段 1-2 迁移决策，仅供历史参考，不反映当前代码结构
 
 ---

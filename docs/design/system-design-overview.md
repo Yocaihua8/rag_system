@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-26
+> Last Updated：2026-06-30
 > Scope：Knowledge Island Web MVP 系统级设计
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/requirements/functional-modules.md
 
@@ -18,7 +18,7 @@
 - **系统输入**：用户通过浏览器交互（创建项目、导入文件、提问、评估）
 - **系统输出**：知识库索引、RAG 问答结果（含来源）、掌握度评估结果
 - **外部依赖**：可选 LLM API（DeepSeek / OpenAI-compatible / Ollama）、可选 Embedding API
-- **非目标范围**：多用户、远程访问、网页爬取、图像识别、语音处理
+- **非目标范围**：多用户 / 团队空间（B-118 已完成研究，当前不实现）、远程访问、网页自动抓取（B-119 已完成研究，当前不实现）、图像识别、语音处理
 
 ## 3. 逻辑组成
 
@@ -82,8 +82,11 @@
 ### 5.2 安全
 
 - API Key 只保存引用（`env:` / `saved:`），不持久化明文
+- B-118 研究结论：当前认证仍是单用户保护层，不存在账号体系、团队租户或 RBAC；`project_id` 仅代表本机用户的项目空间，不是多租户边界
 - Agent 工具仅开放只读操作，工具白名单硬编码在 `agent_tools.py`
 - 不支持任意命令执行或文件写入
+- B-117 研究结论：MCP / 插件能力当前不接入运行时；未来如试验，只能作为显式配置的只读 allowlist 工具或资源适配层，不启用插件市场或模型自动调用外部工具
+- B-119 研究结论：当前 URL 摘录不触发网络请求、不抓取网页、不解析远端 HTML；未来如实现网页抓取，必须独立于手动 URL 摘录入口，并先满足 robots.txt、SSRF 防护、内容净化、超时/大小限制和可选依赖隔离
 - 服务只监听 127.0.0.1，不对外暴露网络端口
 
 ### 5.3 可维护性
@@ -99,8 +102,12 @@
 - LLM 层：`RAG_LLM_PROVIDER` 切换 ollama / api 模式
 - 模型 Profile 支持多配置，为未来模型路由预留接口
 - 向量存储层计划迁移至专用 vector store（Qdrant，B-134，P3）
+- Agent 工具层：只允许在现有只读白名单和审计模型内扩展；MCP 适配若进入实现，必须先落在该层而不是绕过 API / storage 边界
+- 权限层：多用户 / 团队空间若进入实现，必须先引入身份、租户、成员关系、RBAC、审计和迁移设计，不能在现有单用户 API 上直接追加团队 UI
+- 网页抓取层：若 B-132 进入实现，只能作为用户显式触发的单 URL 预览/确认能力接入导入层，不得作为 Agent 自动调用工具或递归爬虫接入问答流程
 
 ## 6. 待补充设计
 
-- Reranker 重排序接入设计（B-125，P2）
-- 专用向量库迁移方案（Qdrant，B-134，P3）
+- MCP / 插件能力研究已完成（B-117），结论见 `docs/features/agent-tooling-mcp-research.md`
+- 多用户 / 团队空间研究已完成（B-118），结论见 `docs/features/team-workspace-research.md`
+- 网页自动抓取研究已完成（B-119），结论见 `docs/features/web-crawling-research.md`

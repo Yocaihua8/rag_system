@@ -7,10 +7,15 @@
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "e2e:install": "playwright install chromium",
+    "test:e2e": "npm run build && playwright test",
     "sidecar:build": "powershell -ExecutionPolicy Bypass -File scripts/build-backend-sidecar.ps1",
+    "sidecar:build:unix": "bash scripts/build-backend-sidecar.sh",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "tauri:build:windows": "npm run sidecar:build && tauri build"
+    "tauri:build:windows": "npm run sidecar:build && tauri build",
+    "tauri:build:macos": "npm run sidecar:build:unix && tauri build -- --bundles dmg",
+    "tauri:build:linux": "npm run sidecar:build:unix && tauri build -- --bundles appimage"
   },
   "dependencies": {
     "@vitejs/plugin-vue": "^6.0.2",
@@ -18,6 +23,7 @@
     "vue": "^3.5.24"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tauri-apps/cli": "^2.11.3"
   }
 }

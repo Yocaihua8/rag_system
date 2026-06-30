@@ -365,6 +365,39 @@ select {
   margin: 0;
 }
 
+.metadata-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.metadata-list div {
+  display: grid;
+  gap: 2px;
+}
+
+.metadata-list dt {
+  color: #52616f;
+  font-size: 12px;
+}
+
+.metadata-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.web-fetch-preview-content {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #243447;
+  max-height: 240px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
 .skipped-details {
   display: grid;
   gap: 8px;

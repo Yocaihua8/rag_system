@@ -2,8 +2,9 @@
 check_docs_consistency.py — 轻量文档一致性检查。
 
 当前检查项：
-1. docs/DEVLOG.md 中的 devlog/日期 日志链接是否存在。
-2. docs/devlog/*.md 的日期日志文件是否都出现在 DEVLOG 索引中。
+1. docs/DEVLOG.md 为**可选**聚合索引：文件存在时才校验其 devlog/日期 链接；
+   缺失时跳过（仓库以 docs/devlog/ 目录直接管理日志，见 BACKLOG ISSUE-003 处理结论）。
+2. docs/DEVLOG.md 存在时，校验 docs/devlog/*.md 是否都出现在该索引中。
 3. docs/README.md 存在时，校验其目录说明与实际路径是否一致。
 
 退出码：
@@ -57,12 +58,9 @@ def _extract_devlog_links(lines: Iterable[str]) -> list[tuple[str, str, int]]:
 def _check_devlog_links() -> list[Issue]:
     issues: list[Issue] = []
     if not DEVLOG_AGG.exists():
-        return [
-            Issue(
-                "docs/DEVLOG.md",
-                "docs/DEVLOG.md 不存在，无法校验聚合索引。",
-            )
-        ]
+        # docs/DEVLOG.md 聚合索引为可选项：仓库以 docs/devlog/ 目录直接管理日志，
+        # 不强制维护聚合索引（BACKLOG ISSUE-003 已据此结论处理）。索引缺失时跳过该项检查。
+        return []
 
     lines = DEVLOG_AGG.read_text(encoding="utf-8").splitlines()
     links = _extract_devlog_links(lines)

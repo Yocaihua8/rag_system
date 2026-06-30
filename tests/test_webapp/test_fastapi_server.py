@@ -1,3 +1,5 @@
+import inspect
+
 from fastapi.testclient import TestClient
 
 import webapp.server as server
@@ -39,6 +41,13 @@ def test_fastapi_app_returns_json_not_found_for_unknown_api(tmp_path):
     assert response.json() == {"error": "not found"}
 
 
+def test_fastapi_api_dispatch_offloads_sync_routes_to_threadpool():
+    create_app_source = inspect.getsource(server.create_app)
+
+    assert "run_in_threadpool" in create_app_source
+    assert "await run_in_threadpool(" in create_app_source
+
+
 def test_fastapi_app_streams_answer_as_sse(tmp_path):
     db_path = tmp_path / "app.db"
     project_root = tmp_path / "project"
@@ -73,9 +82,10 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
         for method in methods
         if method in {"get", "post"}
     }
-    assert len(operations) >= 63
+    assert len(operations) >= 64
     for operation in [
         ("/api/health", "get"),
+        ("/api/admin/rebuild-index", "post"),
         ("/api/projects", "get"),
         ("/api/projects", "post"),
         ("/api/model-profiles", "get"),
@@ -84,6 +94,7 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
         ("/api/answer", "post"),
         ("/api/answer/compare", "post"),
         ("/api/answer/stream", "get"),
+        ("/api/export/result", "post"),
         ("/api/agent/tools/run", "post"),
         ("/api/assessment/library", "get"),
         ("/api/assessment/start", "post"),

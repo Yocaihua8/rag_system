@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-06-30
 > Scope：Knowledge Island 整体项目定位与边界
 > Related：docs/requirements/functional-modules.md, docs/design/system-design-overview.md
 
@@ -61,8 +61,8 @@ Knowledge Island（知识岛）旨在成为一个本地优先的个人 AI 第二
 
 ### 4.2 本期不纳入范围
 
-- 网页自动爬取（B-132，P3 研究项）
-- 多用户 / 团队空间（B-118，P3 研究项）
+- 网页自动爬取（B-119 已完成研究；B-132 为未来可选依赖实现项，当前不进入实现）
+- 多用户 / 团队空间（B-118 已完成研究，当前不进入实现）
 - MCP 插件市场或任意命令执行（B-117，P3 研究项）
 - 云端部署 / 多机同步
 - 移动端 App

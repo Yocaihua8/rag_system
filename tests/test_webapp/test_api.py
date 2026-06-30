@@ -1,14 +1,18 @@
 import base64
+import hashlib
 import io
+import sqlite3
 from pathlib import Path
 from urllib.parse import quote
 from zipfile import ZipFile
 
 import webapp.answer_api as answer_api_module
 import webapp.api as api_module
+import webapp.routes.imports as imports_route_module
 from webapp.api import dispatch
 from webapp.ingestion import import_directory
 from webapp.storage import KnowledgeStore
+from webapp.web_fetch import WebFetchPreview
 
 
 def test_prompt_preset_api_crud_and_project_default(tmp_path: Path):
@@ -1596,6 +1600,136 @@ def test_project_export_api_rejects_missing_or_unknown_project(tmp_path: Path):
     assert unknown_project_response.body["error"] == "project not found"
 
 
+def test_result_export_api_writes_markdown_file_for_chat_message(tmp_path: Path, monkeypatch):
+    output_dir = tmp_path / "outputs"
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(output_dir))
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    document = store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "默认入口是 app.py。").document
+    chunk = store.list_chunks(project.id)[0]
+    message = store.create_chat_message(
+        project_id=project.id,
+        question="默认入口是什么？",
+        answer="默认入口是 app.py。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[
+            {
+                "path": "stack.md",
+                "snippet": "默认入口是 app.py。",
+                "document_id": document.id,
+                "chunk_id": chunk.id,
+            }
+        ],
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {
+            "project_id": project.id,
+            "message_id": message.id,
+            "format": "markdown",
+            "title": "默认入口回答",
+        },
+    )
+
+    assert response.status == 200
+    export = response.body["export"]
+    exported_path = Path(export["path"])
+    assert export["format"] == "markdown"
+    assert export["mime_type"] == "text/markdown; charset=utf-8"
+    assert export["filename"].endswith(".md")
+    assert exported_path.parent == output_dir
+    assert exported_path.name == export["filename"]
+    content = exported_path.read_text(encoding="utf-8")
+    assert "# 默认入口回答" in content
+    assert "## 问题" in content
+    assert "默认入口是什么？" in content
+    assert "## 回答" in content
+    assert "默认入口是 app.py。" in content
+    assert "## 来源" in content
+    assert "stack.md" in content
+    assert export["bytes"] == exported_path.stat().st_size
+
+
+def test_result_export_api_writes_pdf_file_for_chat_message(tmp_path: Path, monkeypatch):
+    output_dir = tmp_path / "outputs"
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(output_dir))
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    message = store.create_chat_message(
+        project_id=project.id,
+        question="默认入口是什么？",
+        answer="默认入口是 app.py。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[],
+    )
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {"project_id": project.id, "message_id": message.id, "format": "pdf"},
+    )
+
+    assert response.status == 200
+    export = response.body["export"]
+    exported_path = Path(export["path"])
+    assert export["format"] == "pdf"
+    assert export["mime_type"] == "application/pdf"
+    assert export["filename"].endswith(".pdf")
+    assert exported_path.parent == output_dir
+    assert exported_path.read_bytes().startswith(b"%PDF-")
+    assert export["bytes"] == exported_path.stat().st_size
+
+
+def test_result_export_api_rejects_invalid_format_and_cross_project_message(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("KI_OUTPUT_DIR", str(tmp_path / "outputs"))
+    first_dir = tmp_path / "first"
+    second_dir = tmp_path / "second"
+    first_dir.mkdir()
+    second_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    first_project = store.create_project("项目 A", first_dir)
+    second_project = store.create_project("项目 B", second_dir)
+    message = store.create_chat_message(
+        project_id=first_project.id,
+        question="默认入口是什么？",
+        answer="默认入口是 app.py。",
+        mode="local",
+        provider="local",
+        warning="",
+        sources=[],
+    )
+
+    invalid_format = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {"project_id": first_project.id, "message_id": message.id, "format": "docx"},
+    )
+    cross_project = dispatch(
+        store,
+        "POST",
+        "/api/export/result",
+        {"project_id": second_project.id, "message_id": message.id, "format": "markdown"},
+    )
+
+    assert invalid_format.status == 400
+    assert invalid_format.body["error"] == "format must be markdown or pdf"
+    assert cross_project.status == 404
+    assert cross_project.body["error"] == "chat message not found"
+
+
 def test_project_restore_api_restores_backup_as_new_project_with_document_content_chunks_and_vectors(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()
@@ -2272,6 +2406,88 @@ def test_import_url_excerpt_api_rejects_invalid_payload(tmp_path: Path):
     assert blank_content.body["error"] == "content is required"
     assert missing_project.status == 404
     assert missing_project.body["error"] == "project not found"
+
+
+def test_web_fetch_preview_and_commit_api_create_searchable_virtual_source(tmp_path: Path, monkeypatch):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    content = "自动抓取正文可进入检索"
+    preview = WebFetchPreview(
+        url="https://example.com/article",
+        final_url="https://example.com/article",
+        title="网页标题",
+        content=content,
+        content_length=len(content.encode("utf-8")),
+        content_type="text/html",
+        fetched_at="2026-06-30T09:30:00+00:00",
+        robots_allowed=True,
+        status_code=200,
+        content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    )
+
+    monkeypatch.setattr(imports_route_module, "fetch_web_preview", lambda url: preview)
+
+    preview_response = dispatch(
+        store,
+        "POST",
+        "/api/import/web-fetch/preview",
+        {"project_id": project.id, "url": "https://example.com/article"},
+    )
+    commit_response = dispatch(
+        store,
+        "POST",
+        "/api/import/web-fetch/commit",
+        {"project_id": project.id, "preview": preview_response.body["preview"]},
+    )
+    search_response = dispatch(
+        store,
+        "POST",
+        "/api/search",
+        {"project_id": project.id, "query": "自动抓取"},
+    )
+
+    assert preview_response.status == 200
+    assert preview_response.body["preview"]["content_hash"] == preview.content_hash
+    assert commit_response.status == 200
+    assert commit_response.body["batch"]["source_type"] == "web_fetch"
+    assert commit_response.body["document"]["source_path"].startswith("web:")
+    assert commit_response.body["document"]["relative_path"].startswith("web/")
+    assert "最终 URL：https://example.com/article" in commit_response.body["document"]["content"]
+    assert "内容哈希：" in commit_response.body["document"]["content"]
+    assert search_response.body["hits"][0]["document_id"] == commit_response.body["document"]["id"]
+
+
+def test_web_fetch_commit_api_rejects_tampered_preview_payload(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/web-fetch/commit",
+        {
+            "project_id": project.id,
+            "preview": {
+                "url": "https://example.com/article",
+                "final_url": "https://example.com/article",
+                "title": "网页标题",
+                "content": "被改过的正文",
+                "content_length": len("被改过的正文".encode("utf-8")),
+                "content_type": "text/html",
+                "fetched_at": "2026-06-30T09:30:00+00:00",
+                "robots_allowed": True,
+                "status_code": 200,
+                "content_hash": "not-the-real-hash",
+                "extractor_version": "static-html-v1",
+            },
+        },
+    )
+
+    assert response.status == 400
+    assert response.body["error"] == "content hash does not match"
+    assert store.list_documents(project.id) == []
 
 
 def test_directory_import_does_not_delete_url_excerpt_documents(tmp_path: Path):
@@ -3032,6 +3248,39 @@ def test_delete_project_api_returns_404_for_missing_project(tmp_path: Path):
 
     assert response.status == 404
     assert response.body["error"] == "project not found"
+
+
+def test_admin_rebuild_index_api_rebuilds_missing_project_chunks_and_vectors(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    other_dir = tmp_path / "other"
+    project_dir.mkdir()
+    other_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db", embedding_client=FakeEmbeddingClient())
+    project = store.create_project("知识岛", project_dir)
+    other_project = store.create_project("其他项目", other_dir)
+    store.upsert_document(project.id, project_dir / "stack.md", "stack.md", "DeepSeek API Key setup")
+    store.upsert_document(other_project.id, other_dir / "other.md", "other.md", "Other project content")
+    other_chunk_ids = [chunk.id for chunk in store.list_chunks(other_project.id)]
+
+    with sqlite3.connect(store.db_path) as conn:
+        conn.execute("DELETE FROM chunk_vectors WHERE project_id = ?", (project.id,))
+        conn.execute("DELETE FROM document_chunks WHERE project_id = ?", (project.id,))
+
+    response = dispatch(store, "POST", "/api/admin/rebuild-index", {"project_id": project.id})
+    missing_project = dispatch(store, "POST", "/api/admin/rebuild-index", {"project_id": "missing"})
+
+    rebuilt_chunks = store.list_chunks(project.id)
+    assert response.status == 200
+    assert response.body == {
+        "rebuilt": True,
+        "project_ids": [project.id],
+        "summary": {"projects": 1, "documents": 1, "chunks": 1, "vectors": 1},
+    }
+    assert [chunk.document.relative_path for chunk in rebuilt_chunks] == ["stack.md"]
+    assert store.count_chunk_vectors(project.id) == 1
+    assert [chunk.id for chunk in store.list_chunks(other_project.id)] == other_chunk_ids
+    assert missing_project.status == 404
+    assert missing_project.body["error"] == "project not found"
 
 
 def test_rename_project_api_updates_project_name(tmp_path: Path):

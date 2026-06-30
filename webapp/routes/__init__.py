@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from webapp.models import ApiResponse
+from webapp.routes.admin import handle_admin_route
 from webapp.routes.agent import handle_agent_route
 from webapp.routes.answers import handle_answer_route
 from webapp.routes.assessment import handle_assessment_route
@@ -32,6 +33,10 @@ def dispatch_to_routes(
     ollama_response = handle_ollama_route(method, path, query, payload)
     if ollama_response is not None:
         return ollama_response
+
+    admin_response = handle_admin_route(store, method, path, payload)
+    if admin_response is not None:
+        return admin_response
 
     projects_response = handle_projects_route(store, method, path, query, payload)
     if projects_response is not None:

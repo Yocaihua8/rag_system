@@ -5,6 +5,7 @@ from typing import Any
 
 from webapp.api_support import query_value
 from webapp.models import ApiResponse
+from webapp.result_export import export_chat_message_result
 from webapp.settings_api import get_llm_settings_body
 from webapp.storage import KnowledgeStore
 
@@ -31,7 +32,41 @@ def handle_export_route(
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
 
+    if method == "POST" and path == "/api/export/result":
+        return _handle_result_export(store, payload)
+
     return None
+
+
+def _handle_result_export(store: KnowledgeStore, payload: dict[str, Any]) -> ApiResponse:
+    project_id = str(payload.get("project_id", "")).strip()
+    if not project_id:
+        return ApiResponse(400, {"error": "project_id is required"})
+    project = store.get_project(project_id)
+    if not project:
+        return ApiResponse(404, {"error": "project not found"})
+
+    message_id = str(payload.get("message_id", "")).strip()
+    if not message_id:
+        return ApiResponse(400, {"error": "message_id is required"})
+    message = store.get_chat_message(message_id)
+    if not message or message.project_id != project_id:
+        return ApiResponse(404, {"error": "chat message not found"})
+
+    export_format = str(payload.get("format", "")).strip()
+    title = str(payload.get("title", "")).strip()
+    try:
+        export = export_chat_message_result(
+            message=message,
+            project_name=project.name,
+            export_format=export_format,
+            title=title,
+        )
+    except ValueError as exc:
+        return ApiResponse(400, {"error": str(exc)})
+    except OSError as exc:
+        return ApiResponse(500, {"error": f"failed to write export: {exc}"})
+    return ApiResponse(200, {"export": export})
 
 
 def _project_export_body(store: KnowledgeStore, project_id: str) -> dict[str, Any]:

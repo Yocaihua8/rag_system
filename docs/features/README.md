@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-06-30
 
 本目录用于存放各个功能模块的详细说明。每个功能应尽量独立成文，避免把多个模块混写在一个文件里。
 
@@ -40,6 +40,8 @@
 ## 现有功能文档
 
 - `authentication.md`：B-140 API Key + JWT 认证中间件
+- `agent-tooling-mcp-research.md`：B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
+- `concurrent-indexing.md`：B-08 多工作区并发索引
 - `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
 - `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界
 - `github-repo-import.md`：B-133 GitHub 仓库整体导入
@@ -48,5 +50,9 @@
 - `multi-model-comparison.md`：B-135 多模型并排对比
 - `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步
 - `openapi-swagger-docs.md`：B-136 OpenAPI / Swagger 接口文档
+- `ops-maintenance.md`：B-06 本地维护脚本与索引重建管理入口
 - `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
 - `qdrant-vector-store.md`：B-134 Qdrant 本地向量存储替换 SQLite 全扫描
+- `result-export.md`：B-07 生成结果导出为 Markdown / PDF
+- `team-workspace-research.md`：B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
+- `web-crawling-research.md`：B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）

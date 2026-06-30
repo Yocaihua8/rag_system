@@ -2,13 +2,28 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-26
+> Last Updated：2026-06-30（补充 B-149 CI 流水线与版本化缓存说明）
 
 ## 1. 目标
 
-优先验证“文档行为 → 用例行为 → 集成行为”三层是否一致，避免只测单点函数。
+优先验证”文档行为 → 用例行为 → 集成行为”三层是否一致，避免只测单点函数。
 
-## 2. 命令建议
+## 2. CI 持续集成（GitHub Actions）
+
+B-149 新增 `.github/workflows/ci.yml`，每次向 `main` 推送或发起 PR 时自动触发，包含两个并行 job：
+
+| Job | 内容 | 触发缓存 key |
+|-----|------|-------------|
+| `python-tests` | `pytest tests/test_backend tests/test_webapp -q` + `scripts/check_docs_consistency.py` | Python 版本 + `requirements.txt` + `requirements-dev.txt` hash |
+| `frontend-e2e` | `npm run build` + `npx playwright install chromium --with-deps` + `npx playwright test` | Node 版本 + `package-lock.json` hash；E2E server 另复用 Python 版本 + requirements hash |
+
+**E2E 说明**：CI 上 `playwright.config.js` 检测到 `CI=true`（GitHub Actions 自动注入）后强制重启后端服务（`reuseExistingServer: false`）、单 worker、失败自动重试 1 次。后端服务由 `tests/e2e/start-web-server.mjs` 启动，使用系统临时目录下的隔离 SQLite DB，不写入默认 `runtime/app.db`。
+
+**合并门禁**：两个 job 均为 required status check，任一失败阻止 PR 合并（分支保护设置见 `docs/guides/release-process.md §2`）。
+
+**本地等价验证**：若本机未安装 `act` 且当前任务不允许 push，可按 CI job 命令分别运行 `pytest tests/test_backend tests/test_webapp -q`、`scripts/check_docs_consistency.py`、`npm run build`、`npx playwright install chromium --with-deps` 和 `npx playwright test`。如本机网络无法下载 Playwright 托管 Chromium，可临时设置 `KI_E2E_BROWSER_CHANNEL=msedge` 或 `chrome` 使用已安装浏览器验证 E2E 脚本链路；这只能证明命令链本地可通过，真正的 GitHub-hosted status check 仍以 PR / `main` 上的 Actions 结果为准。
+
+## 3. 命令建议
 
 ```bash
 .venv\Scripts\python.exe -m pytest tests/test_webapp -q
@@ -19,11 +34,15 @@
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
 npm run build
+npm run e2e:install
+npm run test:e2e
 npm run tauri:build:windows
+npm run tauri:build:macos
+npm run tauri:build:linux
 docker compose config
 ```
 
-## 3. 说明
+## 4. 说明
 
 - 受环境限制时，`pytest` 可能因依赖/网络导致不能完整运行，需在提交说明里写出失败原因与替代验证。
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
@@ -31,12 +50,14 @@ docker compose config
 - B-147 后，旧 PySide6 / 六边形 `src/` 代码与对应旧测试已归档到 `archive/src-desktop-legacy/`，不再作为当前测试基线。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置或 `webapp/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
-- 变更 `src-tauri/`、Tauri 配置、Windows sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备 Rust/Cargo 和 PyInstaller 环境时继续运行 `npm run tauri:build:windows`，否则记录缺失工具链原因。
+- 变更端到端 UI 自动化测试、Playwright 配置、`tests/e2e/` 或 Web MVP 主流程页面联动时，必须覆盖 `tests/test_webapp/test_e2e_ui.py`，首次本机运行前执行 `npm run e2e:install` 安装 Chromium，并运行 `npm run test:e2e`。E2E 服务通过 `KI_DB_PATH` 使用临时 SQLite DB，不应写入默认 runtime DB；如本机 Chromium 下载受限，可临时设置 `KI_E2E_BROWSER_CHANNEL=chrome` 或 `msedge` 使用已安装浏览器完成验证。
+- 变更 `src-tauri/`、Tauri 配置、Windows/Unix sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备目标平台 Rust/Cargo、PyInstaller 和 Tauri 原生依赖时继续运行对应平台命令：Windows `npm run tauri:build:windows`、macOS `npm run tauri:build:macos`、Linux `npm run tauri:build:linux`，否则记录缺失工具链或非目标系统原因。
 - 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
 - 变更 Vue API helper、项目空间 helper、问答 helper、检索调试/复盘 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈/检索调试/项目级检索默认值/检索复盘/Agent 工具/工具来源上下文组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须覆盖 `tests/test_webapp/test_frontend_vue_app.py` 并运行 `npm run build`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、Qdrant provider 同步/降级、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
+- 变更多工作区并发索引、导入线程池分发或项目级导入锁时，必须覆盖同一 `project_id` 导入串行、不同 `project_id` 导入可重叠、SQLite busy timeout 和 FastAPI `/api/*` 同步分发线程池约束。
 - 变更导入预检时，必须覆盖 `/api/import/preview`、前端预检入口、未选项目禁用、可导入/跳过摘要和跳过原因展示，并确认预检不会刷新文档列表或创建导入批次。
 - 变更浏览器文件夹导入时，必须覆盖 `/api/import/upload`、前端 `webkitdirectory` 入口、`webkitRelativePath` 到 `project_name/relative_path` 的转换和导入规则跳过行为。
 - 变更普通文件上传导入时，必须覆盖 `/api/import/upload`、前端普通 `multiple` file input、无 `webkitdirectory`、当前项目上传、无项目时创建 `browser-upload` 项目、DOCX/PDF `content_base64` 和文本文件 `content` 请求体。
@@ -74,7 +95,7 @@ docker compose config
 - 变更 Docker 启停入口时，必须复跑 `tests/test_webapp/test_docker_startup.py`，并至少真实执行一次启动或停止脚本。
 - 变更 FastAPI/Uvicorn 运行时、`app.py`、`webapp/server.py` 或 SSE 外壳时，必须复跑 `tests/test_webapp/test_fastapi_server.py`、`tests/test_webapp/test_app_entrypoint.py` 和 `tests/test_webapp/test_docker_startup.py`。
 
-## 4. 回归清单
+## 5. 回归清单
 
 - Markdown 安全渲染链路
 - 增量增删改（含源文件删除）
@@ -103,5 +124,5 @@ docker compose config
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `webapp/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
-- B-145 Tauri Windows 打包链路包含 `src-tauri/`、`src-tauri/icons/icon.ico`、`scripts/build-backend-sidecar.ps1`、`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run tauri:build:windows`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 时只能完成静态与 `npx tauri info` 验证。
+- B-145 / B-24 Tauri 桌面打包链路包含 `src-tauri/`、`src-tauri/icons/icon.ico`、`scripts/build-backend-sidecar.ps1`、`scripts/build-backend-sidecar.sh`、`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run tauri:build:windows`、`npm run tauri:build:macos`、`npm run tauri:build:linux`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 或非目标系统时只能完成静态契约、`npm run build` 与 `npx tauri info` 验证。
 - Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；B-141 已完成资料库项目空间选择/创建/改名/删除、文档列表/单文档预览/删除、文本笔记/URL 摘录导入、导入批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出，设置页模型设置/Profile/Prompt 预设，评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文入口；B-142 已补齐 Vue 工作台 SSE/取消、会话历史和消息管理验证
