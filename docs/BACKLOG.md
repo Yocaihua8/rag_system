@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30（B-132 网页抓取导入完成并按规则从待办清单归档）
+> Last Updated：2026-06-30（B-149 CI 流水线完成并按规则从待办清单归档）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -64,7 +64,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 里程碑 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|--------|----------|------|
-| B-149 | infra | CI 持续集成流水线 | doing | P1 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/guides/release-process.md, docs/plans/B-149-ci-pipeline.md | Phase 2 硬化主线：新增 GitHub Actions（仓库当前无 `.github/workflows/`），PR 门禁串联 `pytest`（backend+webapp+e2e）、`npm run build`、Playwright E2E 与 `scripts/check_docs_consistency.py`；缓存 pip/npm 依赖；失败即拦截合并 |
 | B-150 | test | backend/ 单元测试补齐 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md | Phase 2 硬化主线：当前 `tests/test_backend/` 仅 3 个测试，与 webapp 28 个失衡；补齐 `backend/providers/llm`、`backend/providers/embedder`、`backend/config/paths`、`backend/config/settings` 与 Qdrant provider 降级路径覆盖 |
 | B-151 | test | 前端 Vitest 单元测试 | todo | P2 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/features/frontend-engineering.md | Phase 2 硬化主线：引入 Vitest，覆盖 `frontend/src/api/*` helper 的请求/错误归一化与关键组件状态；与 Playwright E2E 分层，单测跑纯逻辑、E2E 跑主流程 |
 | B-152 | test | macOS/Linux Tauri 打包原生验证 | todo | P2 | M | v1.0.0 | RAG 团队 | docs/features/desktop-packaging.md | Phase 2 硬化主线：在 macOS/Linux 原生系统实测 B-24 的 `tauri:build:macos`（dmg）/`tauri:build:linux`（appimage）链路，补齐 Unix sidecar 与图标，记录平台差异与已知限制 |

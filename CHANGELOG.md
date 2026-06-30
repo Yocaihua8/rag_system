@@ -50,6 +50,7 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
+- **BACKLOG 完成项归档**：B-149 CI 持续集成流水线已完成并从 `docs/BACKLOG.md §5` 移除；对应能力见 Added 中 GitHub Actions CI 流水线条目。
 - **BACKLOG 完成项归档**：按 BACKLOG 流转规则从 `docs/BACKLOG.md §5` 移除 27 个已完成项，并保留在本变更记录中追溯：B-06、B-07、B-08、B-24、B-25、B-42、B-117、B-118、B-119、B-125、B-126、B-128、B-133、B-134、B-135、B-136、B-137、B-139、B-140、B-141、B-142、B-143、B-144、B-145、B-146、B-147、B-148；未完成项、`doing` 项和 `wontfix` legacy 项继续留在 BACKLOG。
 - **静态前端托管策略**：FastAPI 优先服务 Vite 构建产物；构建产物缺失时回退 legacy `webapp/static/`
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
