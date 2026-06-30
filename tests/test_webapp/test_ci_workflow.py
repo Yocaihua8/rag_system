@@ -25,6 +25,7 @@ def test_ci_workflow_runs_backend_docs_build_and_e2e_commands():
         ".venv/bin/python -m pytest tests/test_backend tests/test_webapp -q",
         ".venv/bin/python scripts/check_docs_consistency.py",
         "npm ci",
+        "npm run test:unit",
         "npm run build",
         "npx playwright install chromium --with-deps",
         "npx playwright test",
