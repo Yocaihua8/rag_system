@@ -1,12 +1,16 @@
-# 系统架构设计（当前基准）
+# 系统架构设计（历史参考，已被取代）
 
 > **版本**：v3.0
 > **日期**：2026-04
-> **状态**：Active — 本文档取代 `ARCHITECTURE_ENTERPRISE_BASELINE.md` 与旧版 `STRUCTURE_BASELINE.md`
+> **状态**：Superseded（已被取代，仅供历史参考）
+> **取代文档**：`docs/design/architecture-overview.md`（Web MVP 当前架构）、`docs/design/system-design-overview.md`
+> **保留原因**：本文档描述的是 **PySide6 本地桌面架构**，已随 B-147 归档到 `archive/src-desktop-legacy/`，不反映当前代码结构。文内的"规划中 / 待补齐"等条目均属旧桌面架构，**不要当作当前待办**；当前架构以 Web MVP（`app.py` → FastAPI + Vue/Vite + SQLite）为准。
 
 ---
 
 ## 1. 产品定位
+
+> ⚠️ 以下产品定位描述的是**已归档的 PySide6 桌面阶段**；当前形态为本地 Web MVP，详见 `docs/design/architecture-overview.md`。
 
 知识岛（Knowledge Island）是一款本地优先的个人 AI 第二大脑桌面端应用。当前实现仍沿用 PySide6 本地桌面架构，第一阶段围绕个人项目、文档、笔记和代码资料逐步补齐：
 

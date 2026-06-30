@@ -1,6 +1,8 @@
-# LLM Provider 设计文档
+# LLM Provider 设计文档（历史参考，已被取代）
 
-> **状态**：设计确定，实现中（B-11）
+> **状态**：Superseded（已被取代，仅供历史参考）
+> **取代文档**：`docs/design/architecture-overview.md §6`（外部依赖 / LLM）、实际实现见 `backend/providers/llm/`
+> **保留原因**：本文档是旧桌面架构阶段的 LLM 层设计；其"实现中（B-11）"为旧架构待办，**B-11 已不在 BACKLOG**，勿当作当前待办。多 Provider（DeepSeek / OpenAI-compatible / Ollama）已在 Web MVP 落地。
 > **创建**：2026-04-16
 > **最后更新**：2026-04-16（补充环境变量安全策略）
 
