@@ -94,6 +94,12 @@
 
 **E2E 环境变量**：`CI=true`（GitHub Actions 自动设置），触发 playwright 单 worker + 重启 server 策略；E2E 临时 DB 由 `start-web-server.mjs` 自动创建于系统临时目录。
 
+### 2026-06-30 续执行记录
+
+- 使用 ctx7 查询 GitHub Actions 官方文档，当前示例使用 `actions/checkout@v6`、`actions/setup-node@v4` 和 npm cache；本 workflow 保持 `actions/cache@v4` 显式缓存策略，并将 checkout 升级到 `v6`。
+- 新增 `tests/test_webapp/test_ci_workflow.py` 锁定 CI 触发条件、两个 job 命令链、当前 action 版本和版本化 cache key。红灯为 workflow 缺少 `PYTHON_VERSION` / `NODE_VERSION`、`actions/checkout@v6` 和版本化 cache key；修正后目标测试通过。
+- 本机未安装 `act`（`act --version` 命令不可用）；按项目规则未执行 push，后续 3.4 采用本地等价 CI 命令链验证，并在最终说明中明确这不是 GitHub-hosted Actions green。
+
 ### workflow 草稿
 
 ```yaml
@@ -180,9 +186,9 @@ jobs:
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-30 12:30
+- **最后更新**：2026-06-30 20:27
 - **进度**：已完成 5 / 7 项（3.1 3.2 3.3 3.5 3.6 已勾选；待 3.4 CI 实跑验证 + 3.7 收口）
-- **最新 commit**：`cf61d05` — docs: 补充 CI 流水线说明与合并门禁（B-149）
-- **代码状态**：`fix/b-08-concurrent-index`；工作区干净
-- **下一步**：3.4 — push 到远程后观察 GitHub Actions 实跑结果，确认两个 job 均 green；如有失败按错误日志修正 workflow
-- **续任务须知**：workflow 在 `.github/workflows/ci.yml`；E2E 后端由 `tests/e2e/start-web-server.mjs` 自启动，依赖 `.venv/bin/python`（frontend-e2e job 已安装 pip 依赖）；CI 上 `process.env.CI=true` 由 GitHub Actions 自动注入，playwright 据此单 worker + 重启 server。
+- **最新 commit**：`0e786d9` — chore: 归档 B-132 网页抓取任务
+- **代码状态**：`fix/b-08-concurrent-index`；正在加固 B-149 workflow cache key 与静态契约测试，待提交
+- **下一步**：3.4 — 由于本机无 `act` 且未获 push 指令，运行本地等价 CI 命令链：pytest backend+webapp、文档一致性、npm build、Playwright browser install、Playwright E2E。
+- **续任务须知**：workflow 在 `.github/workflows/ci.yml`；E2E 后端由 `tests/e2e/start-web-server.mjs` 自启动，依赖 `.venv/bin/python`（frontend-e2e job 已安装 pip 依赖）；CI 上 `process.env.CI=true` 由 GitHub Actions 自动注入，playwright 据此单 worker + 重启 server。最终如果未 push，不要声称 GitHub-hosted status check 已 green。

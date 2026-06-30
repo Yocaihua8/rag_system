@@ -22,6 +22,7 @@
 - **Vue 资料库目录同步薄片**：资料库视图新增“同步当前项目目录”入口，复用既有 `/api/import` 契约
 - **Vue 资料库导入预检薄片**：资料库视图新增“预检当前项目目录”入口，复用既有 `/api/import/preview` 只读契约
 - **网页抓取导入**：资料库视图新增单 URL 网页抓取预览与确认入库，后端新增 `/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit`，写入 `web:` 虚拟来源与 `web_fetch` 导入批次；手动 `/api/import/url` 仍不联网
+- **GitHub Actions CI 流水线**：新增 `.github/workflows/ci.yml`，在 `main` push / PR 上并行运行 `python-tests`（backend + webapp pytest、文档一致性）和 `frontend-e2e`（Vue/Vite build、Playwright E2E），并为 pip/npm 依赖配置版本化缓存
 - **Vue 资料库文档集合筛选薄片**：资料库视图新增文档集合只读筛选入口，复用既有 `/api/document-collections` 与 `/api/documents?collection_id=...` 契约
 - **Vue 资料库文档集合管理薄片**：资料库视图新增文档集合新建和删除入口，复用既有 `/api/document-collections` 与 `/api/document-collections/delete` 契约；删除集合不删除文档
 - **Vue 资料库文档集合重命名薄片**：资料库视图新增文档集合重命名入口，复用既有 `/api/document-collections/update` 契约
