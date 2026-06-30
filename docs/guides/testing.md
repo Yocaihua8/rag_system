@@ -2,13 +2,26 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-06-30（补充 B-149 CI 流水线说明）
 
 ## 1. 目标
 
-优先验证“文档行为 → 用例行为 → 集成行为”三层是否一致，避免只测单点函数。
+优先验证”文档行为 → 用例行为 → 集成行为”三层是否一致，避免只测单点函数。
 
-## 2. 命令建议
+## 2. CI 持续集成（GitHub Actions）
+
+B-149 新增 `.github/workflows/ci.yml`，每次向 `main` 推送或发起 PR 时自动触发，包含两个并行 job：
+
+| Job | 内容 | 触发缓存 key |
+|-----|------|-------------|
+| `python-tests` | `pytest tests/test_backend tests/test_webapp -q` + `scripts/check_docs_consistency.py` | `requirements.txt` + `requirements-dev.txt` hash |
+| `frontend-e2e` | `npm run build` + `npx playwright install chromium --with-deps` + `npx playwright test` | `package-lock.json` hash |
+
+**E2E 说明**：CI 上 `playwright.config.js` 检测到 `CI=true`（GitHub Actions 自动注入）后强制重启后端服务（`reuseExistingServer: false`）、单 worker、失败自动重试 1 次。后端服务由 `tests/e2e/start-web-server.mjs` 启动，使用系统临时目录下的隔离 SQLite DB，不写入默认 `runtime/app.db`。
+
+**合并门禁**：两个 job 均为 required status check，任一失败阻止 PR 合并（分支保护设置见 `docs/guides/release-process.md §2`）。
+
+## 3. 命令建议
 
 ```bash
 .venv\Scripts\python.exe -m pytest tests/test_webapp -q
@@ -27,7 +40,7 @@ npm run tauri:build:linux
 docker compose config
 ```
 
-## 3. 说明
+## 4. 说明
 
 - 受环境限制时，`pytest` 可能因依赖/网络导致不能完整运行，需在提交说明里写出失败原因与替代验证。
 - 变更文档行为时，需复跑 markdown 安全与增量更新相关用例。
@@ -80,7 +93,7 @@ docker compose config
 - 变更 Docker 启停入口时，必须复跑 `tests/test_webapp/test_docker_startup.py`，并至少真实执行一次启动或停止脚本。
 - 变更 FastAPI/Uvicorn 运行时、`app.py`、`webapp/server.py` 或 SSE 外壳时，必须复跑 `tests/test_webapp/test_fastapi_server.py`、`tests/test_webapp/test_app_entrypoint.py` 和 `tests/test_webapp/test_docker_startup.py`。
 
-## 4. 回归清单
+## 5. 回归清单
 
 - Markdown 安全渲染链路
 - 增量增删改（含源文件删除）
