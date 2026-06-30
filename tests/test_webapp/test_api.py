@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import io
 import sqlite3
 from pathlib import Path
@@ -7,9 +8,11 @@ from zipfile import ZipFile
 
 import webapp.answer_api as answer_api_module
 import webapp.api as api_module
+import webapp.routes.imports as imports_route_module
 from webapp.api import dispatch
 from webapp.ingestion import import_directory
 from webapp.storage import KnowledgeStore
+from webapp.web_fetch import WebFetchPreview
 
 
 def test_prompt_preset_api_crud_and_project_default(tmp_path: Path):
@@ -2403,6 +2406,88 @@ def test_import_url_excerpt_api_rejects_invalid_payload(tmp_path: Path):
     assert blank_content.body["error"] == "content is required"
     assert missing_project.status == 404
     assert missing_project.body["error"] == "project not found"
+
+
+def test_web_fetch_preview_and_commit_api_create_searchable_virtual_source(tmp_path: Path, monkeypatch):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", project_dir)
+    content = "自动抓取正文可进入检索"
+    preview = WebFetchPreview(
+        url="https://example.com/article",
+        final_url="https://example.com/article",
+        title="网页标题",
+        content=content,
+        content_length=len(content.encode("utf-8")),
+        content_type="text/html",
+        fetched_at="2026-06-30T09:30:00+00:00",
+        robots_allowed=True,
+        status_code=200,
+        content_hash=hashlib.sha256(content.encode("utf-8")).hexdigest(),
+    )
+
+    monkeypatch.setattr(imports_route_module, "fetch_web_preview", lambda url: preview)
+
+    preview_response = dispatch(
+        store,
+        "POST",
+        "/api/import/web-fetch/preview",
+        {"project_id": project.id, "url": "https://example.com/article"},
+    )
+    commit_response = dispatch(
+        store,
+        "POST",
+        "/api/import/web-fetch/commit",
+        {"project_id": project.id, "preview": preview_response.body["preview"]},
+    )
+    search_response = dispatch(
+        store,
+        "POST",
+        "/api/search",
+        {"project_id": project.id, "query": "自动抓取"},
+    )
+
+    assert preview_response.status == 200
+    assert preview_response.body["preview"]["content_hash"] == preview.content_hash
+    assert commit_response.status == 200
+    assert commit_response.body["batch"]["source_type"] == "web_fetch"
+    assert commit_response.body["document"]["source_path"].startswith("web:")
+    assert commit_response.body["document"]["relative_path"].startswith("web/")
+    assert "最终 URL：https://example.com/article" in commit_response.body["document"]["content"]
+    assert "内容哈希：" in commit_response.body["document"]["content"]
+    assert search_response.body["hits"][0]["document_id"] == commit_response.body["document"]["id"]
+
+
+def test_web_fetch_commit_api_rejects_tampered_preview_payload(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path)
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/import/web-fetch/commit",
+        {
+            "project_id": project.id,
+            "preview": {
+                "url": "https://example.com/article",
+                "final_url": "https://example.com/article",
+                "title": "网页标题",
+                "content": "被改过的正文",
+                "content_length": len("被改过的正文".encode("utf-8")),
+                "content_type": "text/html",
+                "fetched_at": "2026-06-30T09:30:00+00:00",
+                "robots_allowed": True,
+                "status_code": 200,
+                "content_hash": "not-the-real-hash",
+                "extractor_version": "static-html-v1",
+            },
+        },
+    )
+
+    assert response.status == 400
+    assert response.body["error"] == "content hash does not match"
+    assert store.list_documents(project.id) == []
 
 
 def test_directory_import_does_not_delete_url_excerpt_documents(tmp_path: Path):

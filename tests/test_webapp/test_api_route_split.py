@@ -9,11 +9,13 @@ from webapp.routes.chat import handle_chat_route
 from webapp.routes.documents import handle_documents_route
 from webapp.routes.export import handle_export_route
 from webapp.routes.health import handle_health_route
+import webapp.routes.imports as imports_route_module
 from webapp.routes.imports import handle_imports_route
 from webapp.routes.projects import handle_projects_route
 from webapp.routes.search import handle_search_route
 from webapp.routes.settings import handle_settings_route
 from webapp.storage import KnowledgeStore
+from webapp.web_fetch import WebFetchPreview
 
 
 class RouteSplitFakeLlmClient:
@@ -872,6 +874,53 @@ def test_imports_route_module_handles_upload_note_and_url_sources(tmp_path):
     assert any(path.startswith("urls/") and path.endswith(".txt") for path in relative_paths)
 
 
+def test_imports_route_module_handles_web_fetch_preview_and_commit(tmp_path, monkeypatch):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", Path("browser-upload:知识岛"))
+    preview = WebFetchPreview(
+        url="https://example.com/article",
+        final_url="https://example.com/article",
+        title="网页标题",
+        content="自动抓取正文",
+        content_length=len("自动抓取正文".encode("utf-8")),
+        content_type="text/html",
+        fetched_at="2026-06-30T09:30:00+00:00",
+        robots_allowed=True,
+        status_code=200,
+        content_hash="fa01ad10ce662cd2ea41528758823090161d2b9ccf5458730e88613ba0ff249a",
+    )
+
+    monkeypatch.setattr(imports_route_module, "fetch_web_preview", lambda url: preview)
+
+    preview_response = handle_imports_route(
+        store,
+        "POST",
+        "/api/import/web-fetch/preview",
+        {},
+        {"project_id": project.id, "url": "https://example.com/article"},
+    )
+    assert preview_response is not None
+    assert preview_response.status == 200
+    assert preview_response.body["preview"]["title"] == "网页标题"
+    assert store.list_documents(project.id) == []
+
+    commit_response = handle_imports_route(
+        store,
+        "POST",
+        "/api/import/web-fetch/commit",
+        {},
+        {"project_id": project.id, "preview": preview.to_dict()},
+    )
+
+    assert len(store.list_documents(project.id)) == 1
+    assert commit_response is not None
+    assert commit_response.body["batch"]["source_type"] == "web_fetch"
+    assert commit_response.body["document"]["source_path"].startswith("web:")
+    assert commit_response.body["document"]["relative_path"].startswith("web/")
+    assert "抓取时间：2026-06-30T09:30:00+00:00" in commit_response.body["document"]["content"]
+    assert "自动抓取正文" in commit_response.body["document"]["content"]
+
+
 def test_search_route_module_handles_search_and_debug(tmp_path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()
@@ -1018,6 +1067,8 @@ def test_migrated_routes_are_removed_from_legacy_dispatch():
     assert 'path == "/api/import/upload"' not in api_source
     assert 'path == "/api/import/note"' not in api_source
     assert 'path == "/api/import/url"' not in api_source
+    assert 'path == "/api/import/web-fetch/preview"' not in api_source
+    assert 'path == "/api/import/web-fetch/commit"' not in api_source
     assert 'path == "/api/import/batches"' not in api_source
     assert 'path == "/api/import/batches/detail"' not in api_source
     assert 'path == "/api/search"' not in api_source

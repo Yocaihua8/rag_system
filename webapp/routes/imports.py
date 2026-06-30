@@ -8,9 +8,10 @@ from webapp.indexing import default_indexing_coordinator
 from webapp.ingestion import import_directory, preview_import_directory
 from webapp.models import ApiResponse, Document, ImportResult
 from webapp.notion_obsidian_import import import_notion_zip, import_obsidian_vault
-from webapp.source_import import import_plain_text_note, import_url_excerpt
+from webapp.source_import import import_plain_text_note, import_url_excerpt, import_web_fetch_result
 from webapp.storage import KnowledgeStore
 from webapp.upload_import import create_browser_upload_project, import_uploaded_files
+from webapp.web_fetch import WebFetchError, fetch_web_preview
 
 
 def handle_imports_route(
@@ -166,6 +167,45 @@ def handle_imports_route(
                     payload.get("content", ""),
                 )
                 batch = _record_import_batch(store, project_id, "url_excerpt", result, document=write_result.document)
+                documents = [doc.to_dict() for doc in store.list_documents(project_id)]
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(
+            200,
+            {
+                "result": result.to_dict(),
+                "batch": batch.to_dict(),
+                "document": write_result.document.to_dict(include_content=True),
+                "documents": documents,
+            },
+        )
+
+    if method == "POST" and path == "/api/import/web-fetch/preview":
+        project_id = str(payload.get("project_id", ""))
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            preview = fetch_web_preview(payload.get("url", ""))
+        except (ValueError, WebFetchError) as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, {"preview": preview.to_dict()})
+
+    if method == "POST" and path == "/api/import/web-fetch/commit":
+        project_id = str(payload.get("project_id", ""))
+        if not project_id:
+            return ApiResponse(400, {"error": "project_id is required"})
+        if not store.get_project(project_id):
+            return ApiResponse(404, {"error": "project not found"})
+        try:
+            with default_indexing_coordinator.project_scope(project_id):
+                write_result, result = import_web_fetch_result(
+                    store,
+                    project_id,
+                    payload.get("preview"),
+                )
+                batch = _record_import_batch(store, project_id, "web_fetch", result, document=write_result.document)
                 documents = [doc.to_dict() for doc in store.list_documents(project_id)]
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})

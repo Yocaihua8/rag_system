@@ -49,6 +49,8 @@ WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("POST", "/api/import/upload", "Import uploaded files"),
     ("POST", "/api/import/note", "Import plain text note"),
     ("POST", "/api/import/url", "Import URL excerpt"),
+    ("POST", "/api/import/web-fetch/preview", "Preview web page fetch"),
+    ("POST", "/api/import/web-fetch/commit", "Commit web page fetch"),
     ("POST", "/api/import/notion-zip", "Import Notion markdown zip"),
     ("POST", "/api/import/obsidian-vault", "Import Obsidian vault"),
     ("POST", "/api/import/github-repo", "Import GitHub repository"),
