@@ -27,6 +27,47 @@ def test_qdrant_settings_default_sqlite_and_env_override(tmp_path):
     assert enabled.vector_size == 4
 
 
+def test_qdrant_settings_invalid_vector_size_uses_default(tmp_path):
+    from backend.config.vector_store import DEFAULT_QDRANT_VECTOR_SIZE, load_vector_store_settings
+
+    for raw_value in ("0", "-1", "not-an-int"):
+        settings = load_vector_store_settings(
+            {
+                "RAG_VECTOR_STORE_PROVIDER": "qdrant",
+                "RAG_QDRANT_PATH": str(tmp_path / raw_value),
+                "RAG_QDRANT_VECTOR_SIZE": raw_value,
+            }
+        )
+
+        assert settings.vector_size == DEFAULT_QDRANT_VECTOR_SIZE
+
+
+def test_build_vector_store_returns_none_when_disabled():
+    from backend.config.vector_store import VectorStoreSettings, build_vector_store
+
+    store = build_vector_store(VectorStoreSettings(enabled=False), dependency_available=lambda: True)
+
+    assert store is None
+
+
+def test_build_vector_store_warns_for_unsupported_enabled_provider(capsys, tmp_path):
+    from backend.config.vector_store import VectorStoreSettings, build_vector_store
+
+    store = build_vector_store(
+        VectorStoreSettings(
+            enabled=True,
+            provider="unknown",
+            path=tmp_path / "vectors",
+            collection="chunks",
+            vector_size=4,
+        ),
+        dependency_available=lambda: True,
+    )
+
+    assert store is None
+    assert "WARNING: unsupported vector store provider 'unknown'; using SQLite fallback" in capsys.readouterr().err
+
+
 def test_build_vector_store_warns_when_qdrant_dependency_missing(capsys, tmp_path):
     from backend.config.vector_store import VectorStoreSettings, build_vector_store
 
@@ -136,6 +177,82 @@ def test_qdrant_vector_store_upserts_and_queries_with_local_client(tmp_path):
     ]
 
 
+def test_qdrant_vector_store_search_uses_payload_chunk_id_and_default_metadata(tmp_path):
+    from backend.providers.vector_store.qdrant import QdrantVectorStore
+
+    client = _FakeQdrantClient(tmp_path / "qdrant")
+    store = QdrantVectorStore(
+        path=tmp_path / "qdrant",
+        collection="chunks",
+        vector_size=4,
+        client_factory=lambda path: client,
+        models_module=_FakeModels,
+    )
+    client.query_response = _FakeQueryResponse(
+        [
+            _FakeScoredPoint(id="point-1", score=0.8, payload={"chunk_id": "payload-chunk"}),
+            _FakeScoredPoint(id="", score=0.7, payload={}),
+        ]
+    )
+
+    hits = store.search("project-1", {"0": 1.0}, limit=2)
+
+    assert [(hit.chunk_id, hit.score, hit.provider, hit.model) for hit in hits] == [
+        ("payload-chunk", 0.8, "local", "hashing-96"),
+    ]
+
+
+def test_qdrant_vector_store_delete_uses_chunk_ids_or_project_filter(tmp_path):
+    from backend.providers.vector_store.qdrant import QdrantVectorStore
+
+    client = _FakeQdrantClient(tmp_path / "qdrant")
+    store = QdrantVectorStore(
+        path=tmp_path / "qdrant",
+        collection="chunks",
+        vector_size=4,
+        client_factory=lambda path: client,
+        models_module=_FakeModels,
+    )
+
+    store.delete("project-1", chunk_ids=["chunk-1", "chunk-2"])
+    store.delete("project-1")
+
+    assert client.deletes == [
+        {
+            "collection_name": "chunks",
+            "points_selector": _FakePointIdsList(points=["chunk-1", "chunk-2"]),
+        },
+        {
+            "collection_name": "chunks",
+            "points_selector": _FakeFilterSelector(
+                filter=_FakeFilter(
+                    must=[
+                        _FakeFieldCondition(
+                            key="project_id",
+                            match=_FakeMatchValue(value="project-1"),
+                        )
+                    ]
+                )
+            ),
+        },
+    ]
+
+
+def test_qdrant_vector_store_availability_warning_downgrades_without_raising(capsys, tmp_path):
+    from backend.providers.vector_store.qdrant import QdrantVectorStore
+
+    store = QdrantVectorStore(
+        path=tmp_path / "qdrant",
+        collection="chunks",
+        vector_size=4,
+        client_factory=lambda path: _BrokenQdrantClient(),
+        models_module=_FakeModels,
+    )
+
+    assert store.is_available() is False
+    assert "WARNING: Qdrant vector store unavailable: local mode failed" in capsys.readouterr().err
+
+
 @dataclass(frozen=True)
 class _FakeVectorParams:
     size: int
@@ -166,6 +283,16 @@ class _FakeFilter:
 
 
 @dataclass(frozen=True)
+class _FakePointIdsList:
+    points: list[str]
+
+
+@dataclass(frozen=True)
+class _FakeFilterSelector:
+    filter: _FakeFilter
+
+
+@dataclass(frozen=True)
 class _FakeScoredPoint:
     id: str
     score: float
@@ -184,8 +311,10 @@ class _FakeDistance:
 class _FakeModels:
     Distance = _FakeDistance
     FieldCondition = _FakeFieldCondition
+    FilterSelector = _FakeFilterSelector
     Filter = _FakeFilter
     MatchValue = _FakeMatchValue
+    PointIdsList = _FakePointIdsList
     PointStruct = _FakePointStruct
     VectorParams = _FakeVectorParams
 
@@ -197,6 +326,7 @@ class _FakeQdrantClient:
         self.created_collections = []
         self.upserts = []
         self.queries = []
+        self.deletes = []
         self.query_response = _FakeQueryResponse([])
 
     def collection_exists(self, collection_name):
@@ -224,3 +354,14 @@ class _FakeQdrantClient:
             "with_payload": with_payload,
         })
         return self.query_response
+
+    def delete(self, collection_name, points_selector):
+        self.deletes.append({
+            "collection_name": collection_name,
+            "points_selector": points_selector,
+        })
+
+
+class _BrokenQdrantClient:
+    def collection_exists(self, collection_name):
+        raise RuntimeError("local mode failed")
