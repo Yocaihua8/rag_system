@@ -29,12 +29,12 @@
 
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
-- [ ] **3.1** 新建 `.github/workflows/ci.yml`，实现 `python-tests` job（pytest + 文档一致性检查）
-- [ ] **3.2** 在同一 workflow 中添加 `frontend-e2e` job（`npm run build` + Playwright）
-- [ ] **3.3** 为两个 job 添加 pip 和 npm 缓存（`actions/cache`），验证缓存 key 正确
+- [x] **3.1** 新建 `.github/workflows/ci.yml`，实现 `python-tests` job（pytest + 文档一致性检查）
+- [x] **3.2** 在同一 workflow 中添加 `frontend-e2e` job（`npm run build` + Playwright）
+- [x] **3.3** 为两个 job 添加 pip 和 npm 缓存（`actions/cache`），验证缓存 key 正确
 - [ ] **3.4** 本地用 `act`（或 push 到 fork）跑一遍完整 CI，确认两个 job 均 green
-- [ ] **3.5** 更新 `docs/guides/testing.md`：补充 CI 触发条件、job 名称、缓存策略和 E2E 环境变量说明
-- [ ] **3.6** 更新 `docs/guides/release-process.md`：补充 CI status check 作为 v1.0.0 合并门禁
+- [x] **3.5** 更新 `docs/guides/testing.md`：补充 CI 触发条件、job 名称、缓存策略和 E2E 环境变量说明
+- [x] **3.6** 更新 `docs/guides/release-process.md`：补充 CI status check 作为 v1.0.0 合并门禁
 - [ ] **3.7** BACKLOG B-149 状态置 `done`，删除本 plan 文件
 
 ## 4. 影响范围
@@ -180,9 +180,9 @@ jobs:
 
 ## 9. 状态快照
 
-- **最后更新**：2026-06-30 12:00
-- **进度**：已完成 0 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`07cb810` — docs: 设计 Phase 2 发布硬化任务集
-- **代码状态**：`fix/b-08-concurrent-index`；工作区干净；plan 文件新建未提交
-- **下一步**：3.1 — 新建 `.github/workflows/ci.yml`，实现 `python-tests` job
-- **续任务须知**：workflow 草稿已在 § 8 中给出，可直接作为 3.1 起点；E2E job 需要 pip venv 也安装（供 start-web-server.mjs 调用），缓存 key 与 python-tests job 相同可命中同一缓存。
+- **最后更新**：2026-06-30 12:30
+- **进度**：已完成 5 / 7 项（3.1 3.2 3.3 3.5 3.6 已勾选；待 3.4 CI 实跑验证 + 3.7 收口）
+- **最新 commit**：`cf61d05` — docs: 补充 CI 流水线说明与合并门禁（B-149）
+- **代码状态**：`fix/b-08-concurrent-index`；工作区干净
+- **下一步**：3.4 — push 到远程后观察 GitHub Actions 实跑结果，确认两个 job 均 green；如有失败按错误日志修正 workflow
+- **续任务须知**：workflow 在 `.github/workflows/ci.yml`；E2E 后端由 `tests/e2e/start-web-server.mjs` 自启动，依赖 `.venv/bin/python`（frontend-e2e job 已安装 pip 依赖）；CI 上 `process.env.CI=true` 由 GitHub Actions 自动注入，playwright 据此单 worker + 重启 server。
