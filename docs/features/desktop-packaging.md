@@ -67,6 +67,6 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 |------|------|-------------|------|------|
 | 2026-06-30 | Windows PowerShell | `tests/test_webapp/test_tauri_packaging.py` | 通过 | 覆盖 Tauri 配置、Windows/Unix sidecar 脚本、跨平台图标清单、手动原生验证 workflow 和文档命令 |
 | 2026-06-30 | Windows PowerShell | `npm run build`、`npx tauri info`、`cargo check --manifest-path src-tauri\Cargo.toml` | 通过 | 本地预检通过；`npx tauri info` 提示 `@tauri-apps/cli` 有 2.11.4 新版，不阻断当前 2.11.3 验证 |
-| 待确认 | GitHub Actions | `.github/workflows/tauri-packaging.yml` | 待执行 | 推送后通过 `workflow_dispatch` 触发 macOS / Linux runner 原生验证 |
-| 待确认 | macOS 原生系统 | `npm run tauri:build:macos` | 待执行 | 需生成 `src-tauri/target/release/bundle/dmg/*.dmg` 后更新本表 |
-| 待确认 | Linux 原生系统 | `npm run tauri:build:linux` | 待执行 | 需生成 `src-tauri/target/release/bundle/appimage/*.AppImage` 后更新本表 |
+| 2026-06-30 | GitHub Actions | `Tauri Packaging` run 28454356098 | 通过 | run URL：`https://github.com/Yocaihua8/rag_system/actions/runs/28454356098` |
+| 2026-06-30 | `macos-latest` runner | `npm run tauri:build:macos` | 通过 | job 84324919388；上传 artifact `knowledge-island-macos-dmg`，大小 33,063,225 bytes |
+| 2026-06-30 | `ubuntu-latest` runner | `npm run tauri:build:linux` | 通过 | job 84324919349；上传 artifact `knowledge-island-linux-appimage`，大小 136,877,112 bytes |
