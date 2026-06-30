@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-06-30
 
 ## 1. 环境要求
 
@@ -109,6 +109,20 @@ npm run tauri:build:linux  # Linux only
 ```
 
 Unix sidecar 脚本会从 `rustc -vV` 读取 target triple，并生成 `src-tauri/binaries/knowledge-island-backend-<target-triple>`；需要覆盖时可设置 `KI_TAURI_TARGET_TRIPLE`。
+
+B-152 起 `src-tauri/tauri.conf.json` 显式声明桌面 bundle 图标，仓库需保留以下文件：
+
+```text
+src-tauri/icons/32x32.png
+src-tauri/icons/128x128.png
+src-tauri/icons/128x128@2x.png
+src-tauri/icons/icon.icns
+src-tauri/icons/icon.ico
+```
+
+其中 `icon.icns` 用于 macOS bundle，PNG 图标用于 Linux / 通用桌面资源，`icon.ico` 用于 Windows resource 生成。当前仓库仍不在 Windows 上交叉生成 macOS `.dmg` 或 Linux `.AppImage`；只有在目标原生系统完成上述 `npm run tauri:build:*` 命令并产生产物后，才视为对应平台原生验证完成。
+
+如果没有可用的本地 macOS / Linux 机器，可在 GitHub Actions 手动触发 `Tauri Packaging` workflow（`.github/workflows/tauri-packaging.yml`）。该 workflow 使用 `macos-latest` 和 `ubuntu-latest` runner 执行同一组 npm 打包命令，并上传 `.dmg` / `.AppImage` 作为验证产物。
 
 启用 API Key + JWT 认证（可选）：
 

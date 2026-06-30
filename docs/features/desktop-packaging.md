@@ -2,8 +2,8 @@
 
 > 状态：Draft
 > Owner：RAG 团队
-> Last Updated：2026-06-29
-> Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口
+> Last Updated：2026-06-30
+> Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检
 
 ## 1. 目标
 
@@ -39,21 +39,34 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 
 - `scripts/build-backend-sidecar.sh` 使用 PyInstaller 打包 `app.py`，使用 Unix 资源分隔符把 `webapp/static_dist/` 打入 sidecar，并把产物复制到 `src-tauri/binaries/knowledge-island-backend-<target-triple>`。
 - sidecar target triple 默认从 `rustc -vV` 的 `host` 字段读取；需要覆盖时可设置 `KI_TAURI_TARGET_TRIPLE`。
-- `npm run tauri:build:macos` 调用 Unix sidecar 脚本后执行 `tauri build -- --bundles dmg`，用于在 macOS 本机构建 `.dmg`。
-- `npm run tauri:build:linux` 调用 Unix sidecar 脚本后执行 `tauri build -- --bundles appimage`，用于在 Linux 本机构建 `.AppImage`。
+- `npm run tauri:build:macos` 调用 Unix sidecar 脚本后执行 `tauri build --bundles dmg`，用于在 macOS 本机构建 `.dmg`。
+- `npm run tauri:build:linux` 调用 Unix sidecar 脚本后执行 `tauri build --bundles appimage`，用于在 Linux 本机构建 `.AppImage`。
 - 本阶段不在 Windows 上交叉生成 macOS `.dmg` 或 Linux `.AppImage`；需在对应原生系统安装 Node.js / npm、Python 依赖、`requirements-dev.txt`、Rust/Cargo/rustup 和 Tauri 平台依赖后执行。
 - B-24 不新增自动更新、签名、公证、Linux deb/rpm 包或发行版依赖安装脚本。
+- B-152 在 Windows 本机补齐并静态验证 `bundle.icon`：`src-tauri/icons/32x32.png`、`128x128.png`、`128x128@2x.png`、`icon.icns`、`icon.ico`。`.dmg` 与 `.AppImage` 产物仍需在 macOS / Linux 原生系统或对应 CI runner 上生成后回填验证结果。
+- B-152 新增手动 GitHub Actions workflow：`.github/workflows/tauri-packaging.yml`。该 workflow 通过 `workflow_dispatch` 在 `macos-latest` 运行 `npm run tauri:build:macos`，在 `ubuntu-latest` 运行 `npm run tauri:build:linux`，并上传 `.dmg` / `.AppImage` 产物作为验证证据。
 
 ## 5. 验收标准
 
 - `src-tauri/` 存在 Tauri 2 最小壳配置。
 - `src-tauri/tauri.conf.json` 声明 `bundle.externalBin`，并将 `frontendDist` 指向 Vue/Vite 生产构建产物。
-- `src-tauri/icons/icon.ico` 存在，可用于 Windows resource 生成。
+- `src-tauri/icons/icon.ico` 存在，可用于 Windows resource 生成；`src-tauri/icons/icon.icns` 与 PNG 图标存在，可用于 macOS / Linux 原生 bundle。
 - Windows sidecar 构建脚本生成 `knowledge-island-backend-x86_64-pc-windows-msvc.exe`。
 - Unix sidecar 构建脚本生成 `src-tauri/binaries/knowledge-island-backend-<target-triple>`。
 - `package.json` 提供 `npm run tauri:build:macos` 和 `npm run tauri:build:linux`，分别生成 macOS `.dmg` 与 Linux `.AppImage`。
 - Tauri Rust 入口包含 sidecar 启动、托盘菜单和关闭隐藏逻辑。
 - 文档和测试命令覆盖桌面打包链路。
+- `.github/workflows/tauri-packaging.yml` 可手动触发 macOS / Linux 原生打包验证。
 - 完整 Windows 打包可生成 `src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe`。
 - 完整 macOS 打包在 macOS 本机生成 `src-tauri/target/release/bundle/dmg/*.dmg`。
 - 完整 Linux 打包在 Linux 本机生成 `src-tauri/target/release/bundle/appimage/*.AppImage`。
+
+## 6. B-152 验证记录
+
+| 日期 | 环境 | 命令 / 检查 | 结果 | 说明 |
+|------|------|-------------|------|------|
+| 2026-06-30 | Windows PowerShell | `tests/test_webapp/test_tauri_packaging.py` | 通过 | 覆盖 Tauri 配置、Windows/Unix sidecar 脚本、跨平台图标清单、手动原生验证 workflow 和文档命令 |
+| 2026-06-30 | Windows PowerShell | `npm run build`、`npx tauri info`、`cargo check --manifest-path src-tauri\Cargo.toml` | 通过 | 本地预检通过；`npx tauri info` 提示 `@tauri-apps/cli` 有 2.11.4 新版，不阻断当前 2.11.3 验证 |
+| 待确认 | GitHub Actions | `.github/workflows/tauri-packaging.yml` | 待执行 | 推送后通过 `workflow_dispatch` 触发 macOS / Linux runner 原生验证 |
+| 待确认 | macOS 原生系统 | `npm run tauri:build:macos` | 待执行 | 需生成 `src-tauri/target/release/bundle/dmg/*.dmg` 后更新本表 |
+| 待确认 | Linux 原生系统 | `npm run tauri:build:linux` | 待执行 | 需生成 `src-tauri/target/release/bundle/appimage/*.AppImage` 后更新本表 |

@@ -24,6 +24,25 @@ def test_tauri_windows_icon_exists_for_resource_generation():
     assert icon_path.stat().st_size > 0
 
 
+def test_tauri_cross_platform_icons_are_configured_for_native_bundles():
+    config_path = Path("src-tauri/tauri.conf.json")
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+
+    expected_icons = [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico",
+    ]
+
+    assert config["bundle"]["icon"] == expected_icons
+    for icon in expected_icons:
+        icon_path = Path("src-tauri") / icon
+        assert icon_path.exists(), f"Tauri native bundle icon is missing: {icon_path}"
+        assert icon_path.stat().st_size > 0
+
+
 def test_tauri_rust_entry_starts_sidecar_and_minimizes_to_tray():
     main_rs = Path("src-tauri/src/main.rs")
 
@@ -89,10 +108,10 @@ def test_package_json_exposes_tauri_cross_platform_packaging_scripts():
         "npm run sidecar:build && tauri build"
     )
     assert package_data["scripts"]["tauri:build:macos"] == (
-        "npm run sidecar:build:unix && tauri build -- --bundles dmg"
+        "npm run sidecar:build:unix && tauri build --bundles dmg"
     )
     assert package_data["scripts"]["tauri:build:linux"] == (
-        "npm run sidecar:build:unix && tauri build -- --bundles appimage"
+        "npm run sidecar:build:unix && tauri build --bundles appimage"
     )
     assert package_data["devDependencies"]["@tauri-apps/cli"]
 
@@ -116,3 +135,20 @@ def test_desktop_packaging_docs_describe_cross_platform_validation_commands():
     assert "scripts/build-backend-sidecar.sh" in feature
     assert "npm run tauri:build:macos" in release
     assert "npm run tauri:build:linux" in release
+
+
+def test_tauri_packaging_workflow_exposes_native_macos_linux_validation():
+    workflow = Path(".github/workflows/tauri-packaging.yml")
+
+    assert workflow.exists(), "B-152 must provide a native macOS/Linux packaging workflow"
+    source = workflow.read_text(encoding="utf-8")
+
+    assert "workflow_dispatch" in source
+    assert "macos-latest" in source
+    assert "ubuntu-latest" in source
+    assert "npm run tauri:build:macos" in source
+    assert "npm run tauri:build:linux" in source
+    assert "requirements-dev.txt" in source
+    assert "libwebkit2gtk-4.1-dev" in source
+    assert "src-tauri/target/release/bundle/dmg/*.dmg" in source
+    assert "src-tauri/target/release/bundle/appimage/*.AppImage" in source

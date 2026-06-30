@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30（§2 补充 CI 合并门禁；§1 补充 CI status check 前置项）
+> Last Updated：2026-06-30（补充 Tauri 原生打包手动验证 workflow）
 > Scope：Knowledge Island 版本发布检查与步骤
 > Related：docs/guides/testing.md, docs/guides/branch-conventions.md, CHANGELOG.md
 
@@ -90,6 +90,8 @@ npm run tauri:build:linux
 输出：`src-tauri/target/release/bundle/appimage/*.AppImage`。
 
 > 本仓库当前不从 Windows 交叉生成 macOS `.dmg` / Linux `.AppImage`。跨平台“一键启动”仍由 Docker（`docker compose up`）覆盖；原生桌面包用于需要系统级桌面分发的场景。
+
+没有本地 macOS / Linux 机器时，可在 GitHub Actions 手动触发 `Tauri Packaging` workflow（`.github/workflows/tauri-packaging.yml`），用 `macos-latest` / `ubuntu-latest` runner 生成并下载 `.dmg` / `.AppImage` 作为发布前桌面包验证证据。该 workflow 不替代 §2 的常规合并门禁。
 
 ## 6. 发布记录
 

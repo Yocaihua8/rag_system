@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30（B-151 前端 Vitest 单元测试完成）
+> Last Updated：2026-06-30（B-152 macOS/Linux Tauri 打包验证启动）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -66,7 +66,7 @@
 |----|------|------|------|--------|------|--------|--------|----------|------|
 | B-150 | test | backend/ 单元测试补齐 | done | P1 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md | Phase 2 硬化主线：已补齐 `backend/providers/llm`、`backend/providers/embedder`、`backend/config/paths`、`backend/config/settings` 与 Qdrant provider 降级路径单元测试，并在 `docs/guides/testing.md` 记录 backend/provider 验证命令 |
 | B-151 | test | 前端 Vitest 单元测试 | done | P2 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/features/frontend-engineering.md | Phase 2 硬化主线：已引入 Vitest + jsdom，覆盖 `frontend/src/api/*` helper 的请求/错误归一化、SSE/上传 payload 与 `AnswerPanel`、`ProjectSpacePanel`、`QuestionComposer` 关键状态；CI 已在 Playwright E2E 前执行 `npm run test:unit` |
-| B-152 | test | macOS/Linux Tauri 打包原生验证 | todo | P2 | M | v1.0.0 | RAG 团队 | docs/features/desktop-packaging.md | Phase 2 硬化主线：在 macOS/Linux 原生系统实测 B-24 的 `tauri:build:macos`（dmg）/`tauri:build:linux`（appimage）链路，补齐 Unix sidecar 与图标，记录平台差异与已知限制 |
+| B-152 | test | macOS/Linux Tauri 打包原生验证 | doing | P2 | M | v1.0.0 | RAG 团队 | docs/features/desktop-packaging.md | Phase 2 硬化主线：在 macOS/Linux 原生系统实测 B-24 的 `tauri:build:macos`（dmg）/`tauri:build:linux`（appimage）链路，补齐 Unix sidecar 与图标，记录平台差异与已知限制；执行计划：`docs/plans/B-152-tauri-macos-linux-packaging-validation.md` |
 | B-153 | docs | v1.0.0 发布门禁与回归清单 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/release/, docs/guides/release-process.md | Phase 2 硬化主线：制定 v1.0.0 发布 readiness 清单与回归脚本，覆盖导入/检索/问答/导出/打包主流程，明确 go/no-go 门禁；沿用既有 `docs/release/*READINESS*` 模板 |
 | B-154 | tech-debt | 依赖与安全审计基线 | todo | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI |
 | B-23 | feature | Reranker 重排序（legacy） | wontfix | P3 | — | — | RAG 团队 | — | 已被 B-125 替代；原计划在 legacy 链路接入，Web MVP 由 B-125 统一覆盖 |
