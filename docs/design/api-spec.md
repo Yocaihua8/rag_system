@@ -284,7 +284,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
 
 `/api/import/note` 用于导入资料库页手写文本笔记。后端按 `title` 生成稳定虚拟来源 `note:<project_id>/<hash>`，文档相对路径写为 `notes/<safe-title>-<hash>.txt`；`safe-title` 会清洗特殊字符并截断长度。同一项目空间内相同标题会更新原笔记，不创建重复文档。目录同步和浏览器文件夹导入只清理真实文件来源，不会删除 `note:` 或 `url:` 虚拟来源；如果真实文件或上传文件撞到已存在笔记的相对路径，会跳过该真实文件并返回 `reserved note path`。
 
-`/api/import/url` 用于保存 URL 摘录占位来源。第一版只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。B-119 研究结论不改变该契约；未来 B-132 若实现自动抓取，应使用独立预览/确认入口和新的来源语义，避免把手动摘录误解释为服务端抓取。
+`/api/import/url` 用于保存 URL 摘录占位来源。第一版只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。B-119 研究结论不改变该契约；B-132 已使用独立预览/确认入口和新的 `web:` 来源语义，避免把手动摘录误解释为服务端抓取。
 
 `/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit` 用于 B-132 单 URL 网页抓取。`preview` 是唯一会访问外部网络的入口：仅接受 `http/https`，拒绝凭据、非标准端口、localhost、回环、私网、链路本地、保留地址和重定向后的非公网目标；抓取前读取并遵守 `robots.txt`；设置超时、最大响应大小、最大重定向次数和 content-type allowlist；HTML 正文会移除 script/style/form/noscript/template/svg/canvas 后转成纯文本。预览成功只返回 `preview`，不写 `documents`、不生成 chunk/vector、不创建导入批次。`commit` 只接收预览结果并校验 `content_hash`、`content_length` 和 `robots_allowed`，不重新联网；确认后写入 `web:` 虚拟来源，文档相对路径为 `web/<url-hash>.txt`，正文包含来源 URL、最终 URL、抓取时间、内容类型、`content_hash` 和抽取器版本；批次 `source_type` 为 `web_fetch`。手工 `/api/import/url` 仍保持不联网的 URL 摘录语义。
 

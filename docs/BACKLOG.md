@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30（启动 B-132 网页自动爬取实现；按 B-119 准入门槛先落地单 URL 抓取预览与确认入库）
+> Last Updated：2026-06-30（B-132 网页抓取导入完成并按规则从待办清单归档）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -64,7 +64,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 里程碑 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|--------|----------|------|
-| B-132 | feature | 网页自动爬取（可选依赖） | doing | P2 | XL | v1.0.0 | RAG 团队 | docs/requirements/functional-modules.md, docs/features/web-crawling-research.md, docs/plans/B-132-web-fetch.md | Phase 2 功能并行轨：先落地用户手动触发的单 URL 抓取预览与确认入库；必须满足 robots.txt 遵守、SSRF 防护、内容净化、大小/超时限制和可选依赖隔离；不做递归爬虫、登录态或 Agent 自动抓取 |
 | B-149 | infra | CI 持续集成流水线 | doing | P1 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/guides/release-process.md, docs/plans/B-149-ci-pipeline.md | Phase 2 硬化主线：新增 GitHub Actions（仓库当前无 `.github/workflows/`），PR 门禁串联 `pytest`（backend+webapp+e2e）、`npm run build`、Playwright E2E 与 `scripts/check_docs_consistency.py`；缓存 pip/npm 依赖；失败即拦截合并 |
 | B-150 | test | backend/ 单元测试补齐 | todo | P1 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md | Phase 2 硬化主线：当前 `tests/test_backend/` 仅 3 个测试，与 webapp 28 个失衡；补齐 `backend/providers/llm`、`backend/providers/embedder`、`backend/config/paths`、`backend/config/settings` 与 Qdrant provider 降级路径覆盖 |
 | B-151 | test | 前端 Vitest 单元测试 | todo | P2 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/features/frontend-engineering.md | Phase 2 硬化主线：引入 Vitest，覆盖 `frontend/src/api/*` helper 的请求/错误归一化与关键组件状态；与 Playwright E2E 分层，单测跑纯逻辑、E2E 跑主流程 |
