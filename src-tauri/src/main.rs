@@ -43,7 +43,7 @@ fn main() {
 fn start_backend_sidecar(app: &tauri::AppHandle) -> Result<(), String> {
     let sidecar = app
         .shell()
-        .sidecar("binaries/knowledge-island-backend")
+        .sidecar("knowledge-island-backend")
         .map_err(|error| error.to_string())?;
     let (mut rx, child) = sidecar.spawn().map_err(|error| error.to_string())?;
 
