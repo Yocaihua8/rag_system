@@ -69,6 +69,7 @@
 ### Fixed
 - **Docker 前端构建产物**：Docker 镜像构建阶段会生成并内置 `backend/static_dist/`，避免宿主机未预构建或旧产物导致容器缺少前端。
 - **大项目向量检索线性变慢**：B-134 提供 Qdrant HNSW 候选检索路径，解决大型项目查询时 SQLite 向量全扫描的性能瓶颈。
+- **桌面壳启动即崩溃**：`start_backend_sidecar` 使用了错误的 sidecar 名称（多余的 `binaries/` 前缀），导致 Windows/macOS/Linux 桌面壳安装后打开即崩溃；已修正为与运行时实际路径一致的名称，本机验证裸编译产物和 NSIS 安装后均可正常启动。v1.0.0 发布的三平台安装包已替换为修复后的构建。
 
 ### Security
 - B-132 网页抓取预览只接受公开 `http/https`，拒绝凭据、非标准端口、localhost、私网、链路本地、保留地址和重定向后的非公网目标，并遵守 robots.txt、响应大小上限、超时和 content-type allowlist
