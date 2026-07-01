@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30
+> Last Updated：2026-07-01（补充 B-154 依赖审计与可选依赖矩阵）
 
 ## 1. 环境要求
 
@@ -15,6 +15,7 @@
 - 可选：Ollama 本地服务（B-146 起可作为 Web MVP 本地 LLM provider）
 - 可选：API Key（DeepSeek/OpenAI/兼容端点）
 - 可选：`pymupdf`（Web MVP PDF 正文抽取；未安装时 PDF 会明确跳过）
+- 可选能力：`qdrant-client`（当前随 `requirements.txt` 安装；依赖缺失或未启用时回退 SQLite 向量）
 - 可选：`sentence-transformers`（B-125 起用于本地 Cross-Encoder Reranker；未安装时自动跳过）
 
 ## 2. 最小启动步骤
@@ -27,6 +28,12 @@ npm install
 npm run build
 cp .env.example .env
 cp .env .env.local # 按需
+```
+
+若要运行测试、安全审计或桌面打包辅助脚本，同时安装开发依赖：
+
+```powershell
+pip install -r requirements-dev.txt
 ```
 
 启动默认 Web MVP：
@@ -52,6 +59,27 @@ npm run build
 构建产物输出到 `webapp/static_dist/`，该目录不入库。`python app.py` 只服务 `webapp/static_dist/`；未构建或构建产物缺失时会在启动阶段提示先执行 `npm run build`，不再回退到 legacy `webapp/static/`。
 
 Docker 镜像构建会在独立 Node 阶段执行 `npm ci && npm run build`，并把生成的 `webapp/static_dist/` 复制到最终 Python 镜像中。运行阶段只安装 `requirements-docker.txt` 中的 Web 运行依赖，并以非 root `appuser` 启动。因此 Docker 启动不需要宿主机提前执行 `npm run build`，但重新拉取或修改前端源码后仍需重新 `docker compose --project-directory . -f compose.yaml up --build -d`。
+
+### 2.1 依赖审计与可选依赖矩阵
+
+B-154 起，本地发布前建议执行与 CI 等价的依赖安全审计：
+
+```powershell
+npm audit --audit-level=high
+$env:PYTHONUTF8 = "1"
+.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt --progress-spinner off
+```
+
+`PYTHONUTF8=1` 用于避免 Windows 默认 GBK 编码读取含中文注释的 requirements 文件失败；GitHub Actions 已在 CI 全局环境中设置该变量。
+
+可选依赖或外部服务缺失时的预期降级路径如下：
+
+| 能力 | 依赖 / 服务 | 缺失时行为 | 验证入口 |
+|------|-------------|------------|----------|
+| PDF 正文抽取 | `pymupdf` | PDF 文件跳过，返回 `pdf extraction requires optional parser`，不阻断其他文件导入 | `tests/test_backend/test_optional_dependency_matrix.py` |
+| Qdrant local 向量索引 | `qdrant-client` + `RAG_VECTOR_STORE_PROVIDER=qdrant` | 输出 `WARNING`，禁用 Qdrant provider，继续使用 SQLite `chunk_vectors` | `tests/test_backend/test_optional_dependency_matrix.py` |
+| Cross-Encoder Reranker | `sentence-transformers` + `RAG_RERANKER_ENABLED=true` | 输出 `WARNING`，跳过精排，检索和问答继续按原召回排序运行 | `tests/test_backend/test_optional_dependency_matrix.py` |
+| Ollama 本地真实回答 | Ollama 服务与模型 | 输出 `WARNING`，真实模型不可用时回退到本地片段回答 | `tests/test_backend/test_optional_dependency_matrix.py` |
 
 ## 3. Tauri 桌面打包验证（B-145 / B-24）
 

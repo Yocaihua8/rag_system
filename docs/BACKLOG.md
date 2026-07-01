@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（B-153 v1.0.0 发布门禁与回归清单完成）
+> Last Updated：2026-07-01（B-154 依赖与安全审计基线完成）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -68,7 +68,7 @@
 | B-151 | test | 前端 Vitest 单元测试 | done | P2 | M | v1.0.0 | RAG 团队 | docs/guides/testing.md, docs/features/frontend-engineering.md | Phase 2 硬化主线：已引入 Vitest + jsdom，覆盖 `frontend/src/api/*` helper 的请求/错误归一化、SSE/上传 payload 与 `AnswerPanel`、`ProjectSpacePanel`、`QuestionComposer` 关键状态；CI 已在 Playwright E2E 前执行 `npm run test:unit` |
 | B-152 | test | macOS/Linux Tauri 打包原生验证 | done | P2 | M | v1.0.0 | RAG 团队 | docs/features/desktop-packaging.md | Phase 2 硬化主线：已补齐 Tauri 桌面 bundle 图标、修正 macOS/Linux `tauri build --bundles ...` 命令、修复 Unix sidecar target 检测 pipefail 退出码，并通过 GitHub Actions `macos-latest` / `ubuntu-latest` 原生 runner 生成 `.dmg` 与 `.AppImage` artifact |
 | B-153 | docs | v1.0.0 发布门禁与回归清单 | done | P1 | M | v1.0.0 | RAG 团队 | docs/release/V1_0_0_READINESS_2026-07-01.md, docs/guides/release-process.md | Phase 2 硬化主线：已新增 v1.0.0 readiness 清单与回归脚本，覆盖导入/检索/问答/导出/打包主流程，明确 go/no-go 门禁，并在发布流程中设为 v1.0.0 发布前检查入口 |
-| B-154 | tech-debt | 依赖与安全审计基线 | todo | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI |
+| B-154 | tech-debt | 依赖与安全审计基线 | done | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI 与 v1.0.0 readiness |
 | B-155 | tech-debt | webapp/ 全量重组至 backend/ | todo | P2 | XL | v1.1.0 | RAG 团队 | docs/design/architecture-overview.md | v1.0.0 后执行：废弃 `webapp/` 目录，按职责重组至 `backend/api/`、`backend/storage/`、`backend/domain/`、`backend/routes/` 等子包；一次性迁移 60+ Python 文件 import 路径、测试和文档引用；不改 API 契约、不改 SQLite schema、不改 `frontend/`；完成后 `webapp/` 目录删除 |
 
 ---

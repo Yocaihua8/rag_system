@@ -38,6 +38,30 @@ Knowledge Island 是一个**本地单机应用**，HTTP 服务仅监听 `127.0.0
 | Markdown 渲染 XSS 防护 | HTML 渲染层禁止 `<script>` 注入，raw HTML 经过清洗 |
 | 跨项目数据隔离 | API 层强制校验 `project_id`，拒绝跨项目资源访问 |
 
+## 依赖安全审计基线
+
+B-154 起，v1.0.0 发布前和 B-149 CI 必须执行以下依赖审计：
+
+```powershell
+npm audit --audit-level=high
+$env:PYTHONUTF8 = "1"
+.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt --progress-spinner off
+```
+
+CI 上使用 Linux venv 路径：
+
+```bash
+.venv/bin/pip-audit -r requirements.txt -r requirements-dev.txt
+```
+
+审计口径：
+
+- `npm audit --audit-level=high` 将高危及以上前端依赖漏洞作为阻断项。
+- `pip-audit` 只审计项目声明依赖文件：`requirements.txt` 与 `requirements-dev.txt`。
+- Windows 本机 requirements 文件含中文注释时需设置 `PYTHONUTF8=1`，CI 已统一设置。
+- 不使用 `pip-audit --local` 作为项目基线，避免把本机 venv 中与项目声明无关的历史包计入发布门禁。
+- `requirements-docker.txt` 当前是 Web 运行时子集；若后续出现 Docker-only 依赖，应在发布前补充单独审计命令。
+
 ## 不在安全范围内
 
 以下不属于本项目的安全保证范围：

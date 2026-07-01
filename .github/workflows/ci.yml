@@ -9,6 +9,7 @@ on:
 env:
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
+  PYTHONUTF8: "1"
 
 jobs:
   python-tests:
@@ -44,6 +45,9 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
+      - name: Run npm dependency audit
+        run: npm audit --audit-level=high
+
       - name: Build frontend
         run: npm run build
 
@@ -52,6 +56,9 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
           .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run Python dependency audit
+        run: .venv/bin/pip-audit -r requirements.txt -r requirements-dev.txt
 
       - name: Run pytest
         run: .venv/bin/python -m pytest tests/test_backend tests/test_webapp -q

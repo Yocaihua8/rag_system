@@ -24,6 +24,8 @@ def test_ci_workflow_runs_backend_docs_build_and_e2e_commands():
     for marker in [
         ".venv/bin/python -m pytest tests/test_backend tests/test_webapp -q",
         ".venv/bin/python scripts/check_docs_consistency.py",
+        ".venv/bin/pip-audit -r requirements.txt -r requirements-dev.txt",
+        "npm audit --audit-level=high",
         "npm ci",
         "npm run test:unit",
         "npm run build",
@@ -51,6 +53,7 @@ def test_ci_workflow_uses_current_actions_and_versioned_cache_keys():
     for marker in [
         'PYTHON_VERSION: "3.11"',
         'NODE_VERSION: "20"',
+        'PYTHONUTF8: "1"',
         "uses: actions/checkout@v6",
         "uses: actions/setup-python@v5",
         "uses: actions/setup-node@v4",
@@ -60,3 +63,14 @@ def test_ci_workflow_uses_current_actions_and_versioned_cache_keys():
         "restore-keys:",
     ]:
         assert marker in workflow
+
+
+def test_ci_workflow_installs_security_audit_tooling_before_python_audit():
+    workflow = _workflow()
+    python_job = workflow.split("  frontend-e2e:", 1)[0].split("  python-tests:", 1)[1]
+
+    assert ".venv/bin/pip install -r requirements.txt -r requirements-dev.txt" in python_job
+    assert python_job.index(".venv/bin/pip install -r requirements.txt -r requirements-dev.txt") < python_job.index(
+        ".venv/bin/pip-audit -r requirements.txt -r requirements-dev.txt"
+    )
+    assert python_job.index("npm ci") < python_job.index("npm audit --audit-level=high")
