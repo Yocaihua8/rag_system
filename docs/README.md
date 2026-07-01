@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30
+> Last Updated：2026-07-01
 > Related：CONTRIBUTING.md, CHANGELOG.md, AGENTS.md
 
 本仓库的文档按"项目约束 → 架构设计 → 开发流程"分层组织，遵循 `docs/style-guide.md` 写作规范。新的文档目录降低历史冗余，并保持与现有 `docs/architecture`、`docs/release` 历史文档的兼容。
@@ -22,7 +22,7 @@
 7. `design/model-profiles-design.md` — 模型 Profile 多配置设计（B-111/B-112 已落地，接口以 api-spec 为准）
 8. `design/document-collections-design.md` — 文档集合分组设计（B-113/B-114 已落地）
 9. `design/import-batches-design.md` — 导入批次历史设计（B-115/B-116 已落地）
-10. `design/api-route-split-blueprint.md` — `webapp/api.py` 按领域拆分蓝图（B-131）
+10. `design/api-route-split-blueprint.md` — API 兼容分发按领域拆分蓝图（B-131/B-138，B-155 后路径位于 `backend/`）
 
 **再读（参与开发）：**
 

@@ -28,7 +28,7 @@ def _iter_python_files(*roots: str) -> list[Path]:
 def test_active_web_code_does_not_import_src_package():
     bad_refs: list[str] = []
 
-    for path in _iter_python_files("webapp", "backend", "scripts", "tests/test_webapp"):
+    for path in _iter_python_files("backend", "scripts", "tests/test_webapp"):
         if path.name == Path(__file__).name:
             continue
         text = path.read_text(encoding="utf-8")

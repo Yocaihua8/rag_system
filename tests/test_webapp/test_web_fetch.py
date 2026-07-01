@@ -5,7 +5,7 @@ from email.message import Message
 
 import pytest
 
-from webapp.web_fetch import (
+from backend.domain.web_fetch import (
     WebFetchError,
     extract_readable_text,
     fetch_web_preview,

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-import webapp.server as server
+import backend.api.server as server
 
 
 def test_frontend_package_declares_vue_vite_build_scripts():
@@ -22,7 +22,7 @@ def test_frontend_package_declares_vue_vite_build_scripts():
     assert package_data["dependencies"]["vue"]
 
 
-def test_vite_config_builds_into_webapp_static_dist_and_proxies_api():
+def test_vite_config_builds_into_backend_static_dist_and_proxies_api():
     vite_config = Path("frontend/vite.config.js")
 
     assert vite_config.exists(), "frontend/vite.config.js must configure the Vite build"
@@ -31,7 +31,7 @@ def test_vite_config_builds_into_webapp_static_dist_and_proxies_api():
     assert "defineConfig" in config_text
     assert "vue()" in config_text
     assert "base: \"./\"" in config_text
-    assert "outDir: path.resolve(__dirname, \"../webapp/static_dist\")" in config_text
+    assert "outDir: path.resolve(__dirname, \"../backend/static_dist\")" in config_text
     assert "emptyOutDir: true" in config_text
     assert "\"/api\"" in config_text
     assert "target: \"http://127.0.0.1:8765\"" in config_text
@@ -61,7 +61,7 @@ def test_fastapi_requires_vite_build_output_when_dist_is_missing(tmp_path, monke
 
 
 def test_fastapi_static_server_has_no_legacy_fallback():
-    source = Path("webapp/server.py").read_text(encoding="utf-8")
+    source = Path("backend/api/server.py").read_text(encoding="utf-8")
 
     assert "STATIC_LEGACY_DIR" not in source
     assert "STATIC_DIR" not in source

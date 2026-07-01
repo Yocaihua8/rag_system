@@ -1,21 +1,21 @@
 from pathlib import Path
 
-from webapp.api import dispatch
-from webapp.routes import dispatch_to_routes
-from webapp.routes.agent import handle_agent_route
-from webapp.routes.answers import handle_answer_route
-from webapp.routes.assessment import handle_assessment_route
-from webapp.routes.chat import handle_chat_route
-from webapp.routes.documents import handle_documents_route
-from webapp.routes.export import handle_export_route
-from webapp.routes.health import handle_health_route
-import webapp.routes.imports as imports_route_module
-from webapp.routes.imports import handle_imports_route
-from webapp.routes.projects import handle_projects_route
-from webapp.routes.search import handle_search_route
-from webapp.routes.settings import handle_settings_route
-from webapp.storage import KnowledgeStore
-from webapp.web_fetch import WebFetchPreview
+from backend.api.dispatch import dispatch
+from backend.routes import dispatch_to_routes
+from backend.routes.agent import handle_agent_route
+from backend.routes.answers import handle_answer_route
+from backend.routes.assessment import handle_assessment_route
+from backend.routes.chat import handle_chat_route
+from backend.routes.documents import handle_documents_route
+from backend.routes.export import handle_export_route
+from backend.routes.health import handle_health_route
+import backend.routes.imports as imports_route_module
+from backend.routes.imports import handle_imports_route
+from backend.routes.projects import handle_projects_route
+from backend.routes.search import handle_search_route
+from backend.routes.settings import handle_settings_route
+from backend.storage import KnowledgeStore
+from backend.domain.web_fetch import WebFetchPreview
 
 
 class RouteSplitFakeLlmClient:
@@ -1035,7 +1035,7 @@ def test_route_registry_dispatches_project_summary_and_agent_tools(tmp_path):
 
 
 def test_migrated_routes_are_removed_from_legacy_dispatch():
-    api_source = Path("webapp/api.py").read_text(encoding="utf-8")
+    api_source = Path("backend/api/dispatch.py").read_text(encoding="utf-8")
 
     assert 'path == "/api/health"' not in api_source
     assert 'path == "/api/projects"' not in api_source

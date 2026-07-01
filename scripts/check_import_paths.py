@@ -18,7 +18,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 # 扫描范围：当前活动代码目录
 ACTIVE_DIRS = [
     PROJECT_ROOT / "backend",
-    PROJECT_ROOT / "webapp",
     PROJECT_ROOT / "scripts",
 ]
 

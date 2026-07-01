@@ -7,7 +7,7 @@ def test_optional_dependency_matrix_downgrades_without_optional_tools(capsys, mo
     from backend.config.reranker import RerankerSettings, build_reranker
     from backend.config.vector_store import VectorStoreSettings, build_vector_store
     from backend.providers.llm.ollama import OllamaLLM
-    from webapp.document_processing import process_bytes
+    from backend.domain.document_processing import process_bytes
 
     monkeypatch.setitem(sys.modules, "pymupdf", None)
     pdf_result = process_bytes("manual.pdf", b"%PDF-1.4")

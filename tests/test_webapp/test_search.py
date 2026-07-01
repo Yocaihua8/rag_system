@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from webapp.chunking import split_into_chunks
-from webapp.import_rules import MAX_TEXT_FILE_BYTES
-from webapp.ingestion import import_directory
-from webapp.search import search_documents
-from webapp.storage import KnowledgeStore
+from backend.domain.chunking import split_into_chunks
+from backend.domain.import_rules import MAX_TEXT_FILE_BYTES
+from backend.domain.ingestion import import_directory
+from backend.domain.search import search_documents
+from backend.storage import KnowledgeStore
 
 
 def test_import_directory_indexes_supported_text_files(tmp_path: Path):
@@ -467,7 +467,7 @@ def test_search_uses_default_reranker_when_configured(tmp_path: Path, monkeypatc
     store.upsert_document(project.id, tmp_path / "first.md", "first.md", "DeepSeek API key setup")
     store.upsert_document(project.id, tmp_path / "second.md", "second.md", "DeepSeek API model settings")
     reranker = ReverseReranker()
-    monkeypatch.setattr("webapp.search.get_default_reranker", lambda: reranker)
+    monkeypatch.setattr("backend.domain.search.get_default_reranker", lambda: reranker)
 
     hits = search_documents(
         store,

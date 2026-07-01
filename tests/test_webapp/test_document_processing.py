@@ -4,9 +4,9 @@ import types
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from webapp.api import dispatch
-from webapp.document_processing import process_bytes
-from webapp.storage import KnowledgeStore
+from backend.api.dispatch import dispatch
+from backend.domain.document_processing import process_bytes
+from backend.storage import KnowledgeStore
 
 
 def test_directory_import_extracts_docx_text(tmp_path: Path):

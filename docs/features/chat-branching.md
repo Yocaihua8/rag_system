@@ -30,9 +30,9 @@ B-128 让用户可以在 Vue 工作台中编辑某条历史聊天消息并重新
 
 ## 4. 架构落点
 
-- `webapp/storage.py` 负责 `chat_messages` 分支字段的持久化、迁移和读取。
-- `webapp/answer_api.py` 负责校验被编辑的父消息属于当前项目和当前会话，并把分支元数据传给存储层。
-- `webapp/api.py` 在 SSE 问答入口透传 query `parent_message_id`。
+- `backend/storage/knowledge_store.py` 负责 `chat_messages` 分支字段的持久化、迁移和读取。
+- `backend/api/answer_handlers.py` 负责校验被编辑的父消息属于当前项目和当前会话，并把分支元数据传给存储层。
+- `backend/api/dispatch.py` 在 SSE 问答入口透传 query `parent_message_id`。
 - `frontend/src/api/answer.js` 在非流式和 SSE 问答 helper 中透传 `parentMessageId`。
 - Vue 工作台只负责展示历史消息编辑入口、提交编辑后的问题和刷新当前会话消息。
 

@@ -7,7 +7,7 @@
 
 ## 1. 当前已落地实体
 
-当前默认交付形态是本地 Web MVP，其运行时直接使用 `webapp/storage.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
+当前默认交付形态是本地 Web MVP，其运行时直接使用 `backend/storage/knowledge_store.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
 
 - `projects`
 - `documents`
@@ -164,7 +164,7 @@
 
 ### graph_nodes（legacy；Web MVP B-126 只读兼容）
 - `id / workspace_id / name / label / node_type / source_ref / confidence / created_at / updated_at`
-- B-126 不在 Web MVP schema 中创建或迁移该表；仅当当前数据库已有该表时，`webapp/storage.py` 会只读查询。
+- B-126 不在 Web MVP schema 中创建或迁移该表；仅当当前数据库已有该表时，`backend/storage/knowledge_store.py` 会只读查询。
 - Web MVP 只读兼容时将 `workspace_id` 视为当前 `project_id`，并把 `source_ref` 尝试映射到当前项目的 `document_chunks.id`、`documents.id`、`documents.relative_path` 或 `documents.source_path`。
 
 ### graph_edges（legacy；Web MVP B-126 只读兼容）

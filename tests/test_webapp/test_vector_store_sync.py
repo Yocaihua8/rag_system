@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from webapp.storage import KnowledgeStore
+from backend.storage import KnowledgeStore
 
 
 def test_upsert_document_syncs_chunk_vectors_to_vector_store(tmp_path: Path):

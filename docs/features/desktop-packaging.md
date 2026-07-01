@@ -2,7 +2,7 @@
 
 > 状态：Draft
 > Owner：RAG 团队
-> Last Updated：2026-06-30
+> Last Updated：2026-07-01
 > Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检
 
 ## 1. 目标
@@ -16,13 +16,13 @@ B-145 验证 Knowledge Island 的 C 端 Windows 桌面发行链路，B-24 在同
 | 模式 | 前端来源 | 后端来源 | 用途 |
 |------|----------|----------|------|
 | Web 开发 | Vite dev server | `.venv\Scripts\python.exe app.py` | 本地开发 |
-| Web 生产 | `webapp/static_dist/` | `.venv\Scripts\python.exe app.py` | 浏览器使用 |
-| Tauri Windows 桌面 | `webapp/static_dist/` | `src-tauri/binaries/knowledge-island-backend-*-windows-msvc.exe` | Windows NSIS 桌面包验证 |
-| Tauri macOS / Linux 桌面 | `webapp/static_dist/` | `src-tauri/binaries/knowledge-island-backend-<target-triple>` | macOS `.dmg` / Linux `.AppImage` 本机打包 |
+| Web 生产 | `backend/static_dist/` | `.venv\Scripts\python.exe app.py` | 浏览器使用 |
+| Tauri Windows 桌面 | `backend/static_dist/` | `src-tauri/binaries/knowledge-island-backend-*-windows-msvc.exe` | Windows NSIS 桌面包验证 |
+| Tauri macOS / Linux 桌面 | `backend/static_dist/` | `src-tauri/binaries/knowledge-island-backend-<target-triple>` | macOS `.dmg` / Linux `.AppImage` 本机打包 |
 
 Tauri 桌面模式不修改现有 HTTP API。Vue 内部请求仍访问 `http://127.0.0.1:8765/api/*`。
 
-B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-desktop-legacy/`。Tauri sidecar 只打包当前 `app.py`、`webapp/`、`backend/` 和 Vue/Vite 构建产物，不依赖 legacy 桌面代码。
+B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-desktop-legacy/`。B-155 后 Tauri sidecar 只打包当前 `app.py`、`backend/` 和 Vue/Vite 构建产物，不依赖 legacy 桌面代码。
 
 ## 3. Windows 打包边界
 
@@ -37,7 +37,7 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 
 ## 4. macOS / Linux 打包边界
 
-- `scripts/build-backend-sidecar.sh` 使用 PyInstaller 打包 `app.py`，使用 Unix 资源分隔符把 `webapp/static_dist/` 打入 sidecar，并把产物复制到 `src-tauri/binaries/knowledge-island-backend-<target-triple>`。
+- `scripts/build-backend-sidecar.sh` 使用 PyInstaller 打包 `app.py`，使用 Unix 资源分隔符把 `backend/static_dist/` 打入 sidecar，并把产物复制到 `src-tauri/binaries/knowledge-island-backend-<target-triple>`。
 - sidecar target triple 默认从 `rustc -vV` 的 `host` 字段读取；需要覆盖时可设置 `KI_TAURI_TARGET_TRIPLE`。
 - `npm run tauri:build:macos` 调用 Unix sidecar 脚本后执行 `tauri build --bundles dmg`，用于在 macOS 本机构建 `.dmg`。
 - `npm run tauri:build:linux` 调用 Unix sidecar 脚本后执行 `tauri build --bundles appimage`，用于在 Linux 本机构建 `.AppImage`。

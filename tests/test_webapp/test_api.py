@@ -7,13 +7,13 @@ from urllib.parse import quote
 from zipfile import ZipFile
 
 from backend.config.paths import app_env_file
-import webapp.answer_api as answer_api_module
-import webapp.api as api_module
-import webapp.routes.imports as imports_route_module
-from webapp.api import dispatch
-from webapp.ingestion import import_directory
-from webapp.storage import KnowledgeStore
-from webapp.web_fetch import WebFetchPreview
+import backend.api.answer_handlers as answer_api_module
+import backend.api.dispatch as api_module
+import backend.routes.imports as imports_route_module
+from backend.api.dispatch import dispatch
+from backend.domain.ingestion import import_directory
+from backend.storage import KnowledgeStore
+from backend.domain.web_fetch import WebFetchPreview
 
 
 def test_prompt_preset_api_crud_and_project_default(tmp_path: Path):
@@ -1994,7 +1994,7 @@ def test_obsidian_vault_import_api_imports_markdown_vault_and_records_batch(tmp_
 
 
 def test_github_repo_import_service_clones_repo_and_imports_supported_files(tmp_path: Path):
-    from webapp.github_import import import_github_repo
+    from backend.domain.github_import import import_github_repo
 
     store = KnowledgeStore(tmp_path / "app.db")
     clone_root = tmp_path / "github-repos"
@@ -2040,7 +2040,7 @@ def test_github_repo_import_service_clones_repo_and_imports_supported_files(tmp_
 
 
 def test_github_repo_import_api_creates_project_and_records_batch(tmp_path: Path, monkeypatch):
-    import webapp.github_import as github_import
+    import backend.domain.github_import as github_import
 
     store = KnowledgeStore(tmp_path / "app.db")
     clone_root = tmp_path / "github-repos"

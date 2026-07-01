@@ -250,24 +250,14 @@ knowledage_island/
 ├── app.py                    # 默认 Web MVP 程序入口
 ├── Dockerfile                # Web MVP 容器镜像
 ├── compose.yaml              # Docker Compose 一键启动
-├── webapp/                   # 默认 Web MVP 技术栈
-│   ├── server.py             # FastAPI app + Uvicorn 启动 + 静态文件服务
-│   ├── api.py                # API 路由分发
-│   ├── agent_tools.py        # Agent 只读工具白名单与运行入口
-│   ├── storage.py            # SQLite schema 与读写
-│   ├── ingestion.py          # 本地目录导入
-│   ├── chunking.py           # Web MVP 文档分块
-│   ├── document_processing.py # 文本/DOCX/PDF 导入处理
-│   ├── import_rules.py       # 导入后缀、排除目录、文件大小上限
-│   ├── search.py             # 基于分块的 BM25 关键词召回与排序
-│   ├── answers.py            # LLM 优先回答与本地片段回退
-│   ├── llm.py                # OpenAI-compatible / Ollama Chat 标准库客户端
-│   ├── models.py             # Web MVP 响应模型、搜索命中和聊天记录模型
-│   ├── assessment.py         # Web 掌握评估最小闭环
-│   └── static_dist/          # Vue/Vite 生产构建产物（不入库）
-├── backend/                  # Web/Tauri 共享后端配置与 provider
+├── backend/                  # 默认 Web/Tauri 后端源码根目录
+│   ├── api/                  # FastAPI app、兼容分发、OpenAPI、认证与设置/回答 handler
+│   ├── routes/               # 领域 REST 路由分支
+│   ├── domain/               # 导入、检索、问答、评估、导出、Agent 工具等业务逻辑
+│   ├── storage/              # SQLite schema 与 KnowledgeStore 读写入口
 │   ├── config/               # settings / paths / vector_store / reranker
-│   └── providers/            # LLM、Embedding、VectorStore、Reranker provider
+│   ├── providers/            # LLM、Embedding、VectorStore、Reranker provider
+│   └── static_dist/          # Vue/Vite 生产构建产物（不入库）
 ├── archive/src-desktop-legacy/
 │   ├── src/                  # 已归档 PySide6 / 六边形 legacy 代码
 │   ├── tests/                # 已归档 legacy 测试
@@ -293,7 +283,7 @@ knowledage_island/
 
 ### 架构原则
 
-- **三层 Web 架构**：表现层 `frontend/` / `webapp.server`，业务层 `webapp/*`，数据层 `webapp.storage`
+- **三层 Web 架构**：表现层 `frontend/` / `backend.api.server`，业务层 `backend.domain/*`，数据层 `backend.storage`
 - **配置归口**：Web/Tauri 运行配置由 `backend.config.settings` 和 `backend.config.paths` 提供
 - **本地优先**：无 API Key 或外部服务不可达时，问答和向量化必须有本地 fallback
 - **legacy 隔离**：`archive/src-desktop-legacy/` 仅作历史参考，不再被当前代码引用

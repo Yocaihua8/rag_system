@@ -6,10 +6,10 @@ import inspect
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from webapp.models import ImportResult
-from webapp.routes import imports as import_routes
-from webapp.routes.imports import handle_imports_route
-from webapp.storage import KnowledgeStore
+from backend.domain.models import ImportResult
+from backend.routes import imports as import_routes
+from backend.routes.imports import handle_imports_route
+from backend.storage import KnowledgeStore
 
 
 def _empty_import_result() -> ImportResult:
@@ -107,7 +107,7 @@ def test_directory_import_allows_different_projects_to_overlap(tmp_path, monkeyp
 
 
 def test_project_indexing_coordinator_serializes_per_project():
-    from webapp.indexing import ProjectIndexingCoordinator
+    from backend.domain.indexing import ProjectIndexingCoordinator
 
     coordinator = ProjectIndexingCoordinator()
     first_entered = threading.Event()

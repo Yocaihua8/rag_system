@@ -18,7 +18,7 @@ Web MVP 引入 Agent 工具能力（`/api/agent/tools/*`），允许系统在回
 
 ## 2. 决策结论
 
-Agent 工具采用**源码级硬编码只读白名单**：`webapp/agent_tools.py` 中的 `READ_ONLY_TOOLS` 常量列表定义全部可用工具，当前包含：
+Agent 工具采用**源码级硬编码只读白名单**：`backend/domain/agent_tools.py` 中的 `READ_ONLY_TOOLS` 常量列表定义全部可用工具，当前包含：
 
 | 工具名 | 操作类型 | 说明 |
 |--------|----------|------|
@@ -74,15 +74,15 @@ Agent 工具采用**源码级硬编码只读白名单**：`webapp/agent_tools.py
 
 | 模块 | 内容 |
 |------|------|
-| `webapp/agent_tools.py` | `READ_ONLY_TOOLS` 常量；`run_agent_tool()` 白名单校验与 `agent_tool_runs` 写入 |
-| `webapp/routes/agent_tools.py` | `/api/agent/tools`、`/api/agent/tools/run`、`/api/agent/tools/runs` 路由 |
-| `webapp/storage.py` | `agent_tool_runs` 表（`tool_name / arguments / result / status / error`）|
+| `backend/domain/agent_tools.py` | `READ_ONLY_TOOLS` 常量；`run_agent_tool()` 白名单校验与 `agent_tool_runs` 写入 |
+| `backend/routes/agent.py` | `/api/agent/tools`、`/api/agent/tools/run`、`/api/agent/tools/runs` 路由 |
+| `backend/storage/knowledge_store.py` | `agent_tool_runs` 表（`tool_name / arguments / result / status / error`）|
 
 ## 6. 后续动作
 
 ### 6.1 已完成
 
-- `webapp/agent_tools.py`：`READ_ONLY_TOOLS` + `run_agent_tool()` 白名单校验 + 审计写入
+- `backend/domain/agent_tools.py`：`READ_ONLY_TOOLS` + `run_agent_tool()` 白名单校验 + 审计写入
 - B-117：MCP 研究结论确立准入门槛，本 ADR 是该结论的代码级实现
 
 ### 6.2 未来扩展条件

@@ -9,7 +9,7 @@
 ## [Unreleased]
 
 ### Added
-- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `webapp/static_dist/`
+- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `backend/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
 - **Vue 项目空间薄片**：资料库视图新增项目空间列表、选择、最近项目恢复和新建项目空间表单，复用既有 `/api/projects` 契约
 - **Vue 项目空间改名/删除薄片**：资料库视图新增当前项目改名和删除入口，复用既有 `/api/projects/rename` 与 `/api/projects/delete` 契约；删除前提示项目内文档记录也会被删除
@@ -50,19 +50,20 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
+- **后端源码目录重组**：B-155 将原 `webapp/` 生产代码按职责迁移到 `backend/api`、`backend/routes`、`backend/domain`、`backend/storage`，删除受控 `webapp/` 源码目录；HTTP API 契约和 SQLite schema 保持不变，Vue/Vite 构建产物改为输出到 `backend/static_dist/`。
 - **BACKLOG 完成项归档**：B-149 CI 持续集成流水线已完成并从 `docs/BACKLOG.md §5` 移除；对应能力见 Added 中 GitHub Actions CI 流水线条目。
 - **BACKLOG 完成项归档**：按 BACKLOG 流转规则从 `docs/BACKLOG.md §5` 移除 27 个已完成项，并保留在本变更记录中追溯：B-06、B-07、B-08、B-24、B-25、B-42、B-117、B-118、B-119、B-125、B-126、B-128、B-133、B-134、B-135、B-136、B-137、B-139、B-140、B-141、B-142、B-143、B-144、B-145、B-146、B-147、B-148；未完成项、`doing` 项和 `wontfix` legacy 项继续留在 BACKLOG。
-- **静态前端托管策略**：FastAPI 优先服务 Vite 构建产物；构建产物缺失时回退 legacy `webapp/static/`
+- **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时明确失败，不再回退 legacy static
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示
 - **关键词检索评分**：Web MVP 关键词召回从 regex 词频累加改为内置 BM25 评分，降低重复常见词压过稀有命中的风险
 - **向量检索路径**：启用 Qdrant 时不再查询时全量遍历 SQLite `chunk_vectors`；默认和降级路径继续使用 SQLite 兼容副本
-- **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到 `webapp/routes/*` 时保持 HTTP 契约和 `dispatch()` 入口不变
-- **API 路由拆分实施**：新增 `webapp/routes` registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；`webapp/api.py` 仅保留兼容入口和 SSE 入口
+- **API 路由拆分蓝图**：补充 `api.py` 按领域拆分方案，明确后续迁移到领域路由时保持 HTTP 契约和 `dispatch()` 入口不变
+- **API 路由拆分实施**：新增领域 route registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；B-155 后兼容入口位于 `backend/api/dispatch.py`
 
 ### Fixed
-- **Docker 前端构建产物**：Docker 镜像构建阶段会生成并内置 `webapp/static_dist/`，避免宿主机未预构建或旧产物导致容器展示 legacy 静态前端。
+- **Docker 前端构建产物**：Docker 镜像构建阶段会生成并内置 `backend/static_dist/`，避免宿主机未预构建或旧产物导致容器缺少前端。
 - **大项目向量检索线性变慢**：B-134 提供 Qdrant HNSW 候选检索路径，解决大型项目查询时 SQLite 向量全扫描的性能瓶颈。
 
 ### Security

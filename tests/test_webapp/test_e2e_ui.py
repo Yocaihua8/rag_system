@@ -63,7 +63,7 @@ def test_e2e_server_uses_temporary_database_via_ki_db_path():
         "KI_DB_PATH",
         "KI_E2E_PORT",
         "Path(os.environ[\"KI_DB_PATH\"])",
-        "from webapp.server import run_server",
+        "from backend.api.server import run_server",
         "run_server(",
         "db_path=db_path",
     ]:
@@ -96,8 +96,8 @@ def test_e2e_smoke_test_covers_project_note_answer_flow():
         assert marker in spec
 
 
-def test_webapp_config_allows_ki_db_path_override_for_e2e_isolation():
-    config = _read("webapp/config.py")
+def test_backend_config_allows_ki_db_path_override_for_e2e_isolation():
+    config = _read("backend/config/web.py")
 
     assert "import os" in config
     assert 'os.environ.get("KI_DB_PATH")' in config

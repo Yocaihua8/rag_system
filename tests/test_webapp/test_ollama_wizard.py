@@ -4,9 +4,9 @@ from urllib.error import URLError
 
 from fastapi.testclient import TestClient
 
-import webapp.server as server
-from webapp.api import dispatch
-from webapp.storage import KnowledgeStore
+import backend.api.server as server
+from backend.api.dispatch import dispatch
+from backend.storage import KnowledgeStore
 
 
 class _FakeOllamaResponse:

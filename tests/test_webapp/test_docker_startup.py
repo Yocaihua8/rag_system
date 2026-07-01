@@ -30,9 +30,8 @@ def test_dockerfile_builds_frontend_and_runs_web_mvp_without_desktop_dependencie
     assert "COPY requirements-docker.txt ./requirements-docker.txt" in dockerfile
     assert "pip install --no-cache-dir -r requirements-docker.txt" in dockerfile
     assert "COPY app.py ./app.py" in dockerfile
-    assert "COPY webapp ./webapp" in dockerfile
     assert "COPY backend ./backend" in dockerfile
-    assert "COPY --from=frontend-build /app/webapp/static_dist ./webapp/static_dist" in dockerfile
+    assert "COPY --from=frontend-build /app/backend/static_dist ./backend/static_dist" in dockerfile
     assert "COPY entrypoint.sh /entrypoint.sh" in dockerfile
     assert "useradd" in dockerfile
     assert "USER appuser" in dockerfile
@@ -48,7 +47,7 @@ def test_entrypoint_starts_server_on_container_host():
 
     assert entrypoint.startswith("#!/bin/sh")
     assert "mkdir -p /app/runtime/webapp" in entrypoint
-    assert "from webapp.server import run_server" in entrypoint
+    assert "from backend.api.server import run_server" in entrypoint
     assert "run_server(host='0.0.0.0', port=8765)" in entrypoint
 
 

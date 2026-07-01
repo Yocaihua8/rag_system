@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from webapp.models import Document, SearchHit
+from backend.domain.models import Document, SearchHit
 
 
 def test_search_hit_serializes_rerank_score():

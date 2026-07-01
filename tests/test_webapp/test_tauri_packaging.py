@@ -11,7 +11,7 @@ def test_tauri_config_bundles_vue_build_and_backend_sidecar():
     assert config["productName"] == "Knowledge Island"
     assert config["identifier"] == "local.knowledge-island.app"
     assert config["build"]["beforeBuildCommand"] == "npm run build"
-    assert config["build"]["frontendDist"] == "../webapp/static_dist"
+    assert config["build"]["frontendDist"] == "../backend/static_dist"
     assert config["bundle"]["active"] is True
     assert config["bundle"]["targets"] == ["nsis"]
     assert config["bundle"]["externalBin"] == ["binaries/knowledge-island-backend"]
@@ -71,7 +71,7 @@ def test_windows_sidecar_script_builds_pyinstaller_binary_for_tauri_triple():
     assert "--onefile" in script
     assert "--name" in script
     assert "knowledge-island-backend" in script
-    assert "webapp/static_dist" in script
+    assert "backend/static_dist" in script
     assert "src-tauri/binaries" in script
     assert "knowledge-island-backend-x86_64-pc-windows-msvc.exe" in script
 
@@ -88,7 +88,7 @@ def test_unix_sidecar_script_builds_pyinstaller_binary_for_native_tauri_triple()
     assert "--onefile" in script
     assert "--name" in script
     assert "knowledge-island-backend" in script
-    assert "webapp/static_dist:webapp/static_dist" in script
+    assert "backend/static_dist:backend/static_dist" in script
     assert "rustc -vV" in script
     assert "KI_TAURI_TARGET_TRIPLE" in script
     assert "src-tauri/binaries" in script

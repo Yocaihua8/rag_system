@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-07-01
 > 关联 BACKLOG：B-136
 
 ## 1. 功能目标
@@ -15,7 +15,7 @@
 - 为兼容分发的 `/api/{path:path}` 端点补充显式 OpenAPI path schema。
 - 覆盖当前 `docs/design/api-spec.md` 中列出的 Web MVP API。
 - 认证开启时继续保护 `/docs`、`/redoc` 和 `/openapi.json`。
-- schema 定义集中维护在 `webapp/openapi_schema.py`，由 `webapp.server.create_app()` 安装。
+- schema 定义集中维护在 `backend/api/openapi_schema.py`，由 `backend.api.server.create_app()` 安装。
 
 ## 3. 边界
 

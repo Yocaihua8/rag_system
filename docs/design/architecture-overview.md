@@ -2,19 +2,19 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-07-01
 > Scope：Knowledge Island Web MVP 架构层职责与技术栈
 > Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/design/api-route-split-blueprint.md
 
 ## 1. 架构结论
 
-Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 `webapp/static/` legacy 静态前端 fallback，Web 首页只服务 `webapp/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
+Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 legacy 静态前端 fallback；B-155 后后端源码统一位于 `backend/`，Web 首页只服务 `backend/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
 
 | 字段 | 值 |
 |------|----|
 | 架构模式 | 本地单体（Local Monolith）|
 | 核心边界 | 127.0.0.1:8765，不对外暴露 |
-| 主要入口 | `app.py` → `webapp/server.py:create_app()` / `run_server()` |
+| 主要入口 | `app.py` → `backend/api/server.py:create_app()` / `run_server()` |
 | 数据持久化 | SQLite（本地默认 `runtime/app.db`；Docker 默认位于 `ki-runtime` volume 的 `/app/runtime/app.db`）|
 | 外部依赖 | 可选 LLM API / Embedding API（均有本地 fallback）|
 
@@ -25,16 +25,16 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │                 浏览器（Vue/Vite 构建产物）                  │
-│   frontend/src/* → webapp/static_dist/*                      │
+│   frontend/src/* → backend/static_dist/*                     │
 └──────────────────────────┬───────────────────────────────────┘
                            │ HTTP REST（127.0.0.1:8765）
 ┌──────────────────────────▼───────────────────────────────────┐
-│           webapp/server.py（FastAPI + Uvicorn）                │
+│          backend/api/server.py（FastAPI + Uvicorn）            │
 │        静态文件服务 + /api/* JSON + SSE                        │
 └──────────────────────────┬───────────────────────────────────┘
                            │
 ┌──────────────────────────▼───────────────────────────────────┐
-│       webapp/api.py + webapp/routes/*（API Handler）          │
+│   backend/api/dispatch.py + backend/routes/*（API Handler）   │
 │      兼容入口 / 领域路由 / 参数校验 / JSON 响应               │
 ├──────────┬───────────────┬──────────────┬────────────────────┤
 │ingestion │    search     │   answers    │   agent_tools      │
@@ -42,7 +42,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 │文件处理  │  混合检索     │  LLM/fallback│  只读工具白名单    │
 │分块向量化│  关键词+向量  │  上下文组装  │  工具审计记录      │
 ├──────────┴───────────────┴──────────────┴────────────────────┤
-│        webapp/storage.py（SQLite）+ Qdrant provider            │
+│   backend/storage/knowledge_store.py（SQLite）+ Qdrant provider│
 │     KnowledgeStore — Schema 初始化 + CRUD + 向量索引同步       │
 ├──────────────────────────────────────────────────────────────┤
 │  embeddings.py         llm.py          model_profiles.py     │
@@ -59,7 +59,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 | 层级 | 技术 | 用途 | 选择原因 |
 |------|------|------|----------|
-| 展示层 | Vue 3 + Vite | 单页应用 UI | B-141A-Z 已完成 Vue 工程骨架和页面级迁移薄片；B-142 补齐 Vue 工作台 SSE/会话；B-143 已删除 `webapp/static/` fallback |
+| 展示层 | Vue 3 + Vite | 单页应用 UI | B-141A-Z 已完成 Vue 工程骨架和页面级迁移薄片；B-142 补齐 Vue 工作台 SSE/会话；B-143 已删除 legacy static fallback；B-155 后输出到 `backend/static_dist/` |
 | 接口层 | FastAPI + Uvicorn | HTTP 路由、SSE、OpenAPI | ADR-001；标准化中间件与流式响应 |
 | 业务层 | Python 3.11 | 核心逻辑 | 生态丰富，AI 库支持完善 |
 | 数据层 | SQLite 3（标准库）| 全部持久化 | 零依赖单文件数据库，本地优先最合适 |
@@ -72,9 +72,9 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 ## 4. 分层职责
 
-### 4.1 展示层（frontend/ + webapp/static_dist/）
+### 4.1 展示层（frontend/ + backend/static_dist/）
 
-- `frontend/` 是 B-141 起的 Vue 3 + Vite 源码目录，生产构建输出到 `webapp/static_dist/`
+- `frontend/` 是 B-141 起的 Vue 3 + Vite 源码目录，生产构建输出到 `backend/static_dist/`
 - `frontend/src/api/client.js` 封装 Vue 前端 `apiGet` / `apiPost` 和错误归一化
 - `frontend/src/api/projects.js` 封装 Vue 项目空间列表、创建、选择、最近项目恢复、改名、删除和项目级检索默认值读取/保存，调用既有 `/api/projects`、`/api/projects/rename`、`/api/projects/delete` 与 `/api/projects/retrieval-settings` 契约
 - `frontend/src/api/answer.js` 封装 Vue 工作台非流式问答、SSE 流式问答、聊天会话/消息、工具来源上下文和回答反馈入口，调用既有 `POST /api/answer`、`GET /api/answer/stream`、`/api/chat/*` 与 `POST /api/answer/feedback` 契约
@@ -95,20 +95,20 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 - `frontend/src/components/ImportBatchHistoryPanel.vue` 是 B-141G 的资料库导入批次历史薄片，负责最近批次、只读详情和跳过/读取失败明细展示
 - `frontend/src/views/AssessmentView.vue` 是 B-141T 的评估页最小闭环薄片，负责开始评估、当前题目、作答提交、下一题/完成、结果概览、答题记录和待复测列表
 - `frontend/src/views/SettingsView.vue` 是 B-141R/S 的设置页配置薄片，负责基础 LLM 设置读取/保存/测试、模型 Profile 列表/编辑/删除/默认/测试，以及项目级 Prompt 预设列表、模板复制、编辑、删除和默认切换入口
-- `webapp/static/` legacy 原生前端已由 B-143 删除，不再作为 FastAPI 静态 fallback
+- legacy 原生前端已由 B-143 删除，不再作为 FastAPI 静态 fallback
 - 接收用户操作，通过 `fetch` 调用后端 REST API
 - 管理客户端 UI 状态（当前项目、会话、文档列表）
 - 渲染回答、来源、检索结果、工具输出
 - 必须：所有业务规则不在前端实现，前端只做展示和 API 调用
 
-### 4.2 接口层（webapp/server.py + webapp/api.py + webapp/routes/*）
+### 4.2 接口层（backend/api/server.py + backend/api/dispatch.py + backend/routes/*）
 
-- `webapp.server.create_app()` 创建 FastAPI app，`run_server()` 通过 Uvicorn 启动本地服务
-- `webapp.api.dispatch()` 保持兼容入口，解析 `raw_path` 后交给 `webapp.routes.dispatch_to_routes()`
+- `backend.api.server.create_app()` 创建 FastAPI app，`run_server()` 通过 Uvicorn 启动本地服务
+- `backend.api.dispatch.dispatch()` 保持兼容入口，解析 `raw_path` 后交给 `backend.routes.dispatch_to_routes()`
 - `/api/answer/stream` 由 FastAPI `StreamingResponse` 输出既有 SSE 事件
-- 当前静态前端只服务 `webapp/static_dist/`；构建产物不存在时启动阶段抛出明确错误，不再回退 `webapp/static/`。
-- `webapp/routes/*` 按领域承载 REST 路由分支，提取 URL 参数和请求体
-- `webapp/routes/admin.py` 只承载本地维护入口，目前提供 `POST /api/admin/rebuild-index`，调用 `KnowledgeStore.rebuild_index()` 重建 chunk 与向量索引
+- 当前静态前端只服务 `backend/static_dist/`；构建产物不存在时启动阶段抛出明确错误，不再回退 legacy 静态目录。
+- `backend/routes/*` 按领域承载 REST 路由分支，提取 URL 参数和请求体
+- `backend/routes/admin.py` 只承载本地维护入口，目前提供 `POST /api/admin/rebuild-index`，调用 `KnowledgeStore.rebuild_index()` 重建 chunk 与向量索引
 - 参数合法性校验（必填字段、类型、取值范围）
 - 调用业务模块，封装统一 JSON 响应格式
 - 错误分类与 HTTP 状态码映射
@@ -119,10 +119,10 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 - 实现核心知识处理逻辑（分块、向量化、检索、回答生成、结果导出）
 - 编排多个存储操作构成完整用例
 - 管理可选依赖的降级逻辑（API 失败时 fallback）
-- `webapp/result_export.py` 负责将已生成问答消息格式化为 Markdown / PDF 文件并写入本地输出目录
+- `backend/domain/result_export.py` 负责将已生成问答消息格式化为 Markdown / PDF 文件并写入本地输出目录
 - 必须：不引入 HTTP 概念（无 request/response），不格式化最终 JSON
 
-### 4.4 数据层（webapp/storage.py）
+### 4.4 数据层（backend/storage/knowledge_store.py）
 
 - 初始化 SQLite schema（建表、兼容迁移）
 - 提供 CRUD 方法（`KnowledgeStore` 类统一封装）
@@ -134,12 +134,12 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 | 能力 | 实现 | 调用方 |
 |------|------|--------|
-| HTTP 服务 | `webapp.server.create_app` / `webapp.server.run_server` | `app.py` / Uvicorn |
-| API 分发 | `webapp.api.dispatch` + `webapp.routes.dispatch_to_routes` | `webapp.server` |
-| SQLite 存储 | `KnowledgeStore` | `webapp.routes/*`、导入/检索/工具模块 |
+| HTTP 服务 | `backend.api.server.create_app` / `backend.api.server.run_server` | `app.py` / Uvicorn |
+| API 分发 | `backend.api.dispatch.dispatch` + `backend.routes.dispatch_to_routes` | `backend.api.server` |
+| SQLite 存储 | `KnowledgeStore` | `backend.routes/*`、导入/检索/工具模块 |
 | 索引重建维护 | `KnowledgeStore.rebuild_index` / `ops/scripts/rebuild_index.sh` | `POST /api/admin/rebuild-index` |
-| 进程内摄入协调 | `ProjectIndexingCoordinator` | `webapp.routes.imports` |
-| 后端配置 | `backend.config.settings` / `backend.config.paths` | `webapp.llm`、`webapp.embeddings`、设置 API、脚本 |
+| 进程内摄入协调 | `ProjectIndexingCoordinator` | `backend.routes.imports` |
+| 后端配置 | `backend.config.settings` / `backend.config.paths` | `backend.domain.llm`、`backend.domain.embeddings`、设置 API、脚本 |
 | Qdrant 向量索引 | `backend.providers.vector_store.QdrantVectorStore` | `KnowledgeStore` 写入同步、`search_documents` 向量候选 |
 | 本地目录导入 | `import_project_documents` | `POST /api/import` |
 | 浏览器上传导入 | `import_uploaded_files` | `POST /api/import/upload` |
@@ -169,7 +169,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | qdrant-client | 可选 Python 包 | 本地 Qdrant 向量索引 | 未安装或不可用时打印 `WARNING`，搜索回退 SQLite `chunk_vectors` |
 | Ollama | 可选本地 | 本地 LLM 推理 | 需用户自行安装并启动服务 |
 | FastAPI / Uvicorn | 必需 Python 包 | 本地 HTTP API、静态文件与 SSE | 无降级；B-139 后为 Web MVP 运行时 |
-| Node.js / npm | 必需前端构建工具 | 安装 Vue/Vite 依赖并生成 `webapp/static_dist/` | 未构建时不再回退 legacy 静态前端 |
+| Node.js / npm | 必需前端构建工具 | 安装 Vue/Vite 依赖并生成 `backend/static_dist/` | 未构建时不再回退 legacy 静态前端 |
 | Vue 3 / Vite | 必需前端构建依赖 | B-141 起的前端工程化和生产构建 | B-141A-Z 已完成工程骨架、项目空间选择/创建/改名/删除、非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具、工具来源上下文、文档浏览/删除、轻量导入、批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出、设置页模型配置/Prompt 预设和评估页最小闭环薄片；B-142 已补齐 Workbench SSE/取消、会话历史和消息管理 |
 | pymupdf | 可选 Python 包 | PDF 文本提取 | 未安装时 PDF 跳过，有明确说明 |
 | Docker | 可选 | 容器化一键启动 | 非必需；`python app.py` 是主要入口 |
@@ -186,11 +186,11 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 | 方案 | 是否采用 | 原因 |
 |------|----------|------|
-| FastAPI 替代 `http.server` | 已采用（B-139）| ADR-001；保留 `webapp.api.dispatch()` 兼容入口，先迁移 HTTP 外壳，B-140/B-141 串行推进 |
-| Vue 3 + Vite 替代 Vanilla JS | 已采用（B-141A-Z、B-142、B-143 已收口）| ADR-006；B-141 已完成工程骨架和主要页面级入口迁移，B-142 已补齐 Workbench SSE/取消与会话历史；B-143 已删除 `webapp/static/` fallback |
+| FastAPI 替代 `http.server` | 已采用（B-139）| ADR-001；B-155 后兼容入口为 `backend.api.dispatch.dispatch()`，HTTP 契约不变 |
+| Vue 3 + Vite 替代 Vanilla JS | 已采用（B-141A-Z、B-142、B-143 已收口）| ADR-006；B-141 已完成工程骨架和主要页面级入口迁移，B-142 已补齐 Workbench SSE/取消与会话历史；B-143 已删除 legacy static fallback |
 | Qdrant 替代 SQLite 向量全扫描 | 已采用（B-134）| Qdrant local mode 提供 HNSW 候选检索；SQLite `chunk_vectors` 保留为兼容副本和降级路径 |
 | Graph-enhanced 检索 | 已采用（B-126）| 不新增必需依赖，不修改 Web MVP schema；仅在当前数据库已有 legacy `graph_nodes` / `graph_edges` 时读取一跳相邻来源并入候选池 |
 | PostgreSQL 替代 SQLite | 否 | 本地单用户场景 SQLite 足够；多用户时再迁移 |
 | LangChain / LlamaIndex 替代自研 | 否 | 引入大型框架与本地极简原则冲突，增加不透明性 |
-| BM25 替代 regex 关键词检索 | 已采用（B-127）| `webapp/search.py` 使用内置 BM25 计算 `keyword_score`，不新增必需依赖 |
-| `api.py` 按领域拆分 | 已完成（B-138）| 61 个 REST 端点已迁入 `webapp/routes/*`；`webapp/api.py` 仅保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口，保持 `webapp.api.dispatch` 兼容入口 |
+| BM25 替代 regex 关键词检索 | 已采用（B-127）| `backend/domain/search.py` 使用内置 BM25 计算 `keyword_score`，不新增必需依赖 |
+| `api.py` 按领域拆分 | 已完成（B-138 / B-155 路径迁移）| 61 个 REST 端点已迁入 `backend/routes/*`；兼容入口位于 `backend/api/dispatch.py`，保持 HTTP 契约不变 |

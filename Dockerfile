@@ -19,9 +19,8 @@ COPY requirements-docker.txt ./requirements-docker.txt
 RUN python -m pip install --no-cache-dir -r requirements-docker.txt
 
 COPY app.py ./app.py
-COPY webapp ./webapp
 COPY backend ./backend
-COPY --from=frontend-build /app/webapp/static_dist ./webapp/static_dist
+COPY --from=frontend-build /app/backend/static_dist ./backend/static_dist
 COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \

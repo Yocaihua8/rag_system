@@ -26,7 +26,7 @@ Knowledge Island 已有 Agent 工具能力，但边界非常窄：
 
 | 当前能力 | 现状 |
 |----------|------|
-| 工具白名单 | `webapp/agent_tools.py` 只开放 `project_overview` 和 `search_sources` |
+| 工具白名单 | `backend/domain/agent_tools.py` 只开放 `project_overview` 和 `search_sources` |
 | 触发方式 | 前端手动点击运行；回答区只给出建议，不自动执行 |
 | 权限 | 只读；不开放 shell、文件写入或任意命令 |
 | 审计 | `agent_tool_runs` 保存工具运行历史、参数、结果、状态和错误 |

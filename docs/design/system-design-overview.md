@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30
+> Last Updated：2026-07-01
 > Scope：Knowledge Island Web MVP 系统级设计
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/requirements/functional-modules.md
 
@@ -24,17 +24,17 @@
 
 | 组成部分 | 职责 | 输入 | 输出 |
 |----------|------|------|------|
-| HTTP Server（webapp/server.py）| FastAPI app、请求路由、SSE 与静态文件服务 | HTTP 请求 | HTTP 响应 |
-| API Handler（webapp/api.py + webapp/routes/*）| 兼容入口、领域路由、参数校验与用例编排 | 路由请求 | JSON 响应 |
-| 知识导入（webapp/ingestion.py 等）| 文件处理、分块、向量化 | 文件/文本/URL | 文档 + chunk + vector |
-| 检索引擎（webapp/search.py）| 关键词 + 向量混合检索 | 查询词 + 参数 | Ranked chunks |
-| 问答引擎（webapp/answers.py）| LLM 调用或本地 fallback | 查询词 + chunks | 回答 + 来源列表 |
-| 存储层（webapp/storage.py）| SQLite 读写与 Schema 初始化 | 数据结构 | 持久化数据 |
-| Embedding（webapp/embeddings.py）| 向量化（API 或本地 hash）| 文本 | float 向量 |
-| LLM 客户端（webapp/llm.py）| OpenAI-compatible Chat Completions | Prompt | 回答文本 |
-| 模型 Profile（webapp/model_profiles.py）| Profile CRUD 与 Key 引用管理 | Profile 配置 | 有效配置 |
-| Agent 工具（webapp/agent_tools.py）| 只读工具执行与审计 | 工具名 + 参数 | 工具结果 + 审计记录 |
-| 静态前端（webapp/static_dist/）| Vue/Vite 生产 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
+| HTTP Server（backend/api/server.py）| FastAPI app、请求路由、SSE 与静态文件服务 | HTTP 请求 | HTTP 响应 |
+| API Handler（backend/api/dispatch.py + backend/routes/*）| 兼容入口、领域路由、参数校验与用例编排 | 路由请求 | JSON 响应 |
+| 知识导入（backend/domain/ingestion.py 等）| 文件处理、分块、向量化 | 文件/文本/URL | 文档 + chunk + vector |
+| 检索引擎（backend/domain/search.py）| 关键词 + 向量混合检索 | 查询词 + 参数 | Ranked chunks |
+| 问答引擎（backend/domain/answers.py）| LLM 调用或本地 fallback | 查询词 + chunks | 回答 + 来源列表 |
+| 存储层（backend/storage/knowledge_store.py）| SQLite 读写与 Schema 初始化 | 数据结构 | 持久化数据 |
+| Embedding（backend/domain/embeddings.py）| 向量化（API 或本地 hash）| 文本 | float 向量 |
+| LLM 客户端（backend/domain/llm.py）| OpenAI-compatible Chat Completions | Prompt | 回答文本 |
+| 模型 Profile（backend/domain/model_profiles.py）| Profile CRUD 与 Key 引用管理 | Profile 配置 | 有效配置 |
+| Agent 工具（backend/domain/agent_tools.py）| 只读工具执行与审计 | 工具名 + 参数 | 工具结果 + 审计记录 |
+| 静态前端（backend/static_dist/）| Vue/Vite 生产 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
 
 ## 4. 核心流程
 
@@ -83,7 +83,7 @@
 
 - API Key 只保存引用（`env:` / `saved:`），不持久化明文
 - B-118 研究结论：当前认证仍是单用户保护层，不存在账号体系、团队租户或 RBAC；`project_id` 仅代表本机用户的项目空间，不是多租户边界
-- Agent 工具仅开放只读操作，工具白名单硬编码在 `agent_tools.py`
+- Agent 工具仅开放只读操作，工具白名单硬编码在 `backend/domain/agent_tools.py`
 - 不支持任意命令执行或文件写入
 - B-117 研究结论：MCP / 插件能力当前不接入运行时；未来如试验，只能作为显式配置的只读 allowlist 工具或资源适配层，不启用插件市场或模型自动调用外部工具
 - B-119 研究结论：当前 URL 摘录不触发网络请求、不抓取网页、不解析远端 HTML；未来如实现网页抓取，必须独立于手动 URL 摘录入口，并先满足 robots.txt、SSRF 防护、内容净化、超时/大小限制和可选依赖隔离
@@ -91,10 +91,10 @@
 
 ### 5.3 可维护性
 
-- 核心逻辑按职责分文件（ingestion / search / answers / storage / embeddings / llm）
+- 核心逻辑按职责分文件（`backend/domain`、`backend/storage`、`backend/api`、`backend/routes`）
 - 可选依赖（如 `pymupdf`）通过隔离入口引入，失败不影响主流程
 - API 接口变更通过 `docs/design/api-spec.md` 和 `docs/design/api-changes.md` 追踪
-- 61 个 API 端点原本集中在 `api.py`；B-131 已完成领域拆分蓝图，B-138 已把普通 REST 路由迁入 `webapp/routes/*`，当前 `api.py` 剩余 `path ==` 分支为 0，仅保留 `dispatch()`、`answer_stream_events()` 和兼容导出入口
+- 61 个 API 端点原本集中在 `api.py`；B-131 已完成领域拆分蓝图，B-138 已把普通 REST 路由拆入领域路由，B-155 后当前路由位于 `backend/routes/*`，兼容入口位于 `backend/api/dispatch.py`
 
 ### 5.4 可扩展性
 

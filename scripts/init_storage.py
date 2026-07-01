@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from backend.config.paths import ensure_kb_dirs, ensure_runtime_dirs
 from backend.config.settings import load_settings
-from webapp.storage import KnowledgeStore
+from backend.storage import KnowledgeStore
 
 
 def main() -> None:

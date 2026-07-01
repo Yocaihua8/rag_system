@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from webapp.llm import LlmConfig, OpenAICompatibleChatClient
-from webapp.models import ChatMessage, Document, PromptPreset, SearchHit
+from backend.domain.llm import LlmConfig, OpenAICompatibleChatClient
+from backend.domain.models import ChatMessage, Document, PromptPreset, SearchHit
 
 
 class _FakeHttpResponse:

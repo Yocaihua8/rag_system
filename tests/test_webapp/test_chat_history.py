@@ -2,8 +2,8 @@ import sqlite3
 from pathlib import Path
 from urllib.parse import quote
 
-from webapp.api import answer_stream_events, dispatch
-from webapp.storage import KnowledgeStore
+from backend.api.dispatch import answer_stream_events, dispatch
+from backend.storage import KnowledgeStore
 
 
 def test_answer_api_persists_project_chat_message_with_sources(tmp_path: Path):

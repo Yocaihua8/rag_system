@@ -21,8 +21,8 @@ B-08 目标是在不引入外部消息队列、不修改 SQLite schema 的前提
 
 ## 3. 实现边界
 
-- `webapp.server` 将 `/api/*` 兼容分发移入 Starlette 线程池执行，避免同步导入逻辑直接阻塞 FastAPI event loop。
-- `webapp.indexing.ProjectIndexingCoordinator` 在进程内维护 `project_id -> Lock`，所有写入型导入入口进入实际导入段前获取对应项目锁。
+- `backend.api.server` 将 `/api/*` 兼容分发移入 Starlette 线程池执行，避免同步导入逻辑直接阻塞 FastAPI event loop。
+- `backend.domain.indexing.ProjectIndexingCoordinator` 在进程内维护 `project_id -> Lock`，所有写入型导入入口进入实际导入段前获取对应项目锁。
 - 不同 `project_id` 使用不同锁，可以重叠执行；同一 `project_id` 的第二个导入请求会等待前一个导入完成。
 - `KnowledgeStore._connect()` 设置 SQLite `busy_timeout`，降低并发写入时的短暂锁冲突。
 

@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
-from webapp.auth import load_auth_settings, validate_jwt
-from webapp.server import create_app
+from backend.api.auth import load_auth_settings, validate_jwt
+from backend.api.server import create_app
 
 
 def _auth_settings():

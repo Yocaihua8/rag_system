@@ -12,7 +12,7 @@ default_runtime = Path(tempfile.gettempdir()) / "knowledge-island-e2e"
 default_runtime.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("KI_DB_PATH", str(default_runtime / "knowledge_island_e2e.db"))
 
-from webapp.server import run_server  # noqa: E402
+from backend.api.server import run_server  # noqa: E402
 
 
 if __name__ == "__main__":

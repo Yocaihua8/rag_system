@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-28
+> Last Updated：2026-07-01
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-007-qdrant-vector-store.md
 
 ## 1. 功能目标
@@ -55,7 +55,7 @@ RAG_QDRANT_VECTOR_SIZE=96
 ## 6. 架构落点
 
 - Provider 层：`backend/providers/vector_store/`
-- 过渡期集成点：`webapp/storage.py`、`webapp/search.py`
+- 集成点：`backend/storage/knowledge_store.py`、`backend/domain/search.py`
 - 正式设计文档：`docs/design/architecture-overview.md`
 - 架构决策记录：`docs/adr/ADR-007-qdrant-vector-store.md`
 

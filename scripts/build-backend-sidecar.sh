@@ -40,7 +40,7 @@ echo "Building FastAPI sidecar with PyInstaller for $TARGET_TRIPLE..."
   --clean \
   --onefile \
   --name "$BACKEND_NAME" \
-  --add-data "webapp/static_dist:webapp/static_dist" \
+  --add-data "backend/static_dist:backend/static_dist" \
   app.py
 
 SOURCE_BIN="$PROJECT_ROOT/dist/$BACKEND_NAME"

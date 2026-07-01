@@ -32,7 +32,7 @@ Write-Host "Building FastAPI sidecar with PyInstaller..."
     --clean `
     --onefile `
     --name $BackendName `
-    --add-data "webapp/static_dist;webapp/static_dist" `
+    --add-data "backend/static_dist;backend/static_dist" `
     app.py
 
 if ($LASTEXITCODE -ne 0) {

@@ -18,8 +18,8 @@ B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的
 - 通过 `RAG_VECTOR_STORE_PROVIDER=qdrant` 启用，默认仍为 SQLite fallback。
 - Qdrant 数据存储在本机目录，使用 `QdrantClient(path=...)`，不要求用户单独启动服务。
 - `backend/providers/vector_store/QdrantVectorStore` 负责 collection 创建、point upsert、project filter 查询和删除。
-- `webapp/storage.py` 继续写入 SQLite `chunk_vectors`，并在启用 Qdrant 时同步 upsert/delete Qdrant point。
-- `webapp/search.py` 启用 Qdrant 时使用 Qdrant 返回的向量候选；Qdrant 未启用、不可用或查询失败时回退 SQLite `chunk_vectors`。
+- `backend/storage/knowledge_store.py` 继续写入 SQLite `chunk_vectors`，并在启用 Qdrant 时同步 upsert/delete Qdrant point。
+- `backend/domain/search.py` 启用 Qdrant 时使用 Qdrant 返回的向量候选；Qdrant 未启用、不可用或查询失败时回退 SQLite `chunk_vectors`。
 
 ## 3. 备选方案
 
@@ -48,8 +48,8 @@ B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的
 | `backend/providers/base.py` | 新增 `BaseVectorStore`、`VectorSearchHit`、`VectorUpsertRecord` |
 | `backend/providers/vector_store/` | 新增 Qdrant 本地 provider |
 | `backend/config/vector_store.py` | 新增 Qdrant 启用配置、软依赖检查和默认 provider 缓存 |
-| `webapp/storage.py` | 文档入库、更新、删除、备份恢复同步 Qdrant；SQLite 写入仍为主兼容路径 |
-| `webapp/search.py` | 启用 Qdrant 时使用 provider 候选；失败时回退 SQLite 向量扫描 |
+| `backend/storage/knowledge_store.py` | 文档入库、更新、删除、备份恢复同步 Qdrant；SQLite 写入仍为主兼容路径 |
+| `backend/domain/search.py` | 启用 Qdrant 时使用 provider 候选；失败时回退 SQLite 向量扫描 |
 | `requirements.txt` | 新增 `qdrant-client` |
 | API | 不新增接口、不改请求参数、不改命中字段 |
 | 数据库 | 不修改 SQLite schema |
@@ -66,7 +66,7 @@ B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的
 
 - 将 `RAG_VECTOR_STORE_PROVIDER` 改回默认或移除，即可回退 SQLite `chunk_vectors` 检索。
 - 已写入的 Qdrant 本地目录可删除；SQLite `chunk_vectors` 保留完整兼容副本。
-- 如需代码回滚，删除 `backend/config/vector_store.py` 和 `backend/providers/vector_store/`，并恢复 `webapp/storage.py` / `webapp/search.py` 到仅 SQLite 路径。
+- 如需代码回滚，删除 `backend/config/vector_store.py` 和 `backend/providers/vector_store/`，并恢复 `backend/storage/knowledge_store.py` / `backend/domain/search.py` 到仅 SQLite 路径。
 
 ## 7. 验证方式
 

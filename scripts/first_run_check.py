@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backend.config.paths import ensure_kb_dirs, ensure_runtime_dirs
 from backend.config.settings import load_settings
 from backend.providers.llm.ollama import OllamaLLM
-from webapp.storage import KnowledgeStore
+from backend.storage import KnowledgeStore
 
 
 @dataclass

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（补充 B-154 依赖安全审计基线）
+> Last Updated：2026-07-01（补充 B-155 backend 目录重组回归）
 
 ## 1. 目标
 
@@ -65,7 +65,7 @@ docker compose config
 - 变更默认 Web MVP 的 API、导入、检索、回答或聊天记录行为时，必须复跑 `tests/test_webapp`。
 - B-147 后，旧 PySide6 / 六边形 `src/` 代码与对应旧测试已归档到 `archive/src-desktop-legacy/`，不再作为当前测试基线。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
-- 变更 `frontend/`、`package.json`、Vite 配置或 `webapp/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
+- 变更 `frontend/`、`package.json`、Vite 配置或 `backend/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
 - 变更端到端 UI 自动化测试、Playwright 配置、`tests/e2e/` 或 Web MVP 主流程页面联动时，必须覆盖 `tests/test_webapp/test_e2e_ui.py`，首次本机运行前执行 `npm run e2e:install` 安装 Chromium，并运行 `npm run test:e2e`。E2E 服务通过 `KI_DB_PATH` 使用临时 SQLite DB，不应写入默认 runtime DB；如本机 Chromium 下载受限，可临时设置 `KI_E2E_BROWSER_CHANNEL=chrome` 或 `msedge` 使用已安装浏览器完成验证。
 - 变更 `src-tauri/`、Tauri 配置、Windows/Unix sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备目标平台 Rust/Cargo、PyInstaller 和 Tauri 原生依赖时继续运行对应平台命令：Windows `npm run tauri:build:windows`、macOS `npm run tauri:build:macos`、Linux `npm run tauri:build:linux`，否则记录缺失工具链或非目标系统原因。B-152 起，该测试还校验桌面 bundle 图标清单：`32x32.png`、`128x128.png`、`128x128@2x.png`、`icon.icns`、`icon.ico`。
 - 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
@@ -107,9 +107,9 @@ docker compose config
 - 变更问答流式输出或请求取消时，必须覆盖 `/api/answer/stream` 的 SSE `token/done/answer_error` 事件、OpenAI-compatible `stream=true` 解析、EventSource 前端入口、`source.close()` 取消后的状态提示和按钮恢复。
 - 变更回答 Markdown 渲染时，必须覆盖 CDN 入口、`marked.parse`、`DOMPurify.sanitize`、`highlight.js` 代码高亮、纯文本回退和前端静态语法检查。
 - 变更深色模式时，必须覆盖主题切换入口、`prefers-color-scheme`、`data-theme`、`localStorage` 持久化、浅色/深色 CSS 变量和前端静态语法检查。
-- 变更 Web 端 LLM、掌握评估、首次引导或静态前端约束时，必须复跑 `tests/test_webapp`。B-143 后 `webapp/static/` legacy 原生前端已删除，不再执行 `webapp/static/js/*.js` 的 Node 语法检查。
+- 变更 Web 端 LLM、掌握评估、首次引导或静态前端约束时，必须复跑 `tests/test_webapp`。B-143 后 legacy 原生前端已删除，不再执行旧静态 JS 的 Node 语法检查。
 - 变更 Docker 启停入口时，必须复跑 `tests/test_webapp/test_docker_startup.py`，并至少真实执行一次启动或停止脚本。
-- 变更 FastAPI/Uvicorn 运行时、`app.py`、`webapp/server.py` 或 SSE 外壳时，必须复跑 `tests/test_webapp/test_fastapi_server.py`、`tests/test_webapp/test_app_entrypoint.py` 和 `tests/test_webapp/test_docker_startup.py`。
+- 变更 FastAPI/Uvicorn 运行时、`app.py`、`backend/api/server.py` 或 SSE 外壳时，必须复跑 `tests/test_webapp/test_fastapi_server.py`、`tests/test_webapp/test_app_entrypoint.py` 和 `tests/test_webapp/test_docker_startup.py`。
 
 ## 5. 回归清单
 
@@ -139,6 +139,6 @@ docker compose config
 - Web MVP 首次使用引导可检测 Ollama、拉取推荐模型并引导创建第一个知识库
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
-- Vue/Vite 构建链可生成 `webapp/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
+- Vue/Vite 构建链可生成 `backend/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
 - B-145 / B-24 / B-152 Tauri 桌面打包链路包含 `src-tauri/`、桌面 bundle 图标（`icon.ico`、`icon.icns`、PNG 尺寸图）、`scripts/build-backend-sidecar.ps1`、`scripts/build-backend-sidecar.sh`、`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run tauri:build:windows`、`npm run tauri:build:macos`、`npm run tauri:build:linux`、`.github/workflows/tauri-packaging.yml`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 或非目标系统时只能完成静态契约、`npm run build` 与 `npx tauri info` 验证，不能宣称 `.dmg` 或 `.AppImage` 原生产物通过。
 - Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；B-141 已完成资料库项目空间选择/创建/改名/删除、文档列表/单文档预览/删除、文本笔记/URL 摘录导入、导入批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出，设置页模型设置/Profile/Prompt 预设，评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文入口；B-142 已补齐 Vue 工作台 SSE/取消、会话历史和消息管理验证

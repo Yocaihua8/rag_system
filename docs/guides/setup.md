@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（补充 B-154 依赖审计与可选依赖矩阵）
+> Last Updated：2026-07-01（补充 B-155 backend 目录重组）
 
 ## 1. 环境要求
 
@@ -56,9 +56,9 @@ B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
 npm run build
 ```
 
-构建产物输出到 `webapp/static_dist/`，该目录不入库。`python app.py` 只服务 `webapp/static_dist/`；未构建或构建产物缺失时会在启动阶段提示先执行 `npm run build`，不再回退到 legacy `webapp/static/`。
+构建产物输出到 `backend/static_dist/`，该目录不入库。`python app.py` 只服务 `backend/static_dist/`；未构建或构建产物缺失时会在启动阶段提示先执行 `npm run build`，不再回退到 legacy 静态目录。
 
-Docker 镜像构建会在独立 Node 阶段执行 `npm ci && npm run build`，并把生成的 `webapp/static_dist/` 复制到最终 Python 镜像中。运行阶段只安装 `requirements-docker.txt` 中的 Web 运行依赖，并以非 root `appuser` 启动。因此 Docker 启动不需要宿主机提前执行 `npm run build`，但重新拉取或修改前端源码后仍需重新 `docker compose --project-directory . -f compose.yaml up --build -d`。
+Docker 镜像构建会在独立 Node 阶段执行 `npm ci && npm run build`，并把生成的 `backend/static_dist/` 复制到最终 Python 镜像中。运行阶段只安装 `requirements-docker.txt` 中的 Web 运行依赖，并以非 root `appuser` 启动。因此 Docker 启动不需要宿主机提前执行 `npm run build`，但重新拉取或修改前端源码后仍需重新 `docker compose --project-directory . -f compose.yaml up --build -d`。
 
 ### 2.1 依赖审计与可选依赖矩阵
 

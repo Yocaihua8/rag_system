@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from webapp.api import dispatch
-from webapp.storage import KnowledgeStore
+from backend.api.dispatch import dispatch
+from backend.storage import KnowledgeStore
 
 
 def test_assessment_start_generates_questions_from_imported_documents(tmp_path: Path):
