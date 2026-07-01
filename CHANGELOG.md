@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+---
+
+## [v1.0.0] - 2026-07-01
+
 ### Added
 - **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `backend/static_dist/`
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
