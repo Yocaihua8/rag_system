@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（B-155 webapp 全量重组完成）
+> Last Updated：2026-07-03（B-158 Codex 工作区会话与资料导入 HTML 预览完成）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -70,6 +70,9 @@
 | B-153 | docs | v1.0.0 发布门禁与回归清单 | done | P1 | M | v1.0.0 | RAG 团队 | docs/release/V1_0_0_READINESS_2026-07-01.md, docs/guides/release-process.md | Phase 2 硬化主线：已新增 v1.0.0 readiness 清单与回归脚本，覆盖导入/检索/问答/导出/打包主流程，明确 go/no-go 门禁，并在发布流程中设为 v1.0.0 发布前检查入口 |
 | B-154 | tech-debt | 依赖与安全审计基线 | done | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI 与 v1.0.0 readiness |
 | B-155 | tech-debt | webapp/ 全量重组至 backend/ | done | P2 | XL | v1.1.0 | RAG 团队 | docs/design/architecture-overview.md | v1.0.0 后执行：已废弃受控 `webapp/` 源码目录，按职责重组至 `backend/api/`、`backend/storage/`、`backend/domain/`、`backend/routes/` 等子包；已迁移 Python import 路径、测试和文档引用；不改 API 契约、不改 SQLite schema，不改 `frontend/src` 或前端交互，仅调整 Vite 构建输出到 `backend/static_dist/` |
+| B-156 | feature | 第二阶段前端简洁化重设计 | done | P1 | XL | v1.1.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md, docs/superpowers/specs/2026-07-02-frontend-phase-2-redesign.md | 已将 Vue 前端从迁移期四视图收束为“聊 / 库 / 设”简洁主线：默认聊天工作台，工作区和线程统一在侧栏，库改为资料管理弹窗并支持先加入库、再按资料夹和资料列表选择资料，设改为全屏设置；独立评估入口收进聊天工具，主色调整为黑白灰中性方案。 |
+| B-157 | feature | 全局资料库与工作区连接接口 | todo | P1 | L | v1.2.0 | RAG 团队 | docs/design/api-spec.md, docs/design/database-design.md | B-156 前端不伪造跨工作区连接；当前后端仍以 `project_id` 为资料边界。后续需设计并实现全局资料条目、资料夹/文件/网页摘录入库结果与工作区引用关系，再把库弹窗“选择资料”接入真实跨工作区连接。 |
+| B-158 | docs | Codex 工作区会话与资料导入 HTML 预览 | done | P1 | S | v1.1.0 | RAG 团队 | docs/design/codex-workspace-chat-import-design.md, docs/previews/codex-anythingllm-workspace-preview/index.html | 已基于 In Review 设计新增单文件可交互 HTML 预览，用于验证默认会话首页、添加资料五步流程、依据抽屉、设置全屏页和练习入口；预览不修改正式 Vue 代码，不伪装后端未支持的跨工作区资料、文件级问答范围或实时导入进度。 |
 
 ---
 

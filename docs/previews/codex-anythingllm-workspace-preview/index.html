@@ -1,0 +1,1557 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Knowledge Island Preview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f7f5;
+      --panel: #ffffff;
+      --panel-soft: #f1f1ef;
+      --panel-hover: #e9e9e6;
+      --text: #1f1f1d;
+      --muted: #6f6d68;
+      --line: #d8d6d0;
+      --strong: #111111;
+      --inverse: #ffffff;
+      --warning: #8a5a00;
+      --danger: #9b1c1c;
+      --ok: #1f6b44;
+      --shadow: 0 24px 70px rgba(20, 20, 20, .18);
+      --motion-fast: 140ms;
+      --motion-normal: 200ms;
+      --motion-slow: 240ms;
+      --motion-ease: cubic-bezier(.2, .8, .2, 1);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+      background: transparent;
+      transition:
+        background-color var(--motion-fast) var(--motion-ease),
+        border-color var(--motion-fast) var(--motion-ease),
+        color var(--motion-fast) var(--motion-ease),
+        transform var(--motion-fast) var(--motion-ease);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+      transition: grid-template-columns var(--motion-normal) var(--motion-ease);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      background: #fbfbfa;
+      transition:
+        transform var(--motion-normal) var(--motion-ease),
+        border-color var(--motion-normal) var(--motion-ease),
+        box-shadow var(--motion-normal) var(--motion-ease);
+    }
+
+    .sidebar-head {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) 36px;
+      gap: 10px;
+      align-items: center;
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--strong);
+      color: var(--inverse);
+      font-weight: 800;
+      letter-spacing: .03em;
+    }
+
+    .brand-title {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 750;
+      font-size: 17px;
+    }
+
+    .brand-subtitle {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+    }
+
+    .icon-button:hover {
+      background: var(--panel-hover);
+      border-color: var(--line);
+    }
+
+    .icon-button:active,
+    .primary:active,
+    .secondary:active,
+    .quiet:active {
+      transform: translateY(1px);
+    }
+
+    .sidebar-section {
+      padding: 14px 14px 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .workspace-select,
+    .session-item,
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      text-align: left;
+      transition:
+        background-color var(--motion-fast) var(--motion-ease),
+        color var(--motion-fast) var(--motion-ease),
+        border-color var(--motion-fast) var(--motion-ease);
+    }
+
+    .workspace-select {
+      border: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .session-item:hover,
+    .nav-item:hover,
+    .workspace-select:hover {
+      background: var(--panel-hover);
+    }
+
+    .session-item.active,
+    .nav-item.active {
+      background: #e2e2df;
+      color: var(--strong);
+      font-weight: 750;
+    }
+
+    .search {
+      width: 100%;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      outline: none;
+    }
+
+    .search:focus,
+    textarea:focus,
+    input:focus {
+      border-color: #1f1f1d;
+    }
+
+    .sessions {
+      display: grid;
+      gap: 4px;
+      margin-top: 10px;
+    }
+
+    .session-meta {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .sidebar-spacer {
+      flex: 1;
+    }
+
+    .sidebar-foot {
+      display: grid;
+      gap: 6px;
+      padding: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 0;
+      min-width: 0;
+      transition: grid-template-columns var(--motion-normal) var(--motion-ease);
+    }
+
+    .main.evidence-open {
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .chat {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      min-width: 0;
+      height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 66px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 247, 245, .86);
+      backdrop-filter: blur(16px);
+    }
+
+    .mobile-menu {
+      display: none;
+    }
+
+    .chat-title {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .chat-title h1 {
+      margin: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .chat-title p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 32px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .pill strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .messages {
+      min-height: 0;
+      overflow: auto;
+      padding: 30px min(8vw, 88px) 24px;
+    }
+
+    .empty-guide {
+      max-width: 760px;
+      margin: 6vh auto 28px;
+      padding: 0;
+    }
+
+    .empty-guide h2 {
+      margin: 0 0 10px;
+      font-size: clamp(26px, 4vw, 42px);
+      line-height: 1.08;
+    }
+
+    .empty-guide p {
+      max-width: 620px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .primary,
+    .secondary,
+    .quiet {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    .primary {
+      background: var(--strong);
+      color: var(--inverse);
+      border-color: var(--strong);
+      font-weight: 700;
+    }
+
+    .primary:hover {
+      background: #2b2b29;
+    }
+
+    .secondary {
+      background: var(--panel);
+    }
+
+    .secondary:hover,
+    .quiet:hover {
+      background: var(--panel-hover);
+    }
+
+    .quiet {
+      min-height: 34px;
+      padding: 7px 10px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .message-stack {
+      display: grid;
+      gap: 20px;
+      max-width: 840px;
+      margin: 0 auto;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #deded9;
+      color: #31312e;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .message.ai .avatar {
+      background: #111111;
+      color: #ffffff;
+    }
+
+    .bubble {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      line-height: 1.7;
+    }
+
+    .bubble p {
+      margin: 0 0 10px;
+    }
+
+    .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .source-link {
+      margin-top: 12px;
+    }
+
+    .composer-wrap {
+      padding: 14px min(8vw, 88px) 22px;
+      background: linear-gradient(180deg, rgba(247, 247, 245, 0), var(--bg) 24%);
+    }
+
+    .composer {
+      max-width: 840px;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: 0 10px 30px rgba(20, 20, 20, .06);
+    }
+
+    .composer textarea {
+      display: block;
+      width: 100%;
+      min-height: 88px;
+      resize: none;
+      padding: 16px 16px 4px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .composer-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-top: 1px solid var(--line);
+    }
+
+    .composer-tools .grow {
+      flex: 1;
+    }
+
+    .menu-pop {
+      position: absolute;
+      display: none;
+      z-index: 10;
+      width: 260px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .menu-pop.open {
+      display: grid;
+      gap: 4px;
+      animation: menuIn var(--motion-fast) var(--motion-ease);
+    }
+
+    .menu-pop button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .menu-pop button:hover {
+      background: var(--panel-soft);
+    }
+
+    .evidence {
+      overflow: hidden;
+      border-left: 1px solid var(--line);
+      background: #fbfbfa;
+    }
+
+    .evidence-panel {
+      width: 360px;
+      height: 100vh;
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .main.evidence-open .evidence-panel {
+      animation: drawerIn var(--motion-normal) var(--motion-ease);
+    }
+
+    .evidence-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .evidence-head h2,
+    .modal-title h2,
+    .settings-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .source-card,
+    .result-row,
+    .settings-card {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .source-card + .source-card {
+      margin-top: 10px;
+    }
+
+    .source-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .source-card p,
+    .result-row p,
+    .settings-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .drawer-note {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+    }
+
+    .modal-backdrop,
+    .settings-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 30;
+      background: rgba(16, 16, 16, .35);
+    }
+
+    .modal-backdrop.open,
+    .settings-backdrop.open {
+      display: block;
+      animation: fadeIn var(--motion-fast) var(--motion-ease);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 40px;
+      display: none;
+      z-index: 40;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .modal.open {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      animation: modalIn var(--motion-slow) var(--motion-ease);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .modal-title p,
+    .settings-head p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .modal-body {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: 0;
+    }
+
+    .steps {
+      padding: 18px;
+      border-right: 1px solid var(--line);
+      background: #fbfbfa;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 10px 0;
+      color: var(--muted);
+      transition: color var(--motion-fast) var(--motion-ease);
+    }
+
+    .step.active {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .step-num {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      font-size: 12px;
+      font-weight: 800;
+      transition:
+        background-color var(--motion-fast) var(--motion-ease),
+        border-color var(--motion-fast) var(--motion-ease),
+        color var(--motion-fast) var(--motion-ease);
+    }
+
+    .step.active .step-num {
+      background: var(--strong);
+      color: var(--inverse);
+      border-color: var(--strong);
+    }
+
+    .import-content {
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .import-pane {
+      display: none;
+    }
+
+    .import-pane.active {
+      display: block;
+      animation: contentIn var(--motion-fast) var(--motion-ease);
+    }
+
+    .pane-head {
+      margin-bottom: 16px;
+    }
+
+    .pane-head h3 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+
+    .pane-head p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .source-group {
+      grid-column: 1 / -1;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .source-option {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 12px;
+      min-height: 98px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      text-align: left;
+      transition:
+        background-color var(--motion-fast) var(--motion-ease),
+        border-color var(--motion-fast) var(--motion-ease);
+    }
+
+    .source-option:hover,
+    .source-option.active {
+      border-color: #1f1f1d;
+      background: #f3f3f0;
+    }
+
+    .source-icon {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: var(--panel-soft);
+      font-weight: 900;
+    }
+
+    .source-option strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .source-option span {
+      display: block;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      max-width: 720px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .field input,
+    .field textarea {
+      width: 100%;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 130px;
+      resize: vertical;
+    }
+
+    .notice {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .notice.warning {
+      border-color: #dfc785;
+      color: var(--warning);
+      background: #fff7df;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .result-stat {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .result-stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .result-stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .settings {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 50;
+      grid-template-columns: 278px minmax(0, 1fr);
+      background: var(--bg);
+    }
+
+    .settings.open {
+      display: grid;
+      animation: pageIn var(--motion-slow) var(--motion-ease);
+    }
+
+    .settings-nav {
+      border-right: 1px solid var(--line);
+      background: #fbfbfa;
+      padding: 18px;
+    }
+
+    .settings-head {
+      margin-bottom: 20px;
+    }
+
+    .setting-tab {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 42px;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .setting-tab.active {
+      background: #e2e2df;
+      font-weight: 750;
+    }
+
+    .settings-main {
+      overflow: auto;
+      padding: 36px min(6vw, 72px);
+    }
+
+    .settings-page {
+      display: none;
+      max-width: 780px;
+    }
+
+    .settings-page.active {
+      display: block;
+      animation: contentIn var(--motion-fast) var(--motion-ease);
+    }
+
+    .settings-page h3 {
+      margin: 0 0 10px;
+      font-size: 28px;
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .settings-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .collapsed .app {
+      grid-template-columns: 0 minmax(0, 1fr);
+    }
+
+    .collapsed .sidebar {
+      width: 292px;
+      transform: translateX(-100%);
+      border-right-color: transparent;
+      pointer-events: none;
+    }
+
+    .collapsed .mobile-menu {
+      display: inline-grid;
+    }
+
+    .collapsed.sidebar-open .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 25;
+      width: min(86vw, 320px);
+      transform: translateX(0);
+      border-right-color: var(--line);
+      pointer-events: auto;
+      box-shadow: var(--shadow);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(.985);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes pageIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes menuIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes contentIn {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes drawerIn {
+      from {
+        opacity: .7;
+        transform: translateX(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 25;
+        width: min(86vw, 320px);
+        transform: translateX(-105%);
+        box-shadow: var(--shadow);
+      }
+
+      body.sidebar-open .sidebar {
+        transform: translateX(0);
+      }
+
+      .mobile-menu {
+        display: inline-grid;
+      }
+
+      .main.evidence-open {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .evidence {
+        position: fixed;
+        inset: 0 0 0 auto;
+        z-index: 28;
+        width: min(88vw, 380px);
+        transform: translateX(100%);
+        transition: transform var(--motion-normal) var(--motion-ease);
+      }
+
+      .main.evidence-open .evidence {
+        transform: translateX(0);
+      }
+
+      .modal {
+        inset: 12px;
+      }
+
+      .modal-body,
+      .settings {
+        grid-template-columns: 1fr;
+      }
+
+      .steps,
+      .settings-nav {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .settings {
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .source-grid,
+      .result-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .messages,
+      .composer-wrap {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .pill.hide-mobile {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="工作区和会话">
+      <div class="sidebar-head">
+        <div class="brand-mark">KI</div>
+        <div>
+          <div class="brand-title">Knowledge Island</div>
+          <div class="brand-subtitle">本地资料助手</div>
+        </div>
+        <button class="icon-button" id="collapseSidebar" aria-label="收起侧栏">☰</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-title">工作区 <button class="icon-button" aria-label="新建工作区">+</button></div>
+        <button class="workspace-select" id="workspaceButton">
+          <span>□</span>
+          <span><strong id="workspaceName">产品资料</strong><span class="session-meta">当前资料可用</span></span>
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-title">会话 <button class="icon-button" id="newSession" aria-label="新建会话">+</button></div>
+        <input class="search" aria-label="搜索会话" placeholder="搜索会话">
+        <div class="sessions" id="sessionList">
+          <button class="session-item active" data-title="第二阶段前端设计">
+            <span>○</span>
+            <span>第二阶段前端设计<span class="session-meta">刚刚 · 6 条消息</span></span>
+          </button>
+          <button class="session-item" data-title="资料导入问题">
+            <span>○</span>
+            <span>资料导入问题<span class="session-meta">昨天 · 4 条消息</span></span>
+          </button>
+          <button class="session-item" data-title="默认会话">
+            <span>○</span>
+            <span>默认会话<span class="session-meta">旧聊天记录</span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sidebar-spacer"></div>
+
+      <div class="sidebar-foot">
+        <button class="nav-item active" id="openImportFromSide"><span>＋</span><span>添加资料</span></button>
+        <button class="nav-item" id="openMaterials"><span>□</span><span>资料</span></button>
+        <button class="nav-item" id="openSettings"><span>⚙</span><span>设置</span></button>
+      </div>
+    </aside>
+
+    <main class="main" id="mainLayout">
+      <section class="chat" aria-label="会话">
+        <header class="topbar">
+          <button class="icon-button mobile-menu" id="mobileSidebar" aria-label="打开侧栏">☰</button>
+          <div class="chat-title">
+            <h1 id="chatTitle">第二阶段前端设计</h1>
+            <p>当前工作区：产品资料 · 问答范围：当前工作区资料</p>
+          </div>
+          <button class="pill hide-mobile" id="openImportTop">＋ 添加资料</button>
+          <button class="pill" id="toggleEvidence">参考资料</button>
+        </header>
+
+        <div class="messages">
+          <section class="empty-guide">
+            <h2>围绕当前资料开一个会话。</h2>
+            <p>首页只处理当前会话。资料、设置、练习和高级检查都收进对应入口，聊天区保持轻便。</p>
+            <div class="quick-actions">
+              <button class="primary" id="emptyImport">＋ 添加资料</button>
+              <button class="secondary" id="emptyEvidence">查看依据</button>
+            </div>
+          </section>
+
+          <div class="message-stack">
+            <article class="message user">
+              <div class="avatar">我</div>
+              <div class="bubble">
+                这个项目的下一版首页应该怎么收敛？
+              </div>
+            </article>
+            <article class="message ai">
+              <div class="avatar">KI</div>
+              <div class="bubble">
+                <p>首页只保留当前工作区、会话列表、聊天内容、输入框、添加资料和依据入口。资料管理、导入历史、模型配置、练习和高级检查都不在首页展开。</p>
+                <p>这样用户进入应用后只需要做一件事：选择当前工作区，然后围绕资料继续提问。</p>
+                <div class="source-link">
+                  <button class="quiet" id="sourceFromAnswer">参考资料 3</button>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="composer-wrap">
+          <div class="composer">
+            <textarea aria-label="输入问题" placeholder="问当前工作区里的资料..."></textarea>
+            <div class="composer-tools">
+              <button class="icon-button" id="plusButton" aria-label="更多操作">＋</button>
+              <button class="icon-button" id="toolsButton" aria-label="快捷工具">◇</button>
+              <div class="grow"></div>
+              <button class="pill">本机</button>
+              <button class="pill hide-mobile">标准</button>
+              <button class="primary">发送</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="evidence" aria-label="参考资料">
+        <div class="evidence-panel">
+          <div class="evidence-head">
+            <h2>参考资料</h2>
+            <button class="icon-button" id="closeEvidence" aria-label="关闭依据">×</button>
+          </div>
+          <div class="source-card">
+            <strong>docs/design/codex-workspace-chat-import-design.md</strong>
+            <p>首页只展示当前会话必须的信息：当前工作区、会话列表、聊天输入和依据入口。</p>
+          </div>
+          <div class="source-card">
+            <strong>docs/design/api-spec.md</strong>
+            <p>问答、会话、资料和工具运行都以当前项目为边界，不能伪装跨工作区问答。</p>
+          </div>
+          <div class="source-card">
+            <strong>docs/design/import-batches-design.md</strong>
+            <p>导入批次用于查看结果和原因，不提供回滚或后台队列。</p>
+          </div>
+          <div class="drawer-note">
+            来源不足时，这里只提示“扩大来源搜索”。工具仍由用户手动触发，不自动执行写操作。
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div class="menu-pop" id="plusMenu" role="menu" aria-label="更多操作">
+    <button data-action="import">＋ 添加资料</button>
+    <button data-action="temp">□ 上传临时文件</button>
+    <button data-action="practice">? 练习一下</button>
+    <button data-action="summarize">≡ 整理要点</button>
+  </div>
+
+  <div class="menu-pop" id="toolsMenu" role="menu" aria-label="快捷工具">
+    <button>◇ 快捷指令</button>
+    <button>□ 自定义工具</button>
+    <button>□ MCP 入口</button>
+    <button>≡ 对比回答</button>
+  </div>
+
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <section class="modal" id="importModal" aria-modal="true" aria-label="添加资料">
+    <header class="modal-head">
+      <div class="modal-title">
+        <h2>添加资料</h2>
+        <p>先选择工作区，再选择资料来源。当前预览不展示跨工作区共享。</p>
+      </div>
+      <button class="icon-button" id="closeImport" aria-label="关闭">×</button>
+    </header>
+    <div class="modal-body">
+      <aside class="steps" id="steps">
+        <div class="step active" data-step="0"><span class="step-num">1</span><span>选择工作区</span></div>
+        <div class="step" data-step="1"><span class="step-num">2</span><span>选择来源</span></div>
+        <div class="step" data-step="2"><span class="step-num">3</span><span>填写或预检</span></div>
+        <div class="step" data-step="3"><span class="step-num">4</span><span>开始导入</span></div>
+        <div class="step" data-step="4"><span class="step-num">5</span><span>查看结果</span></div>
+      </aside>
+      <div class="import-content">
+        <section class="import-pane active" data-pane="0">
+          <div class="pane-head">
+            <h3>选择目标工作区</h3>
+            <p>资料属于当前工作区。没有工作区时，需要先创建工作区再提问。</p>
+          </div>
+          <div class="form-grid">
+            <button class="source-option active">
+              <span class="source-icon">□</span>
+              <span><strong>产品资料</strong><span>当前工作区 · 28 份资料</span></span>
+            </button>
+            <button class="source-option">
+              <span class="source-icon">□</span>
+              <span><strong>学习笔记</strong><span>16 份资料</span></span>
+            </button>
+            <button class="source-option">
+              <span class="source-icon">＋</span>
+              <span><strong>新建工作区</strong><span>创建一个新的资料空间</span></span>
+            </button>
+          </div>
+        </section>
+
+        <section class="import-pane" data-pane="1">
+          <div class="pane-head">
+            <h3>选择资料来源</h3>
+            <p>来源按用户能理解的方式分组。未支持的能力不会显示成已连接。</p>
+          </div>
+          <div class="source-grid" id="sourceGrid">
+            <div class="source-group">本机资料</div>
+            <button class="source-option active" data-source="folder"><span class="source-icon">□</span><span><strong>文件夹</strong><span>一次选择整个本机文件夹上传</span></span></button>
+            <button class="source-option" data-source="file"><span class="source-icon">□</span><span><strong>文件</strong><span>上传一个或多个文件</span></span></button>
+            <button class="source-option" data-source="obsidian"><span class="source-icon">◇</span><span><strong>Obsidian</strong><span>导入本机 vault，不连接账号</span></span></button>
+            <div class="source-group">手写资料</div>
+            <button class="source-option" data-source="note"><span class="source-icon">≡</span><span><strong>笔记</strong><span>粘贴会议记录、想法或摘录</span></span></button>
+            <button class="source-option" data-source="url"><span class="source-icon">↗</span><span><strong>URL 摘录</strong><span>保存链接和手动粘贴正文</span></span></button>
+            <div class="source-group">网络资料</div>
+            <button class="source-option" data-source="web"><span class="source-icon">◎</span><span><strong>单网页抓取</strong><span>公开网页，先预览再确认</span></span></button>
+            <button class="source-option" data-source="github"><span class="source-icon">GH</span><span><strong>GitHub 仓库</strong><span>输入 clone URL，本机 git 拉取</span></span></button>
+            <div class="source-group">迁移资料</div>
+            <button class="source-option" data-source="notion"><span class="source-icon">N</span><span><strong>Notion ZIP</strong><span>离线导入导出的压缩包</span></span></button>
+          </div>
+        </section>
+
+        <section class="import-pane" data-pane="2">
+          <div class="pane-head">
+            <h3 id="sourceFormTitle">填写文件夹信息</h3>
+            <p id="sourceFormHelp">浏览器授权后上传内容，不代表后续持续同步该本机路径。</p>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="sourceInput">资料位置或内容</label>
+              <input id="sourceInput" value="C:\\Users\\Lenovo\\Documents\\Product">
+            </div>
+            <div class="notice" id="sourceBoundary">文件夹上传只导入本次选择的内容；如需持续同步，需要使用绑定目录同步。</div>
+            <button class="secondary">预检可导入内容</button>
+          </div>
+        </section>
+
+        <section class="import-pane" data-pane="3">
+          <div class="pane-head">
+            <h3>开始导入</h3>
+            <p>后端当前没有通用实时进度，所以这里不显示百分比。只展示等待状态和正在处理的动作。</p>
+          </div>
+          <div class="notice warning">正在处理资料：读取文件、整理文本、建立可查询内容。请等待完成结果。</div>
+        </section>
+
+        <section class="import-pane" data-pane="4">
+          <div class="pane-head">
+            <h3>导入结果</h3>
+            <p>跳过不等于失败。格式不支持、文件过大或缺少解析器会单独说明。</p>
+          </div>
+          <div class="result-grid">
+            <div class="result-stat"><strong>12</strong><span>已加入</span></div>
+            <div class="result-stat"><strong>3</strong><span>已更新</span></div>
+            <div class="result-stat"><strong>4</strong><span>已跳过</span></div>
+            <div class="result-stat"><strong>1</strong><span>失败</span></div>
+          </div>
+          <div class="form-grid">
+            <div class="result-row"><strong>已跳过：design-assets.psd</strong><p>格式暂不支持。</p></div>
+            <div class="result-row"><strong>失败：scan.pdf</strong><p>未检测到可提取文本，当前不支持 OCR。</p></div>
+            <div class="result-row"><strong>本次没有回滚按钮</strong><p>批次历史只用于查看结果和原因，不作为备份或回滚。</p></div>
+          </div>
+        </section>
+
+        <div class="modal-actions">
+          <button class="secondary" id="prevStep">上一步</button>
+          <div>
+            <button class="quiet" id="viewMaterials">浏览资料</button>
+            <button class="primary" id="nextStep">下一步</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="settings-backdrop" id="settingsBackdrop"></div>
+  <section class="settings" id="settingsPage" aria-label="设置">
+    <aside class="settings-nav">
+      <button class="quiet" id="closeSettings">← 返回</button>
+      <div class="settings-head">
+        <h2>设置</h2>
+        <p>技术字段收在详情里，不进入首页。</p>
+      </div>
+      <button class="setting-tab active" data-setting="engine">回答引擎</button>
+      <button class="setting-tab" data-setting="local">本机模型</button>
+      <button class="setting-tab" data-setting="online">在线 API</button>
+      <button class="setting-tab" data-setting="storage">资料保存</button>
+      <button class="setting-tab" data-setting="backup">备份恢复</button>
+      <button class="setting-tab" data-setting="appearance">外观</button>
+      <button class="setting-tab" data-setting="advanced">高级</button>
+    </aside>
+    <div class="settings-main">
+      <section class="settings-page active" data-page="engine">
+        <h3>回答引擎</h3>
+        <p>普通界面只展示本机、快速、在线。具体服务名放在详情里。</p>
+        <div class="settings-grid">
+          <div class="settings-card"><div><strong>本机</strong><p>不配置在线服务时仍可根据资料片段回答。</p></div><button class="primary">使用</button></div>
+          <div class="settings-card"><div><strong>快速</strong><p>优先响应速度，适合整理和提问。</p></div><button class="secondary">选择</button></div>
+          <div class="settings-card"><div><strong>在线</strong><p>使用 OpenAI-compatible 服务。</p></div><button class="secondary">选择</button></div>
+        </div>
+      </section>
+      <section class="settings-page" data-page="local">
+        <h3>本机模型</h3>
+        <p>显示 Ollama 状态和推荐模型。拉取过程可以显示真实流式进度。</p>
+      </section>
+      <section class="settings-page" data-page="online">
+        <h3>在线 API</h3>
+        <p>配置 API 地址、模型名和访问密钥来源。访问密钥不回显明文。</p>
+      </section>
+      <section class="settings-page" data-page="storage">
+        <h3>资料保存</h3>
+        <p>第一版先显示当前位置。迁移已有资料需要单独后端任务。</p>
+      </section>
+      <section class="settings-page" data-page="backup">
+        <h3>备份恢复</h3>
+        <p>导出和恢复当前工作区资料，不导出访问密钥。</p>
+      </section>
+      <section class="settings-page" data-page="appearance">
+        <h3>外观</h3>
+        <p>黑白灰轻量界面。深色模式在这里切换。</p>
+      </section>
+      <section class="settings-page" data-page="advanced">
+        <h3>高级</h3>
+        <p>检索参数、Prompt、Profile 和调试入口只放在这里，不进入首页。</p>
+      </section>
+    </div>
+  </section>
+
+  <script>
+    const body = document.body;
+    const mainLayout = document.getElementById('mainLayout');
+    const importModal = document.getElementById('importModal');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const settingsPage = document.getElementById('settingsPage');
+    const settingsBackdrop = document.getElementById('settingsBackdrop');
+    const plusMenu = document.getElementById('plusMenu');
+    const toolsMenu = document.getElementById('toolsMenu');
+    let stepIndex = 0;
+    let selectedSource = 'folder';
+
+    const sourceCopy = {
+      folder: ['填写文件夹信息', '浏览器授权后上传内容，不代表后续持续同步该本机路径。', 'C:\\\\Users\\\\Lenovo\\\\Documents\\\\Product', '文件夹上传只导入本次选择的内容；如需持续同步，需要使用绑定目录同步。'],
+      file: ['选择文件', '支持一个或多个文件。文件上传只能做待上传清单，不伪装服务端预检。', 'design.md, notes.docx, api.txt', '上传完成后才会返回真实导入结果。'],
+      obsidian: ['选择 Obsidian Vault', '导入本机 vault，不连接账号，也不保存远程凭证。', 'D:\\\\Notes\\\\Vault', '当前只是离线资料导入，不是账号同步。'],
+      note: ['填写笔记', '把会议记录、想法或摘录写入当前工作区资料。', '第二阶段设计纪要', '笔记会作为当前工作区资料保存。'],
+      url: ['保存 URL 摘录', 'URL 摘录只保存链接、标题和手动粘贴正文，不自动抓网页。', 'https://example.com/article', '如果需要自动抓取，请选择“单网页抓取”。'],
+      web: ['抓取单个网页', '只支持用户手动触发的单个公开网页，先预览再确认。', 'https://example.com/public-page', '不支持登录态、递归爬取或动态网页渲染。'],
+      github: ['导入 GitHub 仓库', '输入 clone URL，通过本机 git 拉取；不连接 GitHub 账号。', 'https://github.com/example/project.git', '私有仓库依赖本机 git 已配置权限，不保存 token。'],
+      notion: ['导入 Notion ZIP', '导入离线导出的压缩包，不连接 Notion 账号。', 'notion-export.zip', '这是迁移资料，不是持续同步。']
+    };
+
+    function setEvidence(open) {
+      mainLayout.classList.toggle('evidence-open', open);
+    }
+
+    function openImport() {
+      importModal.classList.add('open');
+      modalBackdrop.classList.add('open');
+      setStep(0);
+    }
+
+    function closeImport() {
+      importModal.classList.remove('open');
+      modalBackdrop.classList.remove('open');
+    }
+
+    function openSettings() {
+      settingsPage.classList.add('open');
+      settingsBackdrop.classList.add('open');
+    }
+
+    function closeSettings() {
+      settingsPage.classList.remove('open');
+      settingsBackdrop.classList.remove('open');
+    }
+
+    function setStep(index) {
+      stepIndex = Math.max(0, Math.min(4, index));
+      document.querySelectorAll('.step').forEach((step) => {
+        step.classList.toggle('active', Number(step.dataset.step) === stepIndex);
+      });
+      document.querySelectorAll('.import-pane').forEach((pane) => {
+        pane.classList.toggle('active', Number(pane.dataset.pane) === stepIndex);
+      });
+      document.getElementById('prevStep').disabled = stepIndex === 0;
+      document.getElementById('nextStep').textContent = stepIndex === 4 ? '开始提问' : '下一步';
+    }
+
+    function setSource(source) {
+      selectedSource = source;
+      document.querySelectorAll('.source-option[data-source]').forEach((button) => {
+        button.classList.toggle('active', button.dataset.source === source);
+      });
+      const copy = sourceCopy[source];
+      document.getElementById('sourceFormTitle').textContent = copy[0];
+      document.getElementById('sourceFormHelp').textContent = copy[1];
+      document.getElementById('sourceInput').value = copy[2];
+      document.getElementById('sourceBoundary').textContent = copy[3];
+    }
+
+    function positionMenu(menu, anchor) {
+      const rect = anchor.getBoundingClientRect();
+      menu.style.left = rect.left + 'px';
+      menu.style.top = (rect.top - menu.offsetHeight - 10) + 'px';
+    }
+
+    function toggleMenu(menu, anchor) {
+      const isOpen = menu.classList.contains('open');
+      document.querySelectorAll('.menu-pop').forEach((pop) => pop.classList.remove('open'));
+      if (!isOpen) {
+        menu.classList.add('open');
+        requestAnimationFrame(() => positionMenu(menu, anchor));
+      }
+    }
+
+    document.getElementById('toggleEvidence').addEventListener('click', () => setEvidence(!mainLayout.classList.contains('evidence-open')));
+    document.getElementById('closeEvidence').addEventListener('click', () => setEvidence(false));
+    document.getElementById('sourceFromAnswer').addEventListener('click', () => setEvidence(true));
+    document.getElementById('emptyEvidence').addEventListener('click', () => setEvidence(true));
+
+    document.getElementById('openImportFromSide').addEventListener('click', openImport);
+    document.getElementById('openImportTop').addEventListener('click', openImport);
+    document.getElementById('emptyImport').addEventListener('click', openImport);
+    document.getElementById('closeImport').addEventListener('click', closeImport);
+    modalBackdrop.addEventListener('click', closeImport);
+
+    document.getElementById('prevStep').addEventListener('click', () => setStep(stepIndex - 1));
+    document.getElementById('nextStep').addEventListener('click', () => {
+      if (stepIndex === 4) {
+        closeImport();
+        return;
+      }
+      setStep(stepIndex + 1);
+    });
+    document.getElementById('viewMaterials').addEventListener('click', () => setStep(4));
+
+    document.getElementById('sourceGrid').addEventListener('click', (event) => {
+      const button = event.target.closest('[data-source]');
+      if (!button) return;
+      setSource(button.dataset.source);
+      setStep(2);
+    });
+
+    document.getElementById('openSettings').addEventListener('click', openSettings);
+    document.getElementById('closeSettings').addEventListener('click', closeSettings);
+    settingsBackdrop.addEventListener('click', closeSettings);
+
+    document.querySelectorAll('.setting-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.setting-tab').forEach((item) => item.classList.remove('active'));
+        document.querySelectorAll('.settings-page').forEach((page) => page.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelector(`.settings-page[data-page="${tab.dataset.setting}"]`).classList.add('active');
+      });
+    });
+
+    document.getElementById('plusButton').addEventListener('click', (event) => toggleMenu(plusMenu, event.currentTarget));
+    document.getElementById('toolsButton').addEventListener('click', (event) => toggleMenu(toolsMenu, event.currentTarget));
+
+    plusMenu.addEventListener('click', (event) => {
+      const button = event.target.closest('button');
+      if (!button) return;
+      plusMenu.classList.remove('open');
+      if (button.dataset.action === 'import' || button.dataset.action === 'temp') {
+        openImport();
+      }
+      if (button.dataset.action === 'practice') {
+        alert('练习会作为当前会话里的工具出现，不打开独立一级页面。');
+      }
+    });
+
+    document.getElementById('collapseSidebar').addEventListener('click', () => {
+      body.classList.add('collapsed');
+      body.classList.remove('sidebar-open');
+    });
+    document.getElementById('mobileSidebar').addEventListener('click', () => body.classList.add('sidebar-open'));
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('.sidebar') || event.target.closest('#mobileSidebar')) return;
+      body.classList.remove('sidebar-open');
+    });
+
+    document.getElementById('sessionList').addEventListener('click', (event) => {
+      const item = event.target.closest('.session-item');
+      if (!item) return;
+      document.querySelectorAll('.session-item').forEach((button) => button.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('chatTitle').textContent = item.dataset.title;
+      body.classList.remove('sidebar-open');
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      closeImport();
+      closeSettings();
+      setEvidence(false);
+      document.querySelectorAll('.menu-pop').forEach((pop) => pop.classList.remove('open'));
+    });
+  </script>
+</body>
+</html>

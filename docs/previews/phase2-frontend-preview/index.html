@@ -1,0 +1,2939 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:," />
+  <title>Knowledge Island 第二阶段前端预览</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f7f7;
+      --shell: #ffffff;
+      --shell-soft: #f4f4f4;
+      --line: #dddddd;
+      --line-strong: #b8b8b8;
+      --text: #111111;
+      --muted: #666666;
+      --subtle: #8a8a8a;
+      --accent: #111111;
+      --accent-strong: #000000;
+      --accent-soft: #eeeeee;
+      --blue: #111111;
+      --blue-soft: #eeeeee;
+      --warn: #9b6a19;
+      --warn-soft: #fff0cf;
+      --danger: #ad3f32;
+      --danger-soft: #fbe4df;
+      --shadow: 0 18px 42px rgba(17, 17, 17, 0.12);
+      --radius: 8px;
+      --sidebar-width: 286px;
+      --evidence-width: 318px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #101010;
+      --shell: #181818;
+      --shell-soft: #222222;
+      --line: #333333;
+      --line-strong: #555555;
+      --text: #f5f5f5;
+      --muted: #bbbbbb;
+      --subtle: #8a8a8a;
+      --accent: #f5f5f5;
+      --accent-strong: #ffffff;
+      --accent-soft: #2a2a2a;
+      --blue: #ffffff;
+      --blue-soft: #2a2a2a;
+      --warn: #e0b05c;
+      --warn-soft: #3f2d10;
+      --danger: #ed8d80;
+      --danger-soft: #44201c;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.34);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(420px, 1fr);
+      height: 100%;
+      min-width: 960px;
+      transition: grid-template-columns 180ms ease;
+    }
+
+    .app.sidebar-collapsed {
+      grid-template-columns: minmax(420px, 1fr);
+    }
+
+    .app.evidence-collapsed {
+      grid-template-columns: var(--sidebar-width) minmax(420px, 1fr);
+    }
+
+    .app.sidebar-collapsed.evidence-collapsed {
+      grid-template-columns: minmax(420px, 1fr);
+    }
+
+    .icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      display: inline-block;
+    }
+
+    .sidebar {
+      background: var(--shell);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .app.sidebar-collapsed .sidebar {
+      display: none;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      height: 56px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      color: white;
+      background: #111111;
+      font-weight: 800;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .brand-name {
+      font-size: 15px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .brand-sub {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .icon-button {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius);
+      display: inline-grid;
+      place-items: center;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .icon-button:hover,
+    .icon-button.active {
+      background: var(--shell-soft);
+      color: var(--text);
+    }
+
+    .sidebar-toggle {
+      margin-left: auto;
+    }
+
+    .primary-nav {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-item,
+    .workspace-button,
+    .thread-item,
+    .source-item,
+    .plain-button,
+    .menu-item {
+      min-height: 38px;
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      background: transparent;
+      text-align: left;
+      padding: 0 10px;
+    }
+
+    .nav-item:hover,
+    .workspace-button:hover,
+    .thread-item:hover,
+    .source-item:hover,
+    .plain-button:hover,
+    .menu-item:hover {
+      background: var(--shell-soft);
+      color: var(--text);
+    }
+
+    .nav-item.active,
+    .workspace-button.active,
+    .thread-item.active,
+    .source-item.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .nav-label,
+    .thread-title,
+    .thread-meta,
+    .workspace-name,
+    .brand-copy,
+    .section-label,
+    .sidebar-action-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .workspace-block,
+    .workspace-thread-block {
+      padding: 12px 10px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .workspace-thread-block {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-bottom: 0;
+    }
+
+    .sidebar-thread-panel,
+    .sidebar-workspace-panel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sidebar-workspace-panel {
+      display: none;
+    }
+
+    .workspace-thread-block.workspace-selecting .sidebar-thread-panel {
+      display: none;
+    }
+
+    .workspace-thread-block.workspace-selecting .sidebar-workspace-panel {
+      display: flex;
+    }
+
+    .current-workspace {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+      position: relative;
+    }
+
+    .current-workspace-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .current-workspace-title {
+      min-width: 0;
+      flex: 1;
+      display: grid;
+      gap: 1px;
+    }
+
+    .current-workspace-title strong,
+    .current-workspace-title span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .current-workspace-title span {
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .workspace-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .workspace-actions .plain-button {
+      min-height: 34px;
+      padding: 0 8px;
+    }
+
+    .workspace-list.compact {
+      max-height: 188px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .workspace-picker {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      z-index: 65;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+    }
+
+    .workspace-picker.open {
+      display: grid;
+    }
+
+    .workspace-thread-block .thread-list {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar-workspace-panel .workspace-list {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .sidebar-help {
+      margin: 0 4px 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .section-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 0 4px;
+    }
+
+    .section-label {
+      color: var(--subtle);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .workspace-list,
+    .thread-list,
+    .source-list {
+      display: grid;
+      gap: 4px;
+    }
+
+    .workspace-list.workspace-picker {
+      display: none;
+    }
+
+    .workspace-list.workspace-picker.open {
+      display: grid;
+    }
+
+    .workspace-button {
+      justify-content: space-between;
+    }
+
+    .workspace-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .workspace-count {
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .thread-block {
+      flex: 1;
+      min-height: 0;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .search-wrap {
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .search-wrap .icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--subtle);
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      color: var(--text);
+      padding: 0 12px 0 34px;
+    }
+
+    .thread-list {
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .thread-item {
+      min-height: 48px;
+      align-items: flex-start;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+
+    .thread-title {
+      width: 100%;
+      color: inherit;
+      font-weight: 650;
+    }
+
+    .thread-meta {
+      width: 100%;
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .sidebar-footer {
+      padding: 10px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 8px;
+    }
+
+    .plain-button {
+      justify-content: center;
+      border: 1px solid var(--line);
+      background: var(--shell-soft);
+      color: var(--text);
+      font-weight: 650;
+    }
+
+    .plain-button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .plain-button.primary:hover {
+      background: var(--accent-strong);
+      color: white;
+    }
+
+    .surface {
+      background: var(--shell-soft);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .topbar {
+      height: 56px;
+      border-bottom: 1px solid var(--line);
+      background: var(--shell);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 18px;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .topbar-menu {
+      display: none;
+      border: 1px solid var(--line);
+      background: var(--shell-soft);
+    }
+
+    .app.sidebar-collapsed .topbar-menu {
+      display: inline-grid;
+    }
+
+    .topbar-title {
+      min-width: 0;
+    }
+
+    .topbar-title strong {
+      display: block;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+
+    .topbar-title span {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .status-strip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .status-pill {
+      min-height: 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0 10px;
+      color: var(--muted);
+      background: var(--shell-soft);
+      white-space: nowrap;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .view {
+      flex: 1;
+      min-height: 0;
+      display: none;
+    }
+
+    .view.active {
+      display: flex;
+    }
+
+    .chat-view {
+      flex-direction: column;
+    }
+
+    .chat-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 28px min(7vw, 76px) 18px;
+    }
+
+    .empty-state {
+      max-width: 720px;
+      margin: 12vh auto 0;
+      display: grid;
+      gap: 18px;
+    }
+
+    .empty-title {
+      font-size: 26px;
+      line-height: 1.25;
+      font-weight: 780;
+      margin: 0;
+    }
+
+    .empty-copy {
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0;
+    }
+
+    .quick-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .quick-action {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: var(--shell);
+      padding: 0 11px;
+      font-weight: 650;
+    }
+
+    .quick-action:hover {
+      border-color: var(--line-strong);
+      background: var(--shell-soft);
+    }
+
+    .message-list {
+      max-width: 820px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      background: var(--shell);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .message.assistant .avatar {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border-color: transparent;
+    }
+
+    .bubble {
+      background: var(--shell);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 13px 14px;
+      box-shadow: 0 6px 18px rgba(17, 17, 17, 0.04);
+    }
+
+    .message.user .bubble {
+      background: var(--blue-soft);
+      border-color: transparent;
+    }
+
+    .bubble p {
+      margin: 0 0 8px;
+    }
+
+    .bubble p:last-child,
+    .bubble ul:last-child {
+      margin-bottom: 0;
+    }
+
+    .bubble ul {
+      margin: 0 0 8px;
+      padding-left: 20px;
+    }
+
+    .message-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .mini-button {
+      min-height: 28px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      color: var(--muted);
+      padding: 0 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .mini-button:hover {
+      color: var(--text);
+      border-color: var(--line-strong);
+    }
+
+    .composer-zone {
+      border-top: 1px solid var(--line);
+      background: var(--shell);
+      padding: 14px min(7vw, 76px) 18px;
+    }
+
+    .composer {
+      max-width: 820px;
+      margin: 0 auto;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--shell);
+      box-shadow: var(--shadow);
+      overflow: visible;
+    }
+
+    .composer textarea {
+      width: 100%;
+      min-height: 78px;
+      max-height: 180px;
+      resize: vertical;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      padding: 14px 15px;
+    }
+
+    .composer textarea::placeholder {
+      color: var(--subtle);
+    }
+
+    .composer-bar {
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px;
+      position: relative;
+    }
+
+    .composer-left,
+    .composer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .tool-menu,
+    .custom-menu,
+    .model-menu,
+    .reason-menu {
+      position: absolute;
+      bottom: 48px;
+      width: 226px;
+      background: var(--shell);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 6px;
+      display: none;
+      z-index: 20;
+    }
+
+    .tool-menu {
+      left: 8px;
+      max-width: calc(100vw - 32px);
+    }
+
+    .custom-menu {
+      left: 48px;
+      width: 246px;
+      max-width: calc(100vw - 32px);
+    }
+
+    .model-menu {
+      right: 92px;
+      width: 250px;
+      max-width: calc(100vw - 32px);
+    }
+
+    .reason-menu {
+      right: 250px;
+      width: 190px;
+      max-width: calc(100vw - 32px);
+    }
+
+    .tool-menu.open,
+    .custom-menu.open,
+    .model-menu.open,
+    .reason-menu.open {
+      display: grid;
+      gap: 2px;
+    }
+
+    .menu-item {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .send-button {
+      min-width: 78px;
+      min-height: 36px;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 750;
+    }
+
+    .quick-icon {
+      width: 36px;
+      min-width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      display: inline-grid;
+      place-items: center;
+      color: var(--text);
+      background: var(--shell-soft);
+    }
+
+    .quick-icon:hover,
+    .quick-icon.active {
+      border-color: var(--line-strong);
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .model-button,
+    .reason-button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--shell-soft);
+      color: var(--muted);
+      padding: 0 10px;
+      white-space: nowrap;
+    }
+
+    .model-button:hover,
+    .reason-button:hover {
+      border-color: var(--line-strong);
+      color: var(--text);
+    }
+
+    .send-button:hover {
+      background: var(--accent-strong);
+    }
+
+    .library-view,
+    .settings-view {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .settings-view.active {
+      position: fixed;
+      inset: 0;
+      z-index: 58;
+      background: var(--shell-soft);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-shell-header {
+      height: 56px;
+      border-bottom: 1px solid var(--line);
+      background: var(--shell);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 18px;
+      flex: 0 0 auto;
+    }
+
+    .settings-shell-title {
+      min-width: 0;
+    }
+
+    .settings-shell-title strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .settings-shell-title span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .settings-view.active .settings-layout {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .split-page {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(260px, 350px) minmax(420px, 1fr);
+      min-height: 0;
+    }
+
+    .source-panel,
+    .settings-panel {
+      border-right: 1px solid var(--line);
+      background: var(--shell);
+      padding: 18px;
+      overflow: auto;
+    }
+
+    .panel-heading {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .panel-heading h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+    .panel-heading p {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .source-item {
+      min-height: 58px;
+      padding: 8px 10px;
+      align-items: center;
+    }
+
+    .source-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius);
+      display: grid;
+      place-items: center;
+      background: var(--shell-soft);
+      border: 1px solid var(--line);
+      color: var(--accent-strong);
+    }
+
+    .source-copy {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .source-title {
+      font-weight: 740;
+      color: inherit;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .source-desc {
+      color: var(--subtle);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-panel {
+      min-width: 0;
+      overflow: auto;
+      padding: 22px 26px;
+      display: grid;
+      align-content: start;
+      gap: 18px;
+    }
+
+    .section-card,
+    .import-result,
+    .setting-group {
+      background: var(--shell);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .detail-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .detail-title-row h2,
+    .setting-group h3,
+    .section-card h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .detail-title-row p,
+    .setting-group p,
+    .section-card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .result-card:not(.open) .result-list,
+    .result-card:not(.open) p {
+      display: none;
+    }
+
+    .settings-details {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      padding: 10px 12px;
+    }
+
+    .settings-details summary {
+      cursor: pointer;
+      font-weight: 720;
+      color: var(--text);
+      list-style: none;
+    }
+
+    .settings-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .settings-details[open] summary {
+      margin-bottom: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-weight: 650;
+      font-size: 13px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      color: var(--text);
+      min-height: 40px;
+      padding: 9px 10px;
+    }
+
+    .field textarea {
+      min-height: 102px;
+      resize: vertical;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .tab-row {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tab-button {
+      min-height: 32px;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      padding: 0 11px;
+      font-weight: 650;
+    }
+
+    .tab-button.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .result-list,
+    .doc-list,
+    .settings-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .result-row,
+    .doc-row,
+    .model-row {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .row-main {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .row-main strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-main span {
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .badge {
+      min-height: 26px;
+      border-radius: 999px;
+      padding: 0 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .badge.warn {
+      background: var(--warn-soft);
+      color: var(--warn);
+    }
+
+    .badge.danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+      margin-top: 12px;
+      display: none;
+    }
+
+    .progress.active {
+      display: block;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 260ms ease;
+    }
+
+    .settings-layout {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(230px, 300px) minmax(420px, 1fr);
+      min-height: 0;
+    }
+
+    .settings-menu {
+      display: grid;
+      gap: 4px;
+      margin-top: 12px;
+    }
+
+    .settings-content {
+      overflow: auto;
+      padding: 22px 26px;
+      display: grid;
+      align-content: start;
+      gap: 18px;
+    }
+
+    .setting-page {
+      display: none;
+    }
+
+    .setting-page.active {
+      display: block;
+    }
+
+    .setting-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .model-row {
+      align-items: flex-start;
+    }
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .switch {
+      width: 46px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--line-strong);
+      padding: 3px;
+      flex: 0 0 auto;
+    }
+
+    .switch span {
+      display: block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      transform: translateX(0);
+      transition: transform 180ms ease;
+    }
+
+    .switch.on {
+      background: var(--accent);
+    }
+
+    .switch.on span {
+      transform: translateX(20px);
+    }
+
+    .evidence {
+      background: var(--shell);
+      border-left: 1px solid var(--line);
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: min(var(--evidence-width), 86vw);
+      z-index: 55;
+      box-shadow: var(--shadow);
+      transform: translateX(0);
+      transition: transform 180ms ease;
+    }
+
+    .evidence-header {
+      height: 56px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+    }
+
+    .evidence-header h2 {
+      font-size: 15px;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .evidence-body {
+      padding: 14px;
+      overflow: auto;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .evidence-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--shell-soft);
+      display: grid;
+      gap: 6px;
+    }
+
+    .evidence-card strong {
+      font-size: 13px;
+    }
+
+    .evidence-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .app.evidence-collapsed .evidence-header h2,
+    .app.evidence-collapsed .evidence-body {
+      display: none;
+    }
+
+    .app.evidence-collapsed .evidence {
+      transform: translateX(100%);
+    }
+
+    .evidence-handle {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 54;
+      border: 1px solid var(--line);
+      border-right: 0;
+      border-radius: var(--radius) 0 0 var(--radius);
+      background: var(--shell);
+      color: var(--text);
+      padding: 10px 8px;
+      box-shadow: var(--shadow);
+      display: none;
+      writing-mode: vertical-rl;
+      letter-spacing: 0;
+    }
+
+    .app.evidence-collapsed .evidence-handle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.34);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+      padding: 18px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: min(760px, 100%);
+      max-height: min(760px, 92vh);
+      overflow: auto;
+      background: var(--shell);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .modal.library-modal {
+      width: min(1180px, 96vw);
+      height: min(820px, 92vh);
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      height: 58px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-header h2 {
+      font-size: 17px;
+      margin: 0;
+    }
+
+    .modal-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .library-step-tabs {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .library-step-button {
+      min-height: 32px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--shell-soft);
+      color: var(--muted);
+      padding: 0 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 650;
+    }
+
+    .library-step-button.active {
+      background: var(--accent-soft);
+      border-color: transparent;
+      color: var(--accent-strong);
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .library-modal .modal-body {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(250px, 330px) minmax(420px, 1fr);
+      padding: 0;
+      gap: 0;
+    }
+
+    .modal-source-panel {
+      border-right: 1px solid var(--line);
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .modal-left-panel {
+      display: none;
+    }
+
+    .modal-left-panel.active {
+      display: block;
+    }
+
+    .modal-library-detail {
+      padding: 18px 22px;
+      overflow: auto;
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .library-step-page {
+      display: none;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .library-step-page.active {
+      display: grid;
+    }
+
+    .library-choice-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .library-choice {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--shell-soft);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .library-choice input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .source-choice {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: var(--shell-soft);
+      text-align: left;
+      display: grid;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .source-choice:hover {
+      border-color: var(--accent);
+    }
+
+    .choice-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 750;
+    }
+
+    .choice-copy {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: 360px;
+      display: none;
+      background: var(--text);
+      color: var(--shell);
+      border-radius: var(--radius);
+      padding: 11px 13px;
+      box-shadow: var(--shadow);
+      z-index: 80;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    @media (max-width: 1180px) {
+      .app,
+      .app.evidence-collapsed,
+      .app.sidebar-collapsed,
+      .app.sidebar-collapsed.evidence-collapsed {
+        grid-template-columns: 250px minmax(420px, 1fr);
+      }
+
+      .app.sidebar-collapsed,
+      .app.sidebar-collapsed.evidence-collapsed {
+        grid-template-columns: minmax(420px, 1fr);
+      }
+
+      .evidence {
+        width: min(360px, 88vw);
+      }
+    }
+
+    @media (max-width: 820px) {
+      body {
+        overflow: auto;
+      }
+
+      .app,
+      .app.evidence-collapsed,
+      .app.sidebar-collapsed,
+      .app.sidebar-collapsed.evidence-collapsed {
+        min-width: 0;
+        height: auto;
+        min-height: 100%;
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        display: none;
+        min-height: 100vh;
+      }
+
+      .app.mobile-sidebar-open .sidebar {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: min(var(--sidebar-width), 88vw);
+        z-index: 90;
+        box-shadow: var(--shadow);
+      }
+
+      .topbar-menu {
+        display: inline-grid;
+      }
+
+      .primary-nav {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .workspace-block,
+      .thread-block {
+        display: none;
+      }
+
+      .surface {
+        min-height: 720px;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        height: auto;
+        padding: 12px;
+        flex-direction: column;
+      }
+
+      .status-strip {
+        width: 100%;
+        overflow: auto;
+      }
+
+      .split-page,
+      .settings-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .source-panel,
+      .settings-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        max-height: 280px;
+      }
+
+      .source-grid,
+      .setting-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .library-modal .modal-body {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-source-panel {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        max-height: 310px;
+      }
+
+      .chat-scroll,
+      .composer-zone {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app evidence-collapsed" id="app">
+    <aside class="sidebar" aria-label="侧边栏">
+      <div class="brand">
+        <div class="brand-mark">KI</div>
+        <div class="brand-copy">
+          <div class="brand-name">Knowledge Island</div>
+          <div class="brand-sub">本地资料助手</div>
+        </div>
+        <button class="icon-button sidebar-toggle" id="sidebarToggle" title="收起侧边栏" aria-label="收起侧边栏">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
+        </button>
+      </div>
+
+      <nav class="primary-nav" aria-label="主导航">
+        <button class="nav-item active" data-view="chat">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+          <span class="nav-label">聊</span>
+        </button>
+        <button class="nav-item" data-view="library">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <span class="nav-label">库</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.34 1.04V21a2 2 0 1 1-4 0v-.08A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1A1.7 1.7 0 0 0 2.96 13H3a2 2 0 1 1 0-4h-.04A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.87l-.06-.06A2 2 0 1 1 7.03 3.84l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 10.34 3V3a2 2 0 1 1 4 0v.08A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.37.2.74.4 1 .7.26.3.4.66.4 1.05V11a2 2 0 1 1 0 4h-.08A1.7 1.7 0 0 0 19.4 15z"/></svg>
+          <span class="nav-label">设</span>
+        </button>
+      </nav>
+
+      <section class="workspace-thread-block" id="workspaceThreadBlock" aria-label="工作区和线程">
+        <div class="sidebar-thread-panel" id="sidebarThreadPanel">
+          <div class="current-workspace">
+            <div class="current-workspace-main">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <div class="current-workspace-title">
+                <strong id="currentWorkspaceName">产品资料</strong>
+                <span id="currentWorkspaceCount">28 份资料</span>
+              </div>
+              <button class="icon-button" id="workspacePickerBtn" title="切换工作区" aria-label="切换工作区">
+                <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              <button class="icon-button" id="addWorkspaceBtn" title="新建工作区" aria-label="新建工作区">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </button>
+            </div>
+            <div class="workspace-actions">
+              <button class="plain-button" id="workspaceAddMaterialBtn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v6"/><path d="M9 14h6"/></svg>
+                加入资料
+              </button>
+              <button class="plain-button" id="addThreadBtn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                新聊天
+              </button>
+            </div>
+            <div class="workspace-list compact workspace-picker" id="workspaceList"></div>
+          </div>
+          <div class="search-wrap">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/></svg>
+            <input class="search-input" id="threadSearch" type="search" placeholder="搜索线程" />
+          </div>
+          <div class="thread-list" id="threadList"></div>
+        </div>
+        <div class="sidebar-workspace-panel" id="sidebarWorkspacePanel">
+          <div class="section-row">
+            <span class="section-label">选择工作区</span>
+            <button class="mini-button" id="backToThreadsBtn">返回加入库</button>
+          </div>
+          <p class="sidebar-help">资料会加入选中的工作区。选好后，在弹窗右侧勾选资料并确认。</p>
+          <div class="workspace-list" id="sidebarWorkspaceList"></div>
+        </div>
+      </section>
+
+    </aside>
+
+    <main class="surface">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-button topbar-menu" id="openSidebarBtn" title="打开侧边栏" aria-label="打开侧边栏">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg>
+          </button>
+          <div class="topbar-title">
+            <strong id="pageTitle">聊</strong>
+            <span id="pageSubtitle">资料准备好后，就可以直接提问。</span>
+          </div>
+        </div>
+        <div class="status-strip" aria-label="当前状态">
+          <span class="status-pill"><span class="status-dot"></span><span id="workspaceStatus">产品资料</span></span>
+          <span class="status-pill" id="docStatus">28 份资料</span>
+          <button class="icon-button" id="evidenceOpenBtn" title="查看依据" aria-label="查看依据">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="view chat-view active" id="chatView" aria-label="聊天">
+        <div class="chat-scroll">
+          <div class="empty-state" id="emptyState">
+            <h1 class="empty-title">把资料放进来，然后直接问。</h1>
+            <p class="empty-copy">默认从当前工作区的资料里找依据。练习、整理、临时文件都收在输入框左下角的“+”里。</p>
+            <div class="quick-row">
+              <button class="quick-action" data-empty-action="add">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                加入资料
+              </button>
+              <button class="quick-action" data-empty-action="ask">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+                试一次聊天
+              </button>
+            </div>
+          </div>
+          <div class="message-list" id="messageList"></div>
+        </div>
+
+        <div class="composer-zone">
+          <div class="composer">
+            <textarea id="chatInput" placeholder="问当前资料里的内容，或输入“根据这份资料出几道小题”"></textarea>
+            <div class="composer-bar">
+              <div class="composer-left">
+                <button class="quick-icon" id="plusBtn" title="添加" aria-label="添加">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                </button>
+                <button class="quick-icon" id="customToolBtn" title="快捷工具" aria-label="快捷工具">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h7"/></svg>
+                </button>
+                <div class="tool-menu" id="toolMenu" aria-label="添加工具">
+                  <button class="menu-item" data-tool="temp-file">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v10"/><path d="m8 11 4 4 4-4"/><path d="M5 19h14"/></svg>
+                    上传临时文件
+                  </button>
+                  <button class="menu-item" data-tool="add-material">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                    加入资料
+                  </button>
+                  <button class="menu-item" data-tool="quiz">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M9 9a3 3 0 1 1 5.4 1.8c-.9.6-1.4 1.2-1.4 2.2"/><path d="M12 17h.01"/></svg>
+                    练习与小测
+                  </button>
+                  <button class="menu-item" data-tool="summary">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+                    整理要点
+                  </button>
+                </div>
+                <div class="custom-menu" id="customMenu" aria-label="自定义工具">
+                  <button class="menu-item" data-custom-tool="shortcut">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h7"/></svg>
+                    快捷指令
+                  </button>
+                  <button class="menu-item" data-custom-tool="skill">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 8h14"/><path d="M7 16h10"/></svg>
+                    常用指令
+                  </button>
+                  <button class="menu-item" data-custom-tool="mcp">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M8 8h8v8H8z"/><path d="M3 10h5"/><path d="M16 10h5"/><path d="M3 14h5"/><path d="M16 14h5"/><path d="M10 3v5"/><path d="M14 3v5"/><path d="M10 16v5"/><path d="M14 16v5"/></svg>
+                    连接工具
+                  </button>
+                  <button class="menu-item" data-tool="compare">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h16"/></svg>
+                    对比回答
+                  </button>
+                </div>
+              </div>
+              <div class="composer-right">
+                <button class="reason-button" id="reasonBtn">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                  <span id="reasonLabel">标准</span>
+                </button>
+                <button class="model-button" id="modelBtn">
+                  <svg class="icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/><path d="M9 1v3"/><path d="M15 1v3"/><path d="M9 20v3"/><path d="M15 20v3"/></svg>
+                  <span id="modelLabel">本机回答</span>
+                </button>
+                <div class="reason-menu" id="reasonMenu" aria-label="思考深度">
+                  <button class="menu-item" data-reason="快">快</button>
+                  <button class="menu-item" data-reason="标准">标准</button>
+                  <button class="menu-item" data-reason="深入">深入</button>
+                </div>
+                <div class="model-menu" id="modelMenu" aria-label="回答引擎">
+                  <button class="menu-item" data-model="qwen2.5:7b">本机回答</button>
+                  <button class="menu-item" data-model="llama3.1:8b">本机快速</button>
+                  <button class="menu-item" data-model="deepseek-chat">在线回答</button>
+                </div>
+                <button class="send-button" id="sendBtn">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+                  发送
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view settings-view" id="settingsView" aria-label="设置">
+        <div class="settings-shell-header">
+          <button class="plain-button" id="backFromSettingsBtn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+            返回
+          </button>
+          <div class="settings-shell-title">
+            <strong id="settingsTitle">设置</strong>
+            <span id="settingsSubtitle">回答、资料位置、备份和外观</span>
+          </div>
+          <span class="status-pill"><span class="status-dot"></span>设置预览</span>
+        </div>
+        <div class="settings-layout">
+          <aside class="settings-panel">
+            <div class="panel-heading">
+              <h2>设</h2>
+              <p>回答、资料位置、备份和外观都放这里。</p>
+            </div>
+            <div class="settings-menu">
+              <button class="source-item active" data-setting-jump="model">
+                <span class="source-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M9 13h.01"/><path d="M15 13h.01"/></svg></span>
+                <span class="source-copy"><span class="source-title">回答</span><span class="source-desc">本机回答与在线回答</span></span>
+              </button>
+              <button class="source-item" data-setting-jump="data">
+                <span class="source-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+                <span class="source-copy"><span class="source-title">资料</span><span class="source-desc">保存位置与备份恢复</span></span>
+              </button>
+              <button class="source-item" data-setting-jump="look">
+                <span class="source-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/></svg></span>
+                <span class="source-copy"><span class="source-title">外观</span><span class="source-desc">深色模式和回答方式</span></span>
+              </button>
+            </div>
+          </aside>
+
+          <div class="settings-content">
+            <section class="setting-group setting-page active" id="setting-model" data-setting-page="model">
+              <h3>回答引擎</h3>
+              <p>优先使用本机回答，也可以接入在线回答服务。</p>
+              <div class="settings-list" style="margin-top: 14px;">
+                <div class="model-row">
+                  <div class="row-main">
+                    <strong>本机回答</strong>
+                    <span>已连接，可用于日常资料聊天。</span>
+                  </div>
+                  <span class="badge">当前</span>
+                </div>
+                <div class="model-row">
+                  <div class="row-main">
+                    <strong>本机快速</strong>
+                    <span>已安装，适合快速问答。</span>
+                  </div>
+                  <button class="mini-button" data-select-model="llama3.1:8b">使用</button>
+                </div>
+                <div class="model-row">
+                  <div class="row-main">
+                    <strong>在线回答：DeepSeek</strong>
+                    <span>访问密钥已保存为引用，不显示明文。</span>
+                  </div>
+                  <button class="mini-button" id="testApiBtn">测试连接</button>
+                </div>
+              </div>
+              <details class="settings-details">
+                <summary>连接详情</summary>
+                <div class="setting-grid">
+                  <div class="field">
+                    <label for="apiBase">服务地址</label>
+                    <input id="apiBase" value="https://api.deepseek.com" />
+                  </div>
+                  <div class="field">
+                    <label for="apiModel">在线服务名称</label>
+                    <input id="apiModel" value="deepseek-chat" />
+                  </div>
+                </div>
+              </details>
+            </section>
+
+            <section class="setting-group setting-page" id="setting-data" data-setting-page="data">
+              <h3>资料</h3>
+              <p>保存位置和备份恢复集中管理。</p>
+              <div class="settings-list" style="margin-top: 14px;">
+                <div class="result-row">
+                  <div class="row-main">
+                    <strong>资料保存位置</strong>
+                    <span>E:\KnowledgeIsland\data</span>
+                  </div>
+                  <button class="mini-button" id="choosePathBtn">更改</button>
+                </div>
+                <div class="result-row">
+                  <div class="row-main">
+                    <strong>备份</strong>
+                    <span>导出资料、设置和聊天记录。</span>
+                  </div>
+                  <button class="mini-button" id="backupBtn">导出</button>
+                </div>
+                <div class="result-row">
+                  <div class="row-main">
+                    <strong>恢复</strong>
+                    <span>从本机备份恢复。</span>
+                  </div>
+                  <button class="mini-button" id="restoreBtn">选择备份</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="setting-group setting-page" id="setting-look" data-setting-page="look">
+              <div class="switch-row">
+                <div>
+                  <h3>外观</h3>
+                  <p>深色模式和回答方式。</p>
+                </div>
+                <button class="switch" id="themeSwitch" aria-label="切换深色模式"><span></span></button>
+              </div>
+              <div class="setting-grid" style="margin-top: 14px;">
+                <div class="field">
+                  <label for="answerStyle">回答方式</label>
+                  <select id="answerStyle">
+                    <option>简洁</option>
+                    <option>详细</option>
+                    <option>先给结论</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="sourceMode">依据显示</label>
+                  <select id="sourceMode">
+                    <option>回答后可展开</option>
+                    <option>始终展开</option>
+                    <option>只在我需要时显示</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="evidence" aria-label="依据">
+      <div class="evidence-header">
+        <button class="icon-button" id="evidenceToggle" title="展开或收起依据" aria-label="展开或收起依据">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M3 12h18"/><path d="M3 19h18"/></svg>
+        </button>
+        <h2>依据</h2>
+      </div>
+      <div class="evidence-body" id="evidenceBody">
+        <div class="evidence-card">
+          <strong>《产品说明 v2》</strong>
+          <p>提到默认首页、资料库和设置入口的组织方式。</p>
+        </div>
+        <div class="evidence-card">
+          <strong>《会议记录 0701》</strong>
+          <p>明确练习能力收缩到聊天工具，不做一级入口。</p>
+        </div>
+        <div class="evidence-card">
+          <strong>《导入记录》</strong>
+          <p>最近一次加入 12 个文件，1 个文件未加入。</p>
+        </div>
+      </div>
+    </aside>
+    <button class="evidence-handle" id="evidenceHandleBtn" aria-label="打开依据">
+      依据
+    </button>
+  </div>
+
+  <div class="modal-backdrop" id="addSourceModal" role="dialog" aria-modal="true" aria-labelledby="addSourceTitle">
+    <div class="modal library-modal">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h2 id="addSourceTitle">库</h2>
+          <div class="library-step-tabs" aria-label="库流程">
+            <button class="library-step-button active" data-library-step="upload">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v10"/><path d="m8 11 4 4 4-4"/><path d="M5 19h14"/></svg>
+              加入库
+            </button>
+            <button class="library-step-button" data-library-step="select">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              选择资料
+            </button>
+          </div>
+        </div>
+        <button class="icon-button" id="closeModalBtn" aria-label="关闭">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <aside class="modal-source-panel">
+          <div class="modal-left-panel active" data-modal-left-panel="upload">
+            <div class="panel-heading">
+              <h2>资料来源</h2>
+              <p>先把资料加入库，再选择需要连接到工作区的资料。</p>
+            </div>
+            <div class="search-wrap">
+              <svg class="icon" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="7"/></svg>
+              <input class="search-input" id="modalSourceSearch" type="search" placeholder="搜索资料来源" />
+            </div>
+            <div class="source-list" id="modalSourceGrid"></div>
+          </div>
+          <div class="modal-left-panel" data-modal-left-panel="select">
+            <div class="panel-heading">
+              <h2>工作区</h2>
+              <p>选择要加入资料的工作区。</p>
+            </div>
+            <div class="workspace-list" id="modalWorkspaceList"></div>
+          </div>
+        </aside>
+        <div class="modal-library-detail">
+          <div class="library-step-page active" data-library-step-page="upload">
+            <div class="section-card">
+              <div class="detail-title-row">
+                <div>
+                  <h2 id="modalSourceTitle">本机文件夹</h2>
+                  <p id="modalSourceIntro">一次加入整个文件夹，适合项目文档、课程资料和会议材料。</p>
+                </div>
+                <span class="badge" id="modalSourceBadge">可用</span>
+              </div>
+              <div class="form-grid" id="modalSourceForm"></div>
+              <div class="progress" id="modalImportProgress"><span></span></div>
+            </div>
+            <div class="section-card result-card" id="importResultCard">
+              <div class="detail-title-row">
+                <h3>加入库结果</h3>
+                <button class="mini-button" id="toggleImportResultsBtn">展开</button>
+              </div>
+              <p>这里只显示本次加入库的状态。加入后还需要到“选择资料”里连接到工作区。</p>
+              <div id="modalLibraryResults" class="result-list"></div>
+            </div>
+          </div>
+          <div class="library-step-page" data-library-step-page="select">
+            <div class="section-card">
+              <div class="detail-title-row">
+                <div>
+                  <h2>选择资料</h2>
+                  <p>左侧先选工作区，右侧再勾选资料。确认后只加入左侧选中的工作区。</p>
+                </div>
+                <span class="badge" id="librarySelectCount">0 项已选</span>
+              </div>
+              <div class="library-choice-list" id="libraryChoiceList"></div>
+            </div>
+            <div class="form-row">
+              <button class="plain-button primary" id="connectLibraryBtn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+                <span id="connectLibraryLabel">加入产品资料</span>
+              </button>
+              <button class="plain-button" id="backToUploadBtn">
+                <svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                继续加入库
+              </button>
+              <button class="plain-button" id="modalDoneBtn">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                稍后再说
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const app = document.getElementById("app");
+    const pageTitle = document.getElementById("pageTitle");
+    const pageSubtitle = document.getElementById("pageSubtitle");
+    const workspaceStatus = document.getElementById("workspaceStatus");
+    const docStatus = document.getElementById("docStatus");
+    const messageList = document.getElementById("messageList");
+    const emptyState = document.getElementById("emptyState");
+    const chatInput = document.getElementById("chatInput");
+    const toolMenu = document.getElementById("toolMenu");
+    const customMenu = document.getElementById("customMenu");
+    const modelMenu = document.getElementById("modelMenu");
+    const reasonMenu = document.getElementById("reasonMenu");
+    const toast = document.getElementById("toast");
+
+    const state = {
+      view: "chat",
+      workspaceId: "product",
+      threadId: "t1",
+      targetWorkspaceId: "product",
+      sourceId: "folder",
+      libraryStep: "upload",
+      sidebarMode: "threads",
+      settingsTab: "model",
+      model: "qwen2.5:7b",
+      reason: "标准",
+      selectedLibraryIds: new Set(),
+      theme: localStorage.getItem("ki-preview-theme") || "light"
+    };
+
+    const modelLabels = {
+      "qwen2.5:7b": "本机回答",
+      "llama3.1:8b": "本机快速",
+      "deepseek-chat": "在线回答"
+    };
+
+    const workspaces = [
+      { id: "product", name: "产品资料", count: 28 },
+      { id: "study", name: "学习笔记", count: 16 },
+      { id: "team", name: "团队共享", count: 9 }
+    ];
+
+    const threads = {
+      product: [
+        { id: "t1", title: "第二阶段前端设计", meta: "刚刚 · 6 条消息" },
+        { id: "t2", title: "资料导入问题", meta: "昨天 · 4 条消息" },
+        { id: "t3", title: "设置页整理", meta: "周一 · 3 条消息" }
+      ],
+      study: [
+        { id: "s1", title: "章节重点", meta: "今天 · 2 条消息" },
+        { id: "s2", title: "复习提问", meta: "昨天 · 5 条消息" }
+      ],
+      team: [
+        { id: "m1", title: "会议材料总结", meta: "今天 · 3 条消息" }
+      ]
+    };
+
+    const messages = {
+      t1: [
+        { role: "assistant", text: "<p>我已经准备好当前工作区的资料。你可以直接问，也可以先加入新的文件夹或网页内容。</p>", actions: true },
+        { role: "user", text: "<p>第二阶段首页应该怎么简化？</p>" },
+        { role: "assistant", text: "<p>首页只保留聊天主流程：左侧把工作区和线程合在一起，中间输入问题，右侧依据默认收起。</p><ul><li>资料导入通过“+”或“库”弹窗完成。</li><li>练习与小测放到输入框左下角。</li><li>回答引擎放在输入框右下角。</li></ul>", actions: true }
+      ],
+      t2: [
+        { role: "assistant", text: "<p>你可以从“库”里查看每次导入的结果，也可以在这里让我解释失败原因。</p>", actions: true }
+      ],
+      t3: [],
+      s1: [],
+      s2: [],
+      m1: []
+    };
+
+    const sources = [
+      { id: "folder", title: "本机文件夹", desc: "一次加入整个文件夹", badge: "可用", icon: "folder" },
+      { id: "files", title: "文件", desc: "选择一个或多个文件", badge: "可用", icon: "file" },
+      { id: "note", title: "笔记", desc: "直接粘贴或新建文本", badge: "可用", icon: "note" },
+      { id: "web", title: "网页摘录", desc: "保存单个网页内容", badge: "可用", icon: "link" },
+      { id: "more", title: "更多来源", desc: "代码仓库、笔记库、压缩包", badge: "稍后支持", icon: "more" }
+    ];
+
+    const sourceForms = {
+      folder: {
+        intro: "一次加入整个文件夹，适合项目文档、课程资料和会议材料。",
+        fields: [
+          ["资料夹路径", "E:\\KnowledgeIsland\\产品资料"],
+          ["下一步", "从库里选择资料，再加入工作区"]
+        ]
+      },
+      files: {
+        intro: "选择一个或多个文件，先加入库，之后再选择工作区。",
+        fields: [
+          ["已选择文件", "产品说明.pdf, 会议记录.docx"],
+          ["下一步", "从库里选择资料，再加入工作区"]
+        ]
+      },
+      note: {
+        intro: "把临时想法、会议记录或摘录直接保存成资料。",
+        fields: [
+          ["笔记标题", "第二阶段设计备忘"],
+          ["笔记内容", "首页保留聊天，库只管理资料，设集中配置。"]
+        ]
+      },
+      web: {
+        intro: "保存网页内容，方便之后围绕它聊天和整理。",
+        fields: [
+          ["网页地址", "https://example.com/article"],
+          ["保存名称", "网页摘录"]
+        ]
+      },
+      more: {
+        intro: "这里收起代码仓库、笔记库和压缩包等不常用来源，第一版先展示入口。",
+        fields: [
+          ["可选来源", "代码仓库 / 本机笔记库 / 压缩包"],
+          ["状态", "稍后支持，当前先用文件夹或文件加入库"]
+        ]
+      }
+    };
+
+    const results = [
+      { title: "产品说明 v2.pdf", meta: "已加入库 · 18 段内容", state: "已加入库" },
+      { title: "会议记录 0701.docx", meta: "已更新到库 · 6 段内容", state: "已更新" },
+      { title: "old-scan.png", meta: "未加入库 · 暂不支持图片正文", state: "未加入", warn: true }
+    ];
+
+    const libraryItems = [
+      { id: "lib-product-v2", title: "产品说明 v2.pdf", meta: "PDF · 18 段内容 · 已在库中", source: "文件", connected: ["product"] },
+      { id: "lib-meeting-0701", title: "会议记录 0701.docx", meta: "Word · 6 段内容 · 已在库中", source: "文件", connected: [] },
+      { id: "lib-frontend-spec", title: "第二阶段设计规格.md", meta: "Markdown · 12 段内容 · 已在库中", source: "笔记", connected: [] }
+    ];
+
+    const iconMap = {
+      folder: '<svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+      file: '<svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+      note: '<svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M8 8h8"/><path d="M8 12h8"/><path d="M8 16h5"/></svg>',
+      link: '<svg class="icon" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.1 0l2-2a5 5 0 0 0-7.1-7.1l-1.2 1.2"/><path d="M14 11a5 5 0 0 0-7.1 0l-2 2A5 5 0 0 0 12 20.1l1.2-1.2"/></svg>',
+      github: '<svg class="icon" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.1-1.5 6.1-6.8 0-1.5-.5-2.7-1.4-3.7.1-.4.6-1.9-.1-3.8 0 0-1.2-.4-3.9 1.5a13.4 13.4 0 0 0-7 0C6.1-.1 4.9.3 4.9.3c-.7 1.9-.2 3.4-.1 3.8A5.2 5.2 0 0 0 3.4 7.8c0 5.3 3.1 6.5 6.1 6.8a3.4 3.4 0 0 0-.9 2.6V22"/></svg>',
+      more: '<svg class="icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>'
+    };
+
+    function setTheme(theme) {
+      state.theme = theme;
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("ki-preview-theme", theme);
+      document.getElementById("themeSwitch").classList.toggle("on", theme === "dark");
+    }
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2600);
+    }
+
+    function currentWorkspace() {
+      return workspaces.find((item) => item.id === state.workspaceId);
+    }
+
+    function targetWorkspace() {
+      return workspaces.find((item) => item.id === state.targetWorkspaceId) || currentWorkspace();
+    }
+
+    function currentThread() {
+      return (threads[state.workspaceId] || []).find((item) => item.id === state.threadId);
+    }
+
+    function renderWorkspaces() {
+      const root = document.getElementById("workspaceList");
+      root.innerHTML = workspaces.map((item) => `
+        <button class="workspace-button ${item.id === state.workspaceId ? "active" : ""}" data-workspace="${item.id}">
+          <span class="workspace-left">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <span class="workspace-name">${item.name}</span>
+          </span>
+          <span class="workspace-count">${item.count}</span>
+        </button>
+      `).join("");
+      const sidebarRoot = document.getElementById("sidebarWorkspaceList");
+      if (sidebarRoot) {
+        sidebarRoot.innerHTML = workspaces.map((item) => `
+          <button class="workspace-button ${item.id === state.targetWorkspaceId ? "active" : ""}" data-sidebar-workspace="${item.id}">
+            <span class="workspace-left">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span class="workspace-name">${item.name}</span>
+            </span>
+            <span class="workspace-count">${item.count}</span>
+          </button>
+        `).join("");
+      }
+      workspaceStatus.textContent = currentWorkspace().name;
+      docStatus.textContent = `${currentWorkspace().count} 份资料`;
+      document.getElementById("currentWorkspaceName").textContent = currentWorkspace().name;
+      document.getElementById("currentWorkspaceCount").textContent = `${currentWorkspace().count} 份资料`;
+      renderModalWorkspaces();
+    }
+
+    function renderModalWorkspaces() {
+      const root = document.getElementById("modalWorkspaceList");
+      if (!root) return;
+      root.innerHTML = workspaces.map((item) => `
+        <button class="workspace-button ${item.id === state.targetWorkspaceId ? "active" : ""}" data-modal-workspace="${item.id}">
+          <span class="workspace-left">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <span class="workspace-name">${item.name}</span>
+          </span>
+          <span class="workspace-count">${item.count}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderThreads() {
+      const filter = document.getElementById("threadSearch").value.trim().toLowerCase();
+      const list = (threads[state.workspaceId] || []).filter((item) => item.title.toLowerCase().includes(filter));
+      const root = document.getElementById("threadList");
+      root.innerHTML = list.map((item) => `
+        <button class="thread-item ${item.id === state.threadId ? "active" : ""}" data-thread="${item.id}">
+          <span class="thread-title">${item.title}</span>
+          <span class="thread-meta">${item.meta}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderMessages() {
+      const list = messages[state.threadId] || [];
+      const lastActionIndex = list.reduce((last, item, index) => item.actions ? index : last, -1);
+      emptyState.style.display = list.length ? "none" : "grid";
+      messageList.innerHTML = list.map((item, index) => `
+        <article class="message ${item.role}">
+          <div class="avatar">${item.role === "user" ? "你" : "KI"}</div>
+          <div class="bubble">
+            ${item.text}
+            ${item.actions && index === lastActionIndex ? '<div class="message-actions"><button class="mini-button" data-open-evidence><svg class="icon" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>查看依据</button><button class="mini-button" data-tool-inline="quiz">出小题</button></div>' : ""}
+          </div>
+        </article>
+      `).join("");
+      messageList.querySelectorAll("[data-open-evidence]").forEach((button) => {
+        button.addEventListener("click", () => app.classList.remove("evidence-collapsed"));
+      });
+      messageList.querySelectorAll("[data-tool-inline]").forEach((button) => {
+        button.addEventListener("click", () => runTool(button.dataset.toolInline));
+      });
+    }
+
+    function setSidebarMode(mode) {
+      state.sidebarMode = mode;
+      const block = document.getElementById("workspaceThreadBlock");
+      block.classList.toggle("workspace-selecting", mode === "workspace-select");
+      if (mode === "workspace-select") {
+        document.getElementById("workspaceList").classList.remove("open");
+        document.getElementById("workspacePickerBtn").classList.remove("active");
+      }
+      renderWorkspaces();
+    }
+
+    function closeFloatingMenus() {
+      toolMenu.classList.remove("open");
+      customMenu.classList.remove("open");
+      modelMenu.classList.remove("open");
+      reasonMenu.classList.remove("open");
+      document.getElementById("workspaceList").classList.remove("open");
+      document.getElementById("plusBtn").classList.remove("active");
+      document.getElementById("customToolBtn").classList.remove("active");
+      document.getElementById("workspacePickerBtn").classList.remove("active");
+    }
+
+    function isNarrowScreen() {
+      return window.matchMedia("(max-width: 820px)").matches;
+    }
+
+    function openSidebar() {
+      if (isNarrowScreen()) {
+        app.classList.add("mobile-sidebar-open");
+        return;
+      }
+      app.classList.remove("sidebar-collapsed");
+    }
+
+    function toggleSidebar() {
+      if (isNarrowScreen()) {
+        app.classList.remove("mobile-sidebar-open");
+        return;
+      }
+      app.classList.toggle("sidebar-collapsed");
+    }
+
+    function setView(view) {
+      if (view === "library") {
+        openModal();
+        return;
+      }
+      state.view = view;
+      document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
+      document.querySelectorAll(".view").forEach((item) => item.classList.toggle("active", item.id === `${view}View`));
+      const titles = {
+        chat: ["聊", "资料准备好后，就可以直接提问。"],
+        library: ["库", "资料夹、文件、笔记、网页摘录和导入结果都在这里。"],
+        settings: ["设", "回答、资料位置、备份和外观集中管理。"]
+      };
+      pageTitle.textContent = titles[view][0];
+      pageSubtitle.textContent = titles[view][1];
+      closeFloatingMenus();
+    }
+
+    function addMessage(role, html, actions = false) {
+      if (!messages[state.threadId]) {
+        messages[state.threadId] = [];
+      }
+      messages[state.threadId].push({ role, text: html, actions });
+      const thread = currentThread();
+      if (thread) {
+        thread.meta = "刚刚 · " + messages[state.threadId].length + " 条消息";
+      }
+      renderThreads();
+      renderMessages();
+      requestAnimationFrame(() => {
+        document.querySelector(".chat-scroll").scrollTop = document.querySelector(".chat-scroll").scrollHeight;
+      });
+    }
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text) {
+        showToast("先输入一个问题。");
+        return;
+      }
+      addMessage("user", `<p>${escapeHtml(text)}</p>`);
+      chatInput.value = "";
+      setTimeout(() => {
+        addMessage("assistant", "<p>我会先从当前工作区的资料里找依据，再给出简洁回答。这里是预览，所以回答用本地示例模拟。</p><ul><li>首页继续保持聊天主流程。</li><li>资料管理通过“库”弹窗完成。</li><li>回答引擎和思考深度在输入框右下角切换。</li></ul>", true);
+      }, 520);
+    }
+
+    function runTool(tool) {
+      closeFloatingMenus();
+      if (tool === "add-material") {
+        openModal();
+        return;
+      }
+      if (tool === "advanced-tools") {
+        const willOpen = !customMenu.classList.contains("open");
+        toolMenu.classList.remove("open");
+        customMenu.classList.toggle("open", willOpen);
+        return;
+      }
+      if (tool === "temp-file") {
+        addMessage("assistant", "<p>临时文件会只用于当前线程，不进入长期资料库。这里是预览，先用示例状态展示入口。</p>", true);
+        return;
+      }
+      setView("chat");
+      const map = {
+        quiz: "<p>可以。我会根据当前资料出 3 个小题，答完后告诉你哪里还需要补。</p><ul><li>第二阶段首页为什么只保留聊天主流程？</li><li>“库”弹窗不承担什么职责？</li><li>回答引擎应该放在哪里？</li></ul>",
+        summary: "<p>已整理当前线程要点：</p><ul><li>首页是“聊”，保留工作区和线程。</li><li>“库”只管理资料和导入结果。</li><li>“设”集中回答、保存位置、备份和外观。</li></ul>",
+        compare: "<p>回答对比会收在这里，不占首页空间。第一版只展示简洁差异：哪个回答更直接、哪个依据更完整。</p>"
+      };
+      addMessage("assistant", map[tool] || "<p>这个工具还在预览中。</p>", true);
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function openModal(step = "upload") {
+      closeFloatingMenus();
+      const modal = document.getElementById("addSourceModal");
+      if (!modal.classList.contains("open")) {
+        state.targetWorkspaceId = state.workspaceId;
+        state.selectedLibraryIds.clear();
+      }
+      state.libraryStep = step;
+      renderSources();
+      renderModalSourceDetail();
+      renderLibraryLists();
+      setLibraryStep(state.libraryStep);
+      modal.classList.add("open");
+    }
+
+    function openLibrarySelect() {
+      openModal("select");
+    }
+
+    function closeModal() {
+      document.getElementById("addSourceModal").classList.remove("open");
+      setSidebarMode("threads");
+      document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === state.view));
+    }
+
+    function renderSources() {
+      const modalSearch = document.getElementById("modalSourceSearch");
+      const modalFilter = modalSearch ? modalSearch.value.trim().toLowerCase() : "";
+      const modalVisible = sources.filter((item) => item.title.toLowerCase().includes(modalFilter) || item.desc.toLowerCase().includes(modalFilter));
+      document.getElementById("modalSourceGrid").innerHTML = modalVisible.map((item) => `
+        <button class="source-item ${item.id === state.sourceId ? "active" : ""}" data-modal-source="${item.id}">
+          <span class="source-icon">${iconMap[item.icon]}</span>
+          <span class="source-copy">
+            <span class="source-title">${item.title}</span>
+            <span class="source-desc">${item.desc}</span>
+          </span>
+        </button>
+      `).join("");
+    }
+
+    function renderModalSourceDetail() {
+      const source = sources.find((item) => item.id === state.sourceId);
+      const form = sourceForms[state.sourceId];
+      document.getElementById("modalSourceTitle").textContent = source.title;
+      document.getElementById("modalSourceIntro").textContent = form.intro;
+      const badge = document.getElementById("modalSourceBadge");
+      badge.textContent = source.badge;
+      badge.classList.toggle("warn", source.badge !== "可用");
+      document.getElementById("modalSourceForm").innerHTML = `
+        ${form.fields.map(([label, value], index) => `
+          <div class="field">
+            <label>${label}</label>
+            ${index === 1 && state.sourceId === "note" ? `<textarea>${value}</textarea>` : `<input value="${value}" />`}
+          </div>
+        `).join("")}
+        <div class="form-row">
+          <button class="plain-button primary" id="modalStartImportBtn" ${source.badge === "可用" ? "" : "disabled"}>
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v10"/><path d="m8 11 4 4 4-4"/><path d="M5 19h14"/></svg>
+            ${source.badge === "可用" ? "加入库" : "稍后支持"}
+          </button>
+        </div>
+      `;
+      document.getElementById("modalStartImportBtn").addEventListener("click", simulateImport);
+    }
+
+    function renderLibraryLists() {
+      const resultHtml = results.map((item) => `
+        <div class="result-row">
+          <div class="row-main">
+            <strong>${item.title}</strong>
+            <span>${item.meta}</span>
+          </div>
+          <span class="badge ${item.warn ? "warn" : ""}">${item.state}</span>
+        </div>
+      `).join("");
+      document.getElementById("modalLibraryResults").innerHTML = resultHtml;
+      renderLibraryChoices();
+    }
+
+    function setLibraryStep(step) {
+      state.libraryStep = step;
+      document.querySelectorAll("[data-library-step]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.libraryStep === step);
+      });
+      document.querySelectorAll("[data-library-step-page]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.libraryStepPage === step);
+      });
+      document.querySelectorAll("[data-modal-left-panel]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.modalLeftPanel === step);
+      });
+      setSidebarMode(step === "select" ? "workspace-select" : "threads");
+      renderModalWorkspaces();
+      renderLibraryChoices();
+    }
+
+    function renderLibraryChoices() {
+      const root = document.getElementById("libraryChoiceList");
+      if (!root) return;
+      root.innerHTML = libraryItems.map((item) => {
+        const connected = item.connected.includes(state.targetWorkspaceId);
+        const checked = state.selectedLibraryIds.has(item.id);
+        const workspaceName = targetWorkspace().name;
+        return `
+          <label class="library-choice">
+            <input type="checkbox" data-library-choice="${item.id}" ${checked ? "checked" : ""} ${connected ? "disabled" : ""} />
+            <span class="row-main">
+              <strong>${item.title}</strong>
+              <span>${item.meta}</span>
+            </span>
+            <span class="badge ${connected ? "" : "warn"}">${connected ? `已在「${workspaceName}」` : "可加入"}</span>
+          </label>
+        `;
+      }).join("");
+      root.querySelectorAll("[data-library-choice]").forEach((input) => {
+        input.addEventListener("change", () => {
+          if (input.checked) {
+            state.selectedLibraryIds.add(input.dataset.libraryChoice);
+          } else {
+            state.selectedLibraryIds.delete(input.dataset.libraryChoice);
+          }
+          updateLibrarySelectCount();
+        });
+      });
+      updateLibrarySelectCount();
+    }
+
+    function updateLibrarySelectCount() {
+      const count = [...state.selectedLibraryIds].filter((id) => {
+        const item = libraryItems.find((entry) => entry.id === id);
+        return item && !item.connected.includes(state.targetWorkspaceId);
+      }).length;
+      document.getElementById("librarySelectCount").textContent = `${targetWorkspace().name} · ${count} 项已选`;
+      document.getElementById("connectLibraryLabel").textContent = `加入${targetWorkspace().name}`;
+    }
+
+    function connectSelectedLibraryItems() {
+      const selected = [...state.selectedLibraryIds]
+        .map((id) => libraryItems.find((item) => item.id === id))
+        .filter((item) => item && !item.connected.includes(state.targetWorkspaceId));
+      if (!selected.length) {
+        showToast("先在左侧选工作区，再在右侧勾选要加入的资料。");
+        return;
+      }
+      selected.forEach((item) => item.connected.push(state.targetWorkspaceId));
+      targetWorkspace().count += selected.length;
+      state.selectedLibraryIds.clear();
+      renderWorkspaces();
+      renderModalWorkspaces();
+      renderLibraryChoices();
+      showToast(`已将 ${selected.length} 项资料加入「${targetWorkspace().name}」。`);
+    }
+
+    function setImportResultsOpen(open) {
+      const card = document.getElementById("importResultCard");
+      const button = document.getElementById("toggleImportResultsBtn");
+      card.classList.toggle("open", open);
+      button.textContent = open ? "收起" : "展开";
+    }
+
+    function setSettingPage(tab) {
+      state.settingsTab = tab;
+      const copy = {
+        model: ["设置", "回答引擎和在线服务"],
+        data: ["设置", "资料保存位置、备份和恢复"],
+        look: ["设置", "深色模式和回答方式"]
+      };
+      document.getElementById("settingsTitle").textContent = copy[tab][0];
+      document.getElementById("settingsSubtitle").textContent = copy[tab][1];
+      document.querySelectorAll("[data-setting-jump]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.settingJump === tab);
+      });
+      document.querySelectorAll("[data-setting-page]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.settingPage === tab);
+      });
+    }
+
+    function simulateImport() {
+      const progress = document.getElementById("modalImportProgress");
+      const bar = progress.querySelector("span");
+      progress.classList.add("active");
+      bar.style.width = "0%";
+      showToast("开始加入资料。");
+      setTimeout(() => { bar.style.width = "45%"; }, 120);
+      setTimeout(() => { bar.style.width = "76%"; }, 520);
+      setTimeout(() => {
+        bar.style.width = "100%";
+        const source = sources.find((item) => item.id === state.sourceId);
+        const id = "lib-" + Date.now();
+        const title = `${source.title}资料 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+        results.unshift({ title, meta: "刚刚 · 已加入库 · 待选择到工作区", state: "已加入库" });
+        libraryItems.unshift({ id, title, meta: `${source.title} · 刚刚加入库`, source: source.title, connected: [] });
+        state.selectedLibraryIds.clear();
+        state.selectedLibraryIds.add(id);
+        setImportResultsOpen(true);
+        renderLibraryLists();
+        renderModalSourceDetail();
+        setLibraryStep("select");
+        showToast("资料已加入库，请在左侧选择工作区。");
+      }, 980);
+      setTimeout(() => progress.classList.remove("active"), 1500);
+    }
+
+    function newThread() {
+      const id = "new-" + Date.now();
+      const item = { id, title: "新的聊天", meta: "刚刚 · 0 条消息" };
+      threads[state.workspaceId].unshift(item);
+      messages[id] = [];
+      state.threadId = id;
+      renderThreads();
+      renderMessages();
+      setView("chat");
+      app.classList.remove("mobile-sidebar-open");
+      chatInput.focus();
+    }
+
+    function newWorkspace() {
+      const id = "workspace-" + Date.now();
+      workspaces.push({ id, name: "新的工作区", count: 0 });
+      threads[id] = [{ id: id + "-thread", title: "开始聊天", meta: "刚刚 · 0 条消息" }];
+      messages[id + "-thread"] = [];
+      state.workspaceId = id;
+      state.threadId = id + "-thread";
+      renderWorkspaces();
+      renderThreads();
+      renderMessages();
+      setView("chat");
+      app.classList.remove("mobile-sidebar-open");
+      showToast("已新建工作区。");
+    }
+
+    function bindEvents() {
+      document.querySelectorAll(".nav-item").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (button.dataset.view === "library") {
+            openModal("upload");
+            return;
+          }
+          setView(button.dataset.view);
+          app.classList.remove("mobile-sidebar-open");
+        });
+      });
+      document.getElementById("sidebarToggle").addEventListener("click", toggleSidebar);
+      document.getElementById("openSidebarBtn").addEventListener("click", openSidebar);
+      document.getElementById("evidenceToggle").addEventListener("click", () => app.classList.toggle("evidence-collapsed"));
+      document.getElementById("evidenceOpenBtn").addEventListener("click", () => app.classList.remove("evidence-collapsed"));
+      document.getElementById("evidenceHandleBtn").addEventListener("click", () => app.classList.remove("evidence-collapsed"));
+      document.getElementById("addThreadBtn").addEventListener("click", newThread);
+      document.getElementById("addWorkspaceBtn").addEventListener("click", newWorkspace);
+      document.getElementById("workspaceAddMaterialBtn").addEventListener("click", openLibrarySelect);
+      document.getElementById("workspacePickerBtn").addEventListener("click", () => {
+        const list = document.getElementById("workspaceList");
+        const willOpen = !list.classList.contains("open");
+        closeFloatingMenus();
+        list.classList.toggle("open", willOpen);
+        document.getElementById("workspacePickerBtn").classList.toggle("active", willOpen);
+      });
+      document.getElementById("threadSearch").addEventListener("input", renderThreads);
+      document.getElementById("modalSourceSearch").addEventListener("input", renderSources);
+      document.getElementById("sendBtn").addEventListener("click", sendMessage);
+      chatInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          sendMessage();
+        }
+      });
+      document.getElementById("plusBtn").addEventListener("click", () => {
+        const willOpen = !toolMenu.classList.contains("open");
+        closeFloatingMenus();
+        toolMenu.classList.toggle("open", willOpen);
+        document.getElementById("plusBtn").classList.toggle("active", willOpen);
+      });
+      document.getElementById("customToolBtn").addEventListener("click", () => {
+        const willOpen = !customMenu.classList.contains("open");
+        closeFloatingMenus();
+        customMenu.classList.toggle("open", willOpen);
+        document.getElementById("customToolBtn").classList.toggle("active", willOpen);
+      });
+      document.getElementById("modelBtn").addEventListener("click", () => {
+        const willOpen = !modelMenu.classList.contains("open");
+        closeFloatingMenus();
+        modelMenu.classList.toggle("open", willOpen);
+      });
+      document.getElementById("reasonBtn").addEventListener("click", () => {
+        const willOpen = !reasonMenu.classList.contains("open");
+        closeFloatingMenus();
+        reasonMenu.classList.toggle("open", willOpen);
+      });
+      document.querySelectorAll("[data-tool]").forEach((button) => button.addEventListener("click", () => runTool(button.dataset.tool)));
+      document.querySelectorAll("[data-library-step]").forEach((button) => {
+        button.addEventListener("click", () => setLibraryStep(button.dataset.libraryStep));
+      });
+      document.getElementById("connectLibraryBtn").addEventListener("click", connectSelectedLibraryItems);
+      document.getElementById("backToUploadBtn").addEventListener("click", () => setLibraryStep("upload"));
+      document.getElementById("backToThreadsBtn").addEventListener("click", () => setLibraryStep("upload"));
+      document.getElementById("toggleImportResultsBtn").addEventListener("click", () => {
+        const card = document.getElementById("importResultCard");
+        setImportResultsOpen(!card.classList.contains("open"));
+      });
+      document.querySelectorAll("[data-custom-tool]").forEach((button) => {
+        button.addEventListener("click", () => {
+          closeFloatingMenus();
+          const labels = { shortcut: "快捷指令", skill: "常用指令", mcp: "连接工具" };
+          showToast(`${labels[button.dataset.customTool]} 已加入输入框工具区预览。`);
+        });
+      });
+      document.querySelectorAll("[data-model]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.model = button.dataset.model;
+          document.getElementById("modelLabel").textContent = modelLabels[state.model];
+          closeFloatingMenus();
+          showToast(`已切换为${modelLabels[state.model]}。`);
+        });
+      });
+      document.querySelectorAll("[data-reason]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.reason = button.dataset.reason;
+          document.getElementById("reasonLabel").textContent = state.reason;
+          closeFloatingMenus();
+          showToast(`思考深度：${state.reason}。`);
+        });
+      });
+      const quickAddBtn = document.getElementById("quickAddBtn");
+      if (quickAddBtn) quickAddBtn.addEventListener("click", () => openModal("upload"));
+      document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+      document.getElementById("modalDoneBtn").addEventListener("click", closeModal);
+      document.getElementById("addSourceModal").addEventListener("click", (event) => {
+        if (event.target.id === "addSourceModal") closeModal();
+      });
+      document.querySelectorAll("[data-empty-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (button.dataset.emptyAction === "add") openModal();
+          if (button.dataset.emptyAction === "ask") {
+            chatInput.value = "帮我整理当前资料的重点";
+            sendMessage();
+          }
+        });
+      });
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest("#plusBtn") && !event.target.closest("#toolMenu") && !event.target.closest("#customToolBtn") && !event.target.closest("#customMenu") && !event.target.closest("#modelBtn") && !event.target.closest("#modelMenu") && !event.target.closest("#reasonBtn") && !event.target.closest("#reasonMenu") && !event.target.closest("#workspacePickerBtn") && !event.target.closest("#workspaceList")) {
+          closeFloatingMenus();
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (document.getElementById("addSourceModal").classList.contains("open")) {
+          closeModal();
+          return;
+        }
+        app.classList.add("evidence-collapsed");
+        closeFloatingMenus();
+      });
+      document.getElementById("modalSourceGrid").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-modal-source]");
+        if (!button) return;
+        state.sourceId = button.dataset.modalSource;
+        setLibraryStep("upload");
+        renderSources();
+        renderModalSourceDetail();
+      });
+      document.getElementById("modalWorkspaceList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-modal-workspace]");
+        if (!button) return;
+        state.targetWorkspaceId = button.dataset.modalWorkspace;
+        renderModalWorkspaces();
+        renderWorkspaces();
+        renderLibraryChoices();
+      });
+      document.getElementById("sidebarWorkspaceList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-sidebar-workspace]");
+        if (!button) return;
+        state.targetWorkspaceId = button.dataset.sidebarWorkspace;
+        renderWorkspaces();
+        renderModalWorkspaces();
+        renderLibraryChoices();
+      });
+      document.getElementById("workspaceList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-workspace]");
+        if (!button) return;
+        state.workspaceId = button.dataset.workspace;
+        state.threadId = threads[state.workspaceId][0].id;
+        document.getElementById("workspaceList").classList.remove("open");
+        app.classList.remove("mobile-sidebar-open");
+        renderWorkspaces();
+        renderThreads();
+        renderMessages();
+        setView("chat");
+      });
+      document.getElementById("threadList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-thread]");
+        if (!button) return;
+        state.threadId = button.dataset.thread;
+        app.classList.remove("mobile-sidebar-open");
+        renderThreads();
+        renderMessages();
+        setView("chat");
+      });
+      document.getElementById("themeSwitch").addEventListener("click", () => setTheme(state.theme === "dark" ? "light" : "dark"));
+      document.getElementById("backFromSettingsBtn").addEventListener("click", () => setView("chat"));
+      document.getElementById("testApiBtn").addEventListener("click", () => showToast("连接正常。访问密钥只显示保存状态，不显示明文。"));
+      document.getElementById("choosePathBtn").addEventListener("click", () => showToast("预览中仅展示入口。正式实现需要迁移确认。"));
+      document.getElementById("backupBtn").addEventListener("click", () => showToast("已生成备份任务预览。"));
+      document.getElementById("restoreBtn").addEventListener("click", () => showToast("请选择备份文件。"));
+      document.querySelectorAll("[data-select-model]").forEach((button) => {
+        button.addEventListener("click", () => showToast(`已切换为${modelLabels[button.dataset.selectModel]}。`));
+      });
+      document.querySelectorAll("[data-setting-jump]").forEach((button) => {
+        button.addEventListener("click", () => setSettingPage(button.dataset.settingJump));
+      });
+    }
+
+    function init() {
+      setTheme(state.theme);
+      setSettingPage(state.settingsTab);
+      renderWorkspaces();
+      renderThreads();
+      renderMessages();
+      renderSources();
+      renderLibraryLists();
+      bindEvents();
+    }
+
+    init();
+  </script>
+</body>
+</html>

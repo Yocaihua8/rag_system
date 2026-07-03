@@ -41,15 +41,16 @@
 20. `../CHANGELOG.md` — 对外发布变更记录
 21. `design/permission-matrix.md` — 权限边界说明
 22. `design/ui-wireframes.md` — 页面布局与核心交互
-23. `design/state-flow-and-acceptance.md` — 状态流转与验收标准
-24. `design/risk-register.md` — 风险清单
-25. `design/api-changes.md` — API 变更分级与迁移指南
-26. `style-guide.md` — 文档写作规范
-27. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
-28. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
-29. `features/team-workspace-research.md` — B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
-30. `features/web-crawling-research.md` — B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
-31. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
+23. `design/codex-workspace-chat-import-design.md` — Codex 式工作区会话与 AnythingLLM 式资料导入目标设计（评审中，不代表已实现）
+24. `design/state-flow-and-acceptance.md` — 状态流转与验收标准
+25. `design/risk-register.md` — 风险清单
+26. `design/api-changes.md` — API 变更分级与迁移指南
+27. `style-guide.md` — 文档写作规范
+28. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
+29. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
+30. `features/team-workspace-research.md` — B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
+31. `features/web-crawling-research.md` — B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
+32. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
 
 ---
 
