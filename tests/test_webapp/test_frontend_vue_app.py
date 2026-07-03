@@ -22,7 +22,17 @@ def test_vue_api_client_normalizes_fetch_errors_like_legacy_frontend():
 def test_vue_state_model_contains_migration_fields_and_view_switching():
     state_js = _read("frontend/src/state/app-state.js")
 
-    assert 'currentView: "workbench"' in state_js
+    assert 'currentView: "chat"' in state_js
+    assert 'VIEW_KEYS = ["chat", "settings"]' in state_js
+    for field_name in [
+        "libraryModalOpen",
+        "libraryStep",
+        "libraryTargetProjectId",
+        "sidebarMode",
+        "settingsPage",
+    ]:
+        assert f"{field_name}:" in state_js
+
     for field_name in [
         "projects",
         "selectedProjectId",
@@ -45,28 +55,42 @@ def test_vue_state_model_contains_migration_fields_and_view_switching():
     assert "VIEW_KEYS.includes(view)" in state_js
 
 
-def test_vue_layout_components_define_four_primary_views():
+def test_vue_layout_components_define_phase2_primary_entries():
     shell_vue = _read("frontend/src/components/AppShell.vue")
+    sidebar_vue = _read("frontend/src/components/WorkspaceSidebar.vue")
     app_vue = _read("frontend/src/App.vue")
 
-    for view in ["workbench", "library", "assessment", "settings"]:
-        assert f'data-view-key="{view}"' in shell_vue
-    for label in ["工作台", "资料库", "评估", "设置"]:
-        assert label in shell_vue
+    for view in ["chat", "settings"]:
+        assert f'data-view-key="{view}"' in sidebar_vue
+    assert 'data-nav-action="library"' in sidebar_vue
+    assert "WorkspaceSidebar" in shell_vue
+    assert 'data-shell-action="open-sidebar"' in shell_vue
+    assert 'data-shell-action="collapse-sidebar"' in sidebar_vue
+    assert "sidebarCollapsed" in shell_vue
+    assert "matchMedia" in shell_vue
+    for label in ["聊", "库", "设", "选择工作区", "搜索线程"]:
+        assert label in sidebar_vue
+    for old_label in ["工作台", "资料库", "评估"]:
+        assert old_label not in shell_vue
+        assert old_label not in sidebar_vue
 
     for component_name in [
         "WorkbenchView",
-        "LibraryView",
-        "AssessmentView",
         "SettingsView",
     ]:
         assert component_name in app_vue
+    for removed_component_name in [
+        "LibraryView",
+        "AssessmentView",
+    ]:
+        assert removed_component_name not in app_vue
 
     assert "AppShell" in app_vue
+    assert "LibraryModal" in app_vue
     assert "currentViewComponent" in app_vue
     assert "computed" in app_vue
-    assert "B-142 Vue Workbench" in shell_vue
-    assert "流式问答、会话历史、消息管理" in shell_vue
+    assert "B-142 Vue Workbench" not in shell_vue
+    assert "流式问答、会话历史、消息管理" not in shell_vue
     assert "完整业务流程仍由 legacy 静态前端承载" not in shell_vue
     assert "SSE 和会话后续迁移" not in shell_vue
 
@@ -78,14 +102,15 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
 
     settings_vue = _read("frontend/src/views/SettingsView.vue")
     assert "设置" in settings_vue
-    assert "B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设" in settings_vue
+    assert "settings-fullscreen" in settings_vue
+    assert "B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设" not in settings_vue
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
-    assert "项目问答" in workbench_vue
-    assert "B-142 已接入流式问答、取消、会话历史和消息管理" in workbench_vue
-    assert "检索调试" in workbench_vue
-    assert "Agent 只读工具" in workbench_vue
-    assert "工具来源上下文" in workbench_vue
+    assert "问资料" in workbench_vue
+    assert "EvidenceDrawer" in workbench_vue
+    assert "ChatSessionPanel" not in workbench_vue
+    assert "B-142 已接入流式问答、取消、会话历史和消息管理" not in workbench_vue
+    assert "Agent 工具" not in workbench_vue
     assert "SSE 和会话后续迁移" not in workbench_vue
 
     library_vue = _read("frontend/src/views/LibraryView.vue")
@@ -495,15 +520,15 @@ def test_vue_workbench_question_and_answer_panels_render_entrypoint():
 
     for marker in [
         "回答",
-        "来源",
-        "来源质量",
-        "暂无来源",
-        "mode",
-        "provider",
+        "提交问题后会在这里显示回答。",
+        "answerResult.answer",
+        "回答反馈",
     ]:
         assert marker in answer_panel_vue
+    for marker in ["来源质量", "暂无来源", "mode", "provider"]:
+        assert marker not in answer_panel_vue
 
-    assert "QuestionPanel" in workbench_vue
+    assert "QuestionComposer" in workbench_vue
     assert "AnswerPanel" in workbench_vue
     assert "@submit-question" in workbench_vue
     assert ":answer-result=\"answerResult\"" in workbench_vue
@@ -628,14 +653,12 @@ def test_vue_app_wires_chat_sessions_messages_streaming_and_cancel_state():
 
     for marker in [
         "chatMessages",
-        "chatSessions",
-        "selectedChatSessionId",
-        "ChatSessionPanel",
         "ChatThread",
         "QuestionComposer",
         "@cancel-answer",
     ]:
         assert marker in workbench_vue
+    assert "ChatSessionPanel" not in workbench_vue
 
 
 def test_vue_workbench_supports_editing_chat_message_and_resending_branch():
@@ -668,7 +691,7 @@ def test_vue_workbench_supports_editing_chat_message_and_resending_branch():
     ]:
         assert marker in app_vue
 
-    assert "@edit-chat-message=\"(message) => $emit('edit-chat-message', message)\"" in workbench_vue
+    assert "@edit-chat-message=\"(message) => emit('edit-chat-message', message)\"" in workbench_vue
 
 
 def test_vue_app_handles_answer_feedback_state_and_events():
@@ -701,26 +724,27 @@ def test_vue_app_handles_answer_feedback_state_and_events():
 
 def test_vue_answer_panel_renders_tool_suggestion_and_context_controls():
     answer_panel_vue = _read("frontend/src/components/AnswerPanel.vue")
+    evidence_drawer_vue = _read("frontend/src/components/EvidenceDrawer.vue")
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
 
     for marker in [
-        "建议工具",
-        "运行建议工具",
-        "可用工具结果",
-        "使用工具结果作为下一问上下文",
-        "下一问将带入工具运行",
-        "清除工具上下文",
-        "本轮已使用工具来源",
+        "建议",
+        "查更多来源",
+        "用到下一问",
+        "下一问将带入",
+        "clear-tool-context",
         "toolSuggestion",
         "lastUsableToolRun",
         "currentToolContextRunId",
         "formatToolSuggestion",
         "formatUsableToolRun",
-        'defineEmits(["submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context"])',
     ]:
-        assert marker in answer_panel_vue
+        assert marker in evidence_drawer_vue
+    assert "建议工具" not in answer_panel_vue
+    assert "可用工具结果" not in answer_panel_vue
 
     for marker in [
+        "EvidenceDrawer",
         ":tool-suggestion=\"currentToolSuggestion\"",
         ":last-usable-tool-run=\"lastUsableToolRun\"",
         ":current-tool-context-run-id=\"currentToolContextRunId\"",
@@ -729,6 +753,59 @@ def test_vue_answer_panel_renders_tool_suggestion_and_context_controls():
         "@clear-tool-context",
     ]:
         assert marker in workbench_vue
+
+
+def test_vue_library_modal_keeps_advanced_sources_and_import_results_collapsed():
+    library_modal_vue = _read("frontend/src/components/LibraryModal.vue")
+    import_result_list_vue = _read("frontend/src/components/ImportResultList.vue")
+    app_vue = _read("frontend/src/App.vue")
+
+    for marker in [
+        "ImportResultList",
+        "data-library-source=\"more\"",
+        "data-library-advanced-sources",
+        "更多来源",
+        "GitHub 仓库",
+        "Notion",
+        "Obsidian",
+        ":status=\"importStatus\"",
+        ":error=\"importError\"",
+        "data-library-folder-list",
+        "资料夹",
+        "全部资料",
+        "未分组",
+        "v-for=\"collection in documentCollections\"",
+        "emit('select-collection', collection.id)",
+    ]:
+        assert marker in library_modal_vue
+
+    for marker in [
+        ":selected-document-collection-id=\"appState.selectedDocumentCollectionId\"",
+        ":document-collections-loading=\"appState.documentCollectionsLoading\"",
+        ":document-collections-load-error=\"appState.documentCollectionsLoadError\"",
+        "@refresh-collections=\"loadDocumentCollections\"",
+        "@select-collection=\"handleSelectDocumentCollection\"",
+        "await loadDocumentCollections()",
+        "await loadLibraryDocuments()",
+    ]:
+        assert marker in app_vue
+
+    for marker in [
+        "data-import-result-list",
+        "data-import-result-toggle",
+        "data-import-result-details",
+        "默认收起",
+        "hasResult",
+        "isOpen.value = true",
+    ]:
+        assert marker in import_result_list_vue
+
+    assert "外部仓库" not in library_modal_vue
+    assert "加入当前工作区资料" not in library_modal_vue
+    assert "function handleSelectLibraryTargetProject" in app_vue
+    select_target_function = app_vue.split("function handleSelectLibraryTargetProject", 1)[1].split("\n}", 1)[0]
+    assert "appState.sidebarMode = \"workspace-select\"" in select_target_function
+    assert "appState.sidebarMode = \"threads\"" not in select_target_function
 
 
 def test_vue_app_handles_tool_suggestion_and_next_question_context_state():
@@ -2319,33 +2396,40 @@ def test_vue_settings_view_renders_llm_settings_and_model_profile_controls():
     settings_vue = _read("frontend/src/views/SettingsView.vue")
 
     for marker in [
-        "模型设置",
-        "模型提供商",
-        "API 地址",
-        "模型名称",
-        "API Key",
+        "settings-fullscreen",
+        'data-settings-action="back"',
+        'data-settings-page="answer"',
+        'data-settings-page="data"',
+        'data-settings-page="appearance"',
+        "本机回答",
+        "本机快速",
+        "在线回答",
+        "连接详情",
+        "服务地址",
+        "模型名",
+        "Key 引用",
         "留空不覆盖已有 Key",
         "不回显明文",
-        "保存模型设置",
-        "测试连接",
-        "模型 Profile",
+        "保存连接",
         "当前默认",
-        "清空默认",
-        "保存 Profile",
+        "保存",
         "取消编辑",
-        "测试 Profile",
+        "测试",
         "设为默认",
-        "删除 Profile",
-        "只保存 Key 引用",
+        "删除",
         "env:RAG_LLM_API_KEY",
         "env:DEEPSEEK_API_KEY",
         "saved:RAG_LLM_API_KEY",
         "profileForm",
+        "setLocalAnswer",
+        "setOnlineAnswer",
         "editProfile",
         'v-for="profile in modelProfiles"',
-        'defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
+        'defineEmits(["back", "change-settings-page", "load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
     ]:
         assert marker in settings_vue
+    for old_marker in ["模型 Profile", "API Key", "Prompt 预设"]:
+        assert old_marker not in settings_vue
 
     for prop_name in [
         "llmSettings",
@@ -2371,26 +2455,21 @@ def test_vue_settings_view_renders_prompt_preset_controls():
     settings_vue = _read("frontend/src/views/SettingsView.vue")
 
     for marker in [
-        "Prompt 预设",
-        "当前默认 Prompt",
-        "清空默认 Prompt",
-        "保存预设",
+        "回答模板",
+        "当前默认",
+        "保存模板",
         "取消编辑",
-        "内置模板",
-        "复制模板",
         "系统提示词",
         "回答格式",
-        "删除预设",
+        "删除",
         "设为默认",
-        "请选择项目空间后管理 Prompt 预设",
-        "暂无 Prompt 预设，可从模板复制后保存",
+        "请选择工作区后管理回答模板",
+        "暂无回答模板",
         "promptPresetForm",
-        "copyPromptPresetTemplate",
         "editPromptPreset",
         "resetPromptPresetForm",
         'v-for="preset in promptPresets"',
-        'v-for="template in promptPresetTemplates"',
-        'defineEmits(["load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
+        'defineEmits(["back", "change-settings-page", "load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
     ]:
         assert marker in settings_vue
 
@@ -2428,6 +2507,7 @@ def test_vue_app_handles_settings_model_config_state_and_events():
 
     for marker in [
         ":llm-settings=\"appState.llmSettings\"",
+        ":settings-page=\"appState.settingsPage\"",
         ":llm-settings-loading=\"appState.llmSettingsLoading\"",
         ":llm-settings-submitting=\"appState.llmSettingsSubmitting\"",
         ":llm-settings-testing=\"appState.llmSettingsTesting\"",
@@ -2443,6 +2523,8 @@ def test_vue_app_handles_settings_model_config_state_and_events():
         ":model-profile-mutation-error=\"appState.modelProfileMutationError\"",
         ":model-profile-status=\"appState.modelProfileStatus\"",
         "@load-settings=\"loadSettingsPage\"",
+        "@back=\"showView('chat')\"",
+        "@change-settings-page=\"handleChangeSettingsPage\"",
         "@save-llm-settings=\"handleSaveLlmSettings\"",
         "@test-llm-settings=\"handleTestLlmSettings\"",
         "@load-model-profiles=\"loadModelProfiles\"",
@@ -2451,6 +2533,7 @@ def test_vue_app_handles_settings_model_config_state_and_events():
         "@set-default-model-profile=\"handleSetDefaultModelProfile\"",
         "@test-model-profile=\"handleTestModelProfile\"",
         "loadSettingsPage",
+        "handleChangeSettingsPage",
         "handleSaveLlmSettings",
         "handleTestLlmSettings",
         "handleSaveModelProfile",

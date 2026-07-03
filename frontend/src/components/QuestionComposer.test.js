@@ -34,10 +34,45 @@ describe("QuestionComposer", () => {
   it("emits cancel only while an answer is loading", async () => {
     const wrapper = mountComposer({ selectedProjectId: "p1", loading: true, statusMessage: "提问中" });
 
-    await wrapper.find('button[type="button"]:not(.section-title-row button)').trigger("click");
+    await wrapper.find('[data-composer-action="cancel-answer"]').trigger("click");
 
     expect(wrapper.emitted("cancel-answer")[0]).toEqual([]);
     expect(wrapper.find("textarea").attributes("disabled")).toBeDefined();
+  });
+
+  it("shows chat tools, custom shortcuts, model, and answer depth controls", () => {
+    const wrapper = mountComposer({ selectedProjectId: "p1", statusMessage: "等待提问" });
+
+    expect(wrapper.find('[data-composer-action="add"]').exists()).toBe(true);
+    expect(wrapper.find('[data-composer-action="shortcut"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("上传临时文件");
+    expect(wrapper.text()).toContain("加入资料");
+    expect(wrapper.text()).toContain("练习与小测");
+    expect(wrapper.text()).toContain("整理要点");
+    expect(wrapper.text()).toContain("常用指令");
+    expect(wrapper.text()).toContain("连接工具");
+    expect(wrapper.text()).toContain("对比回答");
+    expect(wrapper.text()).toContain("本机回答");
+    expect(wrapper.text()).toContain("标准");
+  });
+
+  it("keeps technical terms out of the chat composer", () => {
+    const wrapper = mountComposer({ selectedProjectId: "p1", statusMessage: "等待提问" });
+
+    expect(wrapper.text()).not.toContain("API 接入");
+    expect(wrapper.text()).not.toContain("LLM");
+    expect(wrapper.text()).not.toContain("Prompt");
+    expect(wrapper.text()).not.toContain("Profile");
+    expect(wrapper.text()).not.toContain("Agent");
+  });
+
+  it("emits the lightweight practice tool from the add menu", async () => {
+    const wrapper = mountComposer({ selectedProjectId: "p1", statusMessage: "等待提问" });
+    const practiceButton = wrapper.findAll("button").find((button) => button.text() === "练习与小测");
+
+    await practiceButton.trigger("click");
+
+    expect(wrapper.emitted("start-assessment-tool")).toEqual([[]]);
   });
 
   it("shows cancel status and service error while preserving controls", () => {
