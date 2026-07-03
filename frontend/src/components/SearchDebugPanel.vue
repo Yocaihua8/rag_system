@@ -1,5 +1,6 @@
 <template>
   <section class="search-debug-panel" aria-labelledby="search-debug-title">
+    <div v-show="activeSection === 'debug'" class="search-debug-section">
     <div class="section-title-row">
       <div>
         <p class="section-kicker">检索调试</p>
@@ -95,8 +96,9 @@
         </div>
       </template>
     </div>
+    </div>
 
-    <div class="retrieval-review-panel">
+    <div v-show="activeSection === 'review'" class="retrieval-review-panel">
       <div class="section-title-row">
         <div>
           <p class="section-kicker">检索复盘</p>
@@ -190,6 +192,10 @@ const props = defineProps({
   selectedProjectId: {
     type: String,
     required: true,
+  },
+  activeSection: {
+    type: String,
+    default: "debug",
   },
   searchDebugResult: {
     type: Object,

@@ -1,5 +1,20 @@
 <template>
-  <AppShell :current-view="appState.currentView" @change-view="showView">
+  <AppShell
+    :current-view="appState.currentView"
+    :sidebar-mode="appState.sidebarMode"
+    :projects="appState.projects"
+    :selected-project-id="appState.selectedProjectId"
+    :library-target-project-id="appState.libraryTargetProjectId"
+    :chat-sessions="appState.chatSessions"
+    :selected-chat-session-id="appState.selectedChatSessionId"
+    @change-view="showView"
+    @open-library="openLibraryModal"
+    @back-to-threads="showThreadSidebar"
+    @select-library-target-project="handleSelectLibraryTargetProject"
+    @select-project="handleSelectProject"
+    @select-chat-session="handleSelectChatSession"
+    @create-chat-session="handleCreateChatSession"
+  >
     <component
       :is="currentViewComponent"
       :status-message="statusMessage"
@@ -38,6 +53,7 @@
       :answer-status="appState.answerStatus"
       :answer-streaming-text="appState.answerStreamingText"
       :answer-cancel-status="appState.answerCancelStatus"
+      :evidence-collapsed="appState.evidenceCollapsed"
       :model-comparison-result="appState.modelComparisonResult"
       :model-comparison-loading="appState.modelComparisonLoading"
       :model-comparison-error="appState.modelComparisonError"
@@ -128,6 +144,7 @@
       :import-batch-detail-loading="appState.importBatchDetailLoading"
       :import-batch-detail-error="appState.importBatchDetailError"
       :llm-settings="appState.llmSettings"
+      :settings-page="appState.settingsPage"
       :llm-settings-loading="appState.llmSettingsLoading"
       :llm-settings-submitting="appState.llmSettingsSubmitting"
       :llm-settings-testing="appState.llmSettingsTesting"
@@ -164,6 +181,7 @@
       :assessment-error="appState.assessmentError"
       :assessment-status="appState.assessmentStatus"
       @check-health="checkHealth"
+      @open-library="openLibraryModal"
       @refresh-projects="loadProjectSpaces"
       @select-project="handleSelectProject"
       @create-project="handleCreateProject"
@@ -171,6 +189,7 @@
       @delete-project="handleDeleteProject"
       @submit-question="handleSubmitQuestion"
       @compare-answers="handleCompareAnswers"
+      @start-assessment-tool="handleStartAssessmentTool"
       @refresh-ollama-status="loadOllamaStatus"
       @pull-ollama-model="handlePullOllamaModel"
       @dismiss-first-run="dismissFirstRunWizard"
@@ -182,6 +201,7 @@
       @delete-chat-message="handleDeleteChatMessage"
       @clear-chat-messages="handleClearChatMessages"
       @cancel-answer="handleCancelAnswer"
+      @toggle-evidence="toggleEvidenceDrawer"
       @submit-answer-feedback="handleSubmitAnswerFeedback"
       @run-tool-suggestion="handleRunToolSuggestion"
       @use-tool-result-context="handleUseToolResultContext"
@@ -219,6 +239,8 @@
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
       @load-settings="loadSettingsPage"
+      @back="showView('chat')"
+      @change-settings-page="handleChangeSettingsPage"
       @save-llm-settings="handleSaveLlmSettings"
       @test-llm-settings="handleTestLlmSettings"
       @load-model-profiles="loadModelProfiles"
@@ -234,6 +256,31 @@
       @submit-assessment-answer="handleSubmitAssessmentAnswer"
       @next-assessment-question="handleNextAssessmentQuestion"
       @reset-assessment="resetAssessmentState"
+    />
+    <LibraryModal
+      :open="appState.libraryModalOpen"
+      :step="appState.libraryStep"
+      :documents="appState.documents"
+      :documents-loading="appState.documentsLoading"
+      :documents-load-error="appState.documentsLoadError"
+      :document-collections="appState.documentCollections"
+      :selected-document-collection-id="appState.selectedDocumentCollectionId"
+      :document-collections-loading="appState.documentCollectionsLoading"
+      :document-collections-load-error="appState.documentCollectionsLoadError"
+      :import-status="appState.importStatus"
+      :import-error="appState.importError"
+      @close="closeLibraryModal"
+      @back-to-upload="openLibraryModal('upload')"
+      @choose-material="handleChooseLibraryMaterial"
+      @refresh-collections="loadDocumentCollections"
+      @select-collection="handleSelectDocumentCollection"
+      @refresh-documents="loadLibraryDocuments"
+      @select-document="handleSelectDocument"
+      @import-note="handleImportNote"
+      @import-url="handleImportUrl"
+      @import-files="handleImportFiles"
+      @import-folder="handleImportFolder"
+      @import-github-repo="handleImportGithubRepo"
     />
   </AppShell>
 </template>
@@ -319,16 +366,13 @@ import {
   saveRetrievalReview,
 } from "./api/search.js";
 import AppShell from "./components/AppShell.vue";
+import LibraryModal from "./components/LibraryModal.vue";
 import { appState, showView } from "./state/app-state.js";
-import AssessmentView from "./views/AssessmentView.vue";
-import LibraryView from "./views/LibraryView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import WorkbenchView from "./views/WorkbenchView.vue";
 
 const viewComponents = {
-  workbench: WorkbenchView,
-  library: LibraryView,
-  assessment: AssessmentView,
+  chat: WorkbenchView,
   settings: SettingsView,
 };
 
@@ -372,6 +416,54 @@ onMounted(() => {
   loadSettingsPage();
   loadAgentTools();
 });
+
+function openLibraryModal(step = "upload") {
+  appState.libraryModalOpen = true;
+  appState.libraryStep = step;
+  if (!appState.libraryTargetProjectId) {
+    appState.libraryTargetProjectId = appState.selectedProjectId;
+  }
+  appState.sidebarMode = step === "select" ? "workspace-select" : "threads";
+}
+
+async function handleChooseLibraryMaterial() {
+  appState.libraryModalOpen = true;
+  appState.libraryStep = "select";
+  if (!appState.libraryTargetProjectId) {
+    appState.libraryTargetProjectId = appState.selectedProjectId;
+  }
+  appState.sidebarMode = "workspace-select";
+  await loadDocumentCollections();
+  await loadLibraryDocuments();
+}
+
+function closeLibraryModal() {
+  appState.libraryModalOpen = false;
+  appState.sidebarMode = "threads";
+}
+
+function toggleEvidenceDrawer() {
+  appState.evidenceCollapsed = !appState.evidenceCollapsed;
+}
+
+function showThreadSidebar() {
+  appState.sidebarMode = "threads";
+}
+
+function handleChangeSettingsPage(page) {
+  appState.settingsPage = page;
+}
+
+function handleStartAssessmentTool() {
+  appState.currentView = "chat";
+  appState.answerStatus = "练习与小测会在聊天中进行";
+}
+
+function handleSelectLibraryTargetProject(projectId) {
+  appState.libraryTargetProjectId = projectId;
+  appState.sidebarMode = "workspace-select";
+  appState.libraryModalOpen = true;
+}
 
 async function checkHealth() {
   statusMessage.value = "检查中...";

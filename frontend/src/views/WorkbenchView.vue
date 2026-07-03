@@ -1,10 +1,10 @@
 <template>
-  <section class="view-panel">
-    <header class="topbar">
+  <section class="view-panel chat-view">
+    <header class="chat-view-header">
       <div>
-        <p class="section-kicker">工作台</p>
-        <h2>项目问答</h2>
-        <p>B-142 已接入流式问答、取消、会话历史和消息管理；右侧保留检索调试、检索复盘、Agent 只读工具和工具来源上下文。</p>
+        <p class="section-kicker">聊</p>
+        <h2>问资料</h2>
+        <p>选择左侧工作区，直接围绕资料提问；来源、工具和复盘都收在右侧依据里。</p>
       </div>
     </header>
 
@@ -21,138 +21,187 @@
       :project-form-submitting="projectFormSubmitting"
       :project-form-error="projectFormError"
       :project-form-status="projectFormStatus"
-      @refresh-ollama-status="$emit('refresh-ollama-status')"
-      @pull-ollama-model="(model) => $emit('pull-ollama-model', model)"
-      @create-project="(payload) => $emit('create-project', payload)"
-      @dismiss-first-run="$emit('dismiss-first-run')"
+      @refresh-ollama-status="emit('refresh-ollama-status')"
+      @pull-ollama-model="(model) => emit('pull-ollama-model', model)"
+      @create-project="(payload) => emit('create-project', payload)"
+      @dismiss-first-run="emit('dismiss-first-run')"
     />
 
-    <div class="workbench-grid">
-      <ChatSessionPanel
-        :selected-project-id="selectedProjectId"
-        :chat-sessions="chatSessions"
-        :selected-chat-session-id="selectedChatSessionId"
-        :loading="chatSessionsLoading"
-        :error="chatSessionsError"
-        :mutation-status="chatSessionMutationStatus"
-        :mutation-error="chatSessionMutationError"
-        @select-chat-session="(sessionId) => $emit('select-chat-session', sessionId)"
-        @create-chat-session="(title) => $emit('create-chat-session', title)"
-        @rename-chat-session="(payload) => $emit('rename-chat-session', payload)"
-        @delete-chat-session="(sessionId) => $emit('delete-chat-session', sessionId)"
-      />
-
+    <div class="workbench-grid phase2-workbench-grid">
       <div class="workbench-main-column">
-      <QuestionComposer
-        :selected-project-id="selectedProjectId"
-        :loading="answerLoading"
-        :error="answerError"
-        :status-message="answerStatus || statusMessage"
-        :answer-cancel-status="answerCancelStatus"
-        @submit-question="(question) => $emit('submit-question', question)"
-        @cancel-answer="$emit('cancel-answer')"
-        @check-health="$emit('check-health')"
-      />
-      <ChatThread
-        :chat-messages="chatMessages"
-        :loading="chatMessagesLoading"
-        :error="chatMessagesError"
-        :answer-streaming-text="answerStreamingText"
-        @edit-chat-message="(message) => $emit('edit-chat-message', message)"
-        @delete-chat-message="(messageId) => $emit('delete-chat-message', messageId)"
-        @clear-chat-messages="$emit('clear-chat-messages')"
-      />
-      <AnswerPanel
+        <QuestionComposer
+          :selected-project-id="selectedProjectId"
+          :loading="answerLoading"
+          :error="answerError"
+          :status-message="answerStatus || statusMessage"
+          :answer-cancel-status="answerCancelStatus"
+          @submit-question="(question) => emit('submit-question', question)"
+          @cancel-answer="emit('cancel-answer')"
+          @check-health="emit('check-health')"
+          @open-library="emit('open-library')"
+          @compare-answers="(payload) => emit('compare-answers', payload)"
+          @start-assessment-tool="emit('start-assessment-tool')"
+        />
+        <ChatThread
+          :chat-messages="chatMessages"
+          :loading="chatMessagesLoading"
+          :error="chatMessagesError"
+          :answer-streaming-text="answerStreamingText"
+          @edit-chat-message="(message) => emit('edit-chat-message', message)"
+          @delete-chat-message="(messageId) => emit('delete-chat-message', messageId)"
+          @clear-chat-messages="emit('clear-chat-messages')"
+        />
+        <AnswerPanel
+          :answer-result="answerResult"
+          :loading="answerLoading"
+          :error="answerError"
+          :last-answer-message-id="lastAnswerMessageId"
+          :answer-feedback-submitting="answerFeedbackSubmitting"
+          :answer-feedback-status="answerFeedbackStatus"
+          :answer-feedback-error="answerFeedbackError"
+          :tool-suggestion="currentToolSuggestion"
+          :last-usable-tool-run="lastUsableToolRun"
+          :current-tool-context-run-id="currentToolContextRunId"
+          :agent-tool-submitting-name="agentToolSubmittingName"
+          @submit-answer-feedback="(rating) => emit('submit-answer-feedback', rating)"
+          @run-tool-suggestion="(suggestion) => emit('run-tool-suggestion', suggestion)"
+          @use-tool-result-context="(runId) => emit('use-tool-result-context', runId)"
+          @clear-tool-context="emit('clear-tool-context')"
+        />
+      </div>
+
+      <EvidenceDrawer
+        :collapsed="evidenceCollapsed"
         :answer-result="answerResult"
-        :loading="answerLoading"
-        :error="answerError"
-        :last-answer-message-id="lastAnswerMessageId"
-        :answer-feedback-submitting="answerFeedbackSubmitting"
-        :answer-feedback-status="answerFeedbackStatus"
-        :answer-feedback-error="answerFeedbackError"
         :tool-suggestion="currentToolSuggestion"
         :last-usable-tool-run="lastUsableToolRun"
         :current-tool-context-run-id="currentToolContextRunId"
         :agent-tool-submitting-name="agentToolSubmittingName"
-        @submit-answer-feedback="(rating) => $emit('submit-answer-feedback', rating)"
-        @run-tool-suggestion="(suggestion) => $emit('run-tool-suggestion', suggestion)"
-        @use-tool-result-context="(runId) => $emit('use-tool-result-context', runId)"
-        @clear-tool-context="$emit('clear-tool-context')"
-      />
-      <ModelComparisonPanel
-        :selected-project-id="selectedProjectId"
-        :model-profiles="modelProfiles"
-        :model-comparison-result="modelComparisonResult"
-        :loading="modelComparisonLoading"
-        :error="modelComparisonError"
-        :status="modelComparisonStatus"
-        @compare-answers="(payload) => $emit('compare-answers', payload)"
-      />
-      </div>
+        @toggle="emit('toggle-evidence')"
+        @run-tool-suggestion="(suggestion) => emit('run-tool-suggestion', suggestion)"
+        @use-tool-result-context="(runId) => emit('use-tool-result-context', runId)"
+        @clear-tool-context="emit('clear-tool-context')"
+      >
+        <template #advanced>
+          <section class="evidence-advanced-panel">
+            <div class="context-rail-tabs" role="tablist" aria-label="依据工具">
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="activeContextTab === 'debug'"
+                :class="{ active: activeContextTab === 'debug' }"
+                @click="activeContextTab = 'debug'"
+              >
+                查来源
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="activeContextTab === 'review'"
+                :class="{ active: activeContextTab === 'review' }"
+                @click="activeContextTab = 'review'"
+              >
+                复盘
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="activeContextTab === 'tools'"
+                :class="{ active: activeContextTab === 'tools' }"
+                @click="activeContextTab = 'tools'"
+              >
+                工具
+              </button>
+              <button
+                type="button"
+                role="tab"
+                :aria-selected="activeContextTab === 'compare'"
+                :class="{ active: activeContextTab === 'compare' }"
+                @click="activeContextTab = 'compare'"
+              >
+                对比
+              </button>
+            </div>
 
-      <div class="workbench-context-rail">
-      <SearchDebugPanel
-        :selected-project-id="selectedProjectId"
-        :search-debug-result="searchDebugResult"
-        :search-debug-loading="searchDebugLoading"
-        :search-debug-error="searchDebugError"
-        :search-debug-status="searchDebugStatus"
-        :retrieval-settings="retrievalSettings"
-        :retrieval-settings-loading="retrievalSettingsLoading"
-        :retrieval-settings-saving="retrievalSettingsSaving"
-        :retrieval-settings-status="retrievalSettingsStatus"
-        :retrieval-settings-error="retrievalSettingsError"
-        :retrieval-reviews="retrievalReviews"
-        :retrieval-reviews-loading="retrievalReviewsLoading"
-        :retrieval-reviews-error="retrievalReviewsError"
-        :retrieval-review-saving="retrievalReviewSaving"
-        :retrieval-review-error="retrievalReviewError"
-        :retrieval-review-status="retrievalReviewStatus"
-        :selected-retrieval-review="selectedRetrievalReview"
-        :retrieval-review-detail-loading="retrievalReviewDetailLoading"
-        :retrieval-review-detail-error="retrievalReviewDetailError"
-        :deleting-retrieval-review-id="deletingRetrievalReviewId"
-        @run-search-debug="(payload) => $emit('run-search-debug', payload)"
-        @save-retrieval-settings="(payload) => $emit('save-retrieval-settings', payload)"
-        @save-retrieval-review="(payload) => $emit('save-retrieval-review', payload)"
-        @select-retrieval-review="(reviewId) => $emit('select-retrieval-review', reviewId)"
-        @delete-retrieval-review="(reviewId) => $emit('delete-retrieval-review', reviewId)"
-      />
-      <AgentToolsPanel
-        :selected-project-id="selectedProjectId"
-        :agent-tools="agentTools"
-        :agent-tools-loading="agentToolsLoading"
-        :agent-tools-error="agentToolsError"
-        :agent-tool-runs="agentToolRuns"
-        :agent-tool-runs-loading="agentToolRunsLoading"
-        :agent-tool-runs-error="agentToolRunsError"
-        :selected-agent-tool-run="selectedAgentToolRun"
-        :agent-tool-result="agentToolResult"
-        :agent-tool-status="agentToolStatus"
-        :agent-tool-error="agentToolError"
-        :agent-tool-submitting-name="agentToolSubmittingName"
-        :agent-tool-detail-loading="agentToolDetailLoading"
-        :agent-tool-detail-error="agentToolDetailError"
-        @load-agent-tools="$emit('load-agent-tools')"
-        @run-agent-tool="(payload) => $emit('run-agent-tool', payload)"
-        @load-agent-tool-runs="$emit('load-agent-tool-runs')"
-        @select-agent-tool-run="(runId) => $emit('select-agent-tool-run', runId)"
-      />
-      </div>
+            <SearchDebugPanel
+              v-show="activeContextTab === 'debug' || activeContextTab === 'review'"
+              :active-section="activeContextTab"
+              :selected-project-id="selectedProjectId"
+              :search-debug-result="searchDebugResult"
+              :search-debug-loading="searchDebugLoading"
+              :search-debug-error="searchDebugError"
+              :search-debug-status="searchDebugStatus"
+              :retrieval-settings="retrievalSettings"
+              :retrieval-settings-loading="retrievalSettingsLoading"
+              :retrieval-settings-saving="retrievalSettingsSaving"
+              :retrieval-settings-status="retrievalSettingsStatus"
+              :retrieval-settings-error="retrievalSettingsError"
+              :retrieval-reviews="retrievalReviews"
+              :retrieval-reviews-loading="retrievalReviewsLoading"
+              :retrieval-reviews-error="retrievalReviewsError"
+              :retrieval-review-saving="retrievalReviewSaving"
+              :retrieval-review-error="retrievalReviewError"
+              :retrieval-review-status="retrievalReviewStatus"
+              :selected-retrieval-review="selectedRetrievalReview"
+              :retrieval-review-detail-loading="retrievalReviewDetailLoading"
+              :retrieval-review-detail-error="retrievalReviewDetailError"
+              :deleting-retrieval-review-id="deletingRetrievalReviewId"
+              @run-search-debug="(payload) => emit('run-search-debug', payload)"
+              @save-retrieval-settings="(payload) => emit('save-retrieval-settings', payload)"
+              @save-retrieval-review="(payload) => emit('save-retrieval-review', payload)"
+              @select-retrieval-review="(reviewId) => emit('select-retrieval-review', reviewId)"
+              @delete-retrieval-review="(reviewId) => emit('delete-retrieval-review', reviewId)"
+            />
+            <AgentToolsPanel
+              v-show="activeContextTab === 'tools'"
+              :selected-project-id="selectedProjectId"
+              :agent-tools="agentTools"
+              :agent-tools-loading="agentToolsLoading"
+              :agent-tools-error="agentToolsError"
+              :agent-tool-runs="agentToolRuns"
+              :agent-tool-runs-loading="agentToolRunsLoading"
+              :agent-tool-runs-error="agentToolRunsError"
+              :selected-agent-tool-run="selectedAgentToolRun"
+              :agent-tool-result="agentToolResult"
+              :agent-tool-status="agentToolStatus"
+              :agent-tool-error="agentToolError"
+              :agent-tool-submitting-name="agentToolSubmittingName"
+              :agent-tool-detail-loading="agentToolDetailLoading"
+              :agent-tool-detail-error="agentToolDetailError"
+              @load-agent-tools="emit('load-agent-tools')"
+              @run-agent-tool="(payload) => emit('run-agent-tool', payload)"
+              @load-agent-tool-runs="emit('load-agent-tool-runs')"
+              @select-agent-tool-run="(runId) => emit('select-agent-tool-run', runId)"
+            />
+            <ModelComparisonPanel
+              v-show="activeContextTab === 'compare'"
+              :selected-project-id="selectedProjectId"
+              :model-profiles="modelProfiles"
+              :model-comparison-result="modelComparisonResult"
+              :loading="modelComparisonLoading"
+              :error="modelComparisonError"
+              :status="modelComparisonStatus"
+              @compare-answers="(payload) => emit('compare-answers', payload)"
+            />
+          </section>
+        </template>
+      </EvidenceDrawer>
     </div>
   </section>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import AnswerPanel from "../components/AnswerPanel.vue";
 import AgentToolsPanel from "../components/AgentToolsPanel.vue";
-import ChatSessionPanel from "../components/ChatSessionPanel.vue";
 import ChatThread from "../components/ChatThread.vue";
+import EvidenceDrawer from "../components/EvidenceDrawer.vue";
 import FirstRunWizard from "../components/FirstRunWizard.vue";
 import ModelComparisonPanel from "../components/ModelComparisonPanel.vue";
 import QuestionComposer from "../components/QuestionComposer.vue";
-import QuestionPanel from "../components/QuestionPanel.vue";
 import SearchDebugPanel from "../components/SearchDebugPanel.vue";
+
+const activeContextTab = ref("debug");
 
 defineProps({
   statusMessage: {
@@ -162,6 +211,18 @@ defineProps({
   selectedProjectId: {
     type: String,
     required: true,
+  },
+  projectFormSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  projectFormError: {
+    type: String,
+    default: "",
+  },
+  projectFormStatus: {
+    type: String,
+    default: "",
   },
   answerResult: {
     type: Object,
@@ -178,6 +239,10 @@ defineProps({
   answerStatus: {
     type: String,
     default: "",
+  },
+  evidenceCollapsed: {
+    type: Boolean,
+    default: true,
   },
   firstRunVisible: {
     type: Boolean,
@@ -243,35 +308,11 @@ defineProps({
     type: Array,
     default: () => [],
   },
-  chatSessions: {
-    type: Array,
-    default: () => [],
-  },
-  selectedChatSessionId: {
-    type: String,
-    default: "",
-  },
   chatMessagesLoading: {
     type: Boolean,
     default: false,
   },
   chatMessagesError: {
-    type: String,
-    default: "",
-  },
-  chatSessionsLoading: {
-    type: Boolean,
-    default: false,
-  },
-  chatSessionsError: {
-    type: String,
-    default: "",
-  },
-  chatSessionMutationError: {
-    type: String,
-    default: "",
-  },
-  chatSessionMutationStatus: {
     type: String,
     default: "",
   },
@@ -433,5 +474,33 @@ defineProps({
   },
 });
 
-defineEmits(["check-health", "submit-question", "cancel-answer", "compare-answers", "refresh-ollama-status", "pull-ollama-model", "dismiss-first-run", "select-chat-session", "create-chat-session", "rename-chat-session", "delete-chat-session", "edit-chat-message", "delete-chat-message", "clear-chat-messages", "submit-answer-feedback", "run-tool-suggestion", "use-tool-result-context", "clear-tool-context", "run-search-debug", "save-retrieval-settings", "save-retrieval-review", "select-retrieval-review", "delete-retrieval-review", "load-agent-tools", "run-agent-tool", "load-agent-tool-runs", "select-agent-tool-run"]);
+const emit = defineEmits([
+  "cancel-answer",
+  "check-health",
+  "clear-chat-messages",
+  "clear-tool-context",
+  "compare-answers",
+  "create-project",
+  "delete-chat-message",
+  "delete-retrieval-review",
+  "dismiss-first-run",
+  "edit-chat-message",
+  "load-agent-tool-runs",
+  "load-agent-tools",
+  "open-library",
+  "pull-ollama-model",
+  "refresh-ollama-status",
+  "run-agent-tool",
+  "run-search-debug",
+  "run-tool-suggestion",
+  "save-retrieval-review",
+  "save-retrieval-settings",
+  "select-agent-tool-run",
+  "select-retrieval-review",
+  "submit-answer-feedback",
+  "submit-question",
+  "start-assessment-tool",
+  "toggle-evidence",
+  "use-tool-result-context",
+]);
 </script>

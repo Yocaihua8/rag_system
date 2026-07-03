@@ -1,10 +1,18 @@
 import { reactive } from "vue";
 
-export const VIEW_KEYS = ["workbench", "library", "assessment", "settings"];
+export const VIEW_KEYS = ["chat", "settings"];
 
 export function createInitialState() {
   return {
-    currentView: "workbench",
+    currentView: "chat",
+    libraryModalOpen: false,
+    libraryStep: "upload",
+    libraryTargetProjectId: "",
+    sidebarMode: "threads",
+    sidebarCollapsed: false,
+    mobileSidebarOpen: false,
+    evidenceCollapsed: true,
+    settingsPage: "answer",
     projects: [],
     selectedProjectId: "",
     projectsLoading: false,

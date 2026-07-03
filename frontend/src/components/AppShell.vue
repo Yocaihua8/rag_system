@@ -1,62 +1,43 @@
 <template>
-  <main class="workspace-shell">
-    <aside class="workspace-left">
-      <header class="brand-block">
-        <h1>知识岛</h1>
-        <p>本地知识工作台</p>
-      </header>
-
-      <nav class="main-nav" aria-label="主导航">
-        <button
-          type="button"
-          :class="{ active: currentView === 'workbench' }"
-          :aria-current="currentView === 'workbench' ? 'page' : undefined"
-          data-view-key="workbench"
-          @click="$emit('change-view', 'workbench')"
-        >
-          工作台
-        </button>
-        <button
-          type="button"
-          :class="{ active: currentView === 'library' }"
-          :aria-current="currentView === 'library' ? 'page' : undefined"
-          data-view-key="library"
-          @click="$emit('change-view', 'library')"
-        >
-          资料库
-        </button>
-        <button
-          type="button"
-          :class="{ active: currentView === 'assessment' }"
-          :aria-current="currentView === 'assessment' ? 'page' : undefined"
-          data-view-key="assessment"
-          @click="$emit('change-view', 'assessment')"
-        >
-          评估
-        </button>
-        <button
-          type="button"
-          :class="{ active: currentView === 'settings' }"
-          :aria-current="currentView === 'settings' ? 'page' : undefined"
-          data-view-key="settings"
-          @click="$emit('change-view', 'settings')"
-        >
-          设置
-        </button>
-      </nav>
-    </aside>
+  <main class="workspace-shell" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <WorkspaceSidebar
+      v-if="!sidebarCollapsed"
+      :current-view="currentView"
+      :sidebar-mode="sidebarMode"
+      :projects="projects"
+      :selected-project-id="selectedProjectId"
+      :library-target-project-id="libraryTargetProjectId"
+      :chat-sessions="chatSessions"
+      :selected-chat-session-id="selectedChatSessionId"
+      @collapse-sidebar="sidebarCollapsed = true"
+      @change-view="emit('change-view', $event)"
+      @open-library="emit('open-library')"
+      @back-to-threads="emit('back-to-threads')"
+      @select-library-target-project="emit('select-library-target-project', $event)"
+      @select-project="emit('select-project', $event)"
+      @select-chat-session="emit('select-chat-session', $event)"
+      @create-chat-session="emit('create-chat-session', $event)"
+    />
 
     <section class="workspace-main">
       <header class="topbar">
+        <button
+          type="button"
+          class="icon-button topbar-menu-button"
+          aria-label="打开侧边栏"
+          data-shell-action="open-sidebar"
+          @click="sidebarCollapsed = false"
+        >
+          ☰
+        </button>
         <div>
-          <p class="eyebrow">B-142 Vue Workbench</p>
+          <p class="eyebrow">Knowledge Island</p>
           <h2>{{ activeTitle }}</h2>
-        <p>Vue 工作台已接入流式问答、会话历史、消息管理、检索调试、检索复盘、Agent 只读工具和工具来源上下文；legacy 静态前端仍作为 fallback 保留到 B-143。</p>
+          <p>{{ activeDescription }}</p>
         </div>
         <div class="status-pills" aria-label="服务状态">
-          <span>FastAPI</span>
-          <span>Vue 3</span>
-          <span>Vite</span>
+          <span>{{ currentProjectName }}</span>
+          <span>{{ visibleChatSessions.length }} 条线程</span>
         </div>
       </header>
 
@@ -66,25 +47,83 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import WorkspaceSidebar from "./WorkspaceSidebar.vue";
 
 const navItems = [
-  { key: "workbench", label: "工作台", title: "项目问答" },
-  { key: "library", label: "资料库", title: "资料库" },
-  { key: "assessment", label: "评估", title: "掌握评估" },
-  { key: "settings", label: "设置", title: "设置" },
+  { key: "chat", title: "聊天", description: "从当前工作区开始提问，资料、练习和工具都从输入框添加。" },
+  { key: "settings", title: "设置", description: "管理回答方式、模型、资料位置、备份和外观。" },
 ];
+
+const sidebarCollapsed = ref(isNarrowScreen());
 
 const props = defineProps({
   currentView: {
     type: String,
     required: true,
   },
+  sidebarMode: {
+    type: String,
+    default: "threads",
+  },
+  projects: {
+    type: Array,
+    default: () => [],
+  },
+  selectedProjectId: {
+    type: String,
+    default: "",
+  },
+  libraryTargetProjectId: {
+    type: String,
+    default: "",
+  },
+  chatSessions: {
+    type: Array,
+    default: () => [],
+  },
+  selectedChatSessionId: {
+    type: String,
+    default: "",
+  },
 });
 
-defineEmits(["change-view"]);
+const emit = defineEmits([
+  "back-to-threads",
+  "change-view",
+  "create-chat-session",
+  "open-library",
+  "select-chat-session",
+  "select-library-target-project",
+  "select-project",
+]);
 
 const activeTitle = computed(() => {
-  return navItems.find((item) => item.key === props.currentView)?.title || "项目问答";
+  return navItems.find((item) => item.key === props.currentView)?.title || "聊天";
 });
+
+const activeDescription = computed(() => {
+  return navItems.find((item) => item.key === props.currentView)?.description || navItems[0].description;
+});
+
+const visibleChatSessions = computed(() => {
+  if (!props.selectedProjectId) {
+    return props.chatSessions;
+  }
+  return props.chatSessions.filter((session) => {
+    return !session.project_id || session.project_id === props.selectedProjectId;
+  });
+});
+
+const currentProjectName = computed(() => {
+  return props.projects.find((project) => project.id === props.selectedProjectId)?.name || "未选择工作区";
+});
+
+function isNarrowScreen() {
+  return Boolean(
+    typeof window !== "undefined"
+      && typeof window.matchMedia === "function"
+      && window.matchMedia("(max-width: 760px)").matches,
+  );
+}
 </script>
