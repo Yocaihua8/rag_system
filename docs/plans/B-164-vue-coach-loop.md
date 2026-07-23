@@ -24,7 +24,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 新增 Coach/Obsidian API helper 与项目级状态骨架，重排主导航为教练、学习地图、学习计划、资料、设置
+- [x] 新增 Coach/Obsidian API helper 与项目级状态骨架，重排主导航为教练、学习地图、学习计划、资料、设置
 - [ ] 实现学习地图、统一来源抽屉和按知识点/技能发起的评估覆盖层及组件测试
 - [ ] 实现学习计划编辑/排序/确认、Obsidian 发布预览确认，以及资料弹窗和设置连接管理组件及测试
 - [ ] 完成 `App.vue` 闭环接线、样式与 E2E 契约更新，回流正式文档并执行前端/后端回归
@@ -80,12 +80,13 @@
 - 2026-07-23：保持 `App.vue + app-state.js` 既有编排，避免在产品闭环任务中引入 Router/Pinia 或无关状态重构。
 - 2026-07-23：Vue 只调用应用侧 Obsidian 配对、连接、预览和确认接口；插件令牌、事件同步、待执行队列和结果回传不进入浏览器状态。
 - 2026-07-23：当前九个 Obsidian API 不提供应用侧发布终态查询；本任务处理预览/确认阶段的 `409` 冲突并明确 queued 等待插件，不伪造插件执行成功。
+- 2026-07-23：Coach 与应用侧 Obsidian API helper、项目级状态骨架和五入口导航已落地；插件 token/sync/pending/result 未暴露到 Vue。API、状态、导航与教练工作台 21 项单测及生产构建通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 0 / 4 项
-- **最新 commit**：`12e2758` — docs: 完成 B-163 Obsidian 插件桥
-- **代码状态**：`feature/project-knowledge-coach-v2`；工作区干净，B-164 尚未修改代码
-- **下一步**：新增 Coach/Obsidian API helper、状态骨架并重排主导航
+- **进度**：已完成 1 / 4 项
+- **最新 commit**：`4cab28d` — feat: 建立 Vue 教练导航与 API 骨架
+- **代码状态**：`feature/project-knowledge-coach-v2`；API helper、状态和导航已提交；学习地图组件已生成但尚未提交
+- **下一步**：复核并提交学习地图、统一来源抽屉和评估覆盖层
 - **续任务须知**：旧 `/api/assessment/*` 与 `AssessmentView.vue` 保留兼容；新前端评估只使用 Coach API
