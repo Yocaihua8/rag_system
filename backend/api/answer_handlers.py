@@ -177,12 +177,16 @@ def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answ
     return body
 
 
-def default_model_profile_client(store: KnowledgeStore) -> OpenAICompatibleChatClient | None:
+def default_model_profile_client(store: KnowledgeStore) -> Any | None:
     profile = store.get_default_model_profile()
     if not profile:
         return None
-    client_class = _openai_compatible_chat_client_class()
-    client = client_class(llm_config_from_profile(profile))
+    config = llm_config_from_profile(profile)
+    if profile.provider == "ollama":
+        client = build_llm_client(config)
+    else:
+        client_class = _openai_compatible_chat_client_class()
+        client = client_class(config)
     return client if client.is_configured() else None
 
 
