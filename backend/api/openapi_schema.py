@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 OPENAPI_TITLE = "Knowledge Island"
-OPENAPI_VERSION = "0.1.0"
+OPENAPI_VERSION = "2.0.0"
 
 WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("GET", "/api/health", "Health check"),

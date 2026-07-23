@@ -119,6 +119,7 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
     schema = response.json()
     assert schema["openapi"].startswith("3.")
     assert schema["info"]["title"] == "Knowledge Island"
+    assert schema["info"]["version"] == "2.0.0"
     operations = {
         (path, method)
         for path, methods in schema["paths"].items()
