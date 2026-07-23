@@ -16,6 +16,7 @@ from backend.routes.export import handle_export_route
 from backend.routes.health import handle_health_route
 from backend.routes.imports import handle_imports_route
 from backend.routes.ollama import handle_ollama_route
+from backend.routes.obsidian import handle_obsidian_route
 from backend.routes.projects import handle_projects_route
 from backend.routes.search import handle_search_route
 from backend.routes.settings import handle_settings_route
@@ -43,6 +44,17 @@ def dispatch_to_routes(
     admin_response = handle_admin_route(store, method, path, payload)
     if admin_response is not None:
         return admin_response
+
+    obsidian_response = handle_obsidian_route(
+        store,
+        method,
+        path,
+        query,
+        payload,
+        request_context=request_context,
+    )
+    if obsidian_response is not None:
+        return obsidian_response
 
     projects_response = handle_projects_route(store, method, path, query, payload)
     if projects_response is not None:

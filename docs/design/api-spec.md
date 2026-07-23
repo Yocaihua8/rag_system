@@ -90,6 +90,15 @@ B-136 起，`/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的�
 - `GET /api/coach/learning-plans/current`
 - `POST /api/coach/learning-plans/update`
 - `POST /api/coach/learning-plans/confirm`
+- `POST /api/obsidian/pairing/start`
+- `POST /api/obsidian/pairing/complete`
+- `GET /api/obsidian/connections`
+- `POST /api/obsidian/connections/revoke`
+- `POST /api/obsidian/sync/events`
+- `POST /api/obsidian/publications/preview`
+- `POST /api/obsidian/publications/confirm`
+- `POST /api/obsidian/publications/result`
+- `GET /api/obsidian/publications/pending`
 - `GET /api/agent/tools`
 - `POST /api/agent/tools/run`
 - `GET /api/agent/tools/runs`
@@ -562,6 +571,30 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 草稿结构更新的 `items` 是完整且非空的任务数组，最多 50 项；数组顺序是唯一排序依据，服务端重新编号 `sort_order=0..N-1` 并把状态固定为 `todo`。只有项目最高 revision 计划仍为 `draft` 时，该草稿可编辑和确认；更早草稿只读保留。`current.draft` 也只在项目最高 revision 仍为 `draft` 时返回，否则为 `null`。确认后结构、顺序、关联和来源冻结，只能通过 `item_statuses` 将当前确认版任务更新为 `todo / in_progress / done / skipped`；`item_statuses` 的键可以是任务 `id` 或 `stable_key`。新确认版会归档旧确认版；生成新草稿不会覆盖当前确认版。
 
 客户端可携带 `expected_revision / expected_items_hash` 保护结构更新、进度更新或确认；进度更新还可携带 `expected_progress_hash`。不匹配时分别返回 `learning_plan_revision_conflict / learning_plan_items_conflict / learning_plan_progress_conflict`。重复确认已是 `confirmed` 的同一版本会先按幂等语义返回 `replayed=true`，不再校验 `expected_*`。分析过期会阻止生成、草稿结构更新和确认，但不会阻止已确认计划继续更新进度。历史计划的来源按各自 `based_on_run_id` 解析，不自动换成新运行来源。确认学习计划不会触发 Obsidian 发布。
+
+### 1.9 Obsidian 插件桥接口（B-163）
+
+以下九个接口服务于 Obsidian 桌面插件桥；它们不改变现有 `POST /api/import/obsidian-vault` 的一次性只读导入语义。后端不直接读取或写入 Vault，Markdown 事件采集和文件写入均由插件使用 Obsidian Vault API 执行。
+
+| 方法 | 路径 | 请求 | 成功响应 | 主要错误 |
+|------|------|------|----------|----------|
+| POST | `/api/obsidian/pairing/start` | `project_id`；可选 `output_root` | `{"pairing":{"id":"...","project_id":"...","output_root":"Knowledge Island/项目名","code":"...","expires_at":"...","ttl_seconds":300}}` | `400` 参数/路径非法、`404 project not found`、`409 project already has an active Obsidian connection` |
+| POST | `/api/obsidian/pairing/complete` | `code`、`vault_id`、`vault_name`；可选 `output_root` | `{"connection":{...},"token":"...","token_type":"Bearer"}` | `400` 参数/路径非法、`401 invalid/expired pairing code`、`409 pairing code already used` 或活动连接冲突 |
+| GET | `/api/obsidian/connections?project_id=...` | query `project_id` | `{"connections":[...]}` | `400 project_id is required`、`404 project not found` |
+| POST | `/api/obsidian/connections/revoke` | 主应用：`project_id`、`connection_id`；插件自撤销：Header `Authorization: Bearer <plugin-token>` 与自身 `connection_id` | `{"connection":{...,"status":"revoked"}}` | `400` 必填参数、`401` 主应用/插件鉴权失败、`403` 插件尝试撤销其他连接、`404 active Obsidian connection not found` |
+| POST | `/api/obsidian/sync/events` | Header `Authorization: Bearer <plugin-token>`；`events` 非空数组，最多 100 项 | `{"connection":{...},"results":[{"event_id":"...","status":"applied|ignored|failed","replayed":false,...}]}` | `400` 事件非法、`401` 插件令牌缺失/无效/已撤销 |
+| POST | `/api/obsidian/publications/preview` | `project_id`；可选 `artifact_types`、`assessment_session_ids`、`source_publication_id` | `{"publication":{...,"status":"draft","artifacts":[...]},"source_mode":"current|rollback","scope_notice":"..."}` | `400` 参数非法、`404` 项目/历史发布/评估会话不存在、`409` 无活动连接、分析过期、缺少已确认计划或无可发布产物 |
+| POST | `/api/obsidian/publications/confirm` | `project_id`、`publication_id` | `{"publication":{...,"status":"queued"},"replayed":false}` | `400` 必填参数、`404 publication not found`、`409 publication_not_confirmable` 或连接已失效 |
+| GET | `/api/obsidian/publications/pending` | Header `Authorization: Bearer <plugin-token>` | `{"publications":[...queued publications...]}` | `401` 插件令牌缺失/无效/已撤销 |
+| POST | `/api/obsidian/publications/result` | Header `Authorization: Bearer <plugin-token>`；`publication_id`、非空 `results`，每项含 `revision_id`、`status=applied|conflict|failed`，成功时含 SHA-256 `actual_hash` | `{"publication":{...},"results":[...]}` | `400` 结果非法、`401` 插件令牌无效、`404 publication/revision not found`、`409` 连接或发布状态冲突 |
+
+`pairing/start`、连接查看、主应用撤销以及发布预览/确认使用应用自身认证边界。`pairing/complete` 由一次性配对码鉴权；`sync/events`、`publications/pending`、`publications/result` 和插件自撤销只接受插件 Bearer 令牌，且插件只能撤销令牌绑定的自身连接。服务端只保存配对码和令牌 SHA-256 哈希；明文 `code` 和 `token` 分别只在创建及换取时返回一次，普通连接响应不包含哈希或明文凭证。每个项目最多一个 `active` 连接，撤销后令牌立即失效。
+
+同步事件统一使用 `type=upsert|rename|delete` 和连接内幂等 `event_id`。`upsert / rename` 还需携带 `path / content / content_hash`；`rename` 额外携带 `old_path`；`delete` 不得携带正文。事件可以携带 `frontmatter`、`tags`、`resolved_links`、`unresolved_links` 和 `occurred_at`。链接元数据既接受字符串数组，也接受 `{path: count}` 计数对象。重复 `(connection_id,event_id)` 返回原处理结果和 `replayed=true`，不重复执行。配置 `output_root` 内的事件返回 `ignored`，避免系统生成内容反向摄入。
+
+发布状态统一为 `draft / confirmed / queued / applied / conflict / failed`。当前实现的用户确认把 `draft` 发布原子推进到 `queued`；`confirmed` 是统一状态枚举中的中间语义，插件只领取 `queued` 发布。每个 artifact 包含 `artifact_type / stable_id / target_path / content / content_hash / expected_vault_hash / status`；生成 Markdown 带 `knowledge_island_managed`、稳定 ID、项目 ID、产物类型和修订号。插件发现越界路径、无管理标记、身份不符或 Vault 当前 hash 与 `expected_vault_hash` 不符时必须回传 `conflict`，不能覆盖或自动合并。
+
+默认当前发布包含项目理解、知识覆盖、已确认学习计划和已有评估记录；调用方可用 `artifact_types` 缩小范围。设置 `source_publication_id` 时，以历史发布正文创建新的 `draft` 修订并返回 `source_mode=rollback`，不修改历史发布或修订。发布 revision 和 artifact 内容不可变；插件成功回传的 `actual_hash` 成为同一稳定 artifact 下一次预览的覆盖基线。插件离线时发布保持 `queued`，生成文件被用户删除后不会自动重建。
 
 ## 2. legacy 内部接口边界（应用层）
 

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23（补充 B-162 Coach 评估与学习计划回归）
+> Last Updated：2026-07-23（补充 B-163 Obsidian 插件桥与受控发布回归）
 
 ## 1. 目标
 
@@ -45,10 +45,14 @@ $env:PYTHONUTF8 = "1"
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
 .venv\Scripts\python.exe -m pytest tests/test_backend/test_coach_storage.py tests/test_backend/test_project_analysis.py tests/test_backend/test_coach_progress_storage.py tests/test_backend/test_coach_assessment.py tests/test_backend/test_learning_plans.py tests/test_webapp/test_coach_api.py tests/test_webapp/test_coach_assessment_api.py tests/test_webapp/test_coach_learning_plan_api.py tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_docs_contract.py -q
+.venv\Scripts\python.exe -m pytest tests/test_backend/test_obsidian_storage.py tests/test_backend/test_document_rename.py tests/test_backend/test_obsidian_protocol.py tests/test_backend/test_obsidian_bridge.py tests/test_backend/test_obsidian_publications.py tests/test_webapp/test_request_context.py tests/test_webapp/test_obsidian_api.py tests/test_webapp/test_docs_contract.py -q
 npm run test:unit
 npm run build
 npm run e2e:install
 npm run test:e2e
+npm --prefix integrations/obsidian-plugin test
+npm --prefix integrations/obsidian-plugin run typecheck
+npm --prefix integrations/obsidian-plugin run build
 npm run tauri:build:windows
 npm run tauri:build:macos
 npm run tauri:build:linux
@@ -96,6 +100,9 @@ docker compose config
 - 变更 1.x 兼容掌握评估存储、自动出题、回答评估或前端闭环时，必须覆盖 `/api/assessment/start` 生成并持久化题目、题型 `concept / flow / code_location`、轻量知识点标签、`/api/assessment/answer` 使用服务端持久化题目要点评分、四档状态 `已掌握 / 基本理解 / 需要补充 / 暂未掌握`、持久化回答和结果、项目隔离、空项目拒绝、空回答拒绝、前端进度/下一题/答题记录/待复测列表。
 - 变更 B-162 Coach 定向评估或覆盖聚合时，必须覆盖知识点/技能目标、活动会话恢复与 `restart`、作答前评分依据不可见、复制题面不得分、相同答案幂等重放、不同答案冲突、`rule / model` 评分、非法模型结果低置信回退、固定状态阈值、来源指纹 stale、跨项目隔离，以及技能 `no_project_evidence / unverified / partially_verified / verified` 聚合。
 - 变更 B-162 学习计划时，必须覆盖规则优先级、可解析历史来源、`source_gap` 空来源、新草稿不覆盖确认版、只有项目最高 revision 计划仍为 `draft` 时才可编辑/确认、确认新版归档旧确认版、确认后结构冻结与进度更新、结构/进度哈希冲突、重复确认幂等、stale 阻止生成和确认但允许确认版更新进度、模型仅润色文本及非法模型整批回退。
+- 变更 B-163 Obsidian 配对、连接或同步时，必须覆盖一次性配对码过期/重复消费、服务端只存令牌哈希、每项目最多一个活动连接、令牌缺失/无效/撤销、插件只能自撤销、跨项目隔离、最多 100 项批次、重复事件幂等、离线重放、`upsert / rename / delete`、重命名保留文档身份、删除清理索引并标记分析 stale，以及输出目录事件排除。
+- 变更 B-163 受控发布时，必须覆盖内容与路径预览、用户确认后进入 `queued`、插件领取与结果回传、不可变发布 revision、历史发布回滚创建新 revision、无管理标记同名文件、稳定 ID/项目/产物类型/修订号不符、外部编辑 hash 冲突、路径穿越、插件离线和生成文件删除后不自动重建。
+- 变更 `integrations/obsidian-plugin/` 时，必须运行插件自己的 Vitest、TypeScript 类型检查和 esbuild 构建；测试需覆盖 Vault 事件元数据、持久化事件/结果队列、输出目录过滤、管理 Frontmatter 校验、预期 hash 校验、串行 Vault 原子写入及冲突不覆盖。构建生成的 `main.js` 是本地验证产物，不提交仓库。
 - 变更 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 评估状态流、开始评估、提交回答、下一题/完成、结果概览、答题记录和待复测列表，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台回答反馈时，必须覆盖 `frontend/src/api/answer.js`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 反馈状态流、`/api/answer/feedback` helper、四类反馈按钮、保存中/成功/失败状态，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台检索调试时，必须覆盖 `frontend/src/api/search.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索诊断状态流、`/api/search/debug` helper、`top_k/min_score/use_keyword/use_vector` 临时参数、来源质量/分块/向量状态/命中片段展示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
@@ -141,6 +148,8 @@ docker compose config
 - Web MVP 掌握评估入口、三类题型生成、逐题作答进度、服务端参考要点评分、四档状态输出、答题记录、待复测列表、题目/回答/结果持久化、回答反馈
 - Coach 定向评估可按知识点或技能节点恢复，作答前不泄露评分依据；覆盖率只使用当前来源版本的有效结果，技能状态区分无项目证据、未验证、部分验证和已验证
 - Coach 学习计划可生成确定性新草稿、完整编辑排序、确认版本和更新任务进度；历史来源按原分析运行解析，旧确认版不会被新草稿覆盖
+- Obsidian 桌面插件可通过限时配对码建立单项目活动连接，离线重放 Markdown 事件且重复事件不产生二次副作用；系统输出目录不会反向摄入
+- Obsidian 发布严格经过预览、确认、插件执行和结果回传；无管理标记、身份不符、hash 变化和越界路径会进入冲突而不覆盖，历史修订可作为新回滚发布来源
 - Web MVP 首次使用引导可检测 Ollama、拉取推荐模型并引导创建第一个知识库
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT

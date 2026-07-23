@@ -247,16 +247,16 @@ B-162 表级约束：
 
 通用技能状态只聚合当前项目关联知识点，必须保留“未验证”与“评估较弱”的差异，不能推导跨项目或职业能力结论。
 
-## 7. 2.0 Obsidian 目标逻辑实体与约束
+## 7. 2.0 Obsidian 插件桥实体与约束（B-163 已实现）
 
-| 目标表 | 核心字段 / 约束 | 职责 |
-|--------|-----------------|------|
-| `obsidian_pairings` | `id / project_id / code_hash / expires_at / consumed_at / created_at` | 保存一次性限时配对码哈希；不持久化明文配对码 |
-| `obsidian_connections` | `id / project_id / vault_id / output_root / token_hash / status / last_synced_at / created_at / revoked_at` | 每项目最多一个 `active` 连接；只保存令牌哈希 |
-| `obsidian_sync_events` | `id / connection_id / event_id / action / path / old_path / content_hash / payload_json / status / received_at`；`UNIQUE(connection_id, event_id)` | 幂等接收 `upsert / rename / delete` 事件 |
-| `obsidian_publications` | `id / project_id / connection_id / artifact_type / status / target_path / current_revision_id / created_at / updated_at` | 保存 `draft / confirmed / queued / applied / conflict / failed` 发布状态 |
-| `obsidian_publication_revisions` | `id / publication_id / revision / stable_id / content / content_hash / expected_vault_hash / created_at`；`UNIQUE(publication_id, revision)` | 保存不可变预览与发布修订，支持审计和回滚 |
-| `obsidian_publication_results` | `id / revision_id / connection_id / status / actual_hash / error_code / message / created_at` | 保存插件执行结果，不把插件回报直接当作成功写入 |
+| 表 | 核心字段 / 约束 | 职责 |
+|----|-----------------|------|
+| `obsidian_pairings` | `id / project_id / code_hash / output_root / expires_at / consumed_at / created_at`；`code_hash` 唯一 | 保存一次性限时配对码哈希与待确认输出根；不持久化明文配对码 |
+| `obsidian_connections` | `id / project_id / vault_id / vault_name / output_root / token_hash / status / sync_status / last_synced_at / created_at / revoked_at`；`token_hash` 唯一；部分唯一索引保证每项目最多一个 `active` 连接 | 保存 Vault 连接、同步状态和可撤销令牌哈希 |
+| `obsidian_sync_events` | `id / project_id / connection_id / event_id / action / path / old_path / content_hash / payload_json / status / result_json / received_at / processed_at`；`UNIQUE(connection_id, event_id)` | 幂等接收和重放 `upsert / rename / delete` 事件结果 |
+| `obsidian_publications` | `id / project_id / connection_id / revision / status / created_at / updated_at / confirmed_at / completed_at`；`revision > 0`、`UNIQUE(project_id, revision)` | 保存一次多 artifact 发布聚合及 `draft / confirmed / queued / applied / conflict / failed` 状态 |
+| `obsidian_publication_revisions` | `id / project_id / publication_id / artifact_type / stable_id / target_path / content / content_hash / expected_vault_hash / status / created_at / updated_at`；同一发布内 `stable_id` 与 `target_path` 分别唯一 | 保存不可变 artifact 内容与 Vault hash 基线，支持审计和回滚来源 |
+| `obsidian_publication_results` | `id / project_id / publication_id / revision_id / connection_id / status / actual_hash / error_code / message / created_at`；`revision_id` 唯一 | 每个 artifact 修订只接受一个插件终态结果 |
 
 共同约束：
 
@@ -267,3 +267,6 @@ B-162 表级约束：
 - `output_root` 和每个 `target_path` 必须规范化并验证仍位于配置根目录内。
 - 可更新 Markdown 必须包含 `knowledge_island_managed`、稳定 ID、项目 ID、产物类型和修订号。缺失标记、身份不符或 `expected_vault_hash` 不匹配时写入结果为 `conflict`，禁止自动合并或覆盖。
 - 已确认计划和不可变发布修订不得被重新生成原地覆盖；回滚通过发布旧修订的新执行请求完成，不修改历史记录。
+- 发布预览以项目级单调 `revision` 创建新聚合；确认只推进现有修订状态，不改写内容、目标路径或 hash。
+- `obsidian_publication_results` 只接受 `applied / conflict / failed`。所有 artifact 回报后，发布聚合按结果汇总终态；成功 `actual_hash` 成为同一 `stable_id` 下次预览的 `expected_vault_hash`。
+- 六张表只通过 `backend/storage/obsidian_store.py` 读写，并由 `KnowledgeStore` 组合初始化；路由和插件均不能直接访问 SQLite。

@@ -385,17 +385,17 @@ def _validated_event(value: object) -> dict[str, Any]:
             raise ValueError("content_hash is required")
         if text_sha256(content) != content_hash:
             raise ValueError("content hash does not match")
-    elif content not in {"", None}:
+    elif content not in ("", None):
         raise ValueError("delete events must not include content")
     frontmatter = value.get("frontmatter", {})
     if not isinstance(frontmatter, Mapping):
         raise ValueError("frontmatter must be an object")
     tags = _string_list(value.get("tags", []), "tags")
-    resolved_links = _string_list(
+    resolved_links = _link_metadata(
         value.get("resolved_links", []),
         "resolved_links",
     )
-    unresolved_links = _string_list(
+    unresolved_links = _link_metadata(
         value.get("unresolved_links", []),
         "unresolved_links",
     )
@@ -466,6 +466,31 @@ def _string_list(value: object, field: str) -> list[str]:
         if text not in result:
             result.append(text)
     return result
+
+
+def _link_metadata(
+    value: object,
+    field: str,
+) -> list[str] | dict[str, int]:
+    if isinstance(value, Mapping):
+        result: dict[str, int] = {}
+        for raw_path, raw_count in value.items():
+            path = str(raw_path or "").strip()
+            if not path:
+                raise ValueError(
+                    f"{field} must contain non-empty link paths"
+                )
+            if (
+                isinstance(raw_count, bool)
+                or not isinstance(raw_count, int)
+                or raw_count < 1
+            ):
+                raise ValueError(
+                    f"{field} counts must be positive integers"
+                )
+            result[path] = raw_count
+        return result
+    return _string_list(value, field)
 
 
 def _required_text(value: object, field: str) -> str:

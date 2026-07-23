@@ -84,6 +84,15 @@ WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("GET", "/api/coach/learning-plans/current", "Get current coach learning plans"),
     ("POST", "/api/coach/learning-plans/update", "Update a coach learning plan"),
     ("POST", "/api/coach/learning-plans/confirm", "Confirm a coach learning plan"),
+    ("POST", "/api/obsidian/pairing/start", "Start Obsidian plugin pairing"),
+    ("POST", "/api/obsidian/pairing/complete", "Complete Obsidian plugin pairing"),
+    ("GET", "/api/obsidian/connections", "List Obsidian connections"),
+    ("POST", "/api/obsidian/connections/revoke", "Revoke an Obsidian connection"),
+    ("POST", "/api/obsidian/sync/events", "Apply Obsidian vault sync events"),
+    ("POST", "/api/obsidian/publications/preview", "Preview an Obsidian publication"),
+    ("POST", "/api/obsidian/publications/confirm", "Confirm an Obsidian publication"),
+    ("POST", "/api/obsidian/publications/result", "Record Obsidian publication results"),
+    ("GET", "/api/obsidian/publications/pending", "List pending Obsidian publications"),
     ("GET", "/api/agent/tools", "List read-only agent tools"),
     ("POST", "/api/agent/tools/run", "Run read-only agent tool"),
     ("GET", "/api/agent/tools/runs", "List agent tool runs"),
@@ -143,6 +152,13 @@ def _operation(method: str, path: str, summary: str) -> dict[str, Any]:
                 }
             },
         }
+    if path.startswith("/api/obsidian/"):
+        operation["responses"]["401"] = _json_response(
+            "Authentication failed"
+        )
+        operation["responses"]["409"] = _json_response(
+            "Request conflicts with current state"
+        )
     if path == "/api/answer/stream":
         operation["responses"]["200"] = {
             "description": "Server-sent event stream",

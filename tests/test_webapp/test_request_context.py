@@ -42,7 +42,7 @@ def test_dispatch_forwards_an_immutable_optional_request_context(tmp_path, monke
         captured["request_context"]["authorization"] = "changed"
 
 
-def test_fastapi_dispatch_passes_the_authorization_header_only(tmp_path, monkeypatch):
+def test_fastapi_dispatch_passes_only_bounded_auth_context(tmp_path, monkeypatch):
     store = KnowledgeStore(tmp_path / "app.db", vector_store=None)
     captured = {}
 
@@ -76,4 +76,5 @@ def test_fastapi_dispatch_passes_the_authorization_header_only(tmp_path, monkeyp
     assert response.status_code == 200
     assert captured["request_context"] == {
         "authorization": "Bearer plugin-token",
+        "app_authenticated": "true",
     }

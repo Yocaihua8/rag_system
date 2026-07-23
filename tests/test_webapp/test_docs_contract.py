@@ -455,3 +455,60 @@ def test_coach_assessment_and_learning_plan_contract_is_documented():
     assert "B-162 已实现" in feature
     assert "B-162" in architecture
     assert "已实现（领域、存储与七个 Coach API）" in architecture
+
+
+def test_obsidian_plugin_bridge_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(
+        encoding="utf-8"
+    )
+    feature = Path("docs/features/notion-obsidian-sync.md").read_text(
+        encoding="utf-8"
+    )
+    coach_feature = Path(
+        "docs/features/project-knowledge-coach.md"
+    ).read_text(encoding="utf-8")
+    architecture = Path("docs/design/architecture-overview.md").read_text(
+        encoding="utf-8"
+    )
+    testing = Path("docs/guides/testing.md").read_text(encoding="utf-8")
+
+    for endpoint in [
+        "POST /api/obsidian/pairing/start",
+        "POST /api/obsidian/pairing/complete",
+        "GET /api/obsidian/connections",
+        "POST /api/obsidian/connections/revoke",
+        "POST /api/obsidian/sync/events",
+        "POST /api/obsidian/publications/preview",
+        "POST /api/obsidian/publications/confirm",
+        "POST /api/obsidian/publications/result",
+        "GET /api/obsidian/publications/pending",
+    ]:
+        assert endpoint in api_spec
+
+    for table in [
+        "obsidian_pairings",
+        "obsidian_connections",
+        "obsidian_sync_events",
+        "obsidian_publications",
+        "obsidian_publication_revisions",
+        "obsidian_publication_results",
+    ]:
+        assert table in database_design
+
+    for marker in [
+        "knowledge_island_managed",
+        "expected_vault_hash",
+        "type=upsert|rename|delete",
+        "replayed=true",
+        "source_publication_id",
+    ]:
+        assert marker in api_spec
+
+    assert "/api/import/obsidian-vault" in feature
+    assert "一次性只读导入语义" in feature
+    assert "B-163 已实现" in coach_feature
+    assert "integrations/obsidian-plugin/" in architecture
+    assert "九个 API" in architecture
+    assert "npm --prefix integrations/obsidian-plugin test" in testing
+    assert "npm --prefix integrations/obsidian-plugin run build" in testing

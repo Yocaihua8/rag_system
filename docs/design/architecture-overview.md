@@ -153,6 +153,10 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | Coach 项目分析 | `backend.domain.project_analysis` | `/api/coach/analyze` 与三个只读理解接口 |
 | Coach 评估与计划 | `backend.domain.coach_assessment` / `backend.domain.learning_plans` | 七个 B-162 Coach API |
 | Coach 进度存储 | `backend.storage.coach_progress_store.CoachProgressStoreMixin` | `KnowledgeStore` / Coach 领域 |
+| Obsidian 配对与同步 | `backend.domain.obsidian_bridge` / `backend.routes.obsidian` | Obsidian 配对、连接和事件 API |
+| Obsidian 受控发布 | `backend.domain.obsidian_publications` / `backend.domain.obsidian_protocol` | 发布预览、确认、待执行和结果 API |
+| Obsidian 持久化 | `backend.storage.obsidian_store.ObsidianStoreMixin` | `KnowledgeStore` / Obsidian 领域 |
+| Obsidian Vault 适配器 | `integrations/obsidian-plugin/` | Obsidian 桌面 Vault 事件与受控文件写入 |
 | Vue API helper | `frontend/src/api/client.js` | Vue 组件 / 后续页面模块 |
 | Vue 项目空间 helper | `frontend/src/api/projects.js` | `App.vue` / `ProjectSpacePanel.vue` / `SearchDebugPanel.vue` |
 | Vue 问答 helper | `frontend/src/api/answer.js` | `App.vue` / `QuestionPanel.vue` / `AnswerPanel.vue` |
@@ -266,12 +270,23 @@ B-162 当前落地路径：
 - 默认输出目录为 `Knowledge Island/<项目名>/`。所有可更新文件必须包含 `knowledge_island_managed`、稳定 ID、项目 ID、产物类型和修订号；生成文件被用户删除后不自动重建。
 - 现有 `/api/import/obsidian-vault` 保持一次性只读导入语义，不升级为后端直接双向文件同步。
 
+B-163 已实现路径：
+
+- `backend/domain/obsidian_bridge.py`：五分钟一次性配对、只存哈希的可撤销插件令牌、连接查询/撤销，以及最多 100 项的幂等同步批次。
+- `backend/domain/obsidian_protocol.py`：Vault 路径规范化、输出根边界、管理 Frontmatter、稳定 artifact ID 与内容 SHA-256。
+- `backend/domain/obsidian_publications.py`：四类 Markdown 预览、用户确认、插件待执行队列、结果汇总，以及从历史发布创建新修订的回滚。
+- `backend/storage/obsidian_store.py`：配对、连接、事件、发布、不可变 artifact 修订和结果六张表的唯一持久化入口。
+- `backend/routes/obsidian.py`：九个 Obsidian API；插件专用路由从请求上下文验证 Bearer 令牌，不把凭证传入普通业务响应。
+- `integrations/obsidian-plugin/`：独立 `desktopOnly` 插件工程。插件监听 Vault Markdown 事件，持久化离线事件/结果队列，排除系统输出目录，领取 `queued` 发布并在 Vault 内原子写入。
+- 插件覆盖前同时校验输出根、`knowledge_island_managed`、稳定 ID、项目 ID、产物类型、修订号和预期 Vault hash。任一校验失败回传 `conflict`，不自动合并、不越权覆盖用户笔记。
+- 生成文件被删除后不自动重建；只有新的用户预览与确认产生后续执行。插件成功回传的实际 hash 成为下一修订覆盖基线。
+
 ### 9.5 实施门禁
 
 | 切片 | 目标 | 本文状态 |
 |------|------|----------|
 | B-161 | 项目分析、知识点、来源与技能映射 | 已实现（存储、规则分析与 Coach 基础 API） |
 | B-162 | 持久评估、覆盖聚合与学习计划 | 已实现（领域、存储与七个 Coach API） |
-| B-163 | Obsidian 插件桥、同步与受控发布 | 待实现 |
+| B-163 | Obsidian 插件桥、同步与受控发布 | 已实现（领域、存储、九个 API 与独立桌面插件） |
 | B-164 | Vue 教练闭环 | 待实现 |
 | B-165 | OpenAPI、测试、插件构建、E2E 与发布验收 | 待实现 |
