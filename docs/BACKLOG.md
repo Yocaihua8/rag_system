@@ -77,7 +77,7 @@
 | B-160 | docs | 项目知识教练方向与 v2 数据代际冻结 | done | P0 | M | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md | 已冻结个人开发学习场景、项目知识覆盖 + 通用技能树边界、全新 `runtime/v2/` 数据代际和 Obsidian 插件桥方案；后续由 B-161～B-165 分片实现。 |
 | B-161 | feature | 项目分析、知识点与通用技能映射 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md | 已完成独立 v2 数据根、确定性项目分析、稳定知识点、真实来源、版本化技能映射及四个 Coach 基础 API；默认模型 Profile 可选增强概览，失败回退规则结果。 |
 | B-162 | feature | 持久评估、双层差距与学习计划 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md | 已完成知识点/技能定向评估、来源约束评分、项目覆盖与技能聚合，以及可编辑、确认、保留历史来源的版本化学习计划；旧 `/api/assessment/*` 契约保持兼容。 |
-| B-163 | feature | Obsidian 插件桥与受控双向同步 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 新增桌面插件配对、Markdown 事件同步、受控发布、冲突阻断和不可变修订；保留原单向手动导入。 |
+| B-163 | feature | Obsidian 插件桥与受控双向同步 | doing | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 新增桌面插件配对、Markdown 事件同步、受控发布、冲突阻断和不可变修订；保留原单向手动导入。执行计划：`docs/plans/B-163-obsidian-plugin-bridge.md`。 |
 | B-164 | feature | Vue 项目知识教练闭环 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 在现有 Codex 风格外壳中实现教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/发布交互。 |
 | B-165 | release | Knowledge Island 2.0 发布验收 | todo | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md | 完成 OpenAPI、文档、全量测试、插件构建、Web E2E、Tauri 静态回归和 v2.0.0 发布边界收口。 |
 
