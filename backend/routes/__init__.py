@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
 from backend.domain.models import ApiResponse
@@ -26,7 +28,10 @@ def dispatch_to_routes(
     query: dict[str, list[str]],
     payload: dict[str, Any],
     llm_client: Any | None = None,
+    request_context: Mapping[str, str] | None = None,
 ) -> ApiResponse | None:
+    request_context = MappingProxyType(dict(request_context or {}))
+
     health_response = handle_health_route(method, path)
     if health_response is not None:
         return health_response

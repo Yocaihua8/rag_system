@@ -92,6 +92,9 @@ def create_app(
             request.method,
             _raw_path(request),
             await _json_payload(request),
+            request_context={
+                "authorization": request.headers.get("authorization", ""),
+            },
         )
         return JSONResponse(status_code=response.status, content=response.body)
 
