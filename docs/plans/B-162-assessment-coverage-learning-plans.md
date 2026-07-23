@@ -24,8 +24,8 @@
 
 ## 3. 任务拆解
 
-- [ ] 新增评估与学习计划领域模型、六张持久化表、跨项目约束和存储测试
-- [ ] 实现定向评估会话、规则/模型评分、恢复语义、覆盖率与技能差距聚合，并接入四个 Coach API
+- [x] 新增评估与学习计划领域模型、六张持久化表、跨项目约束和存储测试
+- [ ] 实现定向评估会话、规则/模型评分、恢复语义、覆盖率与技能差距聚合，并接入三个 Coach API
 - [ ] 实现学习计划新草稿生成、编辑排序、确认与来源解析，并接入四个 Coach API
 - [ ] 同步 OpenAPI、数据库、功能与测试文档，完成 B-162 回归并关闭任务
 
@@ -35,7 +35,7 @@
 |------|------------|---------|
 | 代码 | `backend/domain/coach_models.py`, `backend/domain/coach_assessment.py`, `backend/domain/learning_plans.py` | 新增评估、覆盖与计划领域行为 |
 | 代码 | `backend/storage/coach_progress_store.py`, `backend/storage/knowledge_store.py` | 新增六张表与项目隔离的读写入口 |
-| 代码 | `backend/routes/coach.py`, `backend/api/openapi_schema.py` | 新增八个 Coach API operation |
+| 代码 | `backend/routes/coach.py`, `backend/api/openapi_schema.py` | 新增七个 Coach API operation |
 | 测试 | `tests/test_backend/`, `tests/test_webapp/` | 存储、规则、恢复、聚合、计划与 API 契约 |
 | 文档 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md`, `docs/design/database-design.md`, `docs/design/architecture-overview.md`, `docs/guides/testing.md` | 将 B-162 已实现行为回流为当前事实 |
 
@@ -77,12 +77,14 @@
 - 2026-07-23：冲突扫描无重叠；旧 `/api/assessment/*`、已归档桌面评估模型和 B-163 Obsidian 发布不在本任务中修改。
 - 2026-07-23：覆盖响应将携带 `knowledge_points / skills / recent_assessments`；学习计划响应将携带可解析 `sources`，满足 B-164 前端只读展示需要。
 - 2026-07-23：陈旧分析允许只读查看既有评估结果，但阻止发起新评估和确认新计划。
+- 2026-07-23：评估存储固定分析运行和知识点；公开题目默认隐藏评分依据，答案与结果单事务写入并支持同答案幂等重放。
+- 2026-07-23：学习计划确认会归档旧确认版本；确认后仅任务进度可改，结构、排序和来源保持不可变。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 0 / 4 项
+- **进度**：已完成 1 / 4 项
 - **最新 commit**：`26c54cd` — feat: 接入项目知识分析 Coach API
-- **代码状态**：`feature/project-knowledge-coach-v2`；工作区仅有本 plan 与 BACKLOG 启动改动
-- **下一步**：新增评估与学习计划领域模型、六张持久化表、跨项目约束和存储测试
+- **代码状态**：`feature/project-knowledge-coach-v2`；评估与学习计划存储切片待提交
+- **下一步**：实现定向评估会话、规则/模型评分、恢复语义、覆盖率与技能差距聚合，并接入三个 Coach API
 - **续任务须知**：状态阈值固定为 `<0.50 / 0.50–0.74 / ≥0.75`；新计划生成不得覆盖已确认计划

@@ -32,6 +32,7 @@ from backend.domain.models import (
     RetrievalReview,
 )
 from backend.domain.vector_index import deserialize_vector, serialize_vector
+from backend.storage.coach_progress_store import CoachProgressStoreMixin
 from backend.storage.coach_store import CoachStoreMixin
 
 DEFAULT_RETRIEVAL_SETTINGS = {
@@ -55,7 +56,7 @@ class DataGenerationMismatchError(RuntimeError):
     """Raised before writes when a v2 runtime points at an unmarked database."""
 
 
-class KnowledgeStore(CoachStoreMixin):
+class KnowledgeStore(CoachProgressStoreMixin, CoachStoreMixin):
     def __init__(
         self,
         db_path: Path,
@@ -2258,6 +2259,7 @@ class KnowledgeStore(CoachStoreMixin):
                 """
             )
             self._init_coach_schema(conn)
+            self._init_coach_progress_schema(conn)
             if self._database_was_empty:
                 conn.execute(
                     """
