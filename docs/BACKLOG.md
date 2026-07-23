@@ -78,7 +78,7 @@
 | B-161 | feature | 项目分析、知识点与通用技能映射 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md | 已完成独立 v2 数据根、确定性项目分析、稳定知识点、真实来源、版本化技能映射及四个 Coach 基础 API；默认模型 Profile 可选增强概览，失败回退规则结果。 |
 | B-162 | feature | 持久评估、双层差距与学习计划 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md | 已完成知识点/技能定向评估、来源约束评分、项目覆盖与技能聚合，以及可编辑、确认、保留历史来源的版本化学习计划；旧 `/api/assessment/*` 契约保持兼容。 |
 | B-163 | feature | Obsidian 插件桥与受控双向同步 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 已实现桌面插件配对、Markdown 幂等事件同步、受控发布、冲突阻断、不可变修订与九个 Obsidian API；保留原单向手动导入。 |
-| B-164 | feature | Vue 项目知识教练闭环 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 在现有 Codex 风格外壳中实现教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/发布交互。 |
+| B-164 | feature | Vue 项目知识教练闭环 | doing | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 在现有 Codex 风格外壳中实现教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/发布交互。执行计划：`docs/plans/B-164-vue-coach-loop.md`。 |
 | B-165 | release | Knowledge Island 2.0 发布验收 | todo | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md | 完成 OpenAPI、文档、全量测试、插件构建、Web E2E、Tauri 静态回归和 v2.0.0 发布边界收口。 |
 
 ---
