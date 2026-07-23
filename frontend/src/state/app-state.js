@@ -1,10 +1,10 @@
 import { reactive } from "vue";
 
-export const VIEW_KEYS = ["chat", "settings"];
+export const VIEW_KEYS = ["coach", "learning-map", "learning-plan", "settings"];
 
 export function createInitialState() {
   return {
-    currentView: "chat",
+    currentView: "coach",
     libraryModalOpen: false,
     libraryStep: "upload",
     libraryTargetProjectId: "",
@@ -176,6 +176,41 @@ export function createInitialState() {
     assessmentSubmitting: false,
     assessmentError: "",
     assessmentStatus: "等待评估",
+    coachOverview: null,
+    coachKnowledgePoints: [],
+    coachSkills: [],
+    coachCoverage: null,
+    coachLoading: false,
+    coachAnalyzing: false,
+    coachError: "",
+    coachSourceDrawerOpen: false,
+    selectedCoachSource: null,
+    coachAssessmentOverlayOpen: false,
+    coachAssessmentSession: null,
+    coachAssessmentQuestion: null,
+    coachAssessmentLoading: false,
+    coachAssessmentSubmitting: false,
+    coachAssessmentError: "",
+    coachAssessmentStatus: "",
+    learningPlan: null,
+    learningPlanLoading: false,
+    learningPlanGenerating: false,
+    learningPlanError: "",
+    learningPlanSaving: false,
+    learningPlanConfirming: false,
+    learningPlanStatus: "",
+    obsidianConnections: [],
+    obsidianConnectionsLoading: false,
+    obsidianConnectionError: "",
+    obsidianPairing: null,
+    obsidianPairingLoading: false,
+    obsidianPairingError: "",
+    obsidianRevokingId: "",
+    obsidianPublicationPreview: null,
+    obsidianPublicationDialogOpen: false,
+    obsidianPublicationLoading: false,
+    obsidianPublicationError: "",
+    obsidianPublicationStatus: "",
   };
 }
 

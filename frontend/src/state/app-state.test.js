@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { VIEW_KEYS, createInitialState } from "./app-state.js";
 
-describe("app-state phase 2 shell state", () => {
-  it("starts on chat and keeps library out of primary page navigation", () => {
+describe("app-state Knowledge Island 2.0 shell state", () => {
+  it("starts on coach and keeps library and assessment out of primary page navigation", () => {
     const state = createInitialState();
 
-    expect(VIEW_KEYS).toEqual(["chat", "settings"]);
+    expect(VIEW_KEYS).toEqual(["coach", "learning-map", "learning-plan", "settings"]);
     expect(state).toMatchObject({
-      currentView: "chat",
+      currentView: "coach",
       libraryModalOpen: false,
       libraryStep: "upload",
       libraryTargetProjectId: "",
@@ -17,6 +17,21 @@ describe("app-state phase 2 shell state", () => {
       mobileSidebarOpen: false,
       evidenceCollapsed: true,
       settingsPage: "answer",
+      coachOverview: null,
+      coachKnowledgePoints: [],
+      coachSkills: [],
+      coachCoverage: null,
+      coachAnalyzing: false,
+      coachSourceDrawerOpen: false,
+      coachAssessmentOverlayOpen: false,
+      coachAssessmentSubmitting: false,
+      learningPlan: null,
+      learningPlanGenerating: false,
+      learningPlanConfirming: false,
+      obsidianConnections: [],
+      obsidianRevokingId: "",
+      obsidianPublicationPreview: null,
+      obsidianPublicationDialogOpen: false,
     });
   });
 });

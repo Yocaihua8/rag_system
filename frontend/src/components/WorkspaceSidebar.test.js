@@ -28,6 +28,24 @@ function mountSidebar(props = {}) {
 }
 
 describe("WorkspaceSidebar", () => {
+  it("keeps material as an action in the fixed coach navigation order", async () => {
+    const wrapper = mountSidebar({ currentView: "coach" });
+    const navigation = wrapper.find(".main-nav");
+
+    expect(navigation.findAll("button").map((button) => button.attributes("data-view-key") || "library")).toEqual([
+      "coach",
+      "learning-map",
+      "learning-plan",
+      "library",
+      "settings",
+    ]);
+
+    await navigation.find('[data-nav-action="library"]').trigger("click");
+
+    expect(wrapper.emitted("open-library")).toEqual([[]]);
+    expect(wrapper.emitted("change-view") || []).toEqual([]);
+  });
+
   it("combines workspace and thread management in threads mode", async () => {
     const wrapper = mountSidebar();
 

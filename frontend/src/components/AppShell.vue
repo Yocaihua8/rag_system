@@ -51,8 +51,10 @@ import { computed, ref } from "vue";
 import WorkspaceSidebar from "./WorkspaceSidebar.vue";
 
 const navItems = [
-  { key: "chat", title: "聊天", description: "从当前工作区开始提问，资料、练习和工具都从输入框添加。" },
-  { key: "settings", title: "设置", description: "管理回答方式、模型、资料位置、备份和外观。" },
+  { key: "coach", title: "教练", description: "围绕当前项目提问，在真实来源的帮助下建立项目理解。" },
+  { key: "learning-map", title: "学习地图", description: "查看当前项目的知识覆盖、技能差距和评估记录。" },
+  { key: "learning-plan", title: "学习计划", description: "编辑并确认项目学习任务，确认后可发布到 Obsidian。" },
+  { key: "settings", title: "设置", description: "管理回答方式、模型、Obsidian 连接和高级选项。" },
 ];
 
 const sidebarCollapsed = ref(isNarrowScreen());
@@ -99,7 +101,7 @@ const emit = defineEmits([
 ]);
 
 const activeTitle = computed(() => {
-  return navItems.find((item) => item.key === props.currentView)?.title || "聊天";
+  return navItems.find((item) => item.key === props.currentView)?.title || "教练";
 });
 
 const activeDescription = computed(() => {

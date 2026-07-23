@@ -6,7 +6,7 @@ import AppShell from "./AppShell.vue";
 function mountShell(props = {}) {
   return mount(AppShell, {
     props: {
-      currentView: "chat",
+      currentView: "coach",
       sidebarMode: "threads",
       selectedProjectId: "product",
       projects: [
@@ -26,19 +26,24 @@ function mountShell(props = {}) {
       ...props,
     },
     slots: {
-      default: "<section>聊天内容</section>",
+      default: "<section>教练内容</section>",
     },
   });
 }
 
-describe("AppShell phase 2 navigation", () => {
-  it("shows simple primary entries and removes assessment from page navigation", () => {
+describe("AppShell Knowledge Island 2.0 navigation", () => {
+  it("shows the fixed coach loop order and removes assessment from page navigation", () => {
     const wrapper = mountShell();
+    const navigation = wrapper.find(".main-nav");
 
-    expect(wrapper.text()).toContain("聊");
-    expect(wrapper.text()).toContain("库");
-    expect(wrapper.text()).toContain("设");
-    expect(wrapper.text()).not.toContain("评估");
+    expect(navigation.findAll("button").map((button) => button.text())).toEqual([
+      "□ 教练",
+      "◇ 学习地图",
+      "☷ 学习计划",
+      "▭ 资料",
+      "○ 设置",
+    ]);
+    expect(navigation.text()).not.toContain("评估");
   });
 
   it("opens library as a modal action instead of changing the page", async () => {
@@ -58,6 +63,15 @@ describe("AppShell phase 2 navigation", () => {
     await wrapper.find('[data-view-key="settings"]').trigger("click");
 
     expect(wrapper.emitted("change-view")).toEqual([["settings"]]);
+  });
+
+  it("changes to learning map and learning plan through page entries", async () => {
+    const wrapper = mountShell();
+
+    await wrapper.find('[data-view-key="learning-map"]').trigger("click");
+    await wrapper.find('[data-view-key="learning-plan"]').trigger("click");
+
+    expect(wrapper.emitted("change-view")).toEqual([["learning-map"], ["learning-plan"]]);
   });
 
   it("changes the left sidebar to workspace selection while choosing material", () => {
