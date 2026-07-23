@@ -1,0 +1,21 @@
+{
+  "name": "knowledge-island-obsidian-plugin",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Knowledge Island 2.0 desktop-only Obsidian bridge",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "esbuild": "^0.25.5",
+    "obsidian": "1.13.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}

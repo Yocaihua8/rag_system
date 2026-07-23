@@ -1,0 +1,9 @@
+{
+  "id": "knowledge-island-bridge",
+  "name": "Knowledge Island Bridge",
+  "version": "2.0.0",
+  "minAppVersion": "1.8.0",
+  "description": "Synchronize project notes and apply explicitly confirmed Knowledge Island publications.",
+  "author": "Knowledge Island",
+  "isDesktopOnly": true
+}
