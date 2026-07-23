@@ -26,6 +26,7 @@ describe("SettingsView phase 2 layout", () => {
     expect(wrapper.findAll("[data-settings-page]").map((button) => button.text())).toEqual([
       "回答",
       "资料",
+      "Obsidian",
       "外观",
     ]);
 
@@ -68,6 +69,85 @@ describe("SettingsView phase 2 layout", () => {
     expect(appearancePage.text()).toContain("回答方式");
     expect(appearancePage.text()).not.toContain("服务地址");
     expect(appearancePage.text()).not.toContain("系统提示词");
+  });
+
+  it("shows Obsidian connection details and emits refresh and revoke payloads", async () => {
+    const wrapper = mountSettings({
+      settingsPage: "obsidian",
+      obsidianConnections: [{
+        id: "connection-1",
+        status: "active",
+        sync_status: "error",
+        vault_name: "学习 Vault",
+        output_root: "Knowledge Island/示例项目",
+        last_synced_at: "2026-07-23T10:00:00+00:00",
+        created_at: "2026-07-23T09:00:00+00:00",
+        revoked_at: "",
+      }],
+    });
+
+    expect(wrapper.text()).toContain("桌面插件连接");
+    expect(wrapper.text()).toContain("学习 Vault");
+    expect(wrapper.text()).toContain("同步异常");
+    expect(wrapper.text()).toContain("Knowledge Island/示例项目");
+
+    await wrapper.find('[data-obsidian-settings] > .section-title-row button').trigger("click");
+    await wrapper.find(".danger-link").trigger("click");
+
+    expect(wrapper.emitted("load-obsidian-connections")).toEqual([[]]);
+    expect(wrapper.emitted("revoke-obsidian-connection")).toEqual([[
+      { projectId: "p1", connectionId: "connection-1" },
+    ]]);
+  });
+
+  it("starts pairing with an optional output root and only renders the temporary code", async () => {
+    const wrapper = mountSettings({
+      settingsPage: "obsidian",
+      obsidianConnections: [],
+      obsidianPairing: {
+        code: "PAIR-ONCE",
+        token: "must-never-render",
+        output_root: "Knowledge Island/自定义",
+        expires_at: "2026-07-23T10:05:00+00:00",
+        ttl_seconds: 300,
+      },
+    });
+
+    const pairingForm = wrapper.find("[data-obsidian-pairing-form]");
+    await pairingForm.find('input[name="obsidian_output_root"]').setValue("Knowledge Island/自定义/");
+    await pairingForm.trigger("submit");
+
+    expect(wrapper.emitted("start-obsidian-pairing")).toEqual([[
+      {
+        projectId: "p1",
+        outputRoot: "Knowledge Island/自定义/",
+      },
+    ]]);
+    expect(wrapper.find("[data-obsidian-pairing-result]").text()).toContain("PAIR-ONCE");
+    expect(wrapper.text()).toContain("300 秒");
+    expect(wrapper.text()).not.toContain("must-never-render");
+  });
+
+  it("blocks a second pairing while an active connection exists and shows failures", async () => {
+    const wrapper = mountSettings({
+      settingsPage: "obsidian",
+      obsidianConnections: [{
+        id: "connection-1",
+        status: "active",
+        sync_status: "idle",
+        vault_name: "学习 Vault",
+      }],
+      obsidianConnectionError: "连接列表读取失败",
+      obsidianPairingError: "配对码创建失败",
+    });
+
+    expect(wrapper.text()).toContain("连接列表读取失败");
+    expect(wrapper.text()).toContain("配对码创建失败");
+    expect(wrapper.text()).toContain("撤销后才能生成新的配对码");
+    expect(wrapper.find('[data-obsidian-pairing-form] button[type="submit"]').attributes("disabled")).toBeDefined();
+
+    await wrapper.find("[data-obsidian-pairing-form]").trigger("submit");
+    expect(wrapper.emitted("start-obsidian-pairing")).toBeUndefined();
   });
 
   it("keeps existing settings payloads behind connection details", async () => {
