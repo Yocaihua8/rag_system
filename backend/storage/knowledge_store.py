@@ -34,6 +34,7 @@ from backend.domain.models import (
 from backend.domain.vector_index import deserialize_vector, serialize_vector
 from backend.storage.coach_progress_store import CoachProgressStoreMixin
 from backend.storage.coach_store import CoachStoreMixin
+from backend.storage.obsidian_store import ObsidianStoreMixin
 
 DEFAULT_RETRIEVAL_SETTINGS = {
     "top_k": 5,
@@ -56,7 +57,11 @@ class DataGenerationMismatchError(RuntimeError):
     """Raised before writes when a v2 runtime points at an unmarked database."""
 
 
-class KnowledgeStore(CoachProgressStoreMixin, CoachStoreMixin):
+class KnowledgeStore(
+    ObsidianStoreMixin,
+    CoachProgressStoreMixin,
+    CoachStoreMixin,
+):
     def __init__(
         self,
         db_path: Path,
@@ -898,6 +903,136 @@ class KnowledgeStore(CoachProgressStoreMixin, CoachStoreMixin):
         elif action == "updated":
             self.mark_coach_analysis_stale(project_id, document_id=document_id)
         return DocumentWriteResult(document=document, action=action)
+
+    def rename_document_preserving_identity(
+        self,
+        project_id: str,
+        old_relative_path: str,
+        new_relative_path: str,
+        new_source_path: Path | str | None = None,
+    ) -> Document | None:
+        clean_project_id = project_id.strip()
+        clean_old_path = old_relative_path.strip()
+        clean_new_path = new_relative_path.strip()
+        if not clean_project_id or not clean_old_path or not clean_new_path:
+            raise ValueError("project_id, old_relative_path and new_relative_path are required")
+
+        with self._connect() as conn:
+            existing = conn.execute(
+                """
+                SELECT id, project_id, source_path, relative_path, content, checksum, updated_at
+                FROM documents
+                WHERE project_id = ? AND relative_path = ?
+                """,
+                (clean_project_id, clean_old_path),
+            ).fetchone()
+            if not existing:
+                return None
+            target = conn.execute(
+                """
+                SELECT id
+                FROM documents
+                WHERE project_id = ? AND relative_path = ? AND id != ?
+                """,
+                (clean_project_id, clean_new_path, existing["id"]),
+            ).fetchone()
+            if target:
+                raise ValueError("document target path already exists")
+
+        target_source_path = (
+            str(existing["source_path"])
+            if new_source_path is None
+            else str(new_source_path).strip()
+        )
+        if not target_source_path:
+            raise ValueError("new_source_path must not be empty")
+        if (
+            clean_old_path == clean_new_path
+            and str(existing["source_path"]) == target_source_path
+        ):
+            return _document_from_row(existing)
+
+        self.mark_coach_analysis_stale(clean_project_id)
+        now = _now()
+        try:
+            with self._connect() as conn:
+                target = conn.execute(
+                    """
+                    SELECT id
+                    FROM documents
+                    WHERE project_id = ? AND relative_path = ? AND id != ?
+                    """,
+                    (clean_project_id, clean_new_path, existing["id"]),
+                ).fetchone()
+                if target:
+                    raise ValueError("document target path already exists")
+                updated = conn.execute(
+                    """
+                    UPDATE documents
+                    SET source_path = ?, relative_path = ?, updated_at = ?
+                    WHERE id = ? AND project_id = ? AND relative_path = ?
+                    """,
+                    (
+                        target_source_path,
+                        clean_new_path,
+                        now,
+                        existing["id"],
+                        clean_project_id,
+                        clean_old_path,
+                    ),
+                )
+                if updated.rowcount != 1:
+                    return None
+                conn.execute(
+                    """
+                    UPDATE chunk_vectors
+                    SET updated_at = ?
+                    WHERE chunk_id IN (
+                        SELECT id
+                        FROM document_chunks
+                        WHERE document_id = ?
+                    )
+                    """,
+                    (now, existing["id"]),
+                )
+                vector_rows = conn.execute(
+                    """
+                    SELECT c.id AS chunk_id, c.chunk_index, c.content,
+                           v.vector_json, v.provider, v.model
+                    FROM document_chunks c
+                    JOIN chunk_vectors v ON v.chunk_id = c.id
+                    WHERE c.document_id = ?
+                    ORDER BY c.chunk_index ASC
+                    """,
+                    (existing["id"],),
+                ).fetchall()
+                document_row = conn.execute(
+                    """
+                    SELECT id, project_id, source_path, relative_path, content, checksum, updated_at
+                    FROM documents
+                    WHERE id = ?
+                    """,
+                    (existing["id"],),
+                ).fetchone()
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("document target path already exists") from exc
+
+        vector_records = [
+            VectorUpsertRecord(
+                project_id=clean_project_id,
+                document_id=str(existing["id"]),
+                chunk_id=str(row["chunk_id"]),
+                chunk_index=int(row["chunk_index"]),
+                path=clean_new_path,
+                content=str(row["content"]),
+                vector=deserialize_vector(str(row["vector_json"])),
+                provider=str(row["provider"]),
+                model=str(row["model"]),
+            )
+            for row in vector_rows
+        ]
+        self._sync_vector_upsert(vector_records)
+        return _document_from_row(document_row)
 
     def list_documents(self, project_id: str, collection_id: str = "") -> list[Document]:
         if collection_id == "unassigned":
@@ -2260,6 +2395,7 @@ class KnowledgeStore(CoachProgressStoreMixin, CoachStoreMixin):
             )
             self._init_coach_schema(conn)
             self._init_coach_progress_schema(conn)
+            self._init_obsidian_schema(conn)
             if self._database_was_empty:
                 conn.execute(
                     """
