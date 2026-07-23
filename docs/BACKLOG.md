@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-10（B-159 Codex 风格视觉规范与术语收口完成）
+> Last Updated：2026-07-23（启动 Knowledge Island 2.0 项目知识教练主线）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -71,9 +71,15 @@
 | B-154 | tech-debt | 依赖与安全审计基线 | done | P2 | S | v1.0.0 | RAG 团队 | SECURITY.md, docs/guides/setup.md | Phase 2 硬化主线：引入 `pip-audit` / `npm audit` 基线与可选依赖矩阵验证（pymupdf / qdrant-client / sentence-transformers / ollama 缺失时降级路径），纳入 B-149 CI 与 v1.0.0 readiness |
 | B-155 | tech-debt | webapp/ 全量重组至 backend/ | done | P2 | XL | v1.1.0 | RAG 团队 | docs/design/architecture-overview.md | v1.0.0 后执行：已废弃受控 `webapp/` 源码目录，按职责重组至 `backend/api/`、`backend/storage/`、`backend/domain/`、`backend/routes/` 等子包；已迁移 Python import 路径、测试和文档引用；不改 API 契约、不改 SQLite schema，不改 `frontend/src` 或前端交互，仅调整 Vite 构建输出到 `backend/static_dist/` |
 | B-156 | feature | 第二阶段前端简洁化重设计 | done | P1 | XL | v1.1.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md, docs/superpowers/specs/2026-07-02-frontend-phase-2-redesign.md | 已将 Vue 前端从迁移期四视图收束为“聊 / 库 / 设”简洁主线：默认聊天工作台，工作区和线程统一在侧栏，库改为资料管理弹窗并支持先加入库、再按资料夹和资料列表选择资料，设改为全屏设置；独立评估入口收进聊天工具，主色调整为黑白灰中性方案。 |
-| B-157 | feature | 全局资料库与工作区连接接口 | todo | P1 | L | v1.2.0 | RAG 团队 | docs/design/api-spec.md, docs/design/database-design.md | B-156 前端不伪造跨工作区连接；当前后端仍以 `project_id` 为资料边界。后续需设计并实现全局资料条目、资料夹/文件/网页摘录入库结果与工作区引用关系，再把库弹窗“选择资料”接入真实跨工作区连接。 |
+| B-157 | feature | 全局资料库与工作区连接接口 | wontfix | P3 | L | future | RAG 团队 | docs/design/api-spec.md, docs/design/database-design.md | Knowledge Island 2.0 已转向单项目知识教练；当前继续保持 `project_id` 资料边界，不实现跨工作区全局资料库。若未来重新启动，需作为新的产品决策重新评估。 |
 | B-158 | docs | Codex 工作区会话与资料导入 HTML 预览 | done | P1 | S | v1.1.0 | RAG 团队 | docs/design/codex-workspace-chat-import-design.md, docs/previews/codex-anythingllm-workspace-preview/index.html | 已基于 In Review 设计新增单文件可交互 HTML 预览，用于验证默认会话首页、添加资料五步流程、依据抽屉、设置全屏页和练习入口；预览不修改正式 Vue 代码，不伪装后端未支持的跨工作区资料、文件级问答范围或实时导入进度。 |
 | B-159 | docs | Codex 风格视觉规范与术语收口 | done | P1 | S | v1.1.0 | RAG 团队 | docs/design/codex-ui-visual-system.md, docs/design/codex-workspace-chat-import-design.md, docs/design/ui-wireframes.md, docs/style-guide.md | 新增视觉令牌、组件状态、动效和无障碍规范；明确 B-156 已落地的页面方向与 B-157 未实现的全局资料库边界；将用户界面“工作区”、内部 `project_id` 与历史“项目空间”的语境写清。本次仅更新文档，不改 Vue、API 或数据库。 |
+| B-160 | docs | 项目知识教练方向与 v2 数据代际冻结 | doing | P0 | M | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md | 冻结个人开发学习场景、项目知识覆盖 + 通用技能树边界、全新 `runtime/v2/` 数据代际和 Obsidian 插件桥方案。执行计划：`docs/plans/B-160-project-knowledge-coach-direction.md`。 |
+| B-161 | feature | 项目分析、知识点与通用技能映射 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md | 新增有来源的项目分析、稳定知识点、技能树映射与 Coach 概览 API；Python 和 JS/TS 优先，其他项目使用通用回退。 |
+| B-162 | feature | 持久评估、双层差距与学习计划 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md | 新增知识点定向评估、项目覆盖/技能差距聚合和可编辑确认的学习计划，保留旧 `/api/assessment/*` 契约。 |
+| B-163 | feature | Obsidian 插件桥与受控双向同步 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 新增桌面插件配对、Markdown 事件同步、受控发布、冲突阻断和不可变修订；保留原单向手动导入。 |
+| B-164 | feature | Vue 项目知识教练闭环 | todo | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 在现有 Codex 风格外壳中实现教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/发布交互。 |
+| B-165 | release | Knowledge Island 2.0 发布验收 | todo | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md | 完成 OpenAPI、文档、全量测试、插件构建、Web E2E、Tauri 静态回归和 v2.0.0 发布边界收口。 |
 
 ---
 
