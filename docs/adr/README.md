@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30（补齐 ADR-002/003/004）
+> Last Updated：2026-07-23（新增 ADR-008/009）
 
 ADR（Architecture Decision Record）用于记录重要架构决策，重点不是"做了什么"，而是"为什么这样做"。
 
@@ -40,3 +40,5 @@ ADR-002-short-title.md
 | ADR-005 | 远程访问认证机制（API Key + JWT） | Accepted | 2026-05-26 |
 | ADR-006 | 前端框架选型（Vue 3 + Vite） | Accepted | 2026-05-26 |
 | ADR-007 | Qdrant 本地向量存储 | Accepted | 2026-06-28 |
+| ADR-008 | 项目知识教练与 v2 数据代际 | Accepted | 2026-07-23 |
+| ADR-009 | Obsidian 桌面插件桥与受控写回 | Accepted | 2026-07-23 |
