@@ -29,7 +29,10 @@ def create_app(
     store: KnowledgeStore | None = None,
     auth_settings: AuthSettings | None = None,
 ) -> FastAPI:
-    knowledge_store = store or KnowledgeStore(db_path or default_db_path())
+    knowledge_store = store or KnowledgeStore(
+        db_path or default_db_path(),
+        expected_generation="v2",
+    )
     auth_config = auth_settings or load_auth_settings()
     app = FastAPI(title="Knowledge Island", docs_url="/docs", redoc_url="/redoc")
     app.state.knowledge_store = knowledge_store

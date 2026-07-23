@@ -53,7 +53,7 @@ def test_load_settings_uses_defaults_and_derived_paths(monkeypatch, tmp_path):
     settings = settings_module.load_settings({})
 
     assert settings.kb_root == Path("~/KnowledgeIslandKB").expanduser().resolve()
-    assert settings.runtime_dir == (tmp_path / "project" / "runtime").resolve()
+    assert settings.runtime_dir == (tmp_path / "project" / "runtime" / "v2").resolve()
     assert settings.db_path == settings.runtime_dir / "app.db"
     assert settings.vector_dir == settings.runtime_dir / "vectors"
     assert settings.logs_dir == settings.runtime_dir / "logs"

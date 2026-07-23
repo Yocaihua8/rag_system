@@ -5,9 +5,14 @@ from dataclasses import dataclass
 from backend.providers.base import VectorUpsertRecord
 
 
-def test_qdrant_settings_default_sqlite_and_env_override(tmp_path):
+def test_qdrant_settings_default_sqlite_and_env_override(tmp_path, monkeypatch):
+    import backend.config.settings as settings_module
     from backend.config.vector_store import load_vector_store_settings
 
+    monkeypatch.setattr(settings_module, "_project_root", lambda: tmp_path)
+    monkeypatch.setattr(settings_module, "app_data_dir", lambda: tmp_path / "appdata")
+    monkeypatch.setattr(settings_module, "_persistent_env", lambda: {})
+    monkeypatch.delenv("RAG_RUNTIME_DIR", raising=False)
     defaults = load_vector_store_settings({})
     enabled = load_vector_store_settings(
         {
@@ -20,6 +25,7 @@ def test_qdrant_settings_default_sqlite_and_env_override(tmp_path):
 
     assert defaults.enabled is False
     assert defaults.provider == "sqlite"
+    assert defaults.path == (tmp_path / "runtime" / "v2" / "vectors" / "qdrant").resolve()
     assert enabled.enabled is True
     assert enabled.provider == "qdrant"
     assert enabled.path == tmp_path / "vectors"

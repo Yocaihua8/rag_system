@@ -32,6 +32,7 @@ from backend.domain.models import (
     RetrievalReview,
 )
 from backend.domain.vector_index import deserialize_vector, serialize_vector
+from backend.storage.coach_store import CoachStoreMixin
 
 DEFAULT_RETRIEVAL_SETTINGS = {
     "top_k": 5,
@@ -50,20 +51,27 @@ class DocumentWriteResult:
 _DEFAULT_VECTOR_STORE = object()
 
 
-class KnowledgeStore:
+class DataGenerationMismatchError(RuntimeError):
+    """Raised before writes when a v2 runtime points at an unmarked database."""
+
+
+class KnowledgeStore(CoachStoreMixin):
     def __init__(
         self,
         db_path: Path,
         embedding_client: EmbeddingClient | None = None,
         vector_store: BaseVectorStore | None | object = _DEFAULT_VECTOR_STORE,
+        expected_generation: str | None = None,
     ):
         self.db_path = Path(db_path)
+        self.expected_generation = (expected_generation or "").strip()
+        self._database_was_empty = self._validate_data_generation()
+        if str(self.db_path) != ":memory:":
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._embedding_client = embedding_client or get_default_embedding_client()
         self._vector_store = (
             get_default_vector_store() if vector_store is _DEFAULT_VECTOR_STORE else vector_store
         )
-        if str(self.db_path) != ":memory:":
-            self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
     def create_project(self, name: str, root_path: Path) -> Project:
@@ -884,6 +892,10 @@ class KnowledgeStore:
                 ),
             )
             self._replace_document_chunks(conn, document)
+        if action == "created":
+            self.mark_coach_analysis_stale(project_id)
+        elif action == "updated":
+            self.mark_coach_analysis_stale(project_id, document_id=document_id)
         return DocumentWriteResult(document=document, action=action)
 
     def list_documents(self, project_id: str, collection_id: str = "") -> list[Document]:
@@ -1868,6 +1880,7 @@ class KnowledgeStore:
         document = self.get_document(document_id)
         if not document:
             return None
+        self.mark_coach_analysis_stale(document.project_id, document_id=document.id)
         with self._connect() as conn:
             chunk_ids = _chunk_ids_for_documents(conn, [document.id])
             conn.execute("DELETE FROM documents WHERE id = ?", (document_id,))
@@ -1892,6 +1905,8 @@ class KnowledgeStore:
         if not stale_paths:
             return 0
         stale_document_ids = [doc.id for doc in documents if doc.relative_path in stale_paths]
+        for document_id in stale_document_ids:
+            self.mark_coach_analysis_stale(project_id, document_id=document_id)
         with self._connect() as conn:
             chunk_ids = _chunk_ids_for_documents(conn, stale_document_ids)
             conn.executemany(
@@ -1900,6 +1915,54 @@ class KnowledgeStore:
             )
         self._sync_vector_delete(project_id, chunk_ids)
         return len(stale_paths)
+
+    def _validate_data_generation(self) -> bool:
+        if str(self.db_path) == ":memory:":
+            return True
+        if not self.db_path.exists() or self.db_path.stat().st_size == 0:
+            return True
+
+        try:
+            uri = f"{self.db_path.resolve().as_uri()}?mode=ro"
+            with sqlite3.connect(uri, uri=True) as conn:
+                tables = {
+                    str(row[0])
+                    for row in conn.execute(
+                        """
+                        SELECT name
+                        FROM sqlite_master
+                        WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+                        """
+                    ).fetchall()
+                }
+                if not tables:
+                    return True
+                if not self.expected_generation:
+                    return False
+                if "app_metadata" not in tables:
+                    raise DataGenerationMismatchError(
+                        "v2 data root points to an existing unmarked database; "
+                        "refusing to modify the previous data generation"
+                    )
+                row = conn.execute(
+                    "SELECT value FROM app_metadata WHERE key = 'data_generation'"
+                ).fetchone()
+                actual_generation = str(row[0]) if row else ""
+        except DataGenerationMismatchError:
+            raise
+        except (OSError, sqlite3.DatabaseError) as exc:
+            if self.expected_generation:
+                raise DataGenerationMismatchError(
+                    "v2 data root is not a readable v2 SQLite database"
+                ) from exc
+            return False
+
+        if actual_generation != self.expected_generation:
+            raise DataGenerationMismatchError(
+                "v2 data root has data generation "
+                f"{actual_generation or 'unmarked'}; expected {self.expected_generation}"
+            )
+        return False
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=30.0)
@@ -1912,6 +1975,11 @@ class KnowledgeStore:
         with self._connect() as conn:
             conn.executescript(
                 """
+                CREATE TABLE IF NOT EXISTS app_metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+
                 CREATE TABLE IF NOT EXISTS projects (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -2189,6 +2257,15 @@ class KnowledgeStore:
                     ON retrieval_reviews(project_id, created_at);
                 """
             )
+            self._init_coach_schema(conn)
+            if self._database_was_empty:
+                conn.execute(
+                    """
+                    INSERT INTO app_metadata (key, value)
+                    VALUES ('data_generation', 'v2')
+                    ON CONFLICT(key) DO NOTHING
+                    """
+                )
             _ensure_column(conn, "projects", "retrieval_top_k", "INTEGER NOT NULL DEFAULT 5")
             _ensure_column(conn, "projects", "retrieval_min_score", "REAL NOT NULL DEFAULT 0")
             _ensure_column(conn, "projects", "retrieval_use_keyword", "INTEGER NOT NULL DEFAULT 1")
