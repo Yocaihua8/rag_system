@@ -150,6 +150,9 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | 回答生成 | `build_local_answer` / OpenAI-compatible Chat | `POST /api/answer` |
 | 结果导出 | `export_chat_message_result` | `POST /api/export/result` |
 | Agent 只读工具 | `run_agent_tool` | `POST /api/agent/tools/run` |
+| Coach 项目分析 | `backend.domain.project_analysis` | `/api/coach/analyze` 与三个只读理解接口 |
+| Coach 评估与计划 | `backend.domain.coach_assessment` / `backend.domain.learning_plans` | 七个 B-162 Coach API |
+| Coach 进度存储 | `backend.storage.coach_progress_store.CoachProgressStoreMixin` | `KnowledgeStore` / Coach 领域 |
 | Vue API helper | `frontend/src/api/client.js` | Vue 组件 / 后续页面模块 |
 | Vue 项目空间 helper | `frontend/src/api/projects.js` | `App.vue` / `ProjectSpacePanel.vue` / `SearchDebugPanel.vue` |
 | Vue 问答 helper | `frontend/src/api/answer.js` | `App.vue` / `QuestionPanel.vue` / `AnswerPanel.vue` |
@@ -238,11 +241,21 @@ Knowledge Island 2.0 的目标定位是“面向个人开发学习的本地项�
 ### 9.3 Coach 领域边界
 
 - **项目分析**：对 Python、JavaScript/TypeScript 和常见 Web 清单做结构化分析；其他文本项目使用目录、清单、文档和 RAG 通用回退。规则基线必须在无 LLM 时可运行，LLM 只增强摘要、题目和计划。
-- **来源约束**：知识点、知识点—技能映射、评估结论和学习任务必须关联真实项目来源。来源 checksum、路径或内容变化后，相关分析运行标记为 `stale`，不得继续显示为最新结论。
+- **来源约束**：知识点、知识点—技能映射、评估结论和普通 `learning` 任务必须关联真实项目来源；`source_gap` 任务只能表达资料缺口且来源为空。来源 checksum、路径或内容变化后，相关分析运行标记为 `stale`，不得继续显示为最新结论。
 - **稳定身份**：知识点使用稳定 ID 与分析运行解耦；重新分析产生新运行和新来源快照，不以标题或展示顺序作为身份。
 - **双层评价**：项目知识覆盖是主口径；语言、框架、数据、测试、交付、AI 等通用技能是版本化辅助口径。状态统一为 `unassessed / needs_work / developing / mastered`，界面必须说明结果只针对当前项目。
 - **评估与计划**：评估以持久会话记录题目、回答、评分方式、置信度和来源；学习计划草稿可编辑排序，确认后不可被重新生成覆盖。
 - **分层约束**：Coach 领域不包含 HTTP 对象、SQLite 语句、Vault 文件写入或前端展示规则；路由层与存储层继续遵守现有职责边界。
+
+B-162 当前落地路径：
+
+- `backend/domain/coach_assessment.py`：定向会话、规则/模型评分、覆盖率和技能聚合。
+- `backend/domain/learning_plans.py`：确定性计划生成、受限模型润色、草稿结构更新、确认和进度更新。
+- `backend/storage/coach_progress_store.py`：评估与计划六张表的唯一持久化入口，`backend/storage/knowledge_store.py` 只负责组合存储 mixin。
+- `backend/routes/coach.py`：在 B-161 四个基础接口上新增三个评估/覆盖接口和四个学习计划接口；旧 `/api/assessment/*` 继续由原路由处理。
+- 评估或计划写入前防御性比较当前项目来源指纹；过期分析只读保留，阻止新评估、草稿结构更新和确认，不阻止确认版任务进度更新。
+- 评估评分依据只保存在服务端；学习计划生成、结构更新和确认按项目内进程锁串行，并分别用结构哈希与进度哈希保护客户端更新。
+- 学习计划确认只改变 Coach 持久化状态，不产生 Obsidian 发布副作用；受控写回由 B-163 的独立预览、确认和插件执行链路负责。
 
 ### 9.4 Obsidian 桥边界
 
@@ -258,7 +271,7 @@ Knowledge Island 2.0 的目标定位是“面向个人开发学习的本地项�
 | 切片 | 目标 | 本文状态 |
 |------|------|----------|
 | B-161 | 项目分析、知识点、来源与技能映射 | 已实现（存储、规则分析与 Coach 基础 API） |
-| B-162 | 持久评估、覆盖聚合与学习计划 | 待实现 |
+| B-162 | 持久评估、覆盖聚合与学习计划 | 已实现（领域、存储与七个 Coach API） |
 | B-163 | Obsidian 插件桥、同步与受控发布 | 待实现 |
 | B-164 | Vue 教练闭环 | 待实现 |
 | B-165 | OpenAPI、测试、插件构建、E2E 与发布验收 | 待实现 |

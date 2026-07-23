@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（补充 B-155 backend 目录重组回归）
+> Last Updated：2026-07-23（补充 B-162 Coach 评估与学习计划回归）
 
 ## 1. 目标
 
@@ -44,6 +44,7 @@ $env:PYTHONUTF8 = "1"
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_ollama_wizard.py tests/test_webapp/test_frontend_ollama_api.py tests/test_webapp/test_frontend_first_run_wizard.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
+.venv\Scripts\python.exe -m pytest tests/test_backend/test_coach_storage.py tests/test_backend/test_project_analysis.py tests/test_backend/test_coach_progress_storage.py tests/test_backend/test_coach_assessment.py tests/test_backend/test_learning_plans.py tests/test_webapp/test_coach_api.py tests/test_webapp/test_coach_assessment_api.py tests/test_webapp/test_coach_learning_plan_api.py tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_docs_contract.py -q
 npm run test:unit
 npm run build
 npm run e2e:install
@@ -92,7 +93,9 @@ docker compose config
 - 变更 Vue 设置页 Prompt 预设时，必须覆盖 `frontend/src/api/settings.js`、`SettingsView.vue`、`App.vue` 设置页状态流、`/api/prompt-presets*` helper、内置模板复制、预设新增/编辑/删除/默认/清空默认入口，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更备份导出或恢复时，必须覆盖 `/api/export/project`、`/api/export/project/restore`、不导出或恢复 API Key、恢复为新项目空间、文档正文/chunk/vector 快照恢复、恢复时不重新调用 embedding，以及聊天来源 `document_id/chunk_id` 映射。
 - 变更 Prompt 预设时，必须覆盖 `/api/prompt-presets`、`/api/prompt-presets/update`、`/api/prompt-presets/delete`、`/api/prompt-presets/default`、项目隔离、默认预设注入 `/api/answer`、固定来源约束优先级和前端设置入口。
-- 变更掌握评估存储、自动出题、回答评估或前端闭环时，必须覆盖 `/api/assessment/start` 生成并持久化题目、题型 `concept / flow / code_location`、轻量知识点标签、`/api/assessment/answer` 使用服务端持久化题目要点评分、四档状态 `已掌握 / 基本理解 / 需要补充 / 暂未掌握`、持久化回答和结果、项目隔离、空项目拒绝、空回答拒绝、前端进度/下一题/答题记录/待复测列表。
+- 变更 1.x 兼容掌握评估存储、自动出题、回答评估或前端闭环时，必须覆盖 `/api/assessment/start` 生成并持久化题目、题型 `concept / flow / code_location`、轻量知识点标签、`/api/assessment/answer` 使用服务端持久化题目要点评分、四档状态 `已掌握 / 基本理解 / 需要补充 / 暂未掌握`、持久化回答和结果、项目隔离、空项目拒绝、空回答拒绝、前端进度/下一题/答题记录/待复测列表。
+- 变更 B-162 Coach 定向评估或覆盖聚合时，必须覆盖知识点/技能目标、活动会话恢复与 `restart`、作答前评分依据不可见、复制题面不得分、相同答案幂等重放、不同答案冲突、`rule / model` 评分、非法模型结果低置信回退、固定状态阈值、来源指纹 stale、跨项目隔离，以及技能 `no_project_evidence / unverified / partially_verified / verified` 聚合。
+- 变更 B-162 学习计划时，必须覆盖规则优先级、可解析历史来源、`source_gap` 空来源、新草稿不覆盖确认版、只有项目最高 revision 计划仍为 `draft` 时才可编辑/确认、确认新版归档旧确认版、确认后结构冻结与进度更新、结构/进度哈希冲突、重复确认幂等、stale 阻止生成和确认但允许确认版更新进度、模型仅润色文本及非法模型整批回退。
 - 变更 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 评估状态流、开始评估、提交回答、下一题/完成、结果概览、答题记录和待复测列表，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台回答反馈时，必须覆盖 `frontend/src/api/answer.js`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 反馈状态流、`/api/answer/feedback` helper、四类反馈按钮、保存中/成功/失败状态，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台检索调试时，必须覆盖 `frontend/src/api/search.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索诊断状态流、`/api/search/debug` helper、`top_k/min_score/use_keyword/use_vector` 临时参数、来源质量/分块/向量状态/命中片段展示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
@@ -136,6 +139,8 @@ docker compose config
 - Web MVP 问答可通过 SSE / EventSource 流式渲染回答，完成后仍保存聊天记录、来源、质量提示和观察性元数据
 - Web MVP 深色模式跟随系统偏好，并可通过侧栏按钮手动切换和持久化
 - Web MVP 掌握评估入口、三类题型生成、逐题作答进度、服务端参考要点评分、四档状态输出、答题记录、待复测列表、题目/回答/结果持久化、回答反馈
+- Coach 定向评估可按知识点或技能节点恢复，作答前不泄露评分依据；覆盖率只使用当前来源版本的有效结果，技能状态区分无项目证据、未验证、部分验证和已验证
+- Coach 学习计划可生成确定性新草稿、完整编辑排序、确认版本和更新任务进度；历史来源按原分析运行解析，旧确认版不会被新草稿覆盖
 - Web MVP 首次使用引导可检测 Ollama、拉取推荐模型并引导创建第一个知识库
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT

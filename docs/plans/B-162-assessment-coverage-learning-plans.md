@@ -27,7 +27,7 @@
 - [x] 新增评估与学习计划领域模型、六张持久化表、跨项目约束和存储测试
 - [x] 实现定向评估会话、规则/模型评分、恢复语义、覆盖率与技能差距聚合，并接入三个 Coach API
 - [x] 实现学习计划新草稿生成、编辑排序、确认与来源解析，并接入四个 Coach API
-- [ ] 同步 OpenAPI、数据库、功能与测试文档，完成 B-162 回归并关闭任务
+- [x] 同步 OpenAPI、数据库、功能与测试文档，完成 B-162 回归并关闭任务
 
 ## 4. 影响范围
 
@@ -57,20 +57,20 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/project-knowledge-coach.md` 的 B-162 业务规则
-- [ ] 作答前响应不泄露评分依据，评估与计划数据严格按项目隔离
-- [ ] B-162 相关单元、API、OpenAPI 和回归测试通过
-- [ ] 相关文档已同步（见下方回流清单）
+- [x] 功能行为符合 `docs/features/project-knowledge-coach.md` 的 B-162 业务规则
+- [x] 作答前响应不泄露评分依据，评估与计划数据严格按项目隔离
+- [x] B-162 相关单元、API、OpenAPI 和回归测试通过
+- [x] 相关文档已同步（见下方回流清单）
 - [ ] BACKLOG B-162 状态已更新为 `done`
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 评估会话、评分和覆盖聚合 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md` | [ ] |
-| 评估与计划 schema | `docs/design/database-design.md` | [ ] |
-| 学习计划版本、编辑与确认语义 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md` | [ ] |
-| 测试方式与架构状态 | `docs/guides/testing.md`, `docs/design/architecture-overview.md` | [ ] |
+| 评估会话、评分和覆盖聚合 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md` | [x] |
+| 评估与计划 schema | `docs/design/database-design.md` | [x] |
+| 学习计划版本、编辑与确认语义 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md` | [x] |
+| 测试方式与架构状态 | `docs/guides/testing.md`, `docs/design/architecture-overview.md` | [x] |
 
 ## 8. 执行记录
 
@@ -86,6 +86,7 @@
 - 2026-07-23：`current` 同时返回最新草稿、当前确认版和历史版本；旧运行来源按发布时快照解析，草稿结构与确认版进度分别使用结构/进度哈希。
 - 2026-07-23：来源指纹在评估与计划写入前复核；历史草稿不可再编辑或确认，草稿结构更新强制任务回到 `todo`，重复确认不受后续进度变化影响。
 - 2026-07-23：B-162 聚焦回归 56 项通过；后端与 Web 全量回归为 490 通过、2 个既有静态断言失败，失败边界未变化。
+- 2026-07-23：文档/OpenAPI 聚焦回归 95 项通过，文档一致性检查通过；最终后端与 Web 全量回归为 491 通过、2 个已知静态断言失败，分别归入 B-164 导航 E2E 与 B-165 Tauri sidecar 验收。
 
 ## 9. 状态快照
 

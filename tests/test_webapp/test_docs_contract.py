@@ -416,3 +416,42 @@ def test_project_retrieval_settings_contract_is_documented():
         assert field in database_design
     assert "问答和检索诊断共用" in api_spec
     assert "项目级检索默认值" in readme
+
+
+def test_coach_assessment_and_learning_plan_contract_is_documented():
+    api_spec = Path("docs/design/api-spec.md").read_text(encoding="utf-8")
+    database_design = Path("docs/design/database-design.md").read_text(encoding="utf-8")
+    feature = Path("docs/features/project-knowledge-coach.md").read_text(encoding="utf-8")
+    architecture = Path("docs/design/architecture-overview.md").read_text(encoding="utf-8")
+
+    for endpoint in [
+        "POST /api/coach/assessments/start",
+        "POST /api/coach/assessments/answer",
+        "GET /api/coach/coverage",
+        "POST /api/coach/learning-plans/generate",
+        "GET /api/coach/learning-plans/current",
+        "POST /api/coach/learning-plans/update",
+        "POST /api/coach/learning-plans/confirm",
+    ]:
+        assert endpoint in api_spec
+    for table in [
+        "coach_assessment_sessions",
+        "coach_assessment_questions",
+        "coach_assessment_answers",
+        "coach_assessment_results",
+        "coach_learning_plans",
+        "coach_learning_plan_items",
+    ]:
+        assert table in database_design
+    for marker in [
+        "expected_points",
+        "no_project_evidence",
+        "partially_verified",
+        "items_hash",
+        "progress_hash",
+        "source_gap",
+    ]:
+        assert marker in api_spec
+    assert "B-162 已实现" in feature
+    assert "B-162" in architecture
+    assert "已实现（领域、存储与七个 Coach API）" in architecture

@@ -211,7 +211,7 @@
 
 ## 6. 2.0 Coach 逻辑实体
 
-为避免与 1.x/legacy 的 `knowledge_points`、`assessment_*` 混淆，2.0 新实体统一使用 `coach_` 前缀。B-161 已落地分析、知识点、来源与技能映射六张表；评估与计划实体由 B-162 落地。
+为避免与 1.x/legacy 的 `knowledge_points`、`assessment_*` 混淆，2.0 新实体统一使用 `coach_` 前缀。B-161 已落地分析、知识点、来源与技能映射六张表；B-162 已落地评估与学习计划六张表。
 
 | 目标表 | 状态 | 核心字段 / 约束 | 职责 |
 |--------|------|-----------------|------|
@@ -221,12 +221,22 @@
 | `coach_skill_taxonomies` | B-161 已实现 | `id / version / name / status / created_at`；`version` 唯一 | 版本化通用技能树 |
 | `coach_skill_nodes` | B-161 已实现 | `id / taxonomy_id / stable_key / parent_id / name / category / sort_order` | 保存语言、框架、数据、测试、交付、AI 等辅助技能节点 |
 | `coach_knowledge_skill_mappings` | B-161 已实现 | `id / run_id / knowledge_point_id / skill_node_id / confidence / source_id / rationale`；知识点、技能和来源同项目 | 保存有来源的知识点—技能映射 |
-| `coach_assessment_sessions` | B-162 待实现 | `id / project_id / target_type / target_id / status / created_at / completed_at` | 持久化定向评估会话；目标为知识点或技能节点 |
-| `coach_assessment_questions` | B-162 待实现 | `id / session_id / prompt / question_type / expected_points_json / source_ids_json / sort_order` | 保存题目和服务端评分依据；作答前不向客户端返回评分依据 |
-| `coach_assessment_answers` | B-162 待实现 | `id / session_id / question_id / answer / created_at` | 保存用户原始回答 |
-| `coach_assessment_results` | B-162 待实现 | `id / answer_id / evaluator / score / confidence / status / matched_evidence_json / missing_points_json / source_ids_json / created_at` | 保存 `rule / model` 评分方式和项目内掌握状态 |
-| `coach_learning_plans` | B-162 待实现 | `id / project_id / revision / status / based_on_run_id / created_at / confirmed_at` | 保存 `draft / confirmed / archived` 计划；新生成仅创建新草稿 |
-| `coach_learning_plan_items` | B-162 待实现 | `id / plan_id / stable_key / objective / knowledge_point_id / skill_node_id / source_ids_json / practice_question / completion_criteria / estimated_minutes / status / sort_order` | 保存可编辑排序的学习任务 |
+| `coach_assessment_sessions` | B-162 已实现 | `id / project_id / analysis_run_id / target_type / target_id / status / created_at / completed_at`；目标为 `knowledge_point / skill`，状态为 `active / completed / abandoned` | 持久化固定分析运行的定向评估会话 |
+| `coach_assessment_questions` | B-162 已实现 | `id / session_id / knowledge_point_id / prompt / question_type / expected_points_json / source_ids_json / sort_order`；`UNIQUE(session_id, sort_order)` | 保存题目和服务端评分依据；作答前不向客户端返回 `expected_points_json` |
+| `coach_assessment_answers` | B-162 已实现 | `id / session_id / question_id / answer / created_at`；`UNIQUE(session_id, question_id)` | 一题只保存一份原始回答，相同回答可幂等重放 |
+| `coach_assessment_results` | B-162 已实现 | `id / answer_id / evaluator / score / confidence / status / evaluation_warning / feedback / matched_evidence_json / missing_points_json / source_ids_json / created_at`；`answer_id` 唯一 | 保存 `rule / model` 评分、证据、低置信回退说明和项目内掌握状态 |
+| `coach_learning_plans` | B-162 已实现 | `id / project_id / revision / status / based_on_run_id / created_at / confirmed_at`；`revision > 0`、`UNIQUE(project_id, revision)`；`based_on_run_id` 可空且分析运行删除时 `ON DELETE SET NULL` | 保存 `draft / confirmed / archived` 计划；新生成只创建新 revision |
+| `coach_learning_plan_items` | B-162 已实现 | `id / plan_id / stable_key / item_type / objective / knowledge_point_id / skill_node_id / source_ids_json / practice_question / completion_criteria / estimated_minutes / status / sort_order` | 保存 `learning / source_gap` 任务与 `todo / in_progress / done / skipped` 进度 |
+
+B-162 表级约束：
+
+- `coach_assessment_sessions` 以部分唯一索引限制同项目、同分析运行、同目标最多一个 `active` 会话；会话按 `(project_id, created_at)` 查询。
+- 题目按 `(session_id, sort_order)` 唯一排序；回答按 `(session_id, question_id)` 唯一；结果的 `answer_id` 唯一，`score / confidence` 均限制在 `[0, 1]`。
+- 评估会话、题目、回答和结果随上级记录级联删除。`question_type` 当前由领域层生成 `concept / flow / code_location`。
+- 计划按 `(project_id, revision)` 索引，并以部分唯一索引保证每项目最多一个 `confirmed` 版本；确认新版本时旧确认版转为 `archived`。
+- 计划任务要求 `(plan_id, stable_key)` 和 `(plan_id, sort_order)` 分别唯一，`estimated_minutes > 0`；计划删除时任务级联删除，知识点或技能节点删除时关联字段置空。
+- `learning` 任务必须关联同项目、同分析运行的真实来源；`source_gap` 任务的来源必须为空，不能伪造阅读材料。草稿确认后只允许更新任务进度。
+- `source_ids_json` 和多态 `target_id` 没有数据库外键；其项目、分析运行、知识点与技能映射归属由 Coach 领域层在写入前校验。
 
 评估状态统一为：
 
