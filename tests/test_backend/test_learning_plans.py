@@ -190,7 +190,16 @@ def test_only_latest_draft_can_be_edited_or_confirmed(tmp_path):
         confirm_learning_plan(store, project.id, first["plan"]["id"])
 
     confirmed = confirm_learning_plan(store, project.id, second["plan"]["id"])
+    after_confirmation = build_current_learning_plan(store, project.id)
     assert confirmed["plan"]["status"] == "confirmed"
+    assert after_confirmation["draft"] is None
+    historical_first = next(
+        plan
+        for plan in after_confirmation["history"]
+        if plan["id"] == first["plan"]["id"]
+    )
+    assert historical_first["can_edit_structure"] is False
+    assert historical_first["can_confirm"] is False
 
 
 def test_stale_analysis_blocks_generation_and_confirmation_but_not_progress(tmp_path):

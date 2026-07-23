@@ -132,7 +132,11 @@ def build_current_learning_plan(
 ) -> dict[str, Any]:
     run = _current_analysis(store, project_id)
     plans = store.list_coach_learning_plans(project_id, limit=500)
-    draft = next((plan for plan in plans if plan.status == "draft"), None)
+    draft = (
+        plans[0]
+        if plans and plans[0].status == "draft"
+        else None
+    )
     confirmed = next(
         (plan for plan in plans if plan.status == "confirmed"),
         None,
@@ -197,7 +201,7 @@ def update_learning_plan(
                 raise CoachLearningPlanConflictError(
                     "learning_plan_not_editable"
                 )
-            latest_draft = _latest_plan(store, project_id, "draft")
+            latest_draft = _current_draft(store, project_id)
             if latest_draft is None or latest_draft.id != plan.id:
                 raise CoachLearningPlanConflictError(
                     "learning_plan_not_current_draft"
@@ -265,7 +269,7 @@ def confirm_learning_plan(
             raise CoachLearningPlanConflictError(
                 "learning_plan_not_confirmable"
             )
-        latest_draft = _latest_plan(store, project_id, "draft")
+        latest_draft = _current_draft(store, project_id)
         if latest_draft is None or latest_draft.id != plan.id:
             raise CoachLearningPlanConflictError(
                 "learning_plan_not_current_draft"
@@ -575,7 +579,7 @@ def _single_plan_response(
     current_run_id = current.id if current else ""
     current_status = current.status if current else "missing"
     sources = _sources_for_plans(store, [plan])
-    latest_draft = _latest_plan(store, plan.project_id, "draft")
+    latest_draft = _current_draft(store, plan.project_id)
     return {
         "plan": _plan_view(
             plan,
@@ -658,17 +662,14 @@ def _sources_for_plans(
     return result
 
 
-def _latest_plan(
+def _current_draft(
     store: KnowledgeStore,
     project_id: str,
-    status: str,
 ) -> CoachLearningPlan | None:
-    plans = store.list_coach_learning_plans(
-        project_id,
-        status=status,
-        limit=1,
-    )
-    return plans[0] if plans else None
+    plans = store.list_coach_learning_plans(project_id, limit=1)
+    if plans and plans[0].status == "draft":
+        return plans[0]
+    return None
 
 
 def _require_plan(
