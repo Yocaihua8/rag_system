@@ -2,8 +2,11 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
-> Scope：Web MVP SQLite 存储与 legacy 数据模型边界
+> Last Updated：2026-07-23
+> Scope：Knowledge Island 1.x 当前 SQLite 模型与 2.0 目标数据代际
+> Related：docs/design/architecture-overview.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
+
+> 阅读边界：§ 1～§ 4 是当前 1.x 已落地模型；§ 5～§ 7 是 2.0 已接受但尚未落库的目标模型。目标表名和约束由 B-161～B-163 实现后才成为运行时事实。
 
 ## 1. 当前已落地实体
 
@@ -195,3 +198,62 @@
 ## 4. 当前不在定稿范围
 
 - 文档里列出的未来模型（如部分学习建议图谱扩展字段）若未落库，不在定稿内扩展为新约束。
+
+## 5. 2.0 目标数据代际（尚未实现）
+
+2.0 使用独立数据根 `runtime/v2/`，默认 SQLite 为 `runtime/v2/app.db`；向量索引、日志和输出也必须派生到该代际下。现有 `runtime/app.db`、`runtime/vectors/`、既有 Qdrant 路径、`runtime/outputs/` 及其他 1.x 运行时文件不得迁移、删除或覆盖。
+
+- B-161 实现前，当前应用仍读写 1.x 路径。
+- 2.0 首次启动创建全新 schema，用户需要重新导入项目。
+- 2.0 不自动读取 1.x 数据，也不提供隐式 schema 升级。
+- 若配置指向已存在的 1.x 数据库或向量目录，2.0 必须拒绝复用并给出明确错误，不能原地建表。
+- 1.x 数据保留用于原版本回退或人工归档；删除必须是独立、显式的维护动作。
+
+## 6. 2.0 Coach 目标逻辑实体
+
+为避免与 1.x/legacy 的 `knowledge_points`、`assessment_*` 混淆，2.0 新实体统一使用 `coach_` 前缀。以下为目标逻辑 schema，不表示当前 `_init_schema()` 已创建这些表。
+
+| 目标表 | 核心字段 / 约束 | 职责 |
+|--------|-----------------|------|
+| `coach_analysis_runs` | `id / project_id / analyzer_version / source_fingerprint / status / summary_json / started_at / finished_at` | 保存不可变分析运行；`status` 为 `pending / running / completed / failed / stale` |
+| `coach_knowledge_points` | `id / project_id / stable_key / title / category / summary / current_run_id / created_at / updated_at`；`UNIQUE(project_id, stable_key)` | 保存跨重新分析稳定的项目知识点身份 |
+| `coach_knowledge_sources` | `id / run_id / knowledge_point_id / document_id / source_path / chunk_id / source_hash / excerpt / locator_json` | 为知识点、映射和结论保存真实来源快照 |
+| `coach_skill_taxonomies` | `id / version / name / status / created_at`；`version` 唯一 | 版本化通用技能树 |
+| `coach_skill_nodes` | `id / taxonomy_id / stable_key / parent_id / name / category / sort_order` | 保存语言、框架、数据、测试、交付、AI 等辅助技能节点 |
+| `coach_knowledge_skill_mappings` | `id / run_id / knowledge_point_id / skill_node_id / confidence / source_id / rationale`；知识点、技能和来源同项目 | 保存有来源的知识点—技能映射 |
+| `coach_assessment_sessions` | `id / project_id / target_type / target_id / status / created_at / completed_at` | 持久化定向评估会话；目标为知识点或技能节点 |
+| `coach_assessment_questions` | `id / session_id / prompt / question_type / expected_points_json / source_ids_json / sort_order` | 保存题目和服务端评分依据；作答前不向客户端返回评分依据 |
+| `coach_assessment_answers` | `id / session_id / question_id / answer / created_at` | 保存用户原始回答 |
+| `coach_assessment_results` | `id / answer_id / evaluator / score / confidence / status / matched_evidence_json / missing_points_json / source_ids_json / created_at` | 保存 `rule / model` 评分方式和项目内掌握状态 |
+| `coach_learning_plans` | `id / project_id / revision / status / based_on_run_id / created_at / confirmed_at` | 保存 `draft / confirmed / archived` 计划；新生成仅创建新草稿 |
+| `coach_learning_plan_items` | `id / plan_id / stable_key / objective / knowledge_point_id / skill_node_id / source_ids_json / practice_question / completion_criteria / estimated_minutes / status / sort_order` | 保存可编辑排序的学习任务 |
+
+评估状态统一为：
+
+- 无有效结果：`unassessed`
+- `score < 0.50`：`needs_work`
+- `0.50 <= score < 0.75`：`developing`
+- `score >= 0.75`：`mastered`
+
+通用技能状态只聚合当前项目关联知识点，必须保留“未验证”与“评估较弱”的差异，不能推导跨项目或职业能力结论。
+
+## 7. 2.0 Obsidian 目标逻辑实体与约束
+
+| 目标表 | 核心字段 / 约束 | 职责 |
+|--------|-----------------|------|
+| `obsidian_pairings` | `id / project_id / code_hash / expires_at / consumed_at / created_at` | 保存一次性限时配对码哈希；不持久化明文配对码 |
+| `obsidian_connections` | `id / project_id / vault_id / output_root / token_hash / status / last_synced_at / created_at / revoked_at` | 每项目最多一个 `active` 连接；只保存令牌哈希 |
+| `obsidian_sync_events` | `id / connection_id / event_id / action / path / old_path / content_hash / payload_json / status / received_at`；`UNIQUE(connection_id, event_id)` | 幂等接收 `upsert / rename / delete` 事件 |
+| `obsidian_publications` | `id / project_id / connection_id / artifact_type / status / target_path / current_revision_id / created_at / updated_at` | 保存 `draft / confirmed / queued / applied / conflict / failed` 发布状态 |
+| `obsidian_publication_revisions` | `id / publication_id / revision / stable_id / content / content_hash / expected_vault_hash / created_at`；`UNIQUE(publication_id, revision)` | 保存不可变预览与发布修订，支持审计和回滚 |
+| `obsidian_publication_results` | `id / revision_id / connection_id / status / actual_hash / error_code / message / created_at` | 保存插件执行结果，不把插件回报直接当作成功写入 |
+
+共同约束：
+
+- 所有记录按 `project_id` 或其连接间接隔离；跨项目事件、修订或来源引用必须拒绝。
+- 配对码和连接令牌只以密码学哈希持久化；明文只在创建/换取时返回一次，不进入日志、事件负载或发布内容。
+- `event_id` 是连接内幂等键；重复事件返回原处理结果，不重复导入或删除。
+- `rename` 保留既有文档身份和来源映射；`delete` 清理对应索引并将依赖分析标记为 `stale`。
+- `output_root` 和每个 `target_path` 必须规范化并验证仍位于配置根目录内。
+- 可更新 Markdown 必须包含 `knowledge_island_managed`、稳定 ID、项目 ID、产物类型和修订号。缺失标记、身份不符或 `expected_vault_hash` 不匹配时写入结果为 `conflict`，禁止自动合并或覆盖。
+- 已确认计划和不可变发布修订不得被重新生成原地覆盖；回滚通过发布旧修订的新执行请求完成，不修改历史记录。
