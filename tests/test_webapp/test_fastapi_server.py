@@ -146,6 +146,10 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
         ("/api/coach/assessments/start", "post"),
         ("/api/coach/assessments/answer", "post"),
         ("/api/coach/coverage", "get"),
+        ("/api/coach/learning-plans/generate", "post"),
+        ("/api/coach/learning-plans/current", "get"),
+        ("/api/coach/learning-plans/update", "post"),
+        ("/api/coach/learning-plans/confirm", "post"),
         ("/api/assessment/library", "get"),
         ("/api/assessment/start", "post"),
     ]:

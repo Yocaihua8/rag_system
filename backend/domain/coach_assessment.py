@@ -16,6 +16,7 @@ from backend.domain.coach_models import (
     CoachSkillNode,
 )
 from backend.domain.models import Document, SearchHit
+from backend.domain.project_analysis import current_coach_analysis
 from backend.storage import KnowledgeStore
 
 
@@ -60,9 +61,10 @@ def start_coach_assessment(
     if not clean_target_id:
         raise ValueError("target_id is required")
 
-    run = store.get_current_coach_analysis_run(project_id)
-    if run is None:
-        raise CoachAssessmentNotFoundError("coach analysis not found")
+    try:
+        run = current_coach_analysis(store, project_id)
+    except ValueError as exc:
+        raise CoachAssessmentNotFoundError(str(exc)) from exc
     if run.status != "completed":
         raise CoachAssessmentConflictError("analysis_stale")
 
@@ -95,6 +97,9 @@ def start_coach_assessment(
         for index, point in enumerate(target_points[:3])
     ]
     _enhance_question_prompts(question_drafts, target_points[:3], llm_client)
+    current = current_coach_analysis(store, project_id)
+    if current.status != "completed" or current.id != run.id:
+        raise CoachAssessmentConflictError("analysis_stale")
     session = store.create_coach_assessment_session(
         project_id,
         run.id,
@@ -173,7 +178,7 @@ def answer_coach_assessment(
 
     if session.status != "active":
         raise CoachAssessmentConflictError("assessment_session_not_active")
-    current = store.get_current_coach_analysis_run(project_id)
+    current = current_coach_analysis(store, project_id)
     if (
         current is None
         or current.status != "completed"
@@ -199,6 +204,9 @@ def answer_coach_assessment(
                 f"{type(exc).__name__}"
             )
 
+    current = current_coach_analysis(store, project_id)
+    if current.status != "completed" or current.id != session.analysis_run_id:
+        raise CoachAssessmentConflictError("analysis_stale")
     _, result, stored_session = store.create_coach_assessment_answer_result(
         project_id,
         session.id,
@@ -259,9 +267,10 @@ def build_coach_coverage(
     store: KnowledgeStore,
     project_id: str,
 ) -> dict[str, Any]:
-    run = store.get_current_coach_analysis_run(project_id)
-    if run is None:
-        raise CoachAssessmentNotFoundError("coach analysis not found")
+    try:
+        run = current_coach_analysis(store, project_id)
+    except ValueError as exc:
+        raise CoachAssessmentNotFoundError(str(exc)) from exc
     stale = run.status == "stale"
     points = store.list_coach_knowledge_points(project_id, run_id=run.id)
     mappings = store.list_coach_skill_mappings(project_id, run_id=run.id)
@@ -635,7 +644,10 @@ def _session_view(
     *,
     resumed: bool,
 ) -> dict[str, Any]:
-    current = store.get_current_coach_analysis_run(session.project_id)
+    try:
+        current = current_coach_analysis(store, session.project_id)
+    except ValueError:
+        current = None
     can_answer = bool(
         session.status == "active"
         and current

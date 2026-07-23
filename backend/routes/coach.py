@@ -12,6 +12,14 @@ from backend.domain.coach_assessment import (
     start_coach_assessment,
 )
 from backend.domain.models import ApiResponse
+from backend.domain.learning_plans import (
+    CoachLearningPlanConflictError,
+    CoachLearningPlanNotFoundError,
+    build_current_learning_plan,
+    confirm_learning_plan,
+    generate_learning_plan,
+    update_learning_plan,
+)
 from backend.domain.project_analysis import (
     analyze_project,
     build_coach_overview,
@@ -101,6 +109,91 @@ def handle_coach_route(
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
         return ApiResponse(200, result)
+
+    if method == "POST" and path == "/api/coach/learning-plans/generate":
+        project_id = str(payload.get("project_id") or "").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            plan_client = llm_client
+            if plan_client is None:
+                plan_client = default_model_profile_client(store)
+            result = generate_learning_plan(
+                store,
+                project_id,
+                llm_client=plan_client,
+                max_items=payload.get("max_items", 8),
+            )
+        except CoachLearningPlanNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        except CoachLearningPlanConflictError as exc:
+            return ApiResponse(409, {"error": str(exc)})
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, result)
+
+    if method == "POST" and path == "/api/coach/learning-plans/update":
+        project_id = str(payload.get("project_id") or "").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            result = update_learning_plan(
+                store,
+                project_id,
+                str(payload.get("plan_id") or ""),
+                items=payload.get("items"),
+                item_statuses=payload.get("item_statuses"),
+                expected_revision=payload.get("expected_revision"),
+                expected_items_hash=str(
+                    payload.get("expected_items_hash") or ""
+                ),
+                expected_progress_hash=str(
+                    payload.get("expected_progress_hash") or ""
+                ),
+            )
+        except CoachLearningPlanNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        except CoachLearningPlanConflictError as exc:
+            return ApiResponse(409, {"error": str(exc)})
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, result)
+
+    if method == "POST" and path == "/api/coach/learning-plans/confirm":
+        project_id = str(payload.get("project_id") or "").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            result = confirm_learning_plan(
+                store,
+                project_id,
+                str(payload.get("plan_id") or ""),
+                expected_revision=payload.get("expected_revision"),
+                expected_items_hash=str(
+                    payload.get("expected_items_hash") or ""
+                ),
+            )
+        except CoachLearningPlanNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        except CoachLearningPlanConflictError as exc:
+            return ApiResponse(409, {"error": str(exc)})
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, result)
+
+    if method == "GET" and path == "/api/coach/learning-plans/current":
+        project_id = query_value(query, "project_id").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            current = build_current_learning_plan(store, project_id)
+        except CoachLearningPlanNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        return ApiResponse(200, {"current": current})
 
     get_routes: dict[str, tuple[str, CoachViewBuilder]] = {
         "/api/coach/overview": ("overview", build_coach_overview),

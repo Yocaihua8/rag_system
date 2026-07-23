@@ -112,7 +112,7 @@ def analyze_project(
 
 
 def build_coach_overview(store: KnowledgeStore, project_id: str) -> dict[str, Any]:
-    run = _current_analysis(store, project_id)
+    run = current_coach_analysis(store, project_id)
     points = store.list_coach_knowledge_points(project_id, run_id=run.id)
     mappings = store.list_coach_skill_mappings(project_id, run_id=run.id)
     sources = _source_index(points)
@@ -132,7 +132,7 @@ def build_coach_overview(store: KnowledgeStore, project_id: str) -> dict[str, An
 
 
 def build_knowledge_points_view(store: KnowledgeStore, project_id: str) -> dict[str, Any]:
-    run = _current_analysis(store, project_id)
+    run = current_coach_analysis(store, project_id)
     points = store.list_coach_knowledge_points(project_id, run_id=run.id)
     sources = _source_index(points)
     items = []
@@ -152,7 +152,7 @@ def build_knowledge_points_view(store: KnowledgeStore, project_id: str) -> dict[
 
 
 def build_skills_view(store: KnowledgeStore, project_id: str) -> dict[str, Any]:
-    run = _current_analysis(store, project_id)
+    run = current_coach_analysis(store, project_id)
     points = store.list_coach_knowledge_points(project_id, run_id=run.id)
     mappings = store.list_coach_skill_mappings(project_id, run_id=run.id)
     sources = _source_index(points)
@@ -191,7 +191,7 @@ def compute_source_fingerprint(documents: Iterable[Document]) -> str:
     return digest.hexdigest()
 
 
-def _current_analysis(store: KnowledgeStore, project_id: str):
+def current_coach_analysis(store: KnowledgeStore, project_id: str):
     run = store.get_current_coach_analysis_run(project_id)
     if run is None:
         raise ValueError("coach analysis not found")
@@ -749,4 +749,5 @@ __all__ = [
     "build_knowledge_points_view",
     "build_skills_view",
     "compute_source_fingerprint",
+    "current_coach_analysis",
 ]
