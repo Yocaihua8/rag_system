@@ -24,7 +24,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 修复 Windows E2E webServer 退出清理和 Tauri sidecar 静态测试旧契约，并补充回归测试
+- [x] 修复 Windows E2E webServer 退出清理和 Tauri sidecar 静态测试旧契约，并补充回归测试
 - [ ] 统一 Web、OpenAPI 与 Tauri 版本为 `2.0.0`，同步 CHANGELOG 和版本契约测试
 - [ ] 执行完整发布验收矩阵、复核旧运行时哈希和本机原生工具链边界，形成发布就绪记录并回流正式文档
 
@@ -78,12 +78,13 @@
 - 2026-07-23：B-164 浏览器 smoke 用例已通过，但 `tests/e2e/start-web-server.mjs` 在 Windows 上将清理信号再次转发给自身，导致 `npm run test:e2e` 无法正常退出；B-165 先修复验收工具再运行最终矩阵。
 - 2026-07-23：`src-tauri/src/main.rs` 的 `.sidecar("knowledge-island-backend")` 是已修复的正确调用，`tauri.conf.json` 的 `externalBin` 仍应保留 `binaries/knowledge-island-backend`；只更新过时的静态测试断言。
 - 2026-07-23：不改写 `docs/release/V1_0_0_READINESS_2026-07-01.md` 历史证据；本次另建 2.0 发布就绪记录。
+- 2026-07-23：仅移除 wrapper 的二次信号仍不足以解决 Playwright 在 Windows 上等待进程树关闭的问题；最终由测试专用 FastAPI 外层提供 `/__e2e__/shutdown`，Playwright `globalTeardown` 在全套用例结束后主动关闭 Uvicorn，wrapper 同时保留幂等信号兜底。16 项 E2E/Tauri 静态回归通过，`npm run test:e2e` 的 1 项浏览器用例通过并在 10 秒内返回 0，端口无监听残留。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 0 / 3 项
-- **最新 commit**：`c18c64c` — docs: 完成 B-164 Vue 教练闭环
-- **代码状态**：`feature/project-knowledge-coach-v2`；工作区仅有本 plan 与 BACKLOG 激活改动
-- **下一步**：修复 Windows E2E 退出清理和 Tauri 静态测试旧契约
+- **进度**：已完成 1 / 3 项
+- **最新 commit**：`a487016` — fix: 修复 Windows E2E 退出清理
+- **代码状态**：`feature/project-knowledge-coach-v2`；E2E 退出与 Tauri sidecar 静态契约已修复，工作区仅待更新本快照
+- **下一步**：统一 Web、OpenAPI 与 Tauri 版本为 `2.0.0`，同步 CHANGELOG 和版本契约测试
 - **续任务须知**：不改 `tauri.conf.json` 的 `externalBin` 路径；E2E wrapper 禁止再把清理信号发送给自身
