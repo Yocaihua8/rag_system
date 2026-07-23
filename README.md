@@ -1,12 +1,29 @@
 # 知识岛 Knowledge Island
 
-知识岛是一个本地优先的个人 AI 第二大脑应用。它不是阶段性学习分析系统的知识库模块，也不是普通 RAG Demo；当前默认入口是本地 Web MVP（FastAPI + Uvicorn + SQLite + Vue/Vite），先保证本地项目、文档、笔记和代码资料能快速导入、检索、问答并展示来源。
+知识岛当前可运行的 1.x 版本是一个本地优先的个人 AI 第二大脑应用。默认入口仍是本地 Web MVP（FastAPI + Uvicorn + SQLite + Vue/Vite），支持本地项目、文档、笔记和代码资料的导入、检索、问答、来源展示与基础评估。
+
+Knowledge Island 2.0 的产品方向已调整为“面向个人开发学习的本地项目知识教练”：围绕真实项目生成有来源的项目理解，帮助用户评估当前项目知识覆盖、识别通用技能差距、形成学习计划，并在用户确认后把成果发布到 Obsidian。该段描述的是 2.0 目标，不代表当前 1.x 已提供项目分析、学习地图、学习计划或 Obsidian 双向桥接。
 
 旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/` 作为历史参考，不再是默认启动入口，也不再参与 Web/Tauri 链路。
 
 ---
 
-## 功能概览
+## 版本与产品方向
+
+| 代际 | 状态 | 产品入口与边界 |
+|------|------|----------------|
+| 当前 1.x Web MVP | 已实现、可运行 | 以 `聊 / 库 / 设` 为主线，提供工作区资料导入、RAG 问答、回答依据、只读工具和基础评估；继续使用现有 1.x 运行数据 |
+| Knowledge Island 2.0 | 目标版本，实施中 | 一级入口冻结为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，核心闭环为“导入项目与笔记 → 项目理解 → 问答 → 评估 → 差距 → 学习计划 → 确认后发布到 Obsidian” |
+| Obsidian（当前） | 已实现 | 通过 `/api/import/obsidian-vault` 对本机 Vault 做一次性只读导入；不是账号连接、持续同步或写回 |
+| Obsidian（2.0 目标） | 尚未成为当前能力 | 桌面插件把 Vault 作为资料源，并在用户预览、确认后作为学习成果出口；不自动覆盖无系统标记或已发生冲突的笔记 |
+
+2.0 的“项目知识覆盖”是主评价口径；语言、框架、数据、测试、交付、AI 等通用技能只用于辅助解释当前项目中的差距，不扩张为职业能力或求职评价。现有 1.x 数据不会被静默迁移或删除。
+
+---
+
+## 当前 1.x 功能概览
+
+以下条目描述当前代码和界面已经具备的 1.x 能力，不包含上方 2.0 目标能力。
 
 | 功能 | 说明 |
 |------|------|
@@ -61,8 +78,7 @@
 | **掌握评估** | Web 端可从已导入文件生成概念理解、流程说明、代码定位三类评估题，按题逐步作答并展示进度、答题记录、待复测题目和能力概览；提交回答后对照服务端保存的参考要点评估为已掌握 / 基本理解 / 需要补充 / 暂未掌握，题目、回答和评估结果会保存到本地 SQLite |
 | **首次使用引导** | Web 首页展示设置页创建项目空间、选择本机文件夹导入、提问/评估、配置 DeepSeek 的最小步骤；关键异步按钮会在运行中禁用并显示进行中状态 |
 | **格式标准化** | Web MVP 以当前导入管线保存文档正文、分块和来源信息；旧 PySide6 标准化链路已随 legacy 归档 |
-| **知识掌握地图** | 已新增 SkillArea / KnowledgePoint / MasteryRecord / Evidence 的数据模型与状态定义 |
-| **轻量知识图谱** | 计划用 SQLite 关系表表达 Project、Document、KnowledgePoint、Evidence 等节点关系 |
+| **掌握度历史模型** | `SkillArea / KnowledgePoint / MasteryRecord / Evidence` 仅存在于已归档的 PySide6 legacy 代码中，不属于当前 Web MVP；2.0 将按新数据代际重新实现项目知识与评估模型 |
 
 ---
 
@@ -303,6 +319,9 @@ knowledage_island/
 
 | 文档 | 内容 |
 |------|------|
+| `docs/design/ui-wireframes.md` | 当前 1.x 页面事实与 2.0 目标信息架构、页面布局 |
+| `docs/design/codex-workspace-chat-import-design.md` | 项目知识教练工作流、资料导入与 Obsidian 受控发布边界 |
+| `docs/design/codex-ui-visual-system.md` | Codex 中性视觉、组件状态、动效与无障碍规范 |
 | `docs/design/api-spec.md` | 本地 Web MVP HTTP API 契约 |
 | `docs/guides/setup.md` | 环境启动指引 |
 | `docs/guides/testing.md` | 测试与验证方式 |
