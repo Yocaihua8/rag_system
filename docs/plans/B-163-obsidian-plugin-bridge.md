@@ -27,7 +27,7 @@
 - [x] 新增 Obsidian 配对、连接、同步事件、发布和不可变修订模型与存储
 - [x] 实现连接令牌鉴权、配对和 Markdown 增量事件同步，支持幂等、重命名保留身份、删除和输出根排除
 - [x] 实现四类 Coach Markdown 渲染、发布预览/确认/待执行/结果状态机、冲突与回滚修订
-- [ ] 建立独立 Obsidian TypeScript 插件工程，实现 Vault 事件队列、元数据采集和受控文件执行
+- [x] 建立独立 Obsidian TypeScript 插件工程，实现 Vault 事件队列、元数据采集和受控文件执行
 - [ ] 接入十个 Obsidian API、同步 OpenAPI/数据库/功能/测试文档，完成回归并关闭任务
 
 ## 4. 影响范围
@@ -85,12 +85,13 @@
 - 2026-07-23：B-163 存储、路径、配对、同步、文档身份与请求上下文共 25 项聚焦测试通过。
 - 2026-07-23：发布预览将项目理解、知识覆盖/技能差距、确认版学习计划和评估记录渲染为带托管 Frontmatter 的不可变修订；确认只进入 queued，插件结果才决定 applied/conflict/failed。
 - 2026-07-23：历史发布通过新预览 revision 回滚；当前分析 stale 阻止新结论发布，但不改写历史修订。发布领域 5 项测试通过。
+- 2026-07-23：独立 `desktopOnly` Obsidian 插件已实现 Vault 事件监听、持久离线队列、Frontmatter/标签/Wikilink 元数据采集，以及逐文件 hash/托管身份校验的受控发布执行；插件 17 项测试、TypeScript 类型检查与生产构建通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 3 / 5 项
-- **最新 commit**：`52eaff2` — feat: 实现 Obsidian 受控发布与回滚修订
-- **代码状态**：`feature/project-knowledge-coach-v2`；配对、同步和四类 Coach Markdown 三阶段受控发布已提交
-- **下一步**：完成独立 Obsidian TypeScript 插件工程并提交验证结果
+- **进度**：已完成 4 / 5 项
+- **最新 commit**：`e27832f` — feat: 实现 Obsidian 桌面桥插件
+- **代码状态**：`feature/project-knowledge-coach-v2`；独立 Obsidian 桌面插件、离线事件队列和受控文件执行已提交
+- **下一步**：接入 Obsidian HTTP API，回流 OpenAPI/数据库/功能/测试文档并完成回归
 - **续任务须知**：连接令牌只允许插件路由；后端不直接读写 Vault；旧一次性导入保持不变
