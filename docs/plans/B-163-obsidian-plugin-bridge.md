@@ -24,7 +24,7 @@
 
 ## 3. 任务拆解
 
-- [ ] 新增 Obsidian 配对、连接、同步事件、发布和不可变修订模型与存储
+- [x] 新增 Obsidian 配对、连接、同步事件、发布和不可变修订模型与存储
 - [ ] 实现连接令牌鉴权、配对和 Markdown 增量事件同步，支持幂等、重命名保留身份、删除和输出根排除
 - [ ] 实现四类 Coach Markdown 渲染、发布预览/确认/待执行/结果状态机、冲突与回滚修订
 - [ ] 建立独立 Obsidian TypeScript 插件工程，实现 Vault 事件队列、元数据采集和受控文件执行
@@ -80,12 +80,13 @@
 - 2026-07-23：Context7 月度额度耗尽，已明确告知；改用 Obsidian 官方开发文档和官方 `obsidian-api` TypeScript 定义核对 API。
 - 2026-07-23：官方当前类型包为 `obsidian 1.13.2`；Vault `create/modify/delete/rename(file, oldPath)`、`MetadataCache.resolvedLinks/unresolvedLinks`、`Vault.process()` 与 `FileManager.processFrontMatter()` 契约已确认。
 - 2026-07-23：发布正文由后端生成规范 Markdown，插件以 `Vault.process()` 做原子 hash/标记校验和全文替换；Frontmatter API用于读取与复核托管标记，避免双重序列化导致 hash 漂移。
+- 2026-07-23：六张 Obsidian 表、聚合发布与逐产物不可变修订已落地；文档重命名保留 document/chunk ID 并更新外部向量路径，目标冲突不会提前标记分析 stale。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 0 / 5 项
-- **最新 commit**：`6c25288` — docs: 完成 B-162 评估与学习计划
-- **代码状态**：`feature/project-knowledge-coach-v2`；B-163 尚未开始代码实现
-- **下一步**：新增 Obsidian 配对、连接、同步事件、发布和不可变修订模型与存储
+- **进度**：已完成 1 / 5 项
+- **最新 commit**：`7edfc36` — feat: 建立 Obsidian 同步存储与文档身份基础
+- **代码状态**：`feature/project-knowledge-coach-v2`；Obsidian 模型、六张表、存储与保留身份的文档重命名已提交
+- **下一步**：实现连接令牌鉴权、配对和 Markdown 增量事件同步
 - **续任务须知**：连接令牌只允许插件路由；后端不直接读写 Vault；旧一次性导入保持不变
