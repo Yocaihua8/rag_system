@@ -28,7 +28,7 @@
 - [x] 实现连接令牌鉴权、配对和 Markdown 增量事件同步，支持幂等、重命名保留身份、删除和输出根排除
 - [x] 实现四类 Coach Markdown 渲染、发布预览/确认/待执行/结果状态机、冲突与回滚修订
 - [x] 建立独立 Obsidian TypeScript 插件工程，实现 Vault 事件队列、元数据采集和受控文件执行
-- [ ] 接入十个 Obsidian API、同步 OpenAPI/数据库/功能/测试文档，完成回归并关闭任务
+- [x] 接入九个 Obsidian API、同步 OpenAPI/数据库/功能/测试文档，完成回归并关闭任务
 
 ## 4. 影响范围
 
@@ -59,21 +59,21 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/notion-obsidian-sync.md` 与 ADR-009 的业务和安全规则
-- [ ] 配对码、令牌、事件和发布严格按连接及项目隔离，明文令牌不持久化
-- [ ] 发布路径、托管标记、稳定 ID、项目 ID 和 hash 任一不满足时不得覆盖
-- [ ] 后端、插件、OpenAPI 和文档一致性测试通过
-- [ ] 相关文档已同步（见下方回流清单）
+- [x] 功能行为符合 `docs/features/notion-obsidian-sync.md` 与 ADR-009 的业务和安全规则
+- [x] 配对码、令牌、事件和发布严格按连接及项目隔离，明文令牌不持久化
+- [x] 发布路径、托管标记、稳定 ID、项目 ID 和 hash 任一不满足时不得覆盖
+- [x] 后端、插件、OpenAPI 和文档一致性测试通过
+- [x] 相关文档已同步（见下方回流清单）
 - [ ] BACKLOG B-163 状态已更新为 `done`
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 配对、连接令牌和同步事件协议 | `docs/features/notion-obsidian-sync.md`, `docs/design/api-spec.md` | [ ] |
-| Obsidian 数据实体和状态机 | `docs/design/database-design.md`, `docs/design/architecture-overview.md` | [ ] |
-| 插件 API 使用、构建和安全边界 | `docs/features/notion-obsidian-sync.md`, `docs/guides/testing.md` | [ ] |
-| 发布预览、确认、冲突和回滚 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md` | [ ] |
+| 配对、连接令牌和同步事件协议 | `docs/features/notion-obsidian-sync.md`, `docs/design/api-spec.md` | [x] |
+| Obsidian 数据实体和状态机 | `docs/design/database-design.md`, `docs/design/architecture-overview.md` | [x] |
+| 插件 API 使用、构建和安全边界 | `docs/features/notion-obsidian-sync.md`, `docs/guides/testing.md` | [x] |
+| 发布预览、确认、冲突和回滚 | `docs/features/project-knowledge-coach.md`, `docs/design/api-spec.md` | [x] |
 
 ## 8. 执行记录
 
@@ -86,12 +86,14 @@
 - 2026-07-23：发布预览将项目理解、知识覆盖/技能差距、确认版学习计划和评估记录渲染为带托管 Frontmatter 的不可变修订；确认只进入 queued，插件结果才决定 applied/conflict/failed。
 - 2026-07-23：历史发布通过新预览 revision 回滚；当前分析 stale 阻止新结论发布，但不改写历史修订。发布领域 5 项测试通过。
 - 2026-07-23：独立 `desktopOnly` Obsidian 插件已实现 Vault 事件监听、持久离线队列、Frontmatter/标签/Wikilink 元数据采集，以及逐文件 hash/托管身份校验的受控发布执行；插件 17 项测试、TypeScript 类型检查与生产构建通过。
+- 2026-07-23：九个 Obsidian HTTP operation、插件自鉴权与应用鉴权隔离、插件/主应用双模式连接撤销、OpenAPI 和功能/架构/数据库/测试文档已对齐；B-163 聚焦回归 61 项通过。
+- 2026-07-23：后端与 Web 全量回归为 527 passed、2 failed；失败均为进入 B-163 前已记录的后续门禁：B-164 旧导航源码断言、B-165 Tauri sidecar 旧字面量断言。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 4 / 5 项
-- **最新 commit**：`e27832f` — feat: 实现 Obsidian 桌面桥插件
-- **代码状态**：`feature/project-knowledge-coach-v2`；独立 Obsidian 桌面插件、离线事件队列和受控文件执行已提交
-- **下一步**：接入 Obsidian HTTP API，回流 OpenAPI/数据库/功能/测试文档并完成回归
+- **进度**：已完成 5 / 5 项
+- **最新 commit**：`738e56e` — feat: 接入 Obsidian 桥接 API 与鉴权
+- **代码状态**：`feature/project-knowledge-coach-v2`；B-163 代码、插件、测试和文档均已提交，待执行任务关闭流程
+- **下一步**：更新 BACKLOG 为 `done`、删除本 plan，并启动 B-164 Vue 教练闭环
 - **续任务须知**：连接令牌只允许插件路由；后端不直接读写 Vault；旧一次性导入保持不变
