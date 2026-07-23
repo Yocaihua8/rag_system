@@ -25,7 +25,7 @@
 ## 3. 任务拆解
 
 - [x] 修复 Windows E2E webServer 退出清理和 Tauri sidecar 静态测试旧契约，并补充回归测试
-- [ ] 统一 Web、OpenAPI 与 Tauri 版本为 `2.0.0`，同步 CHANGELOG 和版本契约测试
+- [x] 统一 Web、OpenAPI 与 Tauri 版本为 `2.0.0`，同步 CHANGELOG 和版本契约测试
 - [ ] 执行完整发布验收矩阵、复核旧运行时哈希和本机原生工具链边界，形成发布就绪记录并回流正式文档
 
 ## 4. 影响范围
@@ -79,12 +79,13 @@
 - 2026-07-23：`src-tauri/src/main.rs` 的 `.sidecar("knowledge-island-backend")` 是已修复的正确调用，`tauri.conf.json` 的 `externalBin` 仍应保留 `binaries/knowledge-island-backend`；只更新过时的静态测试断言。
 - 2026-07-23：不改写 `docs/release/V1_0_0_READINESS_2026-07-01.md` 历史证据；本次另建 2.0 发布就绪记录。
 - 2026-07-23：仅移除 wrapper 的二次信号仍不足以解决 Playwright 在 Windows 上等待进程树关闭的问题；最终由测试专用 FastAPI 外层提供 `/__e2e__/shutdown`，Playwright `globalTeardown` 在全套用例结束后主动关闭 Uvicorn，wrapper 同时保留幂等信号兜底。16 项 E2E/Tauri 静态回归通过，`npm run test:e2e` 的 1 项浏览器用例通过并在 10 秒内返回 0，端口无监听残留。
+- 2026-07-23：根 npm 包、OpenAPI、Tauri 配置、Cargo manifest/lock 已统一为 `2.0.0`，Obsidian 插件原本已是 `2.0.0`；CHANGELOG 新增 2.0 功能、破坏性数据代际、兼容与安全边界。20 项 FastAPI/Tauri 契约、Vue 生产构建、文档一致性和 `cargo metadata` 通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 1 / 3 项
-- **最新 commit**：`a487016` — fix: 修复 Windows E2E 退出清理
-- **代码状态**：`feature/project-knowledge-coach-v2`；E2E 退出与 Tauri sidecar 静态契约已修复，工作区仅待更新本快照
-- **下一步**：统一 Web、OpenAPI 与 Tauri 版本为 `2.0.0`，同步 CHANGELOG 和版本契约测试
+- **进度**：已完成 2 / 3 项
+- **最新 commit**：`582eb3b` — chore: 统一 v2.0.0 发布版本
+- **代码状态**：`feature/project-knowledge-coach-v2`；版本与变更日志已收口，工作区仅待更新本快照
+- **下一步**：执行完整发布验收矩阵、复核旧运行时哈希和本机原生工具链边界，并形成发布就绪记录
 - **续任务须知**：不改 `tauri.conf.json` 的 `externalBin` 路径；E2E wrapper 禁止再把清理信号发送给自身
