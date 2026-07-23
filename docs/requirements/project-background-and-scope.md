@@ -2,20 +2,20 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-07-24
 > Scope：Knowledge Island 2.0 产品定位、目标用户与范围边界
 > Related：docs/requirements/mvp-scope-freeze.md, docs/requirements/functional-modules.md, docs/features/project-knowledge-coach.md, docs/BACKLOG.md B-160
 
 ## 1. 文档适用边界
 
-本文冻结 Knowledge Island 2.0 的产品需求。文档状态 `Active` 表示该方向已经成为后续实现的有效约束，不表示 2.0 功能已经实现。
+本文冻结 Knowledge Island 2.0 的产品需求，并记录 B-161～B-165 完成本地发布候选验收后的适用边界。文档状态 `Active` 表示这些需求继续约束当前实现，不等同于已经完成正式远端发布。
 
 | 范围 | 事实来源 | 本文中的处理方式 |
 |------|----------|------------------|
-| 当前 1.x | 当前源码、API 契约和现有功能文档 | 只作为兼容基线，不把目标行为写成现状 |
-| 目标 2.0 | 本文、`project-knowledge-coach.md` 和 B-160 后续设计文档 | 作为 B-161～B-165 的实现与验收契约 |
+| 兼容 1.x | 兼容 API、历史运行时和既有功能文档 | 只作为兼容基线，不把 2.0 行为回写为 1.x 事实 |
+| 当前 2.0 | 当前源码、测试、`project-knowledge-coach.md` 和 B-160 后续设计文档 | B-161～B-165 已完成本地候选实现与验收；正式发布边界另行记录 |
 
-在 B-161～B-165 完成并通过验收前，“项目分析、双层差距、学习计划、Obsidian 插件桥”等均属于 2.0 目标能力。
+“项目分析、双层差距、学习计划、Obsidian 插件桥”等能力已进入当前 2.0 源码和本地候选；验收证据及未完成的 Tag、远端交付和原生安装包边界见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
 ## 2. 项目背景
 

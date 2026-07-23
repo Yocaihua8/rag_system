@@ -2,17 +2,19 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（补充 v1.0.0 发布门禁与回归清单）
+> Last Updated：2026-07-24（补充 v2.0.0 本地发布候选门禁与交付边界）
 > Scope：Knowledge Island 版本发布检查与步骤
-> Related：docs/release/V1_0_0_READINESS_2026-07-01.md, docs/guides/testing.md, docs/guides/branch-conventions.md, CHANGELOG.md
+> Related：docs/release/V1_0_0_READINESS_2026-07-01.md, docs/release/V2_0_0_READINESS_2026-07-24.md, docs/guides/testing.md, docs/guides/branch-conventions.md, CHANGELOG.md
 
 ## 1. 发布前检查
 
 - [ ] 若发布 v1.0.0，先完成 `docs/release/V1_0_0_READINESS_2026-07-01.md` 的 go/no-go 门禁、自动化回归和手工主流程冒烟
+- [ ] 若发布 v2.0.0，先复核 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的本地候选证据，并为未执行的远端 CI、目标平台原生包、Tag 和 Release 单独补证
 - [ ] **CI green**：面向 `main` 的最后一个 PR 的 `python-tests` 和 `frontend-e2e` 两个 status check 均通过（见 §2）
 - [ ] 主流程可运行：启动 `python app.py`，访问 `http://127.0.0.1:8765` 正常
 - [ ] 健康检查通过：`GET /api/health` 返回 `{"status": "ok"}`
 - [ ] 最小验收完成：导入目录成功 → 问答返回含来源的回答
+- [ ] v2 主闭环完成：导入项目 → 分析 → 同步/流式问答 → 定向评估 → 覆盖/差距 → 编辑并确认学习计划 → Obsidian 预览/确认/插件结果回传
 - [ ] 文档同步完成：`requirements/*` / `design/*` / `BACKLOG.md` 与实现一致
 - [ ] `CHANGELOG.md` 已整理当前版本变更条目
 - [ ] Docker 启动验证：`docker compose up --build -d` 服务启动正常（若有 Docker 变更）
@@ -30,7 +32,7 @@ B-149 起，`.github/workflows/ci.yml` 定义两个必须通过的 status check�
 
 ## 3. 发布步骤
 
-1. 确认所有发布前检查通过（§1 CI green 为首项；v1.0.0 还需完成 `docs/release/V1_0_0_READINESS_2026-07-01.md`）
+1. 确认所有发布前检查通过（§1 CI green 为首项；v1.0.0 / v2.0.0 还需完成各自 readiness）
 2. 更新 `CHANGELOG.md`，将 Unreleased 段改为具体版本号和日期
 3. 在 `docs/devlog/` 下添加当日日志条目
 4. 提交：`git commit -m "chore: release vX.Y.Z"`
@@ -41,7 +43,7 @@ B-149 起，`.github/workflows/ci.yml` 定义两个必须通过的 status check�
 
 - **回滚条件**：启动失败、导入或问答核心链路出现阻断性错误
 - **回滚步骤**：`git checkout <上一个 tag>`，重新启动 `python app.py`
-- **数据回滚**：SQLite 数据库文件（`runtime/docker/knowledge.db`）可手动备份和替换；无自动回滚机制
+- **数据回滚**：2.0 发布前备份 `runtime/v2/` 或显式 `RAG_RUNTIME_DIR`；Docker 按实际 volume 备份。旧 `runtime/app.db`、`runtime/webapp/knowledge_island.db` 和旧向量目录不得被 2.0 回滚覆盖；当前无自动回滚或跨代迁移机制
 
 ## 5. 桌面打包（可选）
 
@@ -101,3 +103,9 @@ npm run tauri:build:linux
 | v0.9.0 | 2026-05-25 | 文档集合分组 + 导入批次历史 + 模型 Profile 多配置 |
 | v0.8.0 | 2026-05-23 | 多会话聊天 + 检索复盘 + Agent 工具面板 + 备份导出 |
 | v0.7.0 | 2026-05-21 | Web MVP 首版：RAG 检索 + 问答 + 聊天记录 + Docker |
+
+## 7. 本地发布候选记录
+
+| 版本 | 日期 | 状态 | 边界 |
+|------|------|------|------|
+| v2.0.0 | 2026-07-24 | 本地源码与自动化候选就绪 | 未创建 Tag、未推送远端、未合并 `main`、未创建 GitHub Release；本机缺少 MSVC `link.exe`，未生成 Windows installer，详见 v2 readiness |

@@ -2,8 +2,8 @@
 
 > 状态：Draft
 > Owner：RAG 团队
-> Last Updated：2026-07-01
-> Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检
+> Last Updated：2026-07-24
+> Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检；B-165 v2.0.0 本地候选静态门禁
 
 ## 1. 目标
 
@@ -57,7 +57,7 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 - Tauri Rust 入口包含 sidecar 启动、托盘菜单和关闭隐藏逻辑。
 - 文档和测试命令覆盖桌面打包链路。
 - `.github/workflows/tauri-packaging.yml` 可手动触发 macOS / Linux 原生打包验证。
-- 完整 Windows 打包可生成 `src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe`。
+- 完整 Windows 打包可生成 `src-tauri/target/release/bundle/nsis/Knowledge Island_<version>_x64-setup.exe`。
 - 完整 macOS 打包在 macOS 本机生成 `src-tauri/target/release/bundle/dmg/*.dmg`。
 - 完整 Linux 打包在 Linux 本机生成 `src-tauri/target/release/bundle/appimage/*.AppImage`。
 
@@ -70,3 +70,13 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 | 2026-06-30 | GitHub Actions | `Tauri Packaging` run 28454356098 | 通过 | run URL：`https://github.com/Yocaihua8/rag_system/actions/runs/28454356098` |
 | 2026-06-30 | `macos-latest` runner | `npm run tauri:build:macos` | 通过 | job 84324919388；上传 artifact `knowledge-island-macos-dmg`，大小 33,063,225 bytes |
 | 2026-06-30 | `ubuntu-latest` runner | `npm run tauri:build:linux` | 通过 | job 84324919349；上传 artifact `knowledge-island-linux-appimage`，大小 136,877,112 bytes |
+
+## 7. B-165 v2.0.0 本地候选验证
+
+| 日期 | 环境 | 命令 / 检查 | 结果 | 说明 |
+|------|------|-------------|------|------|
+| 2026-07-24 | Windows PowerShell | `pytest tests/test_webapp/test_tauri_packaging.py -q` | 通过，11 项 | 配置、sidecar 名称、图标、跨平台脚本、版本一致性和文档契约通过 |
+| 2026-07-24 | Windows PowerShell | `npm run build`、`cargo metadata --no-deps --format-version 1 --manifest-path src-tauri/Cargo.toml` | 通过 | Vue 构建成功；Cargo 识别桌面 crate 版本 `2.0.0` |
+| 2026-07-24 | Windows PowerShell | `npx tauri info` | 完成诊断输出，命令未正常收尾 | 检测到 Rust/Cargo/WebView2，但未检测到含 MSVC 与 Windows SDK 的 Visual Studio Build Tools |
+| 2026-07-24 | Windows PowerShell | `cargo check --manifest-path src-tauri/Cargo.toml` | 未通过（环境阻断） | `link.exe not found`；因此未执行 `npm run tauri:build:windows`，未生成或宣称 v2 Windows installer |
+| 2026-07-24 | Windows | macOS `.dmg` / Linux `.AppImage` | 未执行 | 当前系统不做跨平台原生构建；保留 B-152 的历史 CI 证据，不将其冒充 v2 产物 |

@@ -2,13 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-07-24
 > Scope：v2.0.0 首个可交付闭环
 > Related：docs/requirements/functional-modules.md, docs/features/project-knowledge-coach.md, docs/BACKLOG.md B-160～B-165
 
 ## 1. 状态说明
 
-本文冻结 v2.0.0 的目标范围，不是当前实现清单。当前 1.x 能力以源码、API 契约和既有功能文档为准；下列 2.0 能力需由 B-161～B-165 分阶段实现并验收。
+本文冻结 v2.0.0 的目标范围，不替代源码与测试形成的实现清单。B-161～B-165 已完成分阶段实现和本地发布候选验收，证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`；正式 Git Tag、远端发布和目标平台安装包仍按发布流程单独执行。
 
 ## 2. 纳入 v2.0.0
 
@@ -45,6 +45,8 @@
 | OUT-06 | 跨工作区全局资料库或任意资料共享 |
 
 ## 5. 完成定义
+
+下列定义已由 B-165 本地候选验收覆盖；具体命令、测试数量、原生工具链边界和旧运行时哈希见 v2 readiness。
 
 - Python、Vue / TypeScript 和通用文本三个固定项目完成端到端闭环。
 - 未配置 LLM 的规则基线与已配置 LLM 的增强路径均通过对应测试。

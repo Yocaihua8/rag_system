@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23（B-161 v2 数据代际）
+> Last Updated：2026-07-24（B-165 v2.0.0 本地候选验收）
 
 ## 1. 环境要求
 
@@ -127,7 +127,7 @@ npm run tauri:build:windows
 首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；如果下载超时，先确认网络/代理后重试。成功后会生成：
 
 ```text
-src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/Knowledge Island_<version>_x64-setup.exe
 ```
 
 macOS `.dmg` 和 Linux `.AppImage` 需要在对应原生系统执行，不在 Windows 上交叉生成。先安装该平台的 Tauri 依赖、Python 依赖和 `requirements-dev.txt`，再运行：
@@ -151,6 +151,8 @@ src-tauri/icons/icon.ico
 ```
 
 其中 `icon.icns` 用于 macOS bundle，PNG 图标用于 Linux / 通用桌面资源，`icon.ico` 用于 Windows resource 生成。当前仓库仍不在 Windows 上交叉生成 macOS `.dmg` 或 Linux `.AppImage`；只有在目标原生系统完成上述 `npm run tauri:build:*` 命令并产生产物后，才视为对应平台原生验证完成。
+
+B-165 在 2026-07-24 的本机预检中确认 Rust/Cargo、WebView2 和 PyInstaller 可用，但缺少含 MSVC 与 Windows SDK 的 Visual Studio Build Tools，`cargo check` 报 `link.exe not found`。因此当前只完成 Tauri 静态契约和 Cargo 元数据验证，未生成 `2.0.0` Windows installer；安装对应 Build Tools 后再运行 `npm run tauri:build:windows`。
 
 如果没有可用的本地 macOS / Linux 机器，可在 GitHub Actions 手动触发 `Tauri Packaging` workflow（`.github/workflows/tauri-packaging.yml`）。该 workflow 使用 `macos-latest` 和 `ubuntu-latest` runner 执行同一组 npm 打包命令，并上传 `.dmg` / `.AppImage` 作为验证产物。
 

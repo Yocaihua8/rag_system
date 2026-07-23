@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
-> Scope：Knowledge Island 1.x 当前 SQLite 模型与 2.0 目标数据代际
+> Last Updated：2026-07-24
+> Scope：Knowledge Island 1.x 兼容 SQLite 模型与当前 2.0 数据代际
 > Related：docs/design/architecture-overview.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
 > 阅读边界：§ 1～§ 4 是兼容保留的 1.x 模型；§ 5 起描述 2.0 数据代际。各实体是否已落地以对应表格的“状态”列为准。
@@ -213,7 +213,7 @@
 
 为避免与 1.x/legacy 的 `knowledge_points`、`assessment_*` 混淆，2.0 新实体统一使用 `coach_` 前缀。B-161 已落地分析、知识点、来源与技能映射六张表；B-162 已落地评估与学习计划六张表。
 
-| 目标表 | 状态 | 核心字段 / 约束 | 职责 |
+| 表 | 状态 | 核心字段 / 约束 | 职责 |
 |--------|------|-----------------|------|
 | `coach_analysis_runs` | B-161 已实现 | `id / project_id / analyzer_version / source_fingerprint / status / summary_json / started_at / finished_at` | 保存不可变分析运行；`status` 为 `pending / running / completed / failed / stale` |
 | `coach_knowledge_points` | B-161 已实现 | `id / project_id / stable_key / title / category / summary / current_run_id / created_at / updated_at`；`UNIQUE(project_id, stable_key)` | 保存跨重新分析稳定的项目知识点身份 |

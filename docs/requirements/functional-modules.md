@@ -2,24 +2,24 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-07-24
 > Scope：Knowledge Island 2.0 项目知识教练模块边界
 > Related：docs/requirements/project-background-and-scope.md, docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md
 
 ## 1. 状态与代际边界
 
-本文定义 2.0 目标模块，不表示这些能力已经实现。当前 1.x 已实现事实继续以源码、API 契约和既有功能文档为准。
+本文定义当前 2.0 模块边界。B-161～B-165 已完成本地候选实现与自动化验收；正式 Tag、远端发布和目标平台原生产物仍按发布流程单独执行。1.x 事实继续作为兼容基线。
 
 | 代际 | 模块事实 |
 |------|----------|
-| 当前 1.x | 已有项目隔离、资料导入（含遵守 `robots.txt` 的单 URL 网页抓取，来源键使用 `web:` 前缀）、RAG 问答、会话、来源、规则化评估、模型配置、只读 Agent 工具、备份，以及 Obsidian vault 一次性只读导入 |
-| 目标 2.0 | 在全新 `runtime/v2/` 上实现项目分析、双层差距、持久评估、学习计划、Obsidian 插件桥和新的 Vue 闭环 |
+| 兼容 1.x | 已有项目隔离、资料导入（含遵守 `robots.txt` 的单 URL 网页抓取，来源键使用 `web:` 前缀）、RAG 问答、会话、来源、规则化评估、模型配置、只读 Agent 工具、备份，以及 Obsidian vault 一次性只读导入 |
+| 当前 2.0 | 在全新 `runtime/v2/` 上提供项目分析、双层差距、持久评估、学习计划、Obsidian 插件桥和新的 Vue 闭环 |
 
 2.0 不迁移或修改 1.x 数据；新前端使用 Coach API，旧导入、聊天和 `/api/assessment/*` 接口保持兼容。
 
 ## 2. 2.0 模块总览
 
-| 模块 | 目标 | 主要能力 | 实现切片 |
+| 模块 | 目标 | 主要能力 | 已实现切片 |
 |------|------|----------|----------|
 | 项目与来源 | 建立单项目学习上下文 | 项目隔离、代码与笔记导入、来源版本、变更过期 | B-161 |
 | 项目分析 | 将项目转为可学习知识 | 项目概览、稳定知识点、来源证据、语言专门规则与通用回退 | B-161 |

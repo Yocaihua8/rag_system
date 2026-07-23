@@ -2,11 +2,11 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
-> Scope：Knowledge Island 1.x 当前实现与 2.0 已接受目标架构
+> Last Updated：2026-07-24
+> Scope：Knowledge Island 1.x 兼容架构基线与 2.0 当前实现架构
 > Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 架构与分片落地状态。只有 § 9.6 标记为“已实现”的切片才是当前可用能力。
+> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 当前架构与分片落地状态。本地发布候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
 ## 1. 1.x 当前架构结论
 
@@ -17,7 +17,7 @@ Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 
 | 架构模式 | 本地单体（Local Monolith）|
 | 核心边界 | 127.0.0.1:8765，不对外暴露 |
 | 主要入口 | `app.py` → `backend/api/server.py:create_app()` / `run_server()` |
-| 数据持久化 | SQLite（本地默认 `runtime/app.db`；Docker 默认位于 `ki-runtime` volume 的 `/app/runtime/app.db`）|
+| 数据持久化 | SQLite（2.0 本地默认 `runtime/v2/app.db`；Docker 显式 `RAG_RUNTIME_DIR=/app/runtime` 时位于 volume 的 `/app/runtime/app.db`；1.x `runtime/app.db` 保留且不迁移）|
 | 外部依赖 | 可选 LLM API / Embedding API（均有本地 fallback）|
 
 B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-legacy/`，仅作为历史参考，不再被 Web、Docker 或 Tauri sidecar 链路引用。
@@ -303,4 +303,4 @@ B-163 已实现路径：
 | B-162 | 持久评估、覆盖聚合与学习计划 | 已实现（领域、存储与七个 Coach API） |
 | B-163 | Obsidian 插件桥、同步与受控发布 | 已实现（领域、存储、九个 API 与独立桌面插件） |
 | B-164 | Vue 教练闭环 | 已实现（五入口、统一来源、定向评估、计划与 Obsidian 用户侧流程） |
-| B-165 | OpenAPI、测试、插件构建、E2E 与发布验收 | 待实现 |
+| B-165 | OpenAPI、测试、插件构建、E2E 与发布验收 | 已完成本地发布候选验收；正式 Tag、远端发布和原生安装包另行执行 |

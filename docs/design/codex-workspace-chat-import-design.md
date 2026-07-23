@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
-> Scope：当前 Knowledge Island 2.0 项目知识教练工作流、1.x 兼容能力与 B-165 待验收边界
+> Last Updated：2026-07-24
+> Scope：当前 Knowledge Island 2.0 项目知识教练工作流、1.x 兼容能力与本地发布候选边界
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/design/chat-sessions-design.md, docs/design/import-batches-design.md, docs/design/codex-ui-visual-system.md, docs/BACKLOG.md
 
 ## 1. 目的
@@ -28,10 +28,10 @@
 | `教练 / 学习地图 / 学习计划 / 资料 / 设置` 与评估覆盖层 | B-164 已实现 | 五入口是当前 Vue 主导航；旧评估 View 只保留兼容 |
 | Obsidian Vault 一次性只读导入 | 兼容保留 | `/api/import/obsidian-vault` 不表示插件连接或写回 |
 | Obsidian 插件桥接与受控成果发布 | B-163/B-164 已实现 | 用户侧预览确认后进入 `queued`，由插件执行；不自动覆盖冲突笔记 |
-| 完整 E2E、Tauri 静态回归与 `v2.0.0` 发布 | B-165 待验收 | 当前功能落地不等同于版本已经发布 |
+| 完整 E2E、Tauri 静态回归与 `v2.0.0` 本地候选 | B-165 已完成 | 本地候选验收不等同于正式远端发布或原生安装包已生成 |
 | 全局资料条目、跨工作区资料连接与共享资料状态 | 不再推进 | B-157 标记为 `wontfix`；2.0 继续以当前项目为资料、分析与评估边界 |
 
-本文同时记录兼容边界和 B-165 待验收项，避免把旧页面、用户确认或局部测试误写成当前主入口、Vault 已应用或版本已发布。
+本文同时记录兼容边界和 B-165 本地验收结论，避免把旧页面、用户确认或局部测试误写成当前主入口、Vault 已应用或版本已正式发布。
 
 ## 2. 设计结论
 
@@ -468,6 +468,6 @@ B-164 当前实现遵守：
 
 ## 13. 后续实施
 
-B-160～B-164 已完成方向、分析、评估/计划、Obsidian 桥和 Vue 闭环。下一步仅由 B-165 完成完整端到端、OpenAPI/文档一致性、插件构建、Tauri 静态回归与 `v2.0.0` 发布验收。
+B-160～B-165 已完成方向、分析、评估/计划、Obsidian 桥、Vue 闭环，以及完整端到端、OpenAPI/文档一致性、插件构建和 Tauri 静态回归的本地候选验收。正式 Tag、远端 CI/推送/合并与目标平台原生安装包仍按发布流程单独执行。
 
-本文件记录当前体验和边界，不替代 B-165 的测试证据，也不直接定义数据库迁移或 API 破坏性变更。
+本文件记录当前体验和边界，不替代 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的测试证据，也不直接定义数据库迁移或 API 破坏性变更。

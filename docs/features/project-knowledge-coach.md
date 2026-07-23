@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-07-24
 > Scope：Knowledge Island 2.0 项目知识教练的业务边界与验收契约
 > Related：docs/requirements/project-background-and-scope.md, docs/requirements/functional-modules.md, docs/design/architecture-overview.md, docs/design/api-spec.md, docs/BACKLOG.md B-160～B-165
 
@@ -17,7 +17,7 @@
 | 2.0 持久评估、差距与学习计划 | B-162 已实现（后端、存储与七个 Coach API） |
 | Obsidian 插件桥与受控发布 | B-163 已实现（后端、存储、九个 API 与独立桌面插件） |
 | Vue 教练闭环 | B-164 已实现（五入口、来源抽屉、定向评估、计划编辑与 Obsidian 用户侧流程） |
-| v2.0.0 发布验收 | B-165 待完成 |
+| v2.0.0 发布验收 | B-165 已完成本地发布候选验收；正式 Tag、远端发布与原生安装包未执行 |
 
 ## 2. 功能目标
 
@@ -173,6 +173,8 @@
 - Obsidian 重复事件、重命名、删除、离线重放和输出目录排除有确定行为。
 - 发布可完成预览、确认、执行和结果回传；无标记文件、哈希冲突和路径越界均被阻断。
 - 端到端闭环通过后，旧运行时目录仍保持不变。
+
+B-165 已通过包含同步/流式问答、计划编辑与确认、四类 Obsidian 产物和插件结果回传的完整闭环测试。命令、数量、旧运行时哈希和原生工具链边界见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
 ## 11. 非目标
 
