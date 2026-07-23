@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23（补充 B-163 Obsidian 插件桥与受控发布回归）
+> Last Updated：2026-07-23（补充 B-164 Vue 项目知识教练闭环回归）
 
 ## 1. 目标
 
@@ -46,6 +46,7 @@ $env:PYTHONUTF8 = "1"
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
 .venv\Scripts\python.exe -m pytest tests/test_backend/test_coach_storage.py tests/test_backend/test_project_analysis.py tests/test_backend/test_coach_progress_storage.py tests/test_backend/test_coach_assessment.py tests/test_backend/test_learning_plans.py tests/test_webapp/test_coach_api.py tests/test_webapp/test_coach_assessment_api.py tests/test_webapp/test_coach_learning_plan_api.py tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_docs_contract.py -q
 .venv\Scripts\python.exe -m pytest tests/test_backend/test_obsidian_storage.py tests/test_backend/test_document_rename.py tests/test_backend/test_obsidian_protocol.py tests/test_backend/test_obsidian_bridge.py tests/test_backend/test_obsidian_publications.py tests/test_webapp/test_request_context.py tests/test_webapp/test_obsidian_api.py tests/test_webapp/test_docs_contract.py -q
+.venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py tests/test_webapp/test_e2e_ui.py tests/test_webapp/test_docs_contract.py -q
 npm run test:unit
 npm run build
 npm run e2e:install
@@ -74,7 +75,7 @@ docker compose config
 - 变更端到端 UI 自动化测试、Playwright 配置、`tests/e2e/` 或 Web MVP 主流程页面联动时，必须覆盖 `tests/test_webapp/test_e2e_ui.py`，首次本机运行前执行 `npm run e2e:install` 安装 Chromium，并运行 `npm run test:e2e`。E2E 服务通过 `KI_DB_PATH` 使用临时 SQLite DB，不应写入默认 runtime DB；如本机 Chromium 下载受限，可临时设置 `KI_E2E_BROWSER_CHANNEL=chrome` 或 `msedge` 使用已安装浏览器完成验证。
 - 变更 `src-tauri/`、Tauri 配置、Windows/Unix sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备目标平台 Rust/Cargo、PyInstaller 和 Tauri 原生依赖时继续运行对应平台命令：Windows `npm run tauri:build:windows`、macOS `npm run tauri:build:macos`、Linux `npm run tauri:build:linux`，否则记录缺失工具链或非目标系统原因。B-152 起，该测试还校验桌面 bundle 图标清单：`32x32.png`、`128x128.png`、`128x128@2x.png`、`icon.icns`、`icon.ico`。
 - 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
-- 变更 Vue API helper、项目空间 helper、问答 helper、检索调试/复盘 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈/检索调试/项目级检索默认值/检索复盘/Agent 工具/工具来源上下文组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须先运行 `npm run test:unit`，并覆盖 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
+- 变更 Vue API helper、共享状态、基础布局、教练/学习地图/学习计划/资料/设置入口、Coach 来源/评估覆盖层、Obsidian 发布预览，或历史资料库与工作台组件时，必须先运行 `npm run test:unit`，并覆盖 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`；改动页面主流程时还需覆盖 `tests/test_webapp/test_e2e_ui.py` 并运行 `npm run test:e2e`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、Qdrant provider 同步/降级、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
@@ -103,7 +104,10 @@ docker compose config
 - 变更 B-163 Obsidian 配对、连接或同步时，必须覆盖一次性配对码过期/重复消费、服务端只存令牌哈希、每项目最多一个活动连接、令牌缺失/无效/撤销、插件只能自撤销、跨项目隔离、最多 100 项批次、重复事件幂等、离线重放、`upsert / rename / delete`、重命名保留文档身份、删除清理索引并标记分析 stale，以及输出目录事件排除。
 - 变更 B-163 受控发布时，必须覆盖内容与路径预览、用户确认后进入 `queued`、插件领取与结果回传、不可变发布 revision、历史发布回滚创建新 revision、无管理标记同名文件、稳定 ID/项目/产物类型/修订号不符、外部编辑 hash 冲突、路径穿越、插件离线和生成文件删除后不自动重建。
 - 变更 `integrations/obsidian-plugin/` 时，必须运行插件自己的 Vitest、TypeScript 类型检查和 esbuild 构建；测试需覆盖 Vault 事件元数据、持久化事件/结果队列、输出目录过滤、管理 Frontmatter 校验、预期 hash 校验、串行 Vault 原子写入及冲突不覆盖。构建生成的 `main.js` 是本地验证产物，不提交仓库。
-- 变更 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 评估状态流、开始评估、提交回答、下一题/完成、结果概览、答题记录和待复测列表，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
+- 变更 B-164 Vue Coach API 或学习地图时，必须覆盖 `frontend/src/api/coach.js`、`LearningMapView.vue`、`CoachSourceDrawer.vue`、`CoachAssessmentOverlay.vue` 与 `App.vue`，验证五入口、项目分析空态/stale、真实来源、知识点/技能定向评估、作答前评分依据隐藏、提交后证据/缺失点/置信度和关闭覆盖层后上下文保留。
+- 变更 B-164 Vue 学习计划时，必须覆盖 `LearningPlanView.vue`、`ObsidianPublicationDialog.vue` 与 `App.vue`，验证新草稿不覆盖确认版、任务编辑/排序、结构 revision/hash、确认、确认版进度 hash、发布内容/路径预览和确认后 `queued / 等待插件执行`。
+- 变更 B-164 Obsidian 资料或设置体验时，必须覆盖 `frontend/src/api/obsidian.js`、`LibraryModal.vue`、`SettingsView.vue` 与 `App.vue`，验证真实连接状态、一次性只读导入区分、配对码/输出目录/撤销，以及浏览器 helper 不包含插件专用 `sync/events`、`publications/pending`、`publications/result` 或配对完成调用。
+- 变更 1.x 兼容 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue` 与旧评估状态；该组件不应重新加入一级导航。
 - 变更 Vue 工作台回答反馈时，必须覆盖 `frontend/src/api/answer.js`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 反馈状态流、`/api/answer/feedback` helper、四类反馈按钮、保存中/成功/失败状态，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台检索调试时，必须覆盖 `frontend/src/api/search.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索诊断状态流、`/api/search/debug` helper、`top_k/min_score/use_keyword/use_vector` 临时参数、来源质量/分块/向量状态/命中片段展示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台项目级检索默认值时，必须覆盖 `frontend/src/api/projects.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索默认值读取/保存状态流、`GET/POST /api/projects/retrieval-settings` helper、默认值回填、保存为默认状态提示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
@@ -148,6 +152,9 @@ docker compose config
 - Web MVP 掌握评估入口、三类题型生成、逐题作答进度、服务端参考要点评分、四档状态输出、答题记录、待复测列表、题目/回答/结果持久化、回答反馈
 - Coach 定向评估可按知识点或技能节点恢复，作答前不泄露评分依据；覆盖率只使用当前来源版本的有效结果，技能状态区分无项目证据、未验证、部分验证和已验证
 - Coach 学习计划可生成确定性新草稿、完整编辑排序、确认版本和更新任务进度；历史来源按原分析运行解析，旧确认版不会被新草稿覆盖
+- Vue 五入口可在当前项目内串联教练、学习地图、定向评估、学习计划和资料/设置；来源抽屉统一展示真实项目来源，关闭覆盖层不切换项目或丢失教练输入
+- Vue 学习计划区分可编辑草稿和可更新进度的确认版；Obsidian 预览展示目标路径与 Markdown，用户确认后只进入 `queued`，等待插件执行
+- Vue 资料和设置区分插件连接与一次性只读 Vault 导入；浏览器不持有插件 token，不调用插件专用同步、领取或结果回传接口
 - Obsidian 桌面插件可通过限时配对码建立单项目活动连接，离线重放 Markdown 事件且重复事件不产生二次副作用；系统输出目录不会反向摄入
 - Obsidian 发布严格经过预览、确认、插件执行和结果回传；无管理标记、身份不符、hash 变化和越界路径会进入冲突而不覆盖，历史修订可作为新回滚发布来源
 - Web MVP 首次使用引导可检测 Ollama、拉取推荐模型并引导创建第一个知识库
@@ -155,4 +162,4 @@ docker compose config
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `backend/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
 - B-145 / B-24 / B-152 Tauri 桌面打包链路包含 `src-tauri/`、桌面 bundle 图标（`icon.ico`、`icon.icns`、PNG 尺寸图）、`scripts/build-backend-sidecar.ps1`、`scripts/build-backend-sidecar.sh`、`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run tauri:build:windows`、`npm run tauri:build:macos`、`npm run tauri:build:linux`、`.github/workflows/tauri-packaging.yml`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 或非目标系统时只能完成静态契约、`npm run build` 与 `npx tauri info` 验证，不能宣称 `.dmg` 或 `.AppImage` 原生产物通过。
-- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；B-141 已完成资料库项目空间选择/创建/改名/删除、文档列表/单文档预览/删除、文本笔记/URL 摘录导入、导入批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出，设置页模型设置/Profile/Prompt 预设，评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文入口；B-142 已补齐 Vue 工作台 SSE/取消、会话历史和消息管理验证
+- Vue 前端包含 API client、共享状态模型和教练 / 学习地图 / 学习计划 / 资料 / 设置闭环；B-164 已补齐 Coach 来源、定向评估、计划与 Obsidian 用户侧流程，旧资料库和评估视图只保留兼容。完整 E2E、Tauri 静态回归与 `v2.0.0` 发布结论仍以 B-165 验收为准

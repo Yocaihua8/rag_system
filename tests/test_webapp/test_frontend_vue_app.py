@@ -22,8 +22,9 @@ def test_vue_api_client_normalizes_fetch_errors_like_legacy_frontend():
 def test_vue_state_model_contains_migration_fields_and_view_switching():
     state_js = _read("frontend/src/state/app-state.js")
 
-    assert 'currentView: "chat"' in state_js
-    assert 'VIEW_KEYS = ["chat", "settings"]' in state_js
+    assert 'currentView: "coach"' in state_js
+    assert 'VIEW_KEYS = ["coach", "learning-map", "learning-plan", "settings"]' in state_js
+    assert '"library"' not in state_js.split("export const VIEW_KEYS", 1)[1].split(";", 1)[0]
     for field_name in [
         "libraryModalOpen",
         "libraryStep",
@@ -47,6 +48,13 @@ def test_vue_state_model_contains_migration_fields_and_view_switching():
         "searchDebugResult",
         "retrievalReviews",
         "projectSummary",
+        "coachOverview",
+        "coachKnowledgePoints",
+        "coachSkills",
+        "coachCoverage",
+        "learningPlan",
+        "obsidianConnections",
+        "obsidianPublicationPreview",
     ]:
         assert f"{field_name}:" in state_js
 
@@ -60,7 +68,7 @@ def test_vue_layout_components_define_phase2_primary_entries():
     sidebar_vue = _read("frontend/src/components/WorkspaceSidebar.vue")
     app_vue = _read("frontend/src/App.vue")
 
-    for view in ["chat", "settings"]:
+    for view in ["coach", "learning-map", "learning-plan", "settings"]:
         assert f'data-view-key="{view}"' in sidebar_vue
     assert 'data-nav-action="library"' in sidebar_vue
     assert "WorkspaceSidebar" in shell_vue
@@ -68,15 +76,23 @@ def test_vue_layout_components_define_phase2_primary_entries():
     assert 'data-shell-action="collapse-sidebar"' in sidebar_vue
     assert "sidebarCollapsed" in shell_vue
     assert "matchMedia" in shell_vue
-    for label in ["聊", "库", "设", "选择工作区", "搜索线程"]:
+    for label in ["教练", "学习地图", "学习计划", "资料", "设置", "选择工作区", "搜索线程"]:
         assert label in sidebar_vue
-    for old_label in ["工作台", "资料库", "评估"]:
+    assert sidebar_vue.count('data-view-key="') == 4
+    assert sidebar_vue.count('data-nav-action="library"') == 1
+    for old_label in ["工作台", "资料库"]:
         assert old_label not in shell_vue
         assert old_label not in sidebar_vue
+    assert 'data-view-key="assessment"' not in sidebar_vue
 
     for component_name in [
         "WorkbenchView",
+        "LearningMapView",
+        "LearningPlanView",
         "SettingsView",
+        "CoachAssessmentOverlay",
+        "CoachSourceDrawer",
+        "ObsidianPublicationDialog",
     ]:
         assert component_name in app_vue
     for removed_component_name in [
@@ -106,7 +122,8 @@ def test_vue_placeholder_views_keep_business_migration_boundary_explicit():
     assert "B-141S 已迁移模型设置、模型 Profile 和 Prompt 预设" not in settings_vue
 
     workbench_vue = _read("frontend/src/views/WorkbenchView.vue")
-    assert "问资料" in workbench_vue
+    assert "教练" in workbench_vue
+    assert "理解当前项目" in workbench_vue
     assert "EvidenceDrawer" in workbench_vue
     assert "ChatSessionPanel" not in workbench_vue
     assert "B-142 已接入流式问答、取消、会话历史和消息管理" not in workbench_vue
@@ -187,48 +204,132 @@ def test_vue_assessment_view_renders_assessment_flow_controls():
         assert f"{prop_name}:" in assessment_vue
 
 
-def test_vue_app_handles_assessment_flow_state_and_events():
+def test_vue_app_handles_coach_assessment_overlay_state_and_events():
     app_vue = _read("frontend/src/App.vue")
     state_js = _read("frontend/src/state/app-state.js")
 
     for imported_name in [
-        "startAssessmentSession",
-        "submitAssessmentAnswer",
+        "startCoachAssessment",
+        "answerCoachAssessment",
+        "CoachAssessmentOverlay",
     ]:
         assert imported_name in app_vue
 
+    assert "startAssessmentSession" not in app_vue
+    assert "submitAssessmentAnswer" not in app_vue
+
     for marker in [
-        ":assessment-session=\"appState.assessmentSession\"",
-        ":assessment-question=\"appState.assessmentQuestion\"",
-        ":assessment-question-index=\"appState.assessmentQuestionIndex\"",
-        ":assessment-results=\"appState.assessmentResults\"",
-        ":assessment-missed-questions=\"appState.assessmentMissedQuestions\"",
-        ":assessment-answered-current=\"appState.assessmentAnsweredCurrent\"",
-        ":assessment-loading=\"appState.assessmentLoading\"",
-        ":assessment-submitting=\"appState.assessmentSubmitting\"",
-        ":assessment-error=\"appState.assessmentError\"",
-        ":assessment-status=\"appState.assessmentStatus\"",
-        "@start-assessment=\"handleStartAssessment\"",
-        "@submit-assessment-answer=\"handleSubmitAssessmentAnswer\"",
-        "@next-assessment-question=\"handleNextAssessmentQuestion\"",
-        "@reset-assessment=\"resetAssessmentState\"",
-        "handleStartAssessment",
-        "handleSubmitAssessmentAnswer",
-        "handleNextAssessmentQuestion",
-        "resetAssessmentState",
-        "currentAssessmentQuestion",
-        "hasNextAssessmentQuestion",
-        "appState.assessmentStatus = \"评估题已生成\"",
-        "appState.assessmentStatus = \"评估反馈已生成\"",
-        "appState.assessmentStatus = \"本轮评估已完成\"",
+        ":open=\"appState.coachAssessmentOverlayOpen\"",
+        ":knowledge-points=\"appState.coachKnowledgePoints\"",
+        ":skills=\"appState.coachSkills\"",
+        ":initial-target=\"appState.coachAssessmentTarget\"",
+        ":session=\"appState.coachAssessmentSession\"",
+        ":assessment-result=\"appState.coachAssessmentResult\"",
+        ":loading=\"appState.coachAssessmentLoading\"",
+        ":submitting=\"appState.coachAssessmentSubmitting\"",
+        ":error=\"appState.coachAssessmentError\"",
+        "@start=\"handleStartCoachAssessment\"",
+        "@restart=\"handleStartCoachAssessment\"",
+        "@submit-answer=\"handleSubmitCoachAssessmentAnswer\"",
+        "@start-assessment-tool=\"handleStartAssessmentTool\"",
+        "handleOpenCoachAssessment",
+        "handleStartCoachAssessment",
+        "handleSubmitCoachAssessmentAnswer",
+        "appState.coachAssessmentStatus = \"正在准备当前项目评估...\"",
+        "appState.coachAssessmentStatus = session?.resumed ? \"已恢复评估会话\" : \"评估会话已开始\"",
+        "appState.coachAssessmentStatus = data.replayed ? \"已恢复保存的评估结果\" : \"评估结果已保存\"",
+        "await loadCoachCoverageView()",
     ]:
         assert marker in app_vue
 
     for state_field in [
-        "assessmentLoading",
-        "assessmentSubmitting",
-        "assessmentError",
-        "assessmentStatus",
+        "coachAssessmentOverlayOpen",
+        "coachAssessmentTarget",
+        "coachAssessmentSession",
+        "coachAssessmentResult",
+        "coachAssessmentLoading",
+        "coachAssessmentSubmitting",
+        "coachAssessmentError",
+        "coachAssessmentStatus",
+    ]:
+        assert f"{state_field}:" in state_js
+
+
+def test_vue_app_wires_learning_map_and_editable_learning_plan_flow():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+    learning_map_vue = _read("frontend/src/views/LearningMapView.vue")
+    learning_plan_vue = _read("frontend/src/views/LearningPlanView.vue")
+
+    for imported_name in [
+        "analyzeCoachProject",
+        "getCoachOverview",
+        "getCoachKnowledgePoints",
+        "getCoachSkills",
+        "getCoachCoverage",
+        "generateLearningPlan",
+        "getCurrentLearningPlan",
+        "updateLearningPlan",
+        "confirmLearningPlan",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        "v-if=\"appState.currentView === 'learning-map'\"",
+        "v-else-if=\"appState.currentView === 'learning-plan'\"",
+        ":overview=\"appState.coachOverview\"",
+        ":knowledge-points=\"appState.coachKnowledgePoints\"",
+        ":skills=\"appState.coachSkills\"",
+        ":coverage=\"appState.coachCoverage\"",
+        "@analyze=\"handleAnalyzeCoachProject\"",
+        "@start-assessment=\"handleOpenCoachAssessment\"",
+        ":current-plan=\"appState.learningPlan\"",
+        "@generate=\"handleGenerateLearningPlan\"",
+        "@update-plan=\"handleUpdateLearningPlan\"",
+        "@confirm=\"handleConfirmLearningPlan\"",
+        "async function handleChangeView(view)",
+        "await loadCoachWorkspace()",
+        "await Promise.all([loadCurrentLearningPlan(), loadObsidianConnections()])",
+    ]:
+        assert marker in app_vue
+
+    for marker in [
+        "当前项目知识地图",
+        "仅表示当前项目",
+        "项目知识点",
+        "通用技能辅助映射",
+        "不代表整体职业能力",
+        "项目来源已变化",
+        "open-sources",
+        "start-assessment",
+    ]:
+        assert marker in learning_map_vue
+
+    for marker in [
+        "当前项目学习计划",
+        "生成新草稿",
+        "再次生成只会创建新的可编辑草稿",
+        "moveItem",
+        "saveStructure",
+        "saveProgress",
+        "preview-publication",
+        "open-obsidian-settings",
+        "expectedRevision",
+        "expectedItemsHash",
+        "expectedProgressHash",
+    ]:
+        assert marker in learning_plan_vue
+
+    for state_field in [
+        "coachLoading",
+        "coachAnalyzing",
+        "coachError",
+        "learningPlanLoading",
+        "learningPlanGenerating",
+        "learningPlanSaving",
+        "learningPlanConfirming",
+        "learningPlanError",
+        "learningPlanStatus",
     ]:
         assert f"{state_field}:" in state_js
 
@@ -768,6 +869,15 @@ def test_vue_library_modal_keeps_advanced_sources_and_import_results_collapsed()
         "GitHub 仓库",
         "Notion",
         "Obsidian",
+        "data-library-obsidian",
+        "Obsidian 桌面插件",
+        "一次性只读导入",
+        "不会建立插件连接",
+        "obsidianConnections",
+        "activeObsidianConnection",
+        "refresh-obsidian-connections",
+        "open-obsidian-settings",
+        "import-obsidian-vault",
         ":status=\"importStatus\"",
         ":error=\"importError\"",
         "data-library-folder-list",
@@ -783,8 +893,13 @@ def test_vue_library_modal_keeps_advanced_sources_and_import_results_collapsed()
         ":selected-document-collection-id=\"appState.selectedDocumentCollectionId\"",
         ":document-collections-loading=\"appState.documentCollectionsLoading\"",
         ":document-collections-load-error=\"appState.documentCollectionsLoadError\"",
+        ":obsidian-connections=\"appState.obsidianConnections\"",
+        ":obsidian-connections-loading=\"appState.obsidianConnectionsLoading\"",
+        ":obsidian-connections-error=\"appState.obsidianConnectionError\"",
         "@refresh-collections=\"loadDocumentCollections\"",
         "@select-collection=\"handleSelectDocumentCollection\"",
+        "@refresh-obsidian-connections=\"loadObsidianConnections\"",
+        "@open-obsidian-settings=\"openObsidianSettings\"",
         "await loadDocumentCollections()",
         "await loadLibraryDocuments()",
     ]:
@@ -806,6 +921,84 @@ def test_vue_library_modal_keeps_advanced_sources_and_import_results_collapsed()
     select_target_function = app_vue.split("function handleSelectLibraryTargetProject", 1)[1].split("\n}", 1)[0]
     assert "appState.sidebarMode = \"workspace-select\"" in select_target_function
     assert "appState.sidebarMode = \"threads\"" not in select_target_function
+
+
+def test_vue_app_wires_obsidian_pairing_connection_and_controlled_publication():
+    app_vue = _read("frontend/src/App.vue")
+    state_js = _read("frontend/src/state/app-state.js")
+    settings_vue = _read("frontend/src/views/SettingsView.vue")
+    publication_vue = _read("frontend/src/components/ObsidianPublicationDialog.vue")
+
+    for imported_name in [
+        "startObsidianPairing",
+        "listObsidianConnections",
+        "revokeObsidianConnection",
+        "previewObsidianPublication",
+        "confirmObsidianPublication",
+        "ObsidianPublicationDialog",
+    ]:
+        assert imported_name in app_vue
+
+    for marker in [
+        ":obsidian-connections=\"appState.obsidianConnections\"",
+        ":obsidian-pairing=\"appState.obsidianPairing\"",
+        "@load-obsidian-connections=\"loadObsidianConnections\"",
+        "@start-obsidian-pairing=\"handleStartObsidianPairing\"",
+        "@revoke-obsidian-connection=\"handleRevokeObsidianConnection\"",
+        ":open=\"appState.obsidianPublicationDialogOpen\"",
+        ":preview=\"appState.obsidianPublicationPreview\"",
+        "@confirm=\"handleConfirmObsidianPublication\"",
+        "function openObsidianSettings()",
+        "async function handlePreviewObsidianPublication()",
+        "async function handleConfirmObsidianPublication(payload = {})",
+        "请核对全部目标路径和 Markdown 内容后再确认",
+        "已进入插件待执行队列；尚未写入 Vault",
+    ]:
+        assert marker in app_vue
+
+    for marker in [
+        'data-settings-page="obsidian"',
+        "data-obsidian-settings",
+        "每个项目最多保留一个活动连接",
+        "生成一次性配对码",
+        "不会向本页返回或回显连接令牌",
+        "data-obsidian-pairing-form",
+        "data-obsidian-pairing-result",
+    ]:
+        assert marker in settings_vue
+    for event_name in [
+        "load-obsidian-connections",
+        "start-obsidian-pairing",
+        "revoke-obsidian-connection",
+    ]:
+        assert f'"{event_name}"' in settings_vue
+
+    for marker in [
+        "确认受控写回内容",
+        "artifact.target_path",
+        "内容哈希",
+        "预期 Vault 哈希",
+        "完整 Markdown 内容",
+        "data-publication-notice=\"queued\"",
+        "data-publication-notice=\"conflict\"",
+        "未覆盖 Vault 中的文件",
+        "确认并交给插件执行",
+    ]:
+        assert marker in publication_vue
+
+    for state_field in [
+        "obsidianConnectionsLoading",
+        "obsidianConnectionError",
+        "obsidianPairing",
+        "obsidianPairingLoading",
+        "obsidianPairingError",
+        "obsidianRevokingId",
+        "obsidianPublicationDialogOpen",
+        "obsidianPublicationLoading",
+        "obsidianPublicationError",
+        "obsidianPublicationStatus",
+    ]:
+        assert f"{state_field}:" in state_js
 
 
 def test_vue_app_handles_tool_suggestion_and_next_question_context_state():
@@ -2425,9 +2618,21 @@ def test_vue_settings_view_renders_llm_settings_and_model_profile_controls():
         "setOnlineAnswer",
         "editProfile",
         'v-for="profile in modelProfiles"',
-        'defineEmits(["back", "change-settings-page", "load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
     ]:
         assert marker in settings_vue
+    for event_name in [
+        "back",
+        "change-settings-page",
+        "load-settings",
+        "save-llm-settings",
+        "test-llm-settings",
+        "load-model-profiles",
+        "save-model-profile",
+        "delete-model-profile",
+        "set-default-model-profile",
+        "test-model-profile",
+    ]:
+        assert f'"{event_name}"' in settings_vue
     for old_marker in ["模型 Profile", "API Key", "Prompt 预设"]:
         assert old_marker not in settings_vue
 
@@ -2469,9 +2674,15 @@ def test_vue_settings_view_renders_prompt_preset_controls():
         "editPromptPreset",
         "resetPromptPresetForm",
         'v-for="preset in promptPresets"',
-        'defineEmits(["back", "change-settings-page", "load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"])',
     ]:
         assert marker in settings_vue
+    for event_name in [
+        "load-prompt-presets",
+        "save-prompt-preset",
+        "delete-prompt-preset",
+        "set-default-prompt-preset",
+    ]:
+        assert f'"{event_name}"' in settings_vue
 
     for prop_name in [
         "selectedProjectId",
@@ -2523,7 +2734,7 @@ def test_vue_app_handles_settings_model_config_state_and_events():
         ":model-profile-mutation-error=\"appState.modelProfileMutationError\"",
         ":model-profile-status=\"appState.modelProfileStatus\"",
         "@load-settings=\"loadSettingsPage\"",
-        "@back=\"showView('chat')\"",
+        "@back=\"handleChangeView('coach')\"",
         "@change-settings-page=\"handleChangeSettingsPage\"",
         "@save-llm-settings=\"handleSaveLlmSettings\"",
         "@test-llm-settings=\"handleTestLlmSettings\"",

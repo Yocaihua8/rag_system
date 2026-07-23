@@ -24,6 +24,8 @@ describe("app-state Knowledge Island 2.0 shell state", () => {
       coachAnalyzing: false,
       coachSourceDrawerOpen: false,
       coachAssessmentOverlayOpen: false,
+      coachAssessmentTarget: null,
+      coachAssessmentResult: null,
       coachAssessmentSubmitting: false,
       learningPlan: null,
       learningPlanGenerating: false,
