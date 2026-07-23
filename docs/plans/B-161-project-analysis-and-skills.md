@@ -25,7 +25,7 @@
 ## 3. 任务拆解
 
 - [x] 切换默认运行数据根到 `runtime/v2/`，新增 Coach 基础实体、schema 与存储方法
-- [ ] 实现确定性项目分析器、稳定 ID、真实来源、技能树映射与来源陈旧判定
+- [x] 实现确定性项目分析器、稳定 ID、真实来源、技能树映射与来源陈旧判定
 - [ ] 接入 Coach analyze/overview/knowledge-points/skills API，同步 OpenAPI、正式文档并完成回归
 
 ## 4. 影响范围
@@ -77,12 +77,14 @@
 - 2026-07-23：默认 Web 数据库实际位于 `runtime/webapp/knowledge_island.db`，早期文档中的 `runtime/app.db` 不是当前启动入口；实现与验收同时保护两类旧路径。
 - 2026-07-23：生产 `create_app` 在 DDL、回填和向量初始化前执行 v2 marker 校验；底层存储保留非严格兼容模式供既有 1.x 补列回归。
 - 2026-07-23：Coach 分析、知识点、来源、技能树和映射六表已落地；来源删除后保留路径、哈希、摘录和定位快照。
+- 2026-07-23：确定性分析器只读取已入库资料，覆盖 Python、JS/TS、常见 Web 清单和通用文本回退；Dockerfile、Makefile、TOML 与 Vue 文件纳入文本导入范围。
+- 2026-07-23：LLM 只允许改写项目概览；异常时保留规则知识点、映射和来源并返回 warning。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-23
-- **进度**：已完成 1 / 3 项
-- **最新 commit**：`2cd0759` — docs: 启动项目分析与技能映射计划
-- **代码状态**：`feature/project-knowledge-coach-v2`；v2 路径、代际保护与 Coach 基础存储待提交，分析器/API 并行改动未暂存
-- **下一步**：实现确定性项目分析器、稳定 ID、真实来源、技能树映射与来源陈旧判定
+- **进度**：已完成 2 / 3 项
+- **最新 commit**：`8d10be5` — feat: 建立 v2 数据代际与 Coach 基础存储
+- **代码状态**：`feature/project-knowledge-coach-v2`；确定性分析器与导入清单支持待提交，Coach 路由/API 改动未暂存
+- **下一步**：接入 Coach analyze/overview/knowledge-points/skills API，同步 OpenAPI、正式文档并完成回归
 - **续任务须知**：旧 `runtime/` 数据不得迁移、删除或覆盖；测试必须显式使用临时路径

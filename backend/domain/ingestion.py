@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend.domain.document_processing import process_local_file
-from backend.domain.import_rules import IGNORED_DIR_NAMES, TEXT_SUFFIXES
+from backend.domain.import_rules import IGNORED_DIR_NAMES, is_supported_text_path
 from backend.domain.models import ImportResult
 from backend.domain.source_import import VIRTUAL_SOURCE_PREFIXES, virtual_source_relative_paths
 from backend.storage import KnowledgeStore
@@ -22,7 +22,7 @@ def preview_import_directory(store: KnowledgeStore, project_id: str, root_path: 
         if not path.is_file():
             continue
         relative_path = _safe_relative_path(path, root)
-        if path.suffix.lower() not in TEXT_SUFFIXES:
+        if not is_supported_text_path(path):
             skipped += 1
             skipped_details.append({"path": relative_path, "reason": "unsupported file type"})
             continue
@@ -53,7 +53,7 @@ def import_directory(store: KnowledgeStore, project_id: str, root_path: Path) ->
     protected_relative_paths = virtual_source_relative_paths(store, project_id)
 
     for path in _iter_importable_files(root):
-        if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
+        if not path.is_file() or not is_supported_text_path(path):
             continue
         relative_path = _safe_relative_path(path, root)
         if relative_path in protected_relative_paths:
