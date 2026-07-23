@@ -2,9 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-02
+> Last Updated：2026-07-10
 > Scope：Knowledge Island Web MVP 前端页面布局与核心交互
-> Related：docs/requirements/functional-modules.md, docs/design/api-spec.md
+> Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/design/codex-ui-visual-system.md
 
 ## 1. 页面清单
 
@@ -27,6 +27,8 @@
 Vue 主体验采用左侧工作区和线程侧栏，页面通过 `聊 / 库 / 设` 主入口切换主流程。B-156 后，`库` 不切换普通页面，而是打开资料管理弹窗；`设` 是全屏覆盖页。B-142 工作台目标结构参考 AnythingLLM 的工作区模式，但只吸收信息架构：左侧工作区/线程，中间对话，右侧依据；不复刻多用户、Agent 写操作、Agent Flow 或模型路由。
 
 页面主色采用黑白灰中性方案；错误和警告状态保留必要提示色。深色模式入口位于 `设 -> 外观`。
+
+视觉令牌、组件状态、动效和无障碍要求统一见 `codex-ui-visual-system.md`。本文件只定义页面结构与交互，不重复维护样式细节。
 
 ## 3. 聊（主页）
 

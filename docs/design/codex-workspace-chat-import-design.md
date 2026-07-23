@@ -1,14 +1,14 @@
 # Codex 式工作区会话与资料导入设计
 
-> 状态：In Review
+> 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-03
-> Scope：第二阶段前端方向设计；定义下一版目标体验，不代表已实现行为。
-> Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/design/chat-sessions-design.md, docs/design/import-batches-design.md, docs/BACKLOG.md
+> Last Updated：2026-07-10
+> Scope：第二阶段前端工作流与能力边界；B-156 已实现的页面结构与后续目标体验共用本设计，不代表 B-157 等后端能力已实现。
+> Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/design/chat-sessions-design.md, docs/design/import-batches-design.md, docs/design/codex-ui-visual-system.md, docs/BACKLOG.md
 
 ## 1. 目的
 
-本文件定义 Knowledge Island 下一版前端方向：以 Codex 式工作区会话作为首页主线，以 AnythingLLM 式资料导入作为资料入口参考。
+本文件定义 Knowledge Island 第二阶段前端方向：以 Codex 式工作区会话作为首页主线，以 AnythingLLM 式资料导入作为资料入口参考。
 
 设计目标是让普通用户只理解一条路径：
 
@@ -17,6 +17,16 @@
 ```
 
 本设计不复用迁移期前端页面结构，不把资料管理、检索调试、模型配置、评估结果和导入审计铺在首页。首页只服务当前会话。
+
+### 1.1 实现状态
+
+| 范围 | 状态 | 边界 |
+|------|------|------|
+| `聊 / 库 / 设` 主线、侧栏、资料弹窗、依据抽屉、全屏设置与黑白灰方向 | 已由 B-156 落地 | 当前页面结构以 `docs/design/ui-wireframes.md` 和 Vue 源码为准 |
+| 本文的视觉令牌、组件状态、动效和无障碍约束 | Active | 细则见 `docs/design/codex-ui-visual-system.md`；后续前端切片必须遵守 |
+| 全局资料条目、跨工作区资料连接与共享资料状态 | 未实现 | 仍是 B-157；当前后端以 `project_id` 为资料边界，前端不得伪装成功状态 |
+
+本文保留目标设计的作用，是为了约束后续迭代不退回迁移期的管理后台布局；它不将未支持能力写成当前事实。
 
 ## 2. 设计结论
 
@@ -49,7 +59,7 @@
 | 内部或技术词 | 普通界面文案 | 说明 |
 |--------------|--------------|------|
 | project / 项目空间 | 工作区 | 用户理解为一组资料和会话 |
-| session / 线程 | 会话 | 用户理解为一次聊天主题 |
+| session / 线程 | 会话 | 目标普通文案；当前已实现界面中的“线程”保留到专门的前端文案同步任务 |
 | import / ingest | 添加资料 | 不使用“摄入” |
 | model / LLM | 回答引擎 | 具体模型名放设置详情 |
 | source / retrieval hit | 参考资料 | 回答依据的普通说法 |
@@ -60,9 +70,9 @@
 
 术语边界：
 
-- `docs/style-guide.md` 当前仍规定对外文案使用“项目空间”。
-- 本文件处于 `In Review`，提出的是下一版普通界面文案调整：用“工作区”表达同一用户概念。
-- 正式落地前，必须同步更新术语规范、前端文案和相关功能文档；在此之前，已实现行为文档仍以“项目空间”为准。
+- 当前用户界面已使用“工作区”；后端、API 和数据库继续使用 `project` / `project_id`。
+- `项目空间` 是历史文档中的同一概念，阅读旧文档时应按“工作区”理解，不应据此新增另一种业务实体。
+- “会话”是后续普通文案的目标；若修改现有“线程”文案，必须同步代码、功能规格与测试断言。
 
 以下词不应出现在普通首页：
 
