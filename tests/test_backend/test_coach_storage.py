@@ -324,7 +324,11 @@ def test_coach_source_requires_non_empty_excerpt(tmp_path: Path):
             mappings,
         )
 
-    assert store.get_latest_coach_analysis_run(project.id).status == "running"
+    failed = store.get_latest_coach_analysis_run(project.id)
+    assert failed.status == "failed"
+    assert failed.finished_at
+    assert failed.summary == {"error_type": "ValueError"}
+    assert store.get_current_coach_analysis_run(project.id) is None
 
 
 def test_invalid_coach_mapping_rolls_back_result_transaction(tmp_path: Path):
@@ -351,9 +355,58 @@ def test_invalid_coach_mapping_rolls_back_result_transaction(tmp_path: Path):
             mappings,
         )
 
-    assert store.get_latest_coach_analysis_run(project.id).status == "running"
+    assert store.get_latest_coach_analysis_run(project.id).status == "failed"
+    assert store.get_current_coach_analysis_run(project.id) is None
     assert store.list_coach_knowledge_points(project.id) == []
     assert store.list_coach_skill_nodes() == []
+
+
+def test_failed_reanalysis_does_not_hide_previous_completed_result(tmp_path: Path):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path / "project")
+    document = store.upsert_document(
+        project.id,
+        tmp_path / "project" / "README.md",
+        "README.md",
+        "默认入口是 app.py。",
+    ).document
+    chunk = store.list_chunks(project.id)[0]
+    points, nodes, mappings = _analysis_draft(document, chunk)
+    completed_run = store.create_coach_analysis_run(
+        project.id,
+        "rules-v1",
+        "fingerprint-1",
+    )
+    store.save_coach_analysis_result(
+        completed_run.id,
+        {"knowledge_point_count": 1},
+        points,
+        {"version": "v1", "name": "通用开发技能树", "status": "active"},
+        nodes,
+        mappings,
+    )
+    invalid_points, invalid_nodes, invalid_mappings = _analysis_draft(document, chunk)
+    invalid_mappings[0]["skill_key"] = "unknown"
+    failed_run = store.create_coach_analysis_run(
+        project.id,
+        "rules-v1",
+        "fingerprint-2",
+    )
+
+    with pytest.raises(ValueError, match="unknown skill key"):
+        store.save_coach_analysis_result(
+            failed_run.id,
+            {},
+            invalid_points,
+            {"version": "v1", "name": "通用开发技能树", "status": "active"},
+            invalid_nodes,
+            invalid_mappings,
+        )
+
+    assert store.get_latest_coach_analysis_run(project.id).id == failed_run.id
+    assert store.get_latest_coach_analysis_run(project.id).status == "failed"
+    assert store.get_current_coach_analysis_run(project.id).id == completed_run.id
+    assert store.list_coach_knowledge_points(project.id)[0].stable_key == "architecture:web-entry"
 
 
 def test_coach_source_rejects_document_from_another_project(tmp_path: Path):
@@ -380,5 +433,45 @@ def test_coach_source_rejects_document_from_another_project(tmp_path: Path):
             mappings,
         )
 
-    assert store.get_latest_coach_analysis_run(first.id).status == "running"
+    assert store.get_latest_coach_analysis_run(first.id).status == "failed"
+    assert store.get_current_coach_analysis_run(first.id) is None
     assert store.list_coach_knowledge_points(first.id) == []
+
+
+@pytest.mark.parametrize(
+    ("source_changes", "message"),
+    [
+        ({"document_id": "", "chunk_id": ""}, "must reference an imported document"),
+        ({"source_path": "forged.md"}, "source_path does not match"),
+        ({"source_hash": "forged-checksum"}, "source_hash does not match"),
+    ],
+)
+def test_coach_source_must_resolve_to_imported_document(
+    tmp_path: Path,
+    source_changes: dict[str, str],
+    message: str,
+):
+    store = KnowledgeStore(tmp_path / "app.db")
+    project = store.create_project("知识岛", tmp_path / "project")
+    document = store.upsert_document(
+        project.id,
+        tmp_path / "project" / "README.md",
+        "README.md",
+        "默认入口是 app.py。",
+    ).document
+    chunk = store.list_chunks(project.id)[0]
+    points, nodes, mappings = _analysis_draft(document, chunk)
+    points[0]["sources"][0].update(source_changes)
+    run = store.create_coach_analysis_run(project.id, "rules-v1", "fingerprint-1")
+
+    with pytest.raises(ValueError, match=message):
+        store.save_coach_analysis_result(
+            run.id,
+            {},
+            points,
+            {"version": "v1", "name": "通用开发技能树", "status": "active"},
+            nodes,
+            mappings,
+        )
+
+    assert store.get_latest_coach_analysis_run(project.id).status == "failed"

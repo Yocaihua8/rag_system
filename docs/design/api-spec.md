@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
-> Scope：本地 Web MVP HTTP API + legacy 进程内接口
+> Last Updated：2026-07-23
+> Scope：本地 Web / Coach HTTP API + legacy 进程内接口
 
 ## 1. 本地 Web MVP HTTP API
 
@@ -79,6 +79,10 @@ B-136 起，`/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的�
 - `GET /api/chat/messages`
 - `POST /api/chat/messages/delete`
 - `POST /api/chat/messages/clear`
+- `POST /api/coach/analyze`
+- `GET /api/coach/overview`
+- `GET /api/coach/knowledge-points`
+- `GET /api/coach/skills`
 - `GET /api/agent/tools`
 - `POST /api/agent/tools/run`
 - `GET /api/agent/tools/runs`
@@ -479,6 +483,35 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 Web MVP 评估是最小闭环：题目从已导入文档规则化生成，当前支持 `concept`（概念理解）、`flow`（流程说明）和 `code_location`（代码定位）三类；每题保存轻量 `knowledge_point` 标签和 `source_path`。提交回答时服务端会按题目 ID 读取已保存题目，使用服务端持久化的 `expected_points` 和 `reference_snippet` 评分，不信任前端回传的参考要点；评分结果保存到 `assessment_results`，回答保存到 `assessment_answers`。该实现不等同于 legacy 桌面端完整 Knowledge Mastery 存储模型。
 
 `GET /api/assessment/library` 是资料库管理概览使用的只读题库接口。它按当前项目返回题库数量、评估结果数量、题型分布、掌握状态分布、最近题目快照和最近评估结果；不生成新题、不评分、不修改评估会话，也不新增数据库表。
+
+### 1.8 项目知识教练基础接口（B-161）
+
+| 方法 | 路径 | 请求 | 成功响应 | 错误 |
+|------|------|------|----------|------|
+| POST | `/api/coach/analyze` | `project_id` | `{"analysis":{"source_ids":[...],"sources":{...},...}}` | `400 project_id is required`、`400 coach analysis requires imported documents`、`404 project not found` |
+| GET | `/api/coach/overview?project_id=...` | query `project_id` | `{"overview":{...}}` | `400 project_id is required`、`404 project not found`、`404 coach analysis not found` |
+| GET | `/api/coach/knowledge-points?project_id=...` | query `project_id` | `{"knowledge_points":{"analysis":...,"items":[...],"sources":{...}}}` | 同上 |
+| GET | `/api/coach/skills?project_id=...` | query `project_id` | `{"skills":{"analysis":...,"taxonomy":...,"items":[...],"sources":{...}}}` | 同上 |
+
+`POST /api/coach/analyze` 同步分析当前项目已经入库的资料，不直接扫描项目磁盘。首版规则覆盖 Python、JavaScript / TypeScript、`package.json`、`pyproject.toml`、requirements、TypeScript / Vite 配置、Docker / Compose 等常见清单；无法匹配专用规则的文本项目使用 README、目录和高信号文档回退。分析运行的核心字段为：
+
+- `id / project_id / analyzer_version / source_fingerprint / status`
+- `summary / started_at / finished_at`
+- `source_count / knowledge_point_count / skill_mapping_count`
+- `enhancement_mode=rule|model / warning`
+- `source_ids / sources`；分析概览涉及的来源可在同一响应内解析
+
+没有默认模型 Profile 时使用确定性规则结果；配置了可用默认 Profile 或测试显式注入模型客户端时，模型只能增强 `summary.overview`，不能新增知识点、技能映射或来源。模型失败时接口仍返回规则分析成功结果，并在 `warning` 说明回退。
+
+三个 GET 接口会防御性比较当前文档指纹。来源新增、内容修改、路径变化或删除后，旧分析以 `status=stale`、`stale=true` 继续只读返回，直到用户重新分析；接口不会把旧结论静默标记为最新。
+
+知识点的 `source_ids` 必须能在同一响应的 `sources` 对象中解析。来源对象包含：
+
+- `id / run_id / knowledge_point_id`
+- `document_id / chunk_id`（来源删除后可为空）
+- `path / source_hash / excerpt / locator`
+
+技能响应使用版本化 taxonomy。每个节点通过 `mappings` 关联当前项目知识点，映射包含置信度、理由和 `source_ids`；没有当前项目映射的节点标记 `project_evidence=no_project_evidence`。这些结果只解释当前项目知识，不构成职业能力评价。
 
 ## 2. legacy 内部接口边界（应用层）
 

@@ -6,7 +6,7 @@
 > Scope：Knowledge Island 1.x 当前实现与 2.0 已接受目标架构
 > Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-> 阅读边界：§ 1～§ 8 描述当前 1.x 已落地实现；§ 9 描述 Knowledge Island 2.0 已接受但尚未实现的目标架构。除非对应 B-161～B-165 已完成并通过验收，不得把 § 9 能力写成当前可用功能。
+> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 的目标架构与分片落地状态。只有 § 9.5 标记为“已实现”的切片才是当前可用能力。
 
 ## 1. 1.x 当前架构结论
 
@@ -197,7 +197,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | BM25 替代 regex 关键词检索 | 已采用（B-127）| `backend/domain/search.py` 使用内置 BM25 计算 `keyword_score`，不新增必需依赖 |
 | `api.py` 按领域拆分 | 已完成（B-138 / B-155 路径迁移）| 61 个 REST 端点已迁入 `backend/routes/*`；兼容入口位于 `backend/api/dispatch.py`，保持 HTTP 契约不变 |
 
-## 9. Knowledge Island 2.0 已接受目标（尚未实现）
+## 9. Knowledge Island 2.0 目标架构与落地状态
 
 ### 9.1 产品与代际边界
 
@@ -208,10 +208,10 @@ Knowledge Island 2.0 的目标定位是“面向个人开发学习的本地项�
 | 核心产品 | 本地 RAG 知识库与问答工作台 | 本地项目知识教练 |
 | 评价主口径 | 文档问答与轻量评估 | 当前项目的知识覆盖 |
 | 辅助口径 | 规则化掌握度结果 | 版本化通用技能树映射；不等同于职业能力 |
-| 默认数据根 | `runtime/`，SQLite 为 `runtime/app.db` | 独立 `runtime/v2/` 数据代际 |
+| 默认数据根 | 1.x 数据保留在 `runtime/` | B-161 起默认使用独立 `runtime/v2/` 数据代际 |
 | Obsidian | `/api/import/obsidian-vault` 一次性只读导入 | 桌面插件桥接、事件同步和受控发布 |
 
-2.0 不迁移、不删除、不覆盖 1.x 的 SQLite、向量目录、Qdrant 本地索引或输出文件。2.0 启动时必须只向独立 v2 数据根写入；旧数据保留用于 1.x 回退或人工归档，不自动纳入 2.0 项目。
+2.0 不迁移、不删除、不覆盖 1.x 的 SQLite、向量目录、Qdrant 本地索引或输出文件。B-161 已将默认启动路径切换到独立 v2 数据根，并在写入前验证数据代际；旧数据保留用于 1.x 回退或人工归档，不自动纳入 2.0 项目。
 
 ### 9.2 目标逻辑架构
 
@@ -257,7 +257,7 @@ Knowledge Island 2.0 的目标定位是“面向个人开发学习的本地项�
 
 | 切片 | 目标 | 本文状态 |
 |------|------|----------|
-| B-161 | 项目分析、知识点、来源与技能映射 | 待实现 |
+| B-161 | 项目分析、知识点、来源与技能映射 | 已实现（存储、规则分析与 Coach 基础 API） |
 | B-162 | 持久评估、覆盖聚合与学习计划 | 待实现 |
 | B-163 | Obsidian 插件桥、同步与受控发布 | 待实现 |
 | B-164 | Vue 教练闭环 | 待实现 |

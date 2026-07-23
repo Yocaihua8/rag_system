@@ -123,7 +123,7 @@ def prepare_answer_context(
         "project": project,
         "history_messages": store.list_chat_messages(project_id, session_id)[-3:] if project else [],
         "prompt_preset": store.get_default_prompt_preset(project_id) if project else None,
-        "answer_llm_client": llm_client if llm_client is not None else _default_model_profile_client(store),
+        "answer_llm_client": llm_client if llm_client is not None else default_model_profile_client(store),
         "tool_context_run": tool_context_run,
         "tool_context_hits": tool_context_hits,
     }, None
@@ -177,7 +177,7 @@ def answer_body_from_result(store: KnowledgeStore, context: dict[str, Any], answ
     return body
 
 
-def _default_model_profile_client(store: KnowledgeStore) -> OpenAICompatibleChatClient | None:
+def default_model_profile_client(store: KnowledgeStore) -> OpenAICompatibleChatClient | None:
     profile = store.get_default_model_profile()
     if not profile:
         return None

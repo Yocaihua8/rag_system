@@ -8,6 +8,7 @@ from backend.routes.agent import handle_agent_route
 from backend.routes.answers import handle_answer_route
 from backend.routes.assessment import handle_assessment_route
 from backend.routes.chat import handle_chat_route
+from backend.routes.coach import handle_coach_route
 from backend.routes.documents import handle_documents_route
 from backend.routes.export import handle_export_route
 from backend.routes.health import handle_health_route
@@ -65,6 +66,10 @@ def dispatch_to_routes(
     chat_response = handle_chat_route(store, method, path, query, payload)
     if chat_response is not None:
         return chat_response
+
+    coach_response = handle_coach_route(store, method, path, query, payload, llm_client=llm_client)
+    if coach_response is not None:
+        return coach_response
 
     assessment_response = handle_assessment_route(store, method, path, query, payload)
     if assessment_response is not None:

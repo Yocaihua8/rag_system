@@ -177,6 +177,28 @@ class CoachStoreMixin:
         skill_nodes: Iterable[Mapping[str, Any]] = (),
         mappings: Iterable[Mapping[str, Any]] = (),
     ) -> CoachAnalysisRun:
+        try:
+            return self._save_coach_analysis_result(
+                run_id,
+                summary,
+                knowledge_points,
+                skill_taxonomy,
+                skill_nodes,
+                mappings,
+            )
+        except Exception as exc:
+            self.mark_coach_analysis_failed(run_id, type(exc).__name__)
+            raise
+
+    def _save_coach_analysis_result(
+        self,
+        run_id: str,
+        summary: Mapping[str, Any],
+        knowledge_points: Iterable[Mapping[str, Any]],
+        skill_taxonomy: Mapping[str, Any] | None = None,
+        skill_nodes: Iterable[Mapping[str, Any]] = (),
+        mappings: Iterable[Mapping[str, Any]] = (),
+    ) -> CoachAnalysisRun:
         point_drafts = list(knowledge_points)
         node_drafts = list(skill_nodes)
         mapping_drafts = list(mappings)
@@ -292,6 +314,33 @@ class CoachStoreMixin:
 
         return _analysis_run_from_row(completed_row)
 
+    def mark_coach_analysis_failed(
+        self,
+        run_id: str,
+        error_type: str = "",
+    ) -> CoachAnalysisRun | None:
+        now = _utc_now()
+        summary = {"error_type": error_type.strip()} if error_type.strip() else {}
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE coach_analysis_runs
+                SET status = 'failed', summary_json = ?, finished_at = ?
+                WHERE id = ? AND status IN ('pending', 'running')
+                """,
+                (json.dumps(summary, ensure_ascii=False), now, run_id),
+            )
+            row = conn.execute(
+                """
+                SELECT id, project_id, analyzer_version, source_fingerprint, status,
+                       summary_json, started_at, finished_at
+                FROM coach_analysis_runs
+                WHERE id = ?
+                """,
+                (run_id,),
+            ).fetchone()
+        return _analysis_run_from_row(row) if row else None
+
     def get_latest_coach_analysis_run(self, project_id: str) -> CoachAnalysisRun | None:
         with self._connect() as conn:
             row = conn.execute(
@@ -307,6 +356,21 @@ class CoachStoreMixin:
             ).fetchone()
         return _analysis_run_from_row(row) if row else None
 
+    def get_current_coach_analysis_run(self, project_id: str) -> CoachAnalysisRun | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                """
+                SELECT id, project_id, analyzer_version, source_fingerprint, status,
+                       summary_json, started_at, finished_at
+                FROM coach_analysis_runs
+                WHERE project_id = ? AND status IN ('completed', 'stale')
+                ORDER BY started_at DESC, rowid DESC
+                LIMIT 1
+                """,
+                (project_id,),
+            ).fetchone()
+        return _analysis_run_from_row(row) if row else None
+
     def list_coach_knowledge_points(
         self,
         project_id: str,
@@ -315,7 +379,7 @@ class CoachStoreMixin:
     ) -> list[CoachKnowledgePoint]:
         target_run_id = run_id.strip()
         if not target_run_id:
-            latest = self.get_latest_coach_analysis_run(project_id)
+            latest = self.get_current_coach_analysis_run(project_id)
             if not latest:
                 return []
             target_run_id = latest.id
@@ -381,7 +445,7 @@ class CoachStoreMixin:
     ) -> list[CoachKnowledgeSkillMapping]:
         target_run_id = run_id.strip()
         if not target_run_id:
-            latest = self.get_latest_coach_analysis_run(project_id)
+            latest = self.get_current_coach_analysis_run(project_id)
             if not latest:
                 return []
             target_run_id = latest.id
@@ -593,6 +657,8 @@ def _insert_knowledge_source(
 ) -> tuple[str, str, str, str]:
     document_id = str(source.get("document_id") or "").strip()
     chunk_id = str(source.get("chunk_id") or "").strip()
+    if not document_id and not chunk_id:
+        raise ValueError("source must reference an imported document or chunk")
     document_row = None
     if document_id:
         document_row = conn.execute(
@@ -629,11 +695,16 @@ def _insert_knowledge_source(
                 (document_id,),
             ).fetchone()
 
-    source_path = str(source.get("source_path") or "").strip()
-    source_hash = str(source.get("source_hash") or source.get("checksum") or "").strip()
-    if document_row:
-        source_path = source_path or str(document_row["relative_path"])
-        source_hash = source_hash or str(document_row["checksum"])
+    requested_path = str(source.get("source_path") or "").strip()
+    requested_hash = str(source.get("source_hash") or source.get("checksum") or "").strip()
+    if not document_row:
+        raise ValueError("source document not found")
+    source_path = str(document_row["relative_path"])
+    source_hash = str(document_row["checksum"])
+    if requested_path and requested_path != source_path:
+        raise ValueError("source_path does not match the imported document")
+    if requested_hash and requested_hash != source_hash:
+        raise ValueError("source_hash does not match the imported document")
     if not source_path or not source_hash:
         raise ValueError("source_path and source_hash are required")
     excerpt = str(source.get("excerpt") or source.get("snippet") or "").strip()

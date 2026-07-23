@@ -6,7 +6,7 @@
 > Scope：Knowledge Island 1.x 当前 SQLite 模型与 2.0 目标数据代际
 > Related：docs/design/architecture-overview.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-> 阅读边界：§ 1～§ 4 是当前 1.x 已落地模型；§ 5～§ 7 是 2.0 已接受但尚未落库的目标模型。目标表名和约束由 B-161～B-163 实现后才成为运行时事实。
+> 阅读边界：§ 1～§ 4 是兼容保留的 1.x 模型；§ 5 起描述 2.0 数据代际。各实体是否已落地以对应表格的“状态”列为准。
 
 ## 1. 当前已落地实体
 
@@ -199,34 +199,34 @@
 
 - 文档里列出的未来模型（如部分学习建议图谱扩展字段）若未落库，不在定稿内扩展为新约束。
 
-## 5. 2.0 目标数据代际（尚未实现）
+## 5. 2.0 数据代际（B-161 已实现）
 
 2.0 使用独立数据根 `runtime/v2/`，默认 SQLite 为 `runtime/v2/app.db`；向量索引、日志和输出也必须派生到该代际下。现有 `runtime/app.db`、`runtime/vectors/`、既有 Qdrant 路径、`runtime/outputs/` 及其他 1.x 运行时文件不得迁移、删除或覆盖。
 
-- B-161 实现前，当前应用仍读写 1.x 路径。
-- 2.0 首次启动创建全新 schema，用户需要重新导入项目。
+- 当前应用默认读写 `runtime/v2/`，SQLite 为 `runtime/v2/app.db`，Qdrant 本地索引为 `runtime/v2/vectors/qdrant/`。
+- 2.0 首次启动创建全新 schema，并写入 `app_metadata.data_generation=v2`；用户需要重新导入项目。
 - 2.0 不自动读取 1.x 数据，也不提供隐式 schema 升级。
-- 若配置指向已存在的 1.x 数据库或向量目录，2.0 必须拒绝复用并给出明确错误，不能原地建表。
+- 生产 `create_app` 在建表、补列和向量初始化前验证数据代际；配置指向既有非 v2 数据库时只读拒绝，不能原地建表。
 - 1.x 数据保留用于原版本回退或人工归档；删除必须是独立、显式的维护动作。
 
-## 6. 2.0 Coach 目标逻辑实体
+## 6. 2.0 Coach 逻辑实体
 
-为避免与 1.x/legacy 的 `knowledge_points`、`assessment_*` 混淆，2.0 新实体统一使用 `coach_` 前缀。以下为目标逻辑 schema，不表示当前 `_init_schema()` 已创建这些表。
+为避免与 1.x/legacy 的 `knowledge_points`、`assessment_*` 混淆，2.0 新实体统一使用 `coach_` 前缀。B-161 已落地分析、知识点、来源与技能映射六张表；评估与计划实体由 B-162 落地。
 
-| 目标表 | 核心字段 / 约束 | 职责 |
-|--------|-----------------|------|
-| `coach_analysis_runs` | `id / project_id / analyzer_version / source_fingerprint / status / summary_json / started_at / finished_at` | 保存不可变分析运行；`status` 为 `pending / running / completed / failed / stale` |
-| `coach_knowledge_points` | `id / project_id / stable_key / title / category / summary / current_run_id / created_at / updated_at`；`UNIQUE(project_id, stable_key)` | 保存跨重新分析稳定的项目知识点身份 |
-| `coach_knowledge_sources` | `id / run_id / knowledge_point_id / document_id / source_path / chunk_id / source_hash / excerpt / locator_json` | 为知识点、映射和结论保存真实来源快照 |
-| `coach_skill_taxonomies` | `id / version / name / status / created_at`；`version` 唯一 | 版本化通用技能树 |
-| `coach_skill_nodes` | `id / taxonomy_id / stable_key / parent_id / name / category / sort_order` | 保存语言、框架、数据、测试、交付、AI 等辅助技能节点 |
-| `coach_knowledge_skill_mappings` | `id / run_id / knowledge_point_id / skill_node_id / confidence / source_id / rationale`；知识点、技能和来源同项目 | 保存有来源的知识点—技能映射 |
-| `coach_assessment_sessions` | `id / project_id / target_type / target_id / status / created_at / completed_at` | 持久化定向评估会话；目标为知识点或技能节点 |
-| `coach_assessment_questions` | `id / session_id / prompt / question_type / expected_points_json / source_ids_json / sort_order` | 保存题目和服务端评分依据；作答前不向客户端返回评分依据 |
-| `coach_assessment_answers` | `id / session_id / question_id / answer / created_at` | 保存用户原始回答 |
-| `coach_assessment_results` | `id / answer_id / evaluator / score / confidence / status / matched_evidence_json / missing_points_json / source_ids_json / created_at` | 保存 `rule / model` 评分方式和项目内掌握状态 |
-| `coach_learning_plans` | `id / project_id / revision / status / based_on_run_id / created_at / confirmed_at` | 保存 `draft / confirmed / archived` 计划；新生成仅创建新草稿 |
-| `coach_learning_plan_items` | `id / plan_id / stable_key / objective / knowledge_point_id / skill_node_id / source_ids_json / practice_question / completion_criteria / estimated_minutes / status / sort_order` | 保存可编辑排序的学习任务 |
+| 目标表 | 状态 | 核心字段 / 约束 | 职责 |
+|--------|------|-----------------|------|
+| `coach_analysis_runs` | B-161 已实现 | `id / project_id / analyzer_version / source_fingerprint / status / summary_json / started_at / finished_at` | 保存不可变分析运行；`status` 为 `pending / running / completed / failed / stale` |
+| `coach_knowledge_points` | B-161 已实现 | `id / project_id / stable_key / title / category / summary / current_run_id / created_at / updated_at`；`UNIQUE(project_id, stable_key)` | 保存跨重新分析稳定的项目知识点身份 |
+| `coach_knowledge_sources` | B-161 已实现 | `id / run_id / knowledge_point_id / document_id / source_path / chunk_id / source_hash / excerpt / locator_json` | 为知识点、映射和结论保存真实来源快照 |
+| `coach_skill_taxonomies` | B-161 已实现 | `id / version / name / status / created_at`；`version` 唯一 | 版本化通用技能树 |
+| `coach_skill_nodes` | B-161 已实现 | `id / taxonomy_id / stable_key / parent_id / name / category / sort_order` | 保存语言、框架、数据、测试、交付、AI 等辅助技能节点 |
+| `coach_knowledge_skill_mappings` | B-161 已实现 | `id / run_id / knowledge_point_id / skill_node_id / confidence / source_id / rationale`；知识点、技能和来源同项目 | 保存有来源的知识点—技能映射 |
+| `coach_assessment_sessions` | B-162 待实现 | `id / project_id / target_type / target_id / status / created_at / completed_at` | 持久化定向评估会话；目标为知识点或技能节点 |
+| `coach_assessment_questions` | B-162 待实现 | `id / session_id / prompt / question_type / expected_points_json / source_ids_json / sort_order` | 保存题目和服务端评分依据；作答前不向客户端返回评分依据 |
+| `coach_assessment_answers` | B-162 待实现 | `id / session_id / question_id / answer / created_at` | 保存用户原始回答 |
+| `coach_assessment_results` | B-162 待实现 | `id / answer_id / evaluator / score / confidence / status / matched_evidence_json / missing_points_json / source_ids_json / created_at` | 保存 `rule / model` 评分方式和项目内掌握状态 |
+| `coach_learning_plans` | B-162 待实现 | `id / project_id / revision / status / based_on_run_id / created_at / confirmed_at` | 保存 `draft / confirmed / archived` 计划；新生成仅创建新草稿 |
+| `coach_learning_plan_items` | B-162 待实现 | `id / plan_id / stable_key / objective / knowledge_point_id / skill_node_id / source_ids_json / practice_question / completion_criteria / estimated_minutes / status / sort_order` | 保存可编辑排序的学习任务 |
 
 评估状态统一为：
 

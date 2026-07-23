@@ -76,7 +76,7 @@ def analyze_project(
         raise ValueError("coach analysis requires imported documents")
 
     fingerprint = compute_source_fingerprint(documents)
-    latest = store.get_latest_coach_analysis_run(project_id)
+    latest = store.get_current_coach_analysis_run(project_id)
     if latest and latest.status == "completed" and latest.source_fingerprint != fingerprint:
         store.mark_coach_analysis_stale(project_id)
 
@@ -103,7 +103,12 @@ def analyze_project(
         SKILL_NODES,
         mappings,
     )
-    return completed.to_dict()
+    response = completed.to_dict()
+    saved_points = store.list_coach_knowledge_points(project_id, run_id=completed.id)
+    sources = _source_index(saved_points)
+    response["source_ids"] = sorted(sources)
+    response["sources"] = sources
+    return response
 
 
 def build_coach_overview(store: KnowledgeStore, project_id: str) -> dict[str, Any]:
@@ -138,6 +143,8 @@ def build_knowledge_points_view(store: KnowledgeStore, project_id: str) -> dict[
         items.append(body)
     return {
         "analysis": run.to_dict(),
+        "status": run.status,
+        "stale": run.status == "stale",
         "items": items,
         "sources": sources,
         "scope_notice": "知识点来自当前项目资料，不代表职业能力。",
@@ -163,6 +170,8 @@ def build_skills_view(store: KnowledgeStore, project_id: str) -> dict[str, Any]:
         items.append(payload)
     return {
         "analysis": run.to_dict(),
+        "status": run.status,
+        "stale": run.status == "stale",
         "taxonomy": dict(SKILL_TAXONOMY),
         "items": items,
         "sources": sources,
@@ -183,14 +192,14 @@ def compute_source_fingerprint(documents: Iterable[Document]) -> str:
 
 
 def _current_analysis(store: KnowledgeStore, project_id: str):
-    run = store.get_latest_coach_analysis_run(project_id)
+    run = store.get_current_coach_analysis_run(project_id)
     if run is None:
         raise ValueError("coach analysis not found")
     if run.status == "completed":
         current_fingerprint = compute_source_fingerprint(store.list_documents(project_id))
         if current_fingerprint != run.source_fingerprint:
             store.mark_coach_analysis_stale(project_id)
-            run = store.get_latest_coach_analysis_run(project_id)
+            run = store.get_current_coach_analysis_run(project_id)
     return run
 
 
@@ -329,7 +338,10 @@ def _build_knowledge_points(
                 ("ai:llm",),
             )
 
-    structure_sources = [_source(document, excerpt=document.relative_path) for document in documents[:8]]
+    structure_sources = [
+        _source(document, excerpt=_first_meaningful_excerpt(document.content))
+        for document in documents[:8]
+    ]
     _add_point(
         points,
         "project:structure",
@@ -404,7 +416,7 @@ def _analyze_package_json(
             "前端工程脚本",
             "delivery",
             "package.json 定义了可执行的开发、测试或构建脚本。",
-            _source(document, json.dumps(scripts, ensure_ascii=False)[:500], {"kind": "manifest", "pointer": "/scripts"}),
+            _source(document, locator={"kind": "manifest", "pointer": "/scripts"}),
             ("delivery:package-scripts",),
         )
 

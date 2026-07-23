@@ -1,9 +1,12 @@
+import hashlib
 import inspect
+import sqlite3
 
+import pytest
 from fastapi.testclient import TestClient
 
 import backend.api.server as server
-from backend.storage import KnowledgeStore
+from backend.storage import DataGenerationMismatchError, KnowledgeStore
 
 
 def _client(db_path):
@@ -19,6 +22,19 @@ def test_fastapi_app_exposes_health_check(tmp_path):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_fastapi_create_app_rejects_unmarked_database_without_writing(tmp_path):
+    db_path = tmp_path / "legacy.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE projects (id TEXT PRIMARY KEY)")
+        conn.execute("INSERT INTO projects (id) VALUES ('legacy')")
+    before = hashlib.sha256(db_path.read_bytes()).hexdigest()
+
+    with pytest.raises(DataGenerationMismatchError, match="unmarked database"):
+        server.create_app(db_path=db_path)
+
+    assert hashlib.sha256(db_path.read_bytes()).hexdigest() == before
 
 
 def test_fastapi_app_serves_static_index(tmp_path):
@@ -67,6 +83,33 @@ def test_fastapi_app_streams_answer_as_sse(tmp_path):
     assert "event: done" in response.text
 
 
+def test_fastapi_coach_api_analyzes_project_and_returns_sourced_views(tmp_path):
+    db_path = tmp_path / "app.db"
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    store = KnowledgeStore(db_path)
+    project = store.create_project("知识岛", project_root)
+    source = project_root / "app.py"
+    content = "from fastapi import FastAPI\napp = FastAPI()\n"
+    source.write_text(content, encoding="utf-8")
+    store.upsert_document(project.id, source, "app.py", content)
+    client = TestClient(server.create_app(store=store))
+
+    analyze = client.post("/api/coach/analyze", json={"project_id": project.id})
+    overview = client.get("/api/coach/overview", params={"project_id": project.id})
+    points = client.get("/api/coach/knowledge-points", params={"project_id": project.id})
+    skills = client.get("/api/coach/skills", params={"project_id": project.id})
+
+    assert analyze.status_code == 200
+    assert analyze.json()["analysis"]["source_ids"]
+    assert overview.status_code == 200
+    assert overview.json()["overview"]["status"] == "completed"
+    assert points.json()["knowledge_points"]["items"]
+    assert points.json()["knowledge_points"]["stale"] is False
+    assert skills.json()["skills"]["items"]
+    assert skills.json()["skills"]["stale"] is False
+
+
 def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
     client = _client(tmp_path / "app.db")
 
@@ -96,6 +139,10 @@ def test_fastapi_openapi_schema_documents_web_mvp_api_paths(tmp_path):
         ("/api/answer/stream", "get"),
         ("/api/export/result", "post"),
         ("/api/agent/tools/run", "post"),
+        ("/api/coach/analyze", "post"),
+        ("/api/coach/overview", "get"),
+        ("/api/coach/knowledge-points", "get"),
+        ("/api/coach/skills", "get"),
         ("/api/assessment/library", "get"),
         ("/api/assessment/start", "post"),
     ]:
