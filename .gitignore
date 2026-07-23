@@ -45,6 +45,9 @@ uploads/
 .coverage
 htmlcov/
 
+# Browser test artifacts
+/test-results/
+
 # Build artifacts
 build/
 dist/

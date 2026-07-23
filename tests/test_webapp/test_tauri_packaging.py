@@ -50,7 +50,7 @@ def test_tauri_rust_entry_starts_sidecar_and_minimizes_to_tray():
     source = main_rs.read_text(encoding="utf-8")
 
     assert "tauri_plugin_shell::init()" in source
-    assert 'sidecar("binaries/knowledge-island-backend")' in source
+    assert 'sidecar("knowledge-island-backend")' in source
     assert "TrayIconBuilder" in source
     assert "MenuItem" in source
     assert "CloseRequested" in source
