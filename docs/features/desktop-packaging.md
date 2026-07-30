@@ -2,8 +2,8 @@
 
 > 状态：Draft
 > Owner：RAG 团队
-> Last Updated：2026-07-24
-> Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检；B-165 v2.0.0 本地候选静态门禁
+> Last Updated：2026-07-30
+> Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检；B-165 v2.0.0 本地候选静态门禁；B-166 Windows v2 原生安装包验证
 
 ## 1. 目标
 
@@ -34,6 +34,8 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 - 本机执行 Tauri 构建需要 Rust/Cargo/rustup；缺失时可先用 `npx tauri info` 确认环境缺口。
 - Windows 资源生成需要 `src-tauri/icons/icon.ico`；缺失时 `cargo check` 会在 Tauri build script 阶段失败。
 - 首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；网络超时会阻塞 installer 生成，但不代表 Rust release exe 构建失败。
+- B-166 本机验证使用 Visual Studio Build Tools 2022 `17.14.37`、MSVC `14.44.35207`、Windows 11 SDK `10.0.26100.0` 和 MSBuild `17.14.51.32402`；`cargo check` 与完整 NSIS 构建均已通过。
+- 当前 v2 NSIS 是本地未签名候选，Authenticode 状态为 `NotSigned`。代码签名仍不在本阶段范围内，不能把该候选表述为已发布的 GitHub Release 资产。
 
 ## 4. macOS / Linux 打包边界
 
@@ -80,3 +82,21 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 | 2026-07-24 | Windows PowerShell | `npx tauri info` | 完成诊断输出，命令未正常收尾 | 检测到 Rust/Cargo/WebView2，但未检测到含 MSVC 与 Windows SDK 的 Visual Studio Build Tools |
 | 2026-07-24 | Windows PowerShell | `cargo check --manifest-path src-tauri/Cargo.toml` | 未通过（环境阻断） | `link.exe not found`；因此未执行 `npm run tauri:build:windows`，未生成或宣称 v2 Windows installer |
 | 2026-07-24 | Windows | macOS `.dmg` / Linux `.AppImage` | 未执行 | 当前系统不做跨平台原生构建；保留 B-152 的历史 CI 证据，不将其冒充 v2 产物 |
+
+## 8. B-166 v2.0.0 Windows 原生候选验证
+
+| 日期 | 环境 | 命令 / 检查 | 结果 | 说明 |
+|------|------|-------------|------|------|
+| 2026-07-30 | Windows PowerShell | Visual Studio Build Tools / VCTools / Windows SDK 安装核验 | 通过 | Build Tools `17.14.37`、MSVC `14.44.35207`、Windows 11 SDK `10.0.26100.0`、MSBuild `17.14.51.32402`；安装完整且无需重启 |
+| 2026-07-30 | Windows PowerShell | `cargo check --manifest-path src-tauri/Cargo.toml` | 通过 | 用时 28.18 秒，原 `link.exe not found` 环境阻塞已解除 |
+| 2026-07-30 | Windows PowerShell | `npm run tauri:build:windows` | 通过 | 用时 128.3 秒；完成 Vue 构建、PyInstaller sidecar、Rust release 与 NSIS bundle |
+| 2026-07-30 | Windows PowerShell | NSIS 文件、SHA-256 与 Authenticode 核验 | 通过（未签名候选） | `Knowledge Island_2.0.0_x64-setup.exe` 为 48,948,957 字节；SHA-256 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B`；状态 `NotSigned` |
+| 2026-07-30 | Windows / 本地 CI | npm/pip 安全审计、Python/Vue/插件/Playwright 等价矩阵 | 通过 | npm 所有严重等级为 0、pip-audit 为 0 个已知漏洞；Python 533 项、Vue 22 文件/92 项、插件 17 项和 Chromium Playwright 1 项通过，详见 v2 readiness |
+| 2026-07-30 | GitHub Actions | 当前 v2 分支 CI / Tauri Packaging | 未运行（额度例外） | 用户确认 GitHub Actions 额度已用完，本轮以完整本地 CI 和 Windows 原生构建作为合并前门禁；不宣称远端 green check |
+| 2026-07-30 | Windows | macOS `.dmg` / Linux `.AppImage` v2 构建 | 未执行 | 当前不是对应原生系统；B-152 历史产物不能替代 v2 原生产物证据 |
+
+当前 Windows NSIS 产物路径为：
+
+`src-tauri/target/release/bundle/nsis/Knowledge Island_2.0.0_x64-setup.exe`
+
+该产物证明 Windows v2 原生打包链路可用，但尚未完成分支推送、PR、`main` 合并、`v2.0.0` Tag 或 GitHub Release；正式发布前继续以 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的外部交付边界为准。

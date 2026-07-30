@@ -8,7 +8,7 @@
 
 ## [Unreleased]
 
-> 目标版本：`v2.0.0`。当前仅完成本地发布候选验收；正式发布时再按发布流程固化版本日期。
+> 目标版本：`v2.0.0`。依赖安全、完整本地 CI 与 Windows 未签名 NSIS 候选包已完成验收；功能分支推送、PR、`main` 合并、Git Tag 和 GitHub Release 仍待执行，正式发布时再按发布流程固化版本日期。
 
 ### Added
 - **项目知识分析**：为 Python、JavaScript/TypeScript 和常见 Web 项目生成带真实来源的项目理解、稳定知识点、版本化技能映射和 stale 状态；其他文本项目使用目录、清单、文档与 RAG 规则回退。
@@ -17,6 +17,7 @@
 - **Obsidian 桌面插件桥**：独立插件支持限时配对、Markdown 增删改名事件、Frontmatter/标签/Wikilink 元数据、离线幂等重放和受控发布结果回传。
 - **受控 Obsidian 发布**：项目理解、知识覆盖与技能差距、学习计划和评估记录须经过内容与路径预览、用户确认、插件执行三阶段写回，并保留不可变发布修订。
 - **Vue 教练闭环**：一级入口调整为“教练 / 学习地图 / 学习计划 / 资料 / 设置”，保留 Codex 风格会话、流式回答和依据抽屉，评估改为不切换上下文的覆盖层。
+- **Windows 原生安装候选**：本地 Windows 工具链已完成 `cargo check`、后端 sidecar、Rust release 和 NSIS bundle 全链路验证，生成未签名的 v2.0.0 x64 安装候选；正式下载仍以 GitHub Release 发布物为准。
 
 ### Changed
 - **BREAKING — v2 数据代际**：默认数据根切换为 `runtime/v2/`，不迁移旧 `runtime/app.db`、旧 Web 数据库或向量目录；旧文件保持原样，使用 2.0 前需重新导入项目。
@@ -32,6 +33,7 @@
 ### Security
 - **Obsidian 最小授权**：一次性配对码限时且仅可消费一次，插件令牌可撤销并只保存哈希，插件专用路由独立校验 Bearer token。
 - **冲突与路径保护**：系统不覆盖无管理标记、身份/修订不符、哈希变化或越界路径的 Vault 文件；首版插件不做自动合并。
+- **前端依赖漏洞修复**：锁文件将 `postcss` 升至 `8.5.22`，并以 `minimatch@9.0.8` 兼容覆盖解析到 `brace-expansion@5.0.9`，清除原有两个 high 漏洞及后续披露的传播节点；在线 `npm audit --audit-level=high` 和 `pip-audit` 均报告 0 个已知漏洞。
 
 ---
 

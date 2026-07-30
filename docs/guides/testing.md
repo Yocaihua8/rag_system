@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24（补充 B-165 v2.0.0 本地发布候选验收）
+> Last Updated：2026-07-30（补充 B-166 本地等价 CI、路径联接与额度例外）
 
 ## 1. 目标
 
@@ -27,7 +27,11 @@ B-149 新增 `.github/workflows/ci.yml`，每次向 `main` 推送或发起 PR �
 
 **合并门禁**：两个 job 均为 required status check，任一失败阻止 PR 合并（分支保护设置见 `docs/guides/release-process.md §2`）。
 
-**本地等价验证**：若本机未安装 `act` 且当前任务不允许 push，可按 CI job 命令分别运行 `npm ci`、`npm audit --audit-level=high`、`npm run build`、`pip-audit -r requirements.txt -r requirements-dev.txt`、`pytest tests/test_backend tests/test_webapp -q`、`scripts/check_docs_consistency.py`、`npm run test:unit`、`npx playwright install chromium --with-deps` 和 `npx playwright test`。如本机网络无法下载 Playwright 托管 Chromium，可临时设置 `KI_E2E_BROWSER_CHANNEL=msedge` 或 `chrome` 使用已安装浏览器验证 E2E 脚本链路；这只能证明命令链本地可通过，真正的 GitHub-hosted status check 仍以 PR / `main` 上的 Actions 结果为准。
+**本地等价验证**：若本机未安装 `act` 且当前任务不允许 push，可按 CI job 命令分别运行 `npm ci`、`npm audit --audit-level=high`、`npm run build`、`pip-audit -r requirements.txt -r requirements-dev.txt`、`pytest tests/test_backend tests/test_webapp -q`、`scripts/check_docs_consistency.py`、`npm run test:unit`、`npx playwright install chromium --with-deps` 和 `npx playwright test`。如本机网络无法下载 Playwright 托管 Chromium，可临时设置 `KI_E2E_BROWSER_CHANNEL=msedge` 或 `chrome` 使用已安装浏览器验证 E2E 脚本链路；这只能证明命令链本地可通过，不得表述为 GitHub-hosted status check 已通过。
+
+**Windows 路径联接注意**：当前本机的仓库入口 `E:\Code\knowledage_island` 是指向 `E:\Dev\Projects\knowledage_island` 的 Junction。Node、Vite、esbuild、Playwright 和 Tauri 可能按真实路径执行文件访问；若在入口路径遇到模块不可访问、构建目录清理 `EPERM` 等权限错误，应先用 `Resolve-Path` / `(Get-Item -LiteralPath <path>).Target` 核对目标，再从真实路径重跑并同时记录入口路径与真实路径。此类路径权限错误本身不能记为代码测试失败或测试通过。
+
+**GitHub Actions 额度例外**：默认合并门禁仍是 PR / `main` 上的两个 required status check。仅当仓库负责人确认 GitHub Actions 额度已用尽、当前候选无法取得 hosted runner 结果时，才允许按 `docs/guides/release-process.md §2.1` 启动一次性、可审计的本地等价例外：固定候选 commit，记录工作区状态、Node/Python/npm 版本、完整命令、用例数量、退出码和失败边界，将证据同步到 PR 与 readiness，并由发布负责人明确批准后再决定是否合并。例外不得写成“远端 CI green”，额度恢复后仍回到常规 required checks。
 
 ## 3. 命令建议
 
@@ -181,3 +185,22 @@ docker compose config
 | `.venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q` | 通过，11 项静态打包契约 |
 
 额外原生预检中，`cargo metadata` 成功识别 `knowledge-island-desktop 2.0.0`；`npx tauri info` 检测到缺少 MSVC/Windows SDK，`cargo check` 因 `link.exe not found` 未通过。因此未执行或宣称 Windows NSIS、macOS `.dmg`、Linux `.AppImage` v2 原生产物通过。完整证据和旧运行时 SHA-256 对照见 v2 readiness。
+
+## 7. B-166 2026-07-30 本地等价 CI 复验
+
+2026-07-30 在 `feature/project-knowledge-coach-v2` 的 B-166 候选上，从 Junction 的真实路径 `E:\Dev\Projects\knowledage_island` 完成以下复验：
+
+| 门禁 | 结果 |
+|------|------|
+| `npm ci` + `npm audit --audit-level=high` | 通过；最终锁文件所有漏洞等级均为 0 |
+| `pip-audit -r requirements.txt -r requirements-dev.txt` | 通过；0 个已知漏洞 |
+| `.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q` | 通过，533 项 |
+| 文档一致性与文档 / Tauri 契约 | 通过；契约测试 37 项 |
+| `npm run test:unit` | 通过，22 个文件、92 项；另以 Node `v20.19.5` 复跑 92 项通过，与 CI Node 20 基线一致 |
+| `npm run build` | 通过，52 个模块 |
+| Obsidian 插件测试 / typecheck / build | 通过，Vitest 17 项，TypeScript 与 esbuild 无错误 |
+| `npm run test:e2e` | 通过，Chromium 1 项主流程，测试服务正常关闭 |
+| `cargo check --manifest-path src-tauri/Cargo.toml` | 通过 |
+| `npm run tauri:build:windows` | 通过；生成 48,948,957 字节的 `Knowledge Island_2.0.0_x64-setup.exe`，SHA-256 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B` |
+
+该 Windows NSIS 是未签名的本地候选产物，不等于正式发布包。GitHub Actions 额度已用尽，因此本轮没有 hosted status check；PR、`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending。

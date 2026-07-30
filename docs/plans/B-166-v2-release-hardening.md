@@ -25,7 +25,7 @@
 - [x] 登记安全问题并完成 `brace-expansion` / `postcss` 最小兼容升级
 - [x] 完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
 - [x] 补齐 MSVC / Windows SDK 后完成 `cargo check` 与 Windows Tauri 安装包验证
-- [ ] 同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
+- [x] 同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
 - [ ] 推送功能分支、创建 PR，记录本地 CI 证据并在无远端 CI 额度边界下合并 `main`
 - [ ] 创建并推送 `v2.0.0` Tag，创建 GitHub Release，完成发布后审计
 
@@ -39,6 +39,7 @@
 | 文档 | `docs/guides/testing.md`, `docs/guides/release-process.md` | GitHub Actions 额度边界与本地等价门禁 |
 | 文档 | `docs/features/desktop-packaging.md` | v2 Windows 原生包结果 |
 | 文档 | `README.md`, `CHANGELOG.md`, `docs/devlog/2026-07-30.md` | 正式版本口径与发布记录 |
+| 文档 | `docs/README.md`, `docs/guides/setup.md`, `docs/features/frontend-engineering.md` | 当前候选边界、环境与前端依赖安全事实 |
 
 ## 5. 依赖与冲突
 
@@ -60,7 +61,7 @@
 - [x] `pip-audit`、Python/Vue/插件/Playwright 完整本地 CI 等价矩阵通过
 - [x] Windows `cargo check` 与 `npm run tauri:build:windows` 通过并生成 NSIS 安装包
 - [ ] PR 明确记录无 GitHub Actions 额度及本地验证命令、提交和结果
-- [ ] 相关文档已同步（见下方“回流清单”）
+- [x] 相关文档已同步（见下方“回流清单”）
 - [ ] BACKLOG 条目 B-166 状态已更新为 `done`
 - [ ] `main`、`v2.0.0` Tag 和 GitHub Release 指向同一已验证发布提交
 
@@ -68,10 +69,10 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 漏洞路径、修复版本与安全审计结果 | `docs/BACKLOG.md`, `CHANGELOG.md` | [ ] |
-| 本地 CI 等价矩阵及 GitHub Actions 额度边界 | `docs/release/V2_0_0_READINESS_2026-07-24.md`, `docs/guides/testing.md`, `docs/guides/release-process.md` | [ ] |
-| Windows 工具链与 NSIS 产物证据 | `docs/features/desktop-packaging.md`, `docs/release/V2_0_0_READINESS_2026-07-24.md` | [ ] |
-| 正式 v2 产品、安装与发布口径 | `README.md`, `CHANGELOG.md`, `docs/devlog/2026-07-30.md` | [ ] |
+| 漏洞路径、修复版本与安全审计结果 | `docs/BACKLOG.md`, `CHANGELOG.md` | [x] |
+| 本地 CI 等价矩阵及 GitHub Actions 额度边界 | `docs/release/V2_0_0_READINESS_2026-07-24.md`, `docs/guides/testing.md`, `docs/guides/release-process.md` | [x] |
+| Windows 工具链与 NSIS 产物证据 | `docs/features/desktop-packaging.md`, `docs/release/V2_0_0_READINESS_2026-07-24.md` | [x] |
+| 正式 v2 产品、安装与发布口径 | `README.md`, `CHANGELOG.md`, `docs/devlog/2026-07-30.md` | [x] |
 
 ## 8. 执行记录
 
@@ -86,6 +87,7 @@
 - 2026-07-30：最终依赖树执行 `npm ci` 和在线 `npm audit --audit-level=high` 均通过，所有漏洞等级为 0；在线 `pip-audit` 报告 0 个已知漏洞。真实路径完成 Vue 22 文件 / 92 项单测、52 模块构建、Obsidian 插件 17 项测试 / typecheck / build，以及 Playwright Chromium 1 项主流程；另用 Node `v20.19.5` 复跑 92 项 Vue 单测通过。Python 533 项、文档一致性和 37 项文档/Tauri 契约继续通过。
 - 2026-07-30：经用户批准安装 Visual Studio Build Tools 2022 `17.14.37`，核实 VCTools workload、MSVC `14.44.35207`、Windows 11 SDK `10.0.26100.0`、MSBuild `17.14.51.32402` 均可用，安装完整且无需重启。
 - 2026-07-30：`cargo check --manifest-path src-tauri/Cargo.toml` 在 28.18 秒内通过；`npm run tauri:build:windows` 在 128.3 秒内完成 Vue 构建、PyInstaller sidecar、Rust release 与 NSIS bundle，生成 48,948,957 字节的 `Knowledge Island_2.0.0_x64-setup.exe`，SHA-256 为 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B`。产物未签名，签名仍属于本阶段非目标。
+- 2026-07-30：已同步 BACKLOG、readiness、测试/发布/环境指南、桌面与前端工程文档、README、CHANGELOG 和当日 devlog；明确本地候选与正式远端发布边界、Junction 真实路径、Actions 额度例外及未签名风险。`scripts/check_docs_consistency.py` 通过，文档与 Tauri 契约 `37 passed`。
 
 ## 9. 状态快照
 

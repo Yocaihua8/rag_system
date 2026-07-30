@@ -2,12 +2,12 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24（B-165 v2.0.0 本地候选验收）
+> Last Updated：2026-07-30（B-166 Windows v2 原生候选验收）
 
 ## 1. 环境要求
 
 - Python 3.10+（仓库默认以 3.11 为主）
-- Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；当前本机验证为 Node 24 + npm 11）
+- Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；B-166 本机验证为 Node 24 + npm 11，并以 Node 20.19.5 复跑 Vue 单测）
 - Rust stable + Cargo + rustup（仅 Tauri 原生桌面打包需要；Web MVP 浏览器模式不需要）
 - Windows WebView2 + MSVC Build Tools（仅 Windows Tauri 桌面打包需要）
 - macOS / Linux Tauri 平台依赖（仅 macOS `.dmg` / Linux `.AppImage` 原生桌面打包需要）
@@ -152,7 +152,7 @@ src-tauri/icons/icon.ico
 
 其中 `icon.icns` 用于 macOS bundle，PNG 图标用于 Linux / 通用桌面资源，`icon.ico` 用于 Windows resource 生成。当前仓库仍不在 Windows 上交叉生成 macOS `.dmg` 或 Linux `.AppImage`；只有在目标原生系统完成上述 `npm run tauri:build:*` 命令并产生产物后，才视为对应平台原生验证完成。
 
-B-165 在 2026-07-24 的本机预检中确认 Rust/Cargo、WebView2 和 PyInstaller 可用，但缺少含 MSVC 与 Windows SDK 的 Visual Studio Build Tools，`cargo check` 报 `link.exe not found`。因此当前只完成 Tauri 静态契约和 Cargo 元数据验证，未生成 `2.0.0` Windows installer；安装对应 Build Tools 后再运行 `npm run tauri:build:windows`。
+B-165 在 2026-07-24 的本机预检中确认 Rust/Cargo、WebView2 和 PyInstaller 可用，但当时缺少含 MSVC 与 Windows SDK 的 Visual Studio Build Tools，`cargo check` 报 `link.exe not found`。B-166 已于 2026-07-30 安装并核实 Build Tools 2022 `17.14.37`、MSVC `14.44.35207` 与 Windows 11 SDK `10.0.26100.0`，随后 `cargo check` 和 `npm run tauri:build:windows` 均通过，生成未签名的 `Knowledge Island_2.0.0_x64-setup.exe`；产物哈希和正式发布边界见 v2 readiness。
 
 如果没有可用的本地 macOS / Linux 机器，可在 GitHub Actions 手动触发 `Tauri Packaging` workflow（`.github/workflows/tauri-packaging.yml`）。该 workflow 使用 `macos-latest` 和 `ubuntu-latest` runner 执行同一组 npm 打包命令，并上传 `.dmg` / `.AppImage` 作为验证产物。
 

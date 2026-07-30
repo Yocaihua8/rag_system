@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
-> Scope：B-141 Vue 3 + Vite 前端工程化（已完成 A-Z 页面级迁移收口）；B-142 Vue 工作台 SSE 与会话历史迁移（已完成）；B-143 legacy 静态前端 fallback 移除（已完成）；B-42 知识库辅助管理页（已完成）；B-128 对话分支与历史消息编辑重发；B-145 Tauri 桌面壳复用 Vue 构建产物；B-151 前端 Vitest 单元测试；B-156 第二阶段前端简洁化重设计；B-164 Vue 项目知识教练闭环（已实现）；B-165 本地发布候选验收（已完成）
+> Last Updated：2026-07-30
+> Scope：B-141 Vue 3 + Vite 前端工程化（已完成 A-Z 页面级迁移收口）；B-142 Vue 工作台 SSE 与会话历史迁移（已完成）；B-143 legacy 静态前端 fallback 移除（已完成）；B-42 知识库辅助管理页（已完成）；B-128 对话分支与历史消息编辑重发；B-145 Tauri 桌面壳复用 Vue 构建产物；B-151 前端 Vitest 单元测试；B-156 第二阶段前端简洁化重设计；B-164 Vue 项目知识教练闭环（已实现）；B-165 本地发布候选验收（已完成）；B-166 前端依赖安全与正式发布收口
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/features/desktop-packaging.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
 ## 1. 功能定位
@@ -287,3 +287,4 @@ B-164 当前实现满足：
 - Obsidian 配对码只用于桌面插件完成配对；浏览器不持有插件 token，不调用 `sync/events`、`publications/pending` 或 `publications/result`。
 - 发布确认后界面显示 `queued / 等待插件执行`，不把用户确认写成 Vault 已应用。
 - B-165 已完成 92 项 Vitest、Vue 生产构建、Playwright 流式问答主流程和 Tauri 静态打包回归；本地候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。该结果不代表已生成原生安装包或完成远端发布。
+- B-166 以 `overrides.minimatch=9.0.8` 保持现有 `editorconfig` / `glob` 的 9.x 约束，并解析到已修复的 `brace-expansion@5.0.9`；最终 `npm ci`、在线 npm audit、Node 20 / 24 Vue 单测、构建和 Playwright 均通过。Windows NSIS 候选已生成但未签名，正式远端发布状态仍以 v2 readiness 为准。
