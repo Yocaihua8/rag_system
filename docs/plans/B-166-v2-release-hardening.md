@@ -93,9 +93,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-07-30 22:45
+- **最后更新**：2026-07-30 22:49
 - **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`cc09293` — feat: 发布 Knowledge Island v2.0.0 (#4)
-- **代码状态**：`main`；PR #4 已在两项 hosted checks 通过后合并，正式发布文件尚未固化
+- **最新 commit**：`0b3c0a7` — docs: 记录 PR #4 合并完成
+- **代码状态**：`main`；PR #4 合并状态、远端 CI 和 Action runtime 警告已回填，正式发布文件尚未固化
 - **下一步**：固化 CHANGELOG 与正式发布口径，关闭 B-166、删除 plan，推送最终发布提交并在 main CI 通过后创建 `v2.0.0` Tag 和 GitHub Release
 - **续任务须知**：Windows NSIS 产物仍位于忽略目录，大小与 SHA-256 已核验且未签名；最终发布提交不得改业务代码，Tag、main 和 Release 必须指向同一提交。
