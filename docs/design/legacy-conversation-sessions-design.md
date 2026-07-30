@@ -4,6 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-07-30
 > Scope：B-20，记录 legacy `ConversationRecord` / `QueryKnowledgeBaseUseCase` 的会话上下文扩展；数据库字段和应用层上下文注入已落地，桌面端会话管理 UI 尚未实现。
+> Related：`chat-sessions-design.md`、`api-spec.md`、`../devlog/README.md`
 
 ## 1. 背景
 
@@ -132,7 +133,7 @@ B-20 实现后已同步：
 
 - `docs/design/database-design.md`：记录 legacy `conversations.session_id` 字段和索引。
 - `docs/design/architecture-overview.md`：说明 legacy `QueryKnowledgeBaseUseCase` 的上下文读取边界。
-- `docs/BACKLOG.md`、`docs/DEVLOG.md`、`CHANGELOG.md`：记录实现状态。
+- `docs/BACKLOG.md`、`docs/devlog/README.md`、`CHANGELOG.md`：记录实现状态。
 
 ## 10. 风险
 

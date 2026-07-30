@@ -4,6 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-05-16
 > Scope：核心流程可验收行为
+> Related：`api-spec.md`、`database-design.md`、`../requirements/use-cases.md`
 
 ## 1. 摄入流程状态
 

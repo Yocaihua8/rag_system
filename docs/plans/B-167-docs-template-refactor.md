@@ -25,7 +25,7 @@
 
 - [x] 建立模板消费与治理基线：记录 profile/packs/state，补齐根级规范、GitHub 协作资产和跨平台文档校验脚本
 - [x] 重构正式文档入口、映射、需求、设计、功能、指南与 ADR 模板/索引，并用源码校准 v2.0.0 事实
-- [ ] 将 dated DevLog 迁入 `docs/devlog/YYYY/MM/`，修复全仓链接和索引，保留历史扩展目录
+- [x] 将 dated DevLog 迁入 `docs/devlog/YYYY/MM/`，修复全仓链接和索引，保留历史扩展目录
 - [ ] 运行链接、占位符、元数据、文档一致性、测试与前端构建验证并修复发现的问题
 - [ ] 完成回流审计，将 B-167 置为 `done` 并删除本 plan
 
@@ -73,7 +73,7 @@
 | 需求、架构、API、数据、权限、前后端契约与功能索引 | `docs/requirements/`、`docs/design/`、`docs/features/` | [x] |
 | 开发、运维、安全、支持、贡献、迁移与排障指南 | `docs/guides/`、`CONTRIBUTING.md`、`SECURITY.md` | [x] |
 | ADR/功能/RFC/DevLog/Postmortem 等复用模板 | `docs/adr/`、`docs/features/`、`docs/design/`、`docs/devlog/` | [x] |
-| DevLog 年月归档规则和历史入口 | `docs/devlog/README.md`、`docs/README.md` | [ ] |
+| DevLog 年月归档规则和历史入口 | `docs/devlog/README.md`、`docs/README.md` | [x] |
 | GitHub 协作资产与自动化文档门禁 | `.github/`、`scripts/` | [ ] |
 
 ## 8. 执行记录
@@ -85,12 +85,14 @@
 - 2026-07-30：已机械复用模板 1.0.0 中 32 个缺失 scaffold 文件，并以当前目标文件哈希生成 64 行 `.docs-template/state.tsv`；未覆盖任何既有文件。
 - 2026-07-30：暂不创建 `.docs-template/strict-ci`。活动文档完成语义迁移且消费者占位符检查归零后再激活；本地 `.venv`、运行时副本和 GitHub Actions 表达式的误报留待校验切片修正。
 - 2026-07-30：完成正式文档语义迁移。按当前后端、Vue/Tauri、Obsidian 插件和发布事实重写入口、治理、契约与运维文档，并将 37 张当前 SQLite 表、未挂载视图、URL 摘录参数缺口、v2 备份路径漂移和 Tauri 动态连通性风险明确写回正式文档与 BACKLOG。
+- 2026-07-30：将 19 份 dated DevLog 原样迁入 `docs/devlog/2026/{04,05,07}/`，重建年月索引并更新活动路径引用；历史 superpowers plan 和 BACKLOG ISSUE-003 中的旧路径作为当时事实保留。
+- 2026-07-30：强化 `scripts/check_docs_consistency.py`，新增递归 DevLog 归档/索引、功能索引、ADR 索引、核心目录和正式文档元数据检查，并补 3 项回归测试。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-30
-- **进度**：已完成 1 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`694ed27` — docs: 建立模板治理与协作基线
-- **代码状态**：`main`；模板治理基线已提交；状态快照为下一提交的计划更新
-- **下一步**：重构正式文档入口、映射、需求、设计、功能、指南与 ADR 模板/索引
-- **续任务须知**：使用源码事实替换模板占位内容；不得新增 LICENSE 或修改公共 API、数据库 schema、Agent 权限；严格占位符门禁尚未激活
+- **进度**：已完成 2 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`f6db3b6` — docs: 校准 v2 文档结构与实现事实
+- **代码状态**：`main`；正式文档语义迁移已提交；状态快照为下一提交的计划更新
+- **下一步**：将 dated DevLog 迁入 `docs/devlog/YYYY/MM/`，同步索引、路径引用和一致性脚本
+- **续任务须知**：保留历史日志内容，只迁移 19 份 dated DevLog 并修复必要路径；严格占位符门禁尚未激活

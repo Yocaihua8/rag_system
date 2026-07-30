@@ -4,10 +4,11 @@
 > Owner：RAG 团队
 > Last Updated：2026-07-30
 > Scope：B-111 设计与 B-112 第一片实现边界；当前已落地 LLM Profile CRUD、默认 Profile 和设置页入口，具体接口与表结构以 `design/api-spec.md`、`design/database-design.md` 为准。
+> Related：`api-spec.md`、`database-design.md`、`../features/multi-model-comparison.md`
 
 ## 1. 背景
 
-当前 Web MVP 的模型设置仍是全局单配置：`GET/POST /api/settings/llm` 读取或写入 `provider / api_base / model / api_key`，底层由配置层合并 OS 环境变量、Windows 持久环境变量、appdata `.env`、项目 `.env` 和默认值。该方案适合首次使用，但当用户需要在 DeepSeek、OpenAI-compatible、本地 Ollama 或不同模型之间切换时，只能反复覆盖同一组配置。
+B-111 设计时，Web MVP 只有 `GET/POST /api/settings/llm` 全局单配置。B-112 已在保留该兼容入口的同时落地 LLM Profile CRUD、默认 Profile、测试连接和设置页入口；底层仍由配置层解析环境变量、appdata `.env`、项目 `.env` 和默认值。
 
 B-110 已把 Prompt 预设和模型配置分离：Prompt 控制回答风格和结构，不保存 API Key、不改变 provider。B-111 的目标是在不破坏现有单配置行为的前提下，先设计“模型 Profile”多配置能力，为 B-112 实现做约束。
 

@@ -4,6 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-06-28
 > Scope：B-148 First-Run Wizard（首次运行向导）
+> Related：`frontend-engineering.md`、`../design/api-spec.md`、`../guides/setup.md`
 
 ## 1. 目标
 

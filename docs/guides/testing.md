@@ -3,6 +3,8 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-07-30（补充 B-166 本地等价 CI、路径联接与额度例外）
+> Scope：Knowledge Island v2.0.0 后端、Vue、E2E、Tauri、插件、文档与发布验证
+> Related：`setup.md`、`release-process.md`、`../design/api-spec.md`、`../release/V2_0_0_READINESS_2026-07-24.md`
 
 ## 1. 目标
 

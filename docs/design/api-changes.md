@@ -2,7 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-16
+> Last Updated：2026-07-30
+> Scope：Knowledge Island 本地 HTTP API 的破坏性变更记录与迁移要求
+> Related：`api-spec.md`、`architecture-overview.md`、`../guides/release-process.md`
 
 当前项目未对外发布 HTTP API，未形成对外接口版本契约。
 

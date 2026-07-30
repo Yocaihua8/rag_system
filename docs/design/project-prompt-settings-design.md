@@ -3,7 +3,10 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-07-30
-> Scope：B-109，仅设计项目级 Prompt / 助手预设的数据结构和问答注入边界；本文件不代表已建表或已实现 UI。
+> Scope：B-109/B-110 项目级 Prompt 预设的数据结构、问答注入与当前实现
+> Related：`api-spec.md`、`database-design.md`、`../features/frontend-engineering.md`
+
+> 当前边界：`prompt_presets`、CRUD/默认接口和设置页入口已经实现；本文仍保留早期设计取舍，当前字段与行为以接口、数据库设计和源码为准。
 
 ## 1. 背景
 

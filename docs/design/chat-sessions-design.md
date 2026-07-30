@@ -3,7 +3,10 @@
 > 状态：Archived
 > Owner：RAG 团队
 > Last Updated：2026-07-30
-> Scope：B-107，仅设计 `chat_sessions` 与现有 `chat_messages` 的兼容关系；本文件不代表已建表或已实现 UI。
+> Scope：B-107/B-108 多会话设计的历史记录；当前表、API 与 Vue 线程能力已经实现
+> Related：`api-spec.md`、`database-design.md`、`../features/chat-branching.md`
+
+> 当前边界：本文保留设计演进过程，不再作为当前完成度判断依据；当前契约以 `api-spec.md`、`database-design.md` 和源码为准。
 
 ## 1. 背景
 

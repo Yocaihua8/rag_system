@@ -2,8 +2,11 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
-> Scope：B-115 设计 + B-116 第一片实现边界；当前已落地导入批次表、只读历史接口和资料库页最近批次展示。
+> Last Updated：2026-07-30
+> Scope：B-115/B-116 导入批次表、只读历史接口及当前 UI 可达边界
+> Related：`api-spec.md`、`database-design.md`、`../features/knowledge-base-management.md`
+
+> 当前边界：导入批次存储和只读 API 已实现；最近批次展示仍位于未挂载的 `LibraryView`，当前主路径 `LibraryModal` 不展示批次历史。
 
 ## 1. 背景
 

@@ -3,7 +3,7 @@
 > 目标：确认默认本地 Web MVP 可用于个人项目资料导入、检索、问答和来源查看
 > Owner：RAG 团队
 > 适用范围：`app.py` 启动的本机 Web 服务
-> 说明：本文是 2026-05-20 收口快照；2026-05-22 后新增能力以 `README.md`、`docs/design/api-spec.md`、`docs/BACKLOG.md`、`docs/DEVLOG.md` 和 `CHANGELOG.md` 为准。
+> 说明：本文是 2026-05-20 收口快照；2026-05-22 后新增能力以 `README.md`、`docs/design/api-spec.md`、`docs/BACKLOG.md`、`docs/devlog/README.md` 和 `CHANGELOG.md` 为准。
 
 ## 1. 可交付范围
 

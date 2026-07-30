@@ -2,8 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-07-30
 > Scope：本地 Web / Coach HTTP API + legacy 进程内接口
+> Related：`architecture-overview.md`、`database-design.md`、`permission-matrix.md`
 
 ## 1. 本地 Web MVP HTTP API
 

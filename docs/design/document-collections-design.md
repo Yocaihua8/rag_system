@@ -3,7 +3,10 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-07-30
-> Scope：B-113/B-114，设计文档集合/分组与现有项目文档列表、检索过滤的关系；B-114 已落地资料库集合管理第一片，问答/检索按集合过滤仍为后续范围。
+> Scope：B-113/B-114 文档集合、列表筛选及当前 UI 可达边界
+> Related：`api-spec.md`、`database-design.md`、`../features/knowledge-base-management.md`
+
+> 当前边界：集合表与管理 API 已实现；主路径 `LibraryModal` 只读取和筛选集合，完整集合管理保留在未挂载的 `LibraryView`。问答 payload 仍未按用户选择资料或集合收窄。
 
 ## 1. 背景
 

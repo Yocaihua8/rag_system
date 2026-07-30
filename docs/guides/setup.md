@@ -3,6 +3,8 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-07-30（B-166 Windows v2 原生包与正式发布验收）
+> Scope：Knowledge Island v2.0.0 本地 Web、Vue、Tauri、Docker 与可选 Provider 的开发环境和启动方式
+> Related：`testing.md`、`runbook.md`、`../design/architecture-overview.md`、`../design/database-design.md`
 
 ## 1. 环境要求
 
