@@ -2,11 +2,11 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
+> Last Updated：2026-07-30
 > Scope：Knowledge Island 1.x 兼容架构基线与 2.0 当前实现架构
 > Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 当前架构与分片落地状态。本地发布候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
+> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 当前架构与分片落地状态。v2.0.0 正式发布证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
 ## 1. 1.x 当前架构结论
 
@@ -304,3 +304,4 @@ B-163 已实现路径：
 | B-163 | Obsidian 插件桥、同步与受控发布 | 已实现（领域、存储、九个 API 与独立桌面插件） |
 | B-164 | Vue 教练闭环 | 已实现（五入口、统一来源、定向评估、计划与 Obsidian 用户侧流程） |
 | B-165 | OpenAPI、测试、插件构建、E2E 与发布验收 | 已完成本地发布候选验收；正式 Tag、远端发布和原生安装包另行执行 |
+| B-166 | 依赖安全与正式发布 | 已完成安全审计、本地/远端 CI、`main` 合并、`v2.0.0` Tag、GitHub Release 与 Windows x64 NSIS 发布 |

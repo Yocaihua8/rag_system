@@ -2,13 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
+> Last Updated：2026-07-30
 > Scope：Knowledge Island 2.0 项目知识教练模块边界
 > Related：docs/requirements/project-background-and-scope.md, docs/features/project-knowledge-coach.md, docs/design/api-spec.md, docs/design/database-design.md
 
 ## 1. 状态与代际边界
 
-本文定义当前 2.0 模块边界。B-161～B-165 已完成本地候选实现与自动化验收；正式 Tag、远端发布和目标平台原生产物仍按发布流程单独执行。1.x 事实继续作为兼容基线。
+本文定义当前 2.0 模块边界。B-161～B-166 已完成实现、自动化验收、`main` 合并、`v2.0.0` Tag、GitHub Release 和 Windows x64 NSIS 发布；macOS / Linux v2 原生产物仍按发布流程单独执行。1.x 事实继续作为兼容基线。
 
 | 代际 | 模块事实 |
 |------|----------|

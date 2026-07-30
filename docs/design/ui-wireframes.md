@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
-> Scope：Knowledge Island 当前项目知识教练页面事实、1.x 兼容边界与 B-165 本地发布候选验收边界
+> Last Updated：2026-07-30
+> Scope：Knowledge Island 当前项目知识教练页面事实、1.x 兼容边界与 v2.0.0 正式发布边界
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/design/codex-ui-visual-system.md
 
 ## 0. 实现状态
@@ -14,7 +14,7 @@
 | 旧 `聊 / 库 / 设` 能力与 `AssessmentView` | 兼容保留 | 旧 API / 组件不再作为 2.0 一级导航 |
 | Obsidian Vault 路径导入 | 兼容保留 | 一次性只读导入，不是连接、持续同步或写回 |
 | Obsidian 插件连接与成果发布 | B-163/B-164 已实现 | 资料和设置展示真实连接；确认发布后进入 `queued`，等待插件执行 |
-| `v2.0.0` 完整 E2E 与发布门禁 | B-165 本地候选验收完成 | Vitest、Vue 构建和 Playwright E2E 已通过；不等于正式远端发布 |
+| `v2.0.0` 完整 E2E 与发布门禁 | B-165/B-166 正式发布完成 | Vitest、Vue 构建、Playwright E2E、本地/远端 CI、Tag 与 GitHub Release 已完成 |
 | B-157 全局资料库 / 跨工作区共享 | 不再推进 | 不作为 2.0 页面或数据前置条件 |
 
 当前桌面布局：
@@ -213,4 +213,4 @@ Vue 主体验采用左侧工作区和线程侧栏，通过 `教练 / 学习地�
 4. 学习计划草稿可编辑、排序和确认；确认版只更新进度，发布预览是独立确认步骤。
 5. 一次性只读导入与插件连接使用不同状态文案；浏览器不调用插件专用同步、领取或结果回传路由。
 6. 发布到 Obsidian 前预览内容和路径并显式确认；确认后显示 `queued` 并等待插件处理，不直接宣称写回成功。
-7. B-165 已完成 Vue 单测、构建、Playwright 主流程、项目教练到 Obsidian 发布的后端全闭环和 Tauri 静态回归；证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。该结论不代表已创建 Tag、推送远端、合并 `main` 或生成原生安装包。
+7. B-165/B-166 已完成 Vue 单测、构建、Playwright 主流程、项目教练到 Obsidian 发布的后端全闭环、本地/远端 CI、`main` 合并、Tag、GitHub Release 与 Windows x64 NSIS；证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。安装包未签名，macOS / Linux v2 原生产物未运行。

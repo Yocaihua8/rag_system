@@ -287,4 +287,4 @@ B-164 当前实现满足：
 - Obsidian 配对码只用于桌面插件完成配对；浏览器不持有插件 token，不调用 `sync/events`、`publications/pending` 或 `publications/result`。
 - 发布确认后界面显示 `queued / 等待插件执行`，不把用户确认写成 Vault 已应用。
 - B-165 已完成 92 项 Vitest、Vue 生产构建、Playwright 流式问答主流程和 Tauri 静态打包回归；本地候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。该结果不代表已生成原生安装包或完成远端发布。
-- B-166 以 `overrides.minimatch=9.0.8` 保持现有 `editorconfig` / `glob` 的 9.x 约束，并解析到已修复的 `brace-expansion@5.0.9`；最终 `npm ci`、在线 npm audit、Node 20 / 24 Vue 单测、构建和 Playwright 均通过。Windows NSIS 候选已生成但未签名，正式远端发布状态仍以 v2 readiness 为准。
+- B-166 以 `overrides.minimatch=9.0.8` 保持现有 `editorconfig` / `glob` 的 9.x 约束，并解析到已修复的 `brace-expansion@5.0.9`；最终 `npm ci`、在线 npm audit、Node 20 / 24 Vue 单测、构建和 Playwright 均通过。`v2.0.0` 已完成 Tag 与 GitHub Release，Windows NSIS 作为未签名资产发布，完整边界见 v2 readiness。

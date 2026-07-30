@@ -77,14 +77,14 @@ npm run tauri:build:windows
 
 输出：`src-tauri\target\release\bundle\nsis\Knowledge Island_<version>_x64-setup.exe`（NSIS installer）。
 
-2026-07-30 的 v2.0.0 本地候选已在 Windows 原生工具链上完成 `cargo check --manifest-path src-tauri/Cargo.toml` 与 `npm run tauri:build:windows`，生成：
+2026-07-30 的 v2.0.0 Windows 资产已在原生工具链上完成 `cargo check --manifest-path src-tauri/Cargo.toml` 与 `npm run tauri:build:windows`，生成：
 
 - 文件：`src-tauri\target\release\bundle\nsis\Knowledge Island_2.0.0_x64-setup.exe`
 - 大小：48,948,957 字节
 - SHA-256：`BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B`
-- 签名状态：未签名，仅作为本地候选验证产物
+- 签名状态：未签名；GitHub Release 明确保留该边界
 
-该产物证明 Windows NSIS 构建链在本机可完成，不代表安装包已经上传或 v2.0.0 已正式发布。
+该文件先作为本地候选完成验收，随后在主分支发布门禁通过后以同一 SHA-256 上传到 v2.0.0 GitHub Release。
 
 ### 4.2 macOS `.dmg`
 
@@ -126,9 +126,9 @@ npm run tauri:build:linux
 | v0.8.0 | 2026-05-23 | 多会话聊天 + 检索复盘 + Agent 工具面板 + 备份导出 |
 | v0.7.0 | 2026-05-21 | Web MVP 首版：RAG 检索 + 问答 + 聊天记录 + Docker |
 
-## 7. 本地发布候选记录
+## 7. 版本发布记录
 
 | 版本 | 日期 | 状态 | 边界 |
 |------|------|------|------|
 | v2.0.0 | 2026-07-24 | 本地源码与自动化候选就绪 | 未创建 Tag、未推送远端、未合并 `main`、未创建 GitHub Release；本机缺少 MSVC `link.exe`，未生成 Windows installer，详见 v2 readiness |
-| v2.0.0 | 2026-07-30 | 本地/远端 CI、`main` 与 Windows NSIS 候选就绪 | PR #4 `python-tests` / `frontend-e2e` 已通过并合并 `main`；NSIS 未签名；`v2.0.0` Tag 和 GitHub Release 仍为 Pending |
+| v2.0.0 | 2026-07-30 | 正式发布 | 本地/远端 CI、`main` 合并、`v2.0.0` Tag 和 GitHub Release 已完成；Release 附带 SHA-256 已核验但未签名的 Windows x64 NSIS，macOS / Linux v2 原生产物未运行 |

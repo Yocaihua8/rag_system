@@ -8,7 +8,13 @@
 
 ## [Unreleased]
 
-> 目标版本：`v2.0.0`。依赖安全、完整本地 CI、PR #4 两项 GitHub Actions 检查与 Windows 未签名 NSIS 候选包已完成验收，PR 已合并 `main`；Git Tag 和 GitHub Release 仍待执行，正式发布时再按发布流程固化版本日期。
+> 暂无未发布变更。
+
+---
+
+## [v2.0.0] - 2026-07-30
+
+> 正式发布版本。PR #4 两项 GitHub Actions 检查、完整本地 CI、依赖安全审计和 Windows NSIS 原生构建均已通过；Windows 安装包未做 Authenticode 签名。
 
 ### Added
 - **项目知识分析**：为 Python、JavaScript/TypeScript 和常见 Web 项目生成带真实来源的项目理解、稳定知识点、版本化技能映射和 stale 状态；其他文本项目使用目录、清单、文档与 RAG 规则回退。
@@ -17,7 +23,7 @@
 - **Obsidian 桌面插件桥**：独立插件支持限时配对、Markdown 增删改名事件、Frontmatter/标签/Wikilink 元数据、离线幂等重放和受控发布结果回传。
 - **受控 Obsidian 发布**：项目理解、知识覆盖与技能差距、学习计划和评估记录须经过内容与路径预览、用户确认、插件执行三阶段写回，并保留不可变发布修订。
 - **Vue 教练闭环**：一级入口调整为“教练 / 学习地图 / 学习计划 / 资料 / 设置”，保留 Codex 风格会话、流式回答和依据抽屉，评估改为不切换上下文的覆盖层。
-- **Windows 原生安装候选**：本地 Windows 工具链已完成 `cargo check`、后端 sidecar、Rust release 和 NSIS bundle 全链路验证，生成未签名的 v2.0.0 x64 安装候选；正式下载仍以 GitHub Release 发布物为准。
+- **Windows 原生安装包**：本地 Windows 工具链已完成 `cargo check`、后端 sidecar、Rust release 和 NSIS bundle 全链路验证；GitHub Release 提供未签名的 v2.0.0 x64 安装包。
 
 ### Changed
 - **BREAKING — v2 数据代际**：默认数据根切换为 `runtime/v2/`，不迁移旧 `runtime/app.db`、旧 Web 数据库或向量目录；旧文件保持原样，使用 2.0 前需重新导入项目。

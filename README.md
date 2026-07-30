@@ -13,13 +13,13 @@ Knowledge Island 2.0 的产品方向已调整为“面向个人开发学习的�
 | 代际 | 状态 | 产品入口与边界 |
 |------|------|----------------|
 | 当前 1.x Web MVP | 已实现、可运行 | 以 `聊 / 库 / 设` 为主线，提供工作区资料导入、RAG 问答、回答依据、只读工具和基础评估；继续使用现有 1.x 运行数据 |
-| Knowledge Island 2.0 | 本地发布候选，正式远端发布待完成 | 一级入口冻结为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，核心闭环为“导入项目与笔记 → 项目理解 → 问答 → 评估 → 差距 → 学习计划 → 确认后发布到 Obsidian” |
+| Knowledge Island 2.0 | v2.0.0 已正式发布 | 一级入口冻结为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，核心闭环为“导入项目与笔记 → 项目理解 → 问答 → 评估 → 差距 → 学习计划 → 确认后发布到 Obsidian” |
 | Obsidian（当前） | 已实现 | 通过 `/api/import/obsidian-vault` 对本机 Vault 做一次性只读导入；不是账号连接、持续同步或写回 |
-| Obsidian（2.0 候选） | 本地候选已实现，正式发布待完成 | 桌面插件把 Vault 作为资料源，并在用户预览、确认后作为学习成果出口；不自动覆盖无系统标记或已发生冲突的笔记 |
+| Obsidian（2.0） | v2.0.0 已发布 | 桌面插件把 Vault 作为资料源，并在用户预览、确认后作为学习成果出口；不自动覆盖无系统标记或已发生冲突的笔记 |
 
 2.0 的“项目知识覆盖”是主评价口径；语言、框架、数据、测试、交付、AI 等通用技能只用于辅助解释当前项目中的差距，不扩张为职业能力或求职评价。现有 1.x 数据不会被静默迁移或删除。
 
-> **v2.0.0 发布状态（2026-07-30）**：`feature/project-knowledge-coach-v2` 已完成 npm / pip 安全审计、Python 533 项、Vue 22 个文件 / 92 项、52 模块构建、Obsidian 插件 17 项及 Playwright Chromium 主流程的本地等价 CI；Windows 原生链路已生成 `Knowledge Island_2.0.0_x64-setup.exe`，但安装包尚未签名。PR #4 的 GitHub Actions `python-tests` 与 `frontend-e2e` 均通过并已合并到 `main`（merge commit `cc09293`）；`v2.0.0` Tag 和 GitHub Release 仍为 Pending，因此当前仍是发布候选，不代表正式发布完成。
+> **v2.0.0 发布状态（2026-07-30）**：npm / pip 安全审计、Python 533 项、Vue 22 个文件 / 92 项、52 模块构建、Obsidian 插件 17 项、Playwright Chromium 主流程与 Windows 原生链路均已通过；PR #4 两项 GitHub Actions 检查通过并合并 `main`。`v2.0.0` Tag 与 [GitHub Release](https://github.com/Yocaihua8/rag_system/releases/tag/v2.0.0) 指向同一正式发布提交，Release 提供 SHA-256 已核验但未签名的 `Knowledge Island_2.0.0_x64-setup.exe`。
 
 ---
 
@@ -330,7 +330,7 @@ knowledage_island/
 | `docs/guides/setup.md` | 环境启动指引 |
 | `docs/guides/testing.md` | 测试与验证方式 |
 | `docs/guides/release-process.md` | 发布门禁、GitHub Actions 额度例外与桌面打包流程 |
-| `docs/release/V2_0_0_READINESS_2026-07-24.md` | v2.0.0 本地候选、原生包与正式远端发布边界 |
+| `docs/release/V2_0_0_READINESS_2026-07-24.md` | v2.0.0 本地/远端验收、原生包与正式发布证据 |
 | `docs/release/WEB_MVP_READINESS_2026-05-20.md` | 本地 Web MVP 收口与浏览器验收清单 |
 | `docs/architecture/SYSTEM_ARCHITECTURE.md` | 整体架构说明 |
 | `docs/architecture/LLM_PROVIDER_DESIGN.md` | LLM 提供商路由 + API Key 安全设计 |

@@ -2,13 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
+> Last Updated：2026-07-30
 > Scope：当前项目知识教练用例与验收边界
 > Related：docs/requirements/project-background-and-scope.md, docs/features/project-knowledge-coach.md
 
 ## 1. 状态说明
 
-以下用例已经由 B-161～B-165 分阶段实现，并作为当前 2.0 的行为与回归契约；完整本地候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。1.x 的项目导入、问答、评估和 Obsidian vault 一次性导入继续作为兼容基线，不代表插件双向同步。
+以下用例已经由 B-161～B-166 分阶段实现并随 v2.0.0 正式发布，继续作为当前 2.0 的行为与回归契约；完整发布证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。1.x 的项目导入、问答、评估和 Obsidian vault 一次性导入继续作为兼容基线，不代表插件双向同步。
 
 ## 2. 主要用户场景
 

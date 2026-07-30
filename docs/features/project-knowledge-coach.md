@@ -2,9 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
+> Last Updated：2026-07-30
 > Scope：Knowledge Island 2.0 项目知识教练的业务边界与验收契约
-> Related：docs/requirements/project-background-and-scope.md, docs/requirements/functional-modules.md, docs/design/architecture-overview.md, docs/design/api-spec.md, docs/BACKLOG.md B-160～B-165
+> Related：docs/requirements/project-background-and-scope.md, docs/requirements/functional-modules.md, docs/design/architecture-overview.md, docs/design/api-spec.md, docs/BACKLOG.md B-160～B-166
 
 ## 1. 状态说明
 
@@ -17,7 +17,7 @@
 | 2.0 持久评估、差距与学习计划 | B-162 已实现（后端、存储与七个 Coach API） |
 | Obsidian 插件桥与受控发布 | B-163 已实现（后端、存储、九个 API 与独立桌面插件） |
 | Vue 教练闭环 | B-164 已实现（五入口、来源抽屉、定向评估、计划编辑与 Obsidian 用户侧流程） |
-| v2.0.0 发布验收 | B-165 已完成本地发布候选验收；正式 Tag、远端发布与原生安装包未执行 |
+| v2.0.0 发布验收 | B-165/B-166 已完成本地/远端 CI、`main` 合并、Tag、GitHub Release 与 Windows x64 NSIS 发布；安装包未签名，macOS / Linux v2 原生产物未运行 |
 
 ## 2. 功能目标
 

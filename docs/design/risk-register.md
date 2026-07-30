@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
+> Last Updated：2026-07-30
 > Scope：Knowledge Island 1.x 兼容风险与 2.0 当前实现及发布风险
 > Related：docs/design/architecture-overview.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
@@ -18,7 +18,7 @@
 
 ## 2. Knowledge Island 2.0 残余风险
 
-> B-161～B-165 已完成本地候选实现与自动化验收；下表记录仍需持续约束的触发条件、已落地缓解措施和正式发布门禁，不表示相关风险已经消失。
+> B-161～B-166 已完成实现、自动化验收与正式发布；下表记录仍需持续约束的触发条件和已落地缓解措施，不表示相关风险已经消失。
 
 | 风险 | 触发条件 | 影响 | 缓解 / 验收门禁 |
 |------|----------|------|-----------------|

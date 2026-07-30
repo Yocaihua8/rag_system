@@ -2,13 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
+> Last Updated：2026-07-30
 > Scope：v2.0.0 首个可交付闭环
-> Related：docs/requirements/functional-modules.md, docs/features/project-knowledge-coach.md, docs/BACKLOG.md B-160～B-165
+> Related：docs/requirements/functional-modules.md, docs/features/project-knowledge-coach.md, docs/BACKLOG.md B-160～B-166
 
 ## 1. 状态说明
 
-本文冻结 v2.0.0 的目标范围，不替代源码与测试形成的实现清单。B-161～B-165 已完成分阶段实现和本地发布候选验收，证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`；正式 Git Tag、远端发布和目标平台安装包仍按发布流程单独执行。
+本文冻结 v2.0.0 的目标范围，不替代源码与测试形成的实现清单。B-161～B-166 已完成分阶段实现、本地/远端验收与正式发布，证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`；Windows x64 NSIS 已发布，macOS / Linux v2 原生产物仍按发布流程单独执行。
 
 ## 2. 纳入 v2.0.0
 

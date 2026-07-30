@@ -35,7 +35,7 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 - Windows 资源生成需要 `src-tauri/icons/icon.ico`；缺失时 `cargo check` 会在 Tauri build script 阶段失败。
 - 首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；网络超时会阻塞 installer 生成，但不代表 Rust release exe 构建失败。
 - B-166 本机验证使用 Visual Studio Build Tools 2022 `17.14.37`、MSVC `14.44.35207`、Windows 11 SDK `10.0.26100.0` 和 MSBuild `17.14.51.32402`；`cargo check` 与完整 NSIS 构建均已通过。
-- 当前 v2 NSIS 是本地未签名候选，Authenticode 状态为 `NotSigned`。代码签名仍不在本阶段范围内，不能把该候选表述为已发布的 GitHub Release 资产。
+- 当前 v2 NSIS 的 Authenticode 状态为 `NotSigned`，代码签名仍不在本阶段范围内；同一核验文件作为 `v2.0.0` GitHub Release 的 Windows x64 资产发布。
 
 ## 4. macOS / Linux 打包边界
 
@@ -99,4 +99,4 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 
 `src-tauri/target/release/bundle/nsis/Knowledge Island_2.0.0_x64-setup.exe`
 
-该产物证明 Windows v2 原生打包链路可用；PR #4 的两项 CI 检查已通过并合并 `main`，但 `v2.0.0` Tag 和 GitHub Release 尚未完成。正式发布前继续以 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的外部交付边界为准。
+该产物证明 Windows v2 原生打包链路可用；PR #4 的两项 CI 检查已通过并合并 `main`，`v2.0.0` Tag 与 GitHub Release 已发布同一正式提交，Windows Release 资产保持上述大小、SHA-256 与未签名边界。

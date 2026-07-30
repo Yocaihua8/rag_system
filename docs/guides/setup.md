@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30（B-166 Windows v2 原生候选验收）
+> Last Updated：2026-07-30（B-166 Windows v2 原生包与正式发布验收）
 
 ## 1. 环境要求
 
