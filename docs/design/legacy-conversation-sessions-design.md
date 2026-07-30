@@ -1,8 +1,8 @@
 # Legacy 多轮对话设计
 
-> 状态：Implemented
+> 状态：Archived
 > Owner：RAG 团队
-> Last Updated：2026-05-25
+> Last Updated：2026-07-30
 > Scope：B-20，记录 legacy `ConversationRecord` / `QueryKnowledgeBaseUseCase` 的会话上下文扩展；数据库字段和应用层上下文注入已落地，桌面端会话管理 UI 尚未实现。
 
 ## 1. 背景

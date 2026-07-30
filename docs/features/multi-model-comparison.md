@@ -2,8 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
-> 关联 BACKLOG：B-135
+> Last Updated：2026-07-30
+> Scope：同一项目、问题和来源上下文下的双模型 Profile 对比回答
+> Related：`../design/api-spec.md`、`frontend-engineering.md`、BACKLOG B-135
 
 ## 1. 功能目标
 

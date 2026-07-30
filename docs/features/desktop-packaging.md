@@ -1,6 +1,6 @@
 # Desktop Packaging
 
-> 状态：Draft
+> 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-07-30
 > Scope：B-145 Tauri Windows 打包验证；B-24 macOS / Linux 原生桌面打包入口；B-152 macOS / Linux 原生验证预检；B-165 v2.0.0 本地候选静态门禁；B-166 Windows v2 原生安装包验证

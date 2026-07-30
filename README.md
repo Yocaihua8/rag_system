@@ -1,339 +1,148 @@
-# 知识岛 Knowledge Island
+# Knowledge Island
+Knowledge Island 是面向个人开发学习的本地项目知识教练。它把项目代码、文档和笔记整理为可检索资料，通过有来源的问答、项目知识分析、覆盖评估和学习计划，帮助用户理解当前项目；经用户预览和确认后，还可以由 Obsidian 桌面插件把受管成果发布回 Vault。
 
-知识岛当前可运行的 1.x 版本是一个本地优先的个人 AI 第二大脑应用。默认入口仍是本地 Web MVP（FastAPI + Uvicorn + SQLite + Vue/Vite），支持本地项目、文档、笔记和代码资料的导入、检索、问答、来源展示与基础评估。
+当前正式版本为 `v2.0.0`。默认业务入口是 Vue 3 + FastAPI 本地 Web 应用；Tauri 2 复用同一前端并携带后端 sidecar；Obsidian Bridge 是独立的 desktop-only 插件。旧 PySide6 实现已归档到 `archive/src-desktop-legacy/`，不参与当前运行链路。
 
-Knowledge Island 2.0 的产品方向已调整为“面向个人开发学习的本地项目知识教练”：围绕真实项目生成有来源的项目理解，帮助用户评估当前项目知识覆盖、识别通用技能差距、形成学习计划，并在用户确认后把成果发布到 Obsidian。该段描述的是 2.0 目标，不代表当前 1.x 已提供项目分析、学习地图、学习计划或 Obsidian 双向桥接。
+## 当前状态
 
-旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/` 作为历史参考，不再是默认启动入口，也不再参与 Web/Tauri 链路。
+| 项目面 | 当前事实 |
+|--------|----------|
+| 产品版本 | `v2.0.0` 已发布；历史发布证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md` |
+| Web 主入口 | `app.py` 启动 FastAPI/Uvicorn，默认监听 `127.0.0.1:8765` |
+| 前端入口 | `教练 / 学习地图 / 学习计划 / 资料 / 设置`；使用应用状态切页，不使用 URL Router |
+| 本地数据 | 默认写入 `runtime/v2/app.db`；正式 Web 启动会拒绝把非空旧代际库当作 v2 库写入 |
+| 桌面壳 | Tauri 2 + 后端 sidecar；Windows NSIS 为默认 bundle，macOS/Linux 通过单独命令构建 |
+| Obsidian | 独立桌面插件同步 Markdown 事件，只执行主应用已确认的受控发布，不覆盖冲突文件 |
+| 授权状态 | 仓库公开，但当前没有 `LICENSE`；公开可读不等于已经授予开源使用权 |
 
----
+## 已实现能力
 
-## 版本与产品方向
+- 项目目录、浏览器文件/文件夹、文本笔记、GitHub 仓库、Notion ZIP、Obsidian Vault 和受控网页抓取等后端导入能力；不同入口在当前主界面的可达范围并不完全相同。
+- 文档分块、BM25 风格关键词召回、本地 hashing 向量、可选 OpenAI-compatible Embedding、可选 Qdrant local mode 和可选 Cross-Encoder rerank。
+- 同源 HTTP API 与 SSE 流式问答；无模型时生成本地来源组合回答，模型调用失败时明确回退并返回 warning。
+- 项目聊天线程、消息分支、来源抽屉、回答反馈、检索调试/复盘、双模型对比和两个只读 Agent 工具。
+- 基于真实来源的项目分析、知识点、通用技能映射、项目覆盖评估、学习计划草稿/确认/进度和历史版本。
+- Obsidian 配对、增量 Markdown 事件同步、离线事件重放、发布预览、确认后排队、冲突阻断和执行结果回报。
+- 可选共享 API Key + HS256 JWT 保护。认证默认关闭，当前不是多用户、团队、租户或 RBAC 系统。
 
-| 代际 | 状态 | 产品入口与边界 |
-|------|------|----------------|
-| 当前 1.x Web MVP | 已实现、可运行 | 以 `聊 / 库 / 设` 为主线，提供工作区资料导入、RAG 问答、回答依据、只读工具和基础评估；继续使用现有 1.x 运行数据 |
-| Knowledge Island 2.0 | v2.0.0 已正式发布 | 一级入口冻结为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，核心闭环为“导入项目与笔记 → 项目理解 → 问答 → 评估 → 差距 → 学习计划 → 确认后发布到 Obsidian” |
-| Obsidian（当前） | 已实现 | 通过 `/api/import/obsidian-vault` 对本机 Vault 做一次性只读导入；不是账号连接、持续同步或写回 |
-| Obsidian（2.0） | v2.0.0 已发布 | 桌面插件把 Vault 作为资料源，并在用户预览、确认后作为学习成果出口；不自动覆盖无系统标记或已发生冲突的笔记 |
+详细功能边界见 [`docs/features/README.md`](docs/features/README.md)；94 个当前 HTTP 操作的字段级契约以 [`docs/design/api-spec.md`](docs/design/api-spec.md) 为准，FastAPI OpenAPI 仅作为操作清单和调试入口。
 
-2.0 的“项目知识覆盖”是主评价口径；语言、框架、数据、测试、交付、AI 等通用技能只用于辅助解释当前项目中的差距，不扩张为职业能力或求职评价。现有 1.x 数据不会被静默迁移或删除。
+## 已知边界
 
-> **v2.0.0 发布状态（2026-07-30）**：npm / pip 安全审计、Python 533 项、Vue 22 个文件 / 92 项、52 模块构建、Obsidian 插件 17 项、Playwright Chromium 主流程与 Windows 原生链路均已通过；PR #4 两项 GitHub Actions 检查通过并合并 `main`。`v2.0.0` Tag 与 [GitHub Release](https://github.com/Yocaihua8/rag_system/releases/tag/v2.0.0) 指向同一正式发布提交，Release 提供 SHA-256 已核验但未签名的 `Knowledge Island_2.0.0_x64-setup.exe`。
+- 产品评价只描述“当前项目、当前来源版本”的知识覆盖，不代表整体职业能力。
+- v2 不自动迁移、删除或覆盖 1.x 数据；用户需要在 v2 中重新导入项目。
+- 当前主资料弹窗没有暴露全部后端导入/管理能力；部分可见控件尚未接线，具体缺口记录在 `docs/BACKLOG.md § 6`。
+- `/api/health` 只是进程活性检查，不验证 SQLite、LLM、Embedding 或 Qdrant 的完整可用性。
+- Tauri 静态配置和构建通过不等于安装包内 WebView 到 sidecar 的 API 连通性已经被动态覆盖；原生运行时仍需按发布清单验证。
+- Windows 发布安装包未签名；macOS/Linux v2 原生产物不由 Windows 发布证据替代。
 
----
-
-## 当前 1.x 功能概览
-
-以下条目描述当前代码和界面已经具备的 1.x 能力，不包含上方 2.0 目标能力。
-
-| 功能 | 说明 |
-|------|------|
-| **项目空间** | 在 Web 页面中创建本地项目空间，绑定一个本地目录 |
-| **当前目录显示** | 项目工具栏下方显示当前项目空间绑定的本地目录；目录被移动或删除时提示“目录不存在”，并阻止继续导入 |
-| **最近项目恢复** | 浏览器会记住最近选中的项目空间，刷新页面后自动恢复 |
-| **项目空间改名** | 可在 Web 页面中修改当前项目空间名称，不影响绑定目录和已导入文档 |
-| **项目空间删除** | 可删除误创建的项目空间，删除前会二次确认，并同步删除其文档记录 |
-| **文档导入** | Web MVP 支持 Markdown、TXT、代码、配置文本和 DOCX 正文抽取；安装可选 `pymupdf` 后可抽取 PDF 正文，未安装时 PDF 会进入跳过明细并提示需要可选解析器；默认跳过 `.git`、`.venv`、`node_modules`、`.claude`、`.codex`、`.agents`、`.vscode`、`.idea`、`__pycache__` 等目录，并跳过超过 1MB 的单个文件 |
-| **浏览器文件夹导入** | Docker 模式下可点击“选择本机文件夹导入”，浏览器读取用户授权的本地项目文件夹并上传允许的文本、DOCX 和 PDF 二进制内容入库，不需要在页面填写 Windows 路径 |
-| **文件上传导入** | 资料库页可点击“选择文件上传导入”一次选择一个或多个临时文件；有当前项目空间时导入当前项目，没有项目空间时通过现有上传接口创建 `browser-upload` 项目 |
-| **文本笔记导入** | 资料库页可直接输入标题和正文，把临时想法、会议记录或网页摘录作为 `note:` 虚拟来源写入当前项目空间；后续目录同步和浏览器文件夹导入不会删除这些笔记 |
-| **剪贴板文本导入** | 资料库页可把网页摘录、会议记录和临时材料通过文本框快速写入当前项目空间，复用文本笔记导入规则 |
-| **URL 摘录导入** | 资料库页可保存 URL、标题和人工粘贴正文作为 `url:` 虚拟来源；后续目录同步和浏览器文件夹导入不会删除这些摘录，当前不自动抓取网页 |
-| **备份导出** | 只读 `GET /api/export/project` 可导出当前项目空间、文档正文、chunk、向量、聊天记录和模型配置摘要；不导出 API Key 明文或掩码 |
-| **备份恢复** | 可把同版本备份恢复为新的 `browser-upload:` 项目空间，写回文档正文、chunk/vector 和聊天记录；恢复后无需重新导入即可检索问答，不恢复 API Key |
-| **导入结果可视化** | 导入后在侧栏展示当前项目空间已入库文件列表，并显示新增、更新、未变更、删除、跳过数量 |
-| **跳过详情** | 导入后展示未导入文件的路径和原因，例如格式不支持、文件超过 1MB 或属于系统自动忽略的目录；这类情况不等同于读取失败 |
-| **导入错误** | 导入后单独展示读取失败等错误信息，避免和普通未导入文件混在一起 |
-| **导入批次历史** | 资料库页展示当前项目最近导入批次，可查看来源类型、状态、统计摘要、跳过明细和读取失败明细；历史只保存摘要和原因，不保存文档正文，也不做回滚 |
-| **项目健康概览** | 资料库页展示当前项目文档数、Chunk 数、向量数、聊天数、工具运行数、检索复盘数和最近活动时间；未选择项目时不请求概览 |
-| **检索健康提示** | 资料库页基于项目健康概览只读推导是否已有 Chunk、向量和检索复盘，帮助判断当前知识库是否具备检索基础 |
-| **文档集合** | 资料库页可创建轻量文档集合，把文档加入或移出集合，并按“全部文档 / 未分组 / 指定集合”过滤列表；删除集合不删除文档 |
-| **文件预览** | 点击已导入文件后，在侧栏查看该文件正文预览 |
-| **文档记录移除** | 可从当前项目空间移除单个已导入文档记录，不删除磁盘源文件 |
-| **文件路径过滤** | 已导入文件列表支持按路径本地过滤，便于在大量文件中快速定位 |
-| **文件数量提示** | 已导入文件列表显示当前过滤结果数和总文件数 |
-| **独立检索** | 不提问也可直接搜索文件分块片段，并点击结果打开文件预览 |
-| **RAG 分块检索** | 导入时生成 SQLite 文档分块和向量兼容副本，检索和问答使用 BM25 keyword + vector 混合召回；配置 OpenAI-compatible Embeddings 后优先使用真实 embedding，否则回退本地 hashing 向量；可启用 Qdrant local mode 避免查询时全量扫描 SQLite 向量 |
-| **检索调试** | 工作台可按 `top_k`、最低分、关键词/向量开关运行检索诊断，查看命中 chunk、分数、来源质量和上下文预览 |
-| **项目级检索默认值** | 工作台可把 `top_k`、最低分、关键词/向量开关保存为当前项目默认值，问答和检索诊断共用这组设置 |
-| **检索复盘** | 可把一次检索诊断保存为复盘记录，保留查询词、参数、命中来源、来源质量和人工备注；列表支持查看单条详情和二次确认删除，删除只移除复盘记录，不调整检索参数 |
-| **空状态提示** | 无文件、无检索结果、无来源、无跳过文件时显示明确提示；首次使用关键空状态会提示下一步动作 |
-| **错误恢复提示** | 前端错误状态会保留原始原因，并针对目录不可访问、未选择文件夹、无可导入文件、未选择项目空间、本地服务断开、非 JSON 响应、模型 Key 未配置、鉴权失败或 SPA 未处理异常等高频失败提示下一步操作 |
-| **知识库问答** | 默认基于检索片段组合回答；配置 DeepSeek / OpenAI 兼容 API 后优先使用真实 LLM，并通过 SSE / EventSource 流式渲染回答；回答会保留来源文件与片段并返回来源质量提示，提问等待期间可取消当前流式请求 |
-| **问答可观察性** | 每次回答会展示本轮默认检索参数、命中来源数量、模型模式和耗时，便于判断回答来自本地片段、真实模型还是回退路径 |
-| **回答反馈** | 每次回答下方可标记“有用 / 无用 / 来源不准 / 需要更多上下文”，反馈只保存到本地 `answer_feedback`，用于后续人工复盘 |
-| **结果导出** | 本地 `POST /api/export/result` 可把已生成问答消息导出为 Markdown 或 PDF 文件，写入 `data/outputs/`，内容包含问题、回答和来源快照 |
-| **多会话聊天** | 工作台最近对话支持默认会话和自定义会话；提问会写入当前会话，真实模型上下文只读取当前会话最近 3 轮 |
-| **项目聊天记录** | 每次提问后按项目保存问题、回答、模型模式和来源快照，刷新页面或切换项目后可恢复最近对话；真实 LLM 回答会带入最近 3 轮历史作为上下文 |
-| **Agent 只读工具** | 工作台提供只读项目概览和来源检索工具，返回文档统计或 RAG 命中片段，并写入工具调用审计；当前不开放 shell 或任意命令执行 |
-| **工具能力说明** | 工作台展示可用只读工具的说明、参数摘要和适用场景；字段较少时兼容显示工具名和描述 |
-| **工具面板运行入口** | 工作台工具面板按 `/api/agent/tools` 元数据列出可用工具，明确展示 `query` 工具参数；用户点击运行后复用现有工具结果区和运行历史 |
-| **工具运行历史** | 当前项目的 Agent 工具运行历史会展示在工作台，便于确认工具名、状态、参数和失败原因；点击“查看详情”可读取单条运行的 arguments、result、status、error 和创建时间 |
-| **回答建议工具** | 当问答没有可用来源时，回答区会提示建议工具 `search_sources` 和查询词，并提供按钮让用户手动运行；当前不会自动执行工具 |
-| **工具来源回填** | 用户运行 `search_sources` 后，可手动把该工具运行 ID 带入下一轮问答，把工具命中的来源片段合并进回答上下文 |
-| **Markdown 回答渲染** | 回答区支持 Markdown 标题、列表、代码块和代码语法高亮；渲染前使用 DOMPurify 做 HTML 净化，CDN 不可用时回退为纯文本显示 |
-| **深色模式** | Web 页面会跟随系统深色偏好，也可通过侧栏按钮手动切换浅色 / 深色主题；选择会保存到浏览器 localStorage |
-| **模型设置** | Web 设置页可查看模型服务、API 地址、模型名称和 API Key 来源状态；输入框提供 API 地址、模型名称和 Key 的非明文提示；Key 不回显明文 |
-| **模型 Profile** | Web 设置页可保存多个模型 Profile，并选择一个全局默认 Profile；Profile 只保存 provider、API 地址、模型名、温度、最大 tokens 和 Key 引用，不保存 API Key 明文 |
-| **Prompt 预设** | Web 设置页可为当前项目空间保存“项目问答 / 代码解释 / 学习复盘”等 Prompt 预设，选择默认预设后真实 LLM 问答会按该预设调整回答风格和结构；固定来源约束仍优先，不保存 API Key |
-| **掌握评估** | Web 端可从已导入文件生成概念理解、流程说明、代码定位三类评估题，按题逐步作答并展示进度、答题记录、待复测题目和能力概览；提交回答后对照服务端保存的参考要点评估为已掌握 / 基本理解 / 需要补充 / 暂未掌握，题目、回答和评估结果会保存到本地 SQLite |
-| **首次使用引导** | Web 首页展示设置页创建项目空间、选择本机文件夹导入、提问/评估、配置 DeepSeek 的最小步骤；关键异步按钮会在运行中禁用并显示进行中状态 |
-| **格式标准化** | Web MVP 以当前导入管线保存文档正文、分块和来源信息；旧 PySide6 标准化链路已随 legacy 归档 |
-| **掌握度历史模型** | `SkillArea / KnowledgePoint / MasteryRecord / Evidence` 仅存在于已归档的 PySide6 legacy 代码中，不属于当前 Web MVP；2.0 将按新数据代际重新实现项目知识与评估模型 |
-
----
-
-## 安装
+## 快速开始
 
 ### 前置要求
 
 - Python 3.10+
-- [Ollama](https://ollama.com)（本地推理，可选）
+- Node.js 20+ 与 npm
+- Git
+- 可选：Ollama（本地生成模型）
+- 可选：`pymupdf`（PDF 正文抽取）
 
-### 1. 克隆并创建虚拟环境
+### Windows
 
-```bash
-git clone <repo-url>
-cd knowledage_island
+```powershell
+git clone https://github.com/Yocaihua8/rag_system.git
+Set-Location rag_system
+
 python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 
-# Windows
-.venv\Scripts\activate
+npm ci
+npm run build
 
-# macOS / Linux
-source .venv/bin/activate
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe app.py
 ```
 
-### 2. 安装依赖
+浏览器访问 `http://127.0.0.1:8765`。生产启动要求 `backend/static_dist/index.html` 已存在，因此首次运行前必须先执行 `npm run build`。
 
-```bash
-pip install -r requirements.txt
-```
+macOS/Linux 对应命令和 Docker 启动方式见 [`docs/guides/setup.md`](docs/guides/setup.md)。
 
-> **Web MVP 最小依赖**：需要 FastAPI + Uvicorn 作为 HTTP 运行时，核心存储仍使用 Python 标准库 SQLite。Web 端 DeepSeek / OpenAI-compatible / Ollama 调用使用 Python 标准库 `urllib`，不依赖 `openai` 或 `ollama` SDK。
-> **PDF 可选解析**：如需 Web MVP 抽取 PDF 正文，可额外安装 `pip install pymupdf`；未安装时 PDF 仍会明确跳过，不阻断其他文件入库。
+## 配置原则
 
-### 3. 配置（可选）
+- 未配置 LLM 时，问答使用检索片段生成本地回答。
+- `RAG_LLM_PROVIDER=api` 使用 OpenAI-compatible chat completion；`ollama` 使用本地 Ollama。
+- `RAG_EMBED_PROVIDER=api` 且配置有效时调用 OpenAI-compatible `/embeddings`；其他情况使用本地 `hashing-96`。当前活动 Embedding factory 不接入 Ollama Embedding。
+- `RAG_VECTOR_STORE_PROVIDER=qdrant` 启用 Qdrant local mode；不可用时回退 SQLite 兼容副本。
+- API Key 优先放在操作系统环境变量或未提交的 `.env` 中。模型 Profile 只保存 `env:*` / `saved:*` 引用，接口不返回明文 Key。
 
-复制 `.env.example` 为 `.env`，按需修改：
+完整变量、可选依赖和降级路径见 [`docs/guides/setup.md`](docs/guides/setup.md) 与 [`docs/guides/security.md`](docs/guides/security.md)。
 
-```bash
-cp .env.example .env
-```
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `RAG_KB_ROOT` | `~/KnowledgeIslandKB` | 知识库根目录 |
-| `RAG_OLLAMA_HOST` | `http://localhost:11434` | Ollama 服务地址 |
-| `RAG_OLLAMA_MODEL` | `qwen2.5:7b` | 生成模型 |
-| `RAG_EMBEDDING_MODEL` | `nomic-embed-text` | 嵌入模型 |
-| `RAG_EMBED_PROVIDER` | `ollama` | Web MVP 支持 `api` 时请求 OpenAI-compatible `/embeddings`，否则使用本地 hashing 向量回退 |
-| `RAG_EMBED_API_BASE` | `https://api.deepseek.com/v1` | Embedding API 地址；需要服务实际支持 `/embeddings` |
-| `RAG_EMBED_API_MODEL` | `text-embedding-3-small` | Embedding 模型名 |
-| `RAG_EMBED_API_KEY` | _(空)_ | Embedding API Key；不复用或回显 LLM Key |
-| `RAG_VECTOR_STORE_PROVIDER` | `sqlite` | Web MVP 向量存储 provider；设置为 `qdrant` 后使用 Qdrant local mode 做向量候选检索 |
-| `RAG_QDRANT_PATH` | appdata `KnowledgeIsland/qdrant` | Qdrant local mode 持久化目录 |
-| `RAG_QDRANT_COLLECTION` | `knowledge_island_chunks` | Qdrant collection 名称 |
-| `RAG_QDRANT_VECTOR_SIZE` | `96` | 将当前 sparse dict 向量转换为 Qdrant dense vector 的维度 |
-| `RAG_RETRIEVER_KIND` | `vector` | 兼容保留；Web MVP 向量存储切换使用 `RAG_VECTOR_STORE_PROVIDER` |
-| `RAG_LLM_PROVIDER` | `ollama` | `ollama` 或 `api` |
-| `RAG_LLM_API_KEY` | _(空)_ | 云端 API Key（见安全说明）；兼容本机 DeepSeek Key 别名 |
-| `RAG_LLM_API_BASE` | `https://api.deepseek.com/v1` | API 地址 |
-| `RAG_LLM_API_MODEL` | `deepseek-chat` | 云端模型名 |
-
-Web 端问答会优先读取这些变量。未配置 API Key 时，自动回退到本地片段组合回答。
-
-Web 端检索会优先使用 `RAG_EMBED_PROVIDER=api` 对应的 OpenAI-compatible Embeddings；未配置、请求失败或服务不支持 `/embeddings` 时，自动回退到本地 hashing 向量，导入不中断。DeepSeek 当前主要用于聊天回答；如果所用 DeepSeek 端点不提供 embeddings，请单独配置支持 `/embeddings` 的服务。
-
-如需在大项目中避免查询时全量扫描 SQLite 向量，可设置 `RAG_VECTOR_STORE_PROVIDER=qdrant` 启用 Qdrant local mode。文档入库、更新、删除和备份恢复会同步 Qdrant point；Qdrant 未安装、不可用或查询失败时会打印 `WARNING` 并回退到 SQLite `chunk_vectors`。
-
----
-
-## 启动
-
-```bash
-# Windows
-.venv\Scripts\python.exe app.py
-
-# macOS / Linux
-.venv/bin/python app.py
-```
-
-启动后打开：
-
-```text
-http://127.0.0.1:8765
-```
-
-## Docker 一键启动
-
-非技术用户可先阅读根目录：
-
-```text
-README-Docker-Quickstart.txt
-```
-
-然后双击启动：
-
-```text
-Start-KnowledgeIsland-Docker.bat
-```
-
-停止服务：
-
-```text
-Stop-KnowledgeIsland-Docker.bat
-```
-
-Windows PowerShell：
+## 开发与验证
 
 ```powershell
-.\scripts\docker_up.ps1
+# Python 后端与 Web 契约
+.\.venv\Scripts\python.exe -m pytest tests\test_backend tests\test_webapp -q
+
+# Vue 单测与构建
+npm run test:unit
+npm run build
+
+# 浏览器主流程（先构建，再启动隔离后端）
+npm run test:e2e
+
+# 文档门禁
+pwsh -NoProfile -File scripts\check-placeholders.ps1
+pwsh -NoProfile -File scripts\check-doc-links.ps1
+.\.venv\Scripts\python.exe scripts\check_docs_consistency.py
 ```
 
-脚本会执行 `docker compose --project-directory . -f compose.yaml up --build -d`，启动后打开：
-
-```text
-http://127.0.0.1:8765
-```
-
-Docker 模式下，Web 页面创建项目空间时，本地目录请填写容器内路径：
-
-```text
-/workspace
-```
-
-宿主机对应目录默认为仓库根目录下的 `docker-workspace/`。把要导入的 Markdown、TXT、DOCX、代码和配置文件放到该目录后，在 Web 页面点击“同步当前项目目录”。
-
-如果要直接导入 `E:\Code\your-project` 这类 Windows 本地目录，推荐点击 Web 侧栏的“选择本机文件夹导入”。浏览器会请求选择一个本地项目文件夹，并把允许的文本、DOCX 和 PDF 二进制内容上传给本地服务入库；这种方式不需要在页面填写 Windows 路径。临时 PDF、DOCX、Markdown 或少量文本文件可点击“选择文件上传导入”，有当前项目空间时写入当前项目，没有项目空间时创建 `browser-upload` 项目。PDF 正文抽取需要可选 `pymupdf`，未安装时会在导入结果中显示跳过原因。
-
-如果 Windows User 环境变量里存在 `DEEPSEEK_API_KEY` 或 `RAG_EMBED_API_KEY`，一键脚本会注入给 Docker Compose，但不会打印 Key。运行数据默认持久化到 Docker named volume `ki-runtime`。
-
----
-
-## Ollama 配置
-
-本地模式需要先安装并启动 Ollama，拉取所需模型：
-
-```bash
-# 启动 Ollama 服务
-ollama serve
-
-# 拉取生成模型（二选一）
-ollama pull qwen2.5:7b
-ollama pull llama3.2:3b
-
-# 拉取嵌入模型（向量检索时必须）
-ollama pull nomic-embed-text
-```
-
-启动应用后，在 **设置 → Ollama 本地配置** 中确认地址与模型名一致。
-
----
-
-## 云端 API 配置
-
-Web 端可通过系统环境变量直接启用 DeepSeek / OpenAI 兼容 API，也可在 Web **设置 → 模型设置** 中填写 API Base、模型名和 API Key。
-
-| 字段 | DeepSeek | OpenAI | 通义千问 | Kimi |
-|------|----------|--------|----------|------|
-| API 地址 | `https://api.deepseek.com/v1` | `https://api.openai.com/v1` | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `https://api.moonshot.cn/v1` |
-| 模型 | `deepseek-chat` | `gpt-4o-mini` | `qwen-plus` | `moonshot-v1-8k` |
-
-### API Key 安全说明
-
-配置 API Key 有三种方式（优先级从高到低）：
-
-1. **OS 环境变量**（推荐）：`RAG_LLM_API_KEY=sk-xxx`
-   Key 不写入任何文件，UI 中自动显示「已从环境变量读取」并禁用输入框
-   现阶段也兼容已有的本机 DeepSeek Key 变量：`DEEPSEEK_API_KEY` / `DEEPSEEK_APIKEY` / `deepseekapikey`。检测到这些变量时，默认切到 `api` provider，并使用 DeepSeek 默认地址与模型；如需强制不用云端，可显式设置 `RAG_LLM_PROVIDER=ollama`。
-   Windows 上会额外读取 User/Machine 级持久环境变量；即使当前终端或 Codex 进程未继承新变量，应用也能识别已保存的 `DEEPSEEK_API_KEY`。
-2. **`.env` 文件**：写入项目根目录的 `.env`（已在 `.gitignore` 中排除）
-3. **Web 设置页**：直接在 UI 中填写（存储在 appdata 目录）；页面只显示“已配置/未配置”，不回显 API Key 明文。
-
-Windows PowerShell 示例：
+Obsidian 插件在 `integrations/obsidian-plugin/` 下独立执行：
 
 ```powershell
-[System.Environment]::SetEnvironmentVariable("DEEPSEEK_API_KEY", "sk-xxx", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_LLM_PROVIDER", "api", "User")
+Set-Location integrations\obsidian-plugin
+npm ci
+npm test
+npm run typecheck
+npm run build
 ```
 
----
+Tauri 命令：
 
-## 项目结构
-
-```
-knowledage_island/
-├── app.py                    # 默认 Web MVP 程序入口
-├── Dockerfile                # Web MVP 容器镜像
-├── compose.yaml              # Docker Compose 一键启动
-├── backend/                  # 默认 Web/Tauri 后端源码根目录
-│   ├── api/                  # FastAPI app、兼容分发、OpenAPI、认证与设置/回答 handler
-│   ├── routes/               # 领域 REST 路由分支
-│   ├── domain/               # 导入、检索、问答、评估、导出、Agent 工具等业务逻辑
-│   ├── storage/              # SQLite schema 与 KnowledgeStore 读写入口
-│   ├── config/               # settings / paths / vector_store / reranker
-│   ├── providers/            # LLM、Embedding、VectorStore、Reranker provider
-│   └── static_dist/          # Vue/Vite 生产构建产物（不入库）
-├── archive/src-desktop-legacy/
-│   ├── src/                  # 已归档 PySide6 / 六边形 legacy 代码
-│   ├── tests/                # 已归档 legacy 测试
-│   └── scripts/              # 已归档 legacy 脚本
-├── tests/
-│   ├── conftest.py           # 当前 Web/backend pytest 根配置
-│   ├── backend/              # backend provider/config 测试
-│   └── test_webapp/          # Web MVP API、导入、检索与前端静态约束测试
-├── docs/
-│   ├── BACKLOG.md
-│   ├── DEVLOG.md
-│   ├── design/api-spec.md
-│   ├── devlog/2026-05-20.md
-│   ├── guides/setup.md
-│   ├── guides/testing.md
-│   ├── release/WEB_MVP_READINESS_2026-05-20.md
-│   └── architecture/              # 历史架构文档（兼容保留）
-├── data/                     # 示例数据 / 输出目录
-├── runtime/                  # 运行时产物（db / vector store / logs）
-├── docker-workspace/         # Docker 模式默认导入目录（本地忽略）
-└── .env.example              # 环境变量示例
+```powershell
+npm run tauri:dev
+npm run tauri:build:windows
 ```
 
-### 架构原则
+`tauri:dev` 不会自动构建 sidecar；Windows 正式 bundle 使用 `tauri:build:windows`。完整测试矩阵见 [`docs/guides/testing.md`](docs/guides/testing.md)。
 
-- **三层 Web 架构**：表现层 `frontend/` / `backend.api.server`，业务层 `backend.domain/*`，数据层 `backend.storage`
-- **配置归口**：Web/Tauri 运行配置由 `backend.config.settings` 和 `backend.config.paths` 提供
-- **本地优先**：无 API Key 或外部服务不可达时，问答和向量化必须有本地 fallback
-- **legacy 隔离**：`archive/src-desktop-legacy/` 仅作历史参考，不再被当前代码引用
+## 目录结构
 
----
-
-## 运行测试
-
-```bash
-.venv/Scripts/python.exe -m pytest tests/test_webapp -q
-# 当前测试基线以实际运行结果为准
+```text
+.
+├── app.py                         # FastAPI/Uvicorn 默认入口
+├── backend/                       # API、领域逻辑、配置、provider、SQLite
+├── frontend/                      # Vue 3 源码
+├── src-tauri/                     # Tauri 桌面壳
+├── integrations/obsidian-plugin/  # Obsidian Bridge
+├── tests/                         # backend/webapp pytest
+├── e2e/                           # Playwright 主流程
+├── ops/                           # 本地运维脚本
+├── docs/                          # 正式文档、计划、日志和历史快照
+├── archive/src-desktop-legacy/    # 只读历史实现
+└── runtime/v2/                    # 默认 v2 运行数据（不入库）
 ```
 
-2026-07-30 的 v2 候选完整本地等价 CI、PR #4 远端检查及 GitHub Actions 额度例外边界见 `docs/guides/testing.md`。当前 Windows 环境中 `E:\Code\knowledage_island` 是指向 `E:\Dev\Projects\knowledage_island` 的 Junction；Node、Vite、Playwright 或 Tauri 若在入口路径遇到权限错误，应核对并从真实路径重跑，同时保留两条路径作为审计证据。
+## 文档入口
 
----
-
-## 开发文档
-
-| 文档 | 内容 |
+| 入口 | 用途 |
 |------|------|
-| `docs/design/ui-wireframes.md` | 当前 1.x 页面事实与 2.0 目标信息架构、页面布局 |
-| `docs/design/codex-workspace-chat-import-design.md` | 项目知识教练工作流、资料导入与 Obsidian 受控发布边界 |
-| `docs/design/codex-ui-visual-system.md` | Codex 中性视觉、组件状态、动效与无障碍规范 |
-| `docs/design/api-spec.md` | 本地 Web MVP HTTP API 契约 |
-| `docs/guides/setup.md` | 环境启动指引 |
-| `docs/guides/testing.md` | 测试与验证方式 |
-| `docs/guides/release-process.md` | 发布门禁、GitHub Actions 额度例外与桌面打包流程 |
-| `docs/release/V2_0_0_READINESS_2026-07-24.md` | v2.0.0 本地/远端验收、原生包与正式发布证据 |
-| `docs/release/WEB_MVP_READINESS_2026-05-20.md` | 本地 Web MVP 收口与浏览器验收清单 |
-| `docs/architecture/SYSTEM_ARCHITECTURE.md` | 整体架构说明 |
-| `docs/architecture/LLM_PROVIDER_DESIGN.md` | LLM 提供商路由 + API Key 安全设计 |
-| `docs/architecture/RAG_PIPELINE.md` | RAG 检索增强生成流程 |
-| `docs/DEVLOG.md` | 逐步开发日志 |
-| `docs/BACKLOG.md` | 待办事项与优先级 |
+| [`docs/README.md`](docs/README.md) | 文档地图、阅读顺序、状态和维护规则 |
+| [`docs/requirements/`](docs/requirements/) | 产品范围、功能模块、用例和 v2.0.0 范围冻结 |
+| [`docs/design/`](docs/design/) | 架构、API、数据库、权限、状态流和前后端契约 |
+| [`docs/features/`](docs/features/) | 功能行为与实现边界 |
+| [`docs/guides/`](docs/guides/) | 搭建、测试、发布、安全、运维和排障 |
+| [`docs/adr/`](docs/adr/) | 架构决策记录 |
+| [`docs/BACKLOG.md`](docs/BACKLOG.md) | 待办、技术债和已知问题 |
+| [`template-mapping.md`](template-mapping.md) | docs-template 1.0.0 的 profile、packs 和项目扩展映射 |
+
+贡献前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) 和 [`SECURITY.md`](SECURITY.md)。

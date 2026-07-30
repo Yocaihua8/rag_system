@@ -2,8 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-16
-> Related ADR：无
+> Last Updated：2026-07-30
+> Scope：项目目录/文件导入、变更检测、解析、分块、向量化和来源记录
+> Related：`../design/api-spec.md`、`../design/database-design.md`、`knowledge-base-management.md`
 
 ## 1. 目标
 

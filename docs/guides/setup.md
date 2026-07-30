@@ -318,6 +318,6 @@ Reranker 默认关闭。启用后，Web MVP 会在 BM25 + 向量混合召回后�
 - Web MVP 工作台可将一次检索诊断保存为检索复盘记录，记录查询词、参数、命中来源、来源质量和人工备注，便于后续补资料或调参。
 - Web MVP 配置 `RAG_EMBED_PROVIDER=api` 和 `RAG_EMBED_API_KEY` 后，导入 chunk 时会优先请求 OpenAI-compatible Embeddings；请求失败时回退本地向量。
 - Web MVP 资料库页可直接导入文本笔记；笔记会作为当前项目空间的 `note:` 虚拟来源参与检索和问答，不依赖磁盘文件是否存在。
-- Web MVP 资料库页可创建文档集合，并把文档加入或移出集合；集合只影响资料库列表过滤，删除集合不会删除文档。
+- 当前主路径的 `LibraryModal` 可读取集合并按全部、未分组或指定集合筛选资料；集合新建、重命名、删除、加入和移出接口仍已实现，但对应 `LibraryView` 未挂载到 `VIEW_KEYS`，不得把集合管理表述为当前主导航可达闭环。
 - 模型设置页可通过 `GET/POST /api/settings/llm` 读取或保存 API Base、模型名和 API Key 状态，并通过 `/api/settings/llm/test` 做连接测试。
 - 模型 Profile 可通过 `GET/POST /api/model-profiles` 等接口管理，测试指定 Profile 不会覆盖 `.env` 或自动切换默认 Profile。

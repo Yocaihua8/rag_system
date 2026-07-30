@@ -87,6 +87,27 @@
 
 ## 6. 已知问题
 
+### ISSUE-008：当前主资料/聊天界面存在未接线或参数不完整的可见控件
+
+- **发现时间**：2026-07-30
+- **现象**：活动 `LibraryModal` 的“网页摘录”只提交 URL，但 API helper 同时要求非空 title/content；“选择资料”没有进入问答 payload；侧栏线程搜索和问题框部分工具按钮没有有效 handler。未挂载的 `LibraryView` / `AssessmentView` 仍在源码中，但不能作为当前可达页面。
+- **影响范围**：`frontend/src/components/LibraryModal.vue`、`WorkspaceSidebar.vue`、`QuestionComposer.vue`、`WorkbenchView.vue`、`frontend/src/App.vue`。
+- **计划处理方式**：分别建立最小前端/联调任务，先冻结交互与现有 API 契约，再补参数、事件和 E2E；在修复前，入口文档不得把这些控件描述为已交付能力。
+
+### ISSUE-007：Tauri 打包配置未动态证明 WebView 到 sidecar 的 API 连通性
+
+- **发现时间**：2026-07-30
+- **现象**：桌面壳会启动监听 `127.0.0.1:8765` 的后端 sidecar，前端 API 使用同源 `/api/*`；Vite 开发服务器提供 8765 proxy，但当前 Tauri 生产配置没有等价代理或显式 API base。已有静态回归只断言配置/字符串，未覆盖安装包内实际请求。
+- **影响范围**：`src-tauri/`、`frontend/src/api/`、Windows/macOS/Linux 原生运行时。
+- **计划处理方式**：在独立任务中先对已构建安装包执行真实主流程连通性验证；若复现，明确采用 sidecar origin 或 Tauri bridge 的最小方案，并同步 API/桌面文档与原生 E2E。未验证前不以打包成功替代运行可用。
+
+### ISSUE-006：v2 运行路径与部分配置/脚本存在漂移
+
+- **发现时间**：2026-07-30
+- **现象**：正式 Web 默认数据库为 `runtime/v2/app.db`，但 `ops/scripts/backup_db.sh` 仍默认旧 `runtime/webapp/knowledge_island.db`；结果导出仍写 `data/outputs/`，未使用配置层 `runtime/v2/outputs`；若干已加载的 chunk/retriever/top-k 配置未进入活动链路，实际分块固定为 700/80。
+- **影响范围**：备份恢复可信度、运行目录说明、配置可预期性和运维指南。
+- **计划处理方式**：代码修复前，runbook 将备份脚本标记为不可直接用于 v2；后续拆分路径修复与配置收口任务，补真实备份恢复/配置生效测试，不在本次文档重构中静默改业务代码。
+
 ### ISSUE-005：GitHub Actions 官方 Action 的 Node runtime 弃用警告
 
 - **发现时间**：2026-07-30

@@ -1,8 +1,8 @@
 # Web 模型 Profile 多配置设计
 
-> 状态：Implemented First Slice
+> 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-24
+> Last Updated：2026-07-30
 > Scope：B-111 设计与 B-112 第一片实现边界；当前已落地 LLM Profile CRUD、默认 Profile 和设置页入口，具体接口与表结构以 `design/api-spec.md`、`design/database-design.md` 为准。
 
 ## 1. 背景

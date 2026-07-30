@@ -1,8 +1,8 @@
 # Web 项目级 Prompt 设置设计
 
-> 状态：Design
+> 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-24
+> Last Updated：2026-07-30
 > Scope：B-109，仅设计项目级 Prompt / 助手预设的数据结构和问答注入边界；本文件不代表已建表或已实现 UI。
 
 ## 1. 背景

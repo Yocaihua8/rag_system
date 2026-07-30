@@ -24,7 +24,7 @@
 未完成项不得删除。
 
 - [x] 建立模板消费与治理基线：记录 profile/packs/state，补齐根级规范、GitHub 协作资产和跨平台文档校验脚本
-- [ ] 重构正式文档入口、映射、需求、设计、功能、指南与 ADR 模板/索引，并用源码校准 v2.0.0 事实
+- [x] 重构正式文档入口、映射、需求、设计、功能、指南与 ADR 模板/索引，并用源码校准 v2.0.0 事实
 - [ ] 将 dated DevLog 迁入 `docs/devlog/YYYY/MM/`，修复全仓链接和索引，保留历史扩展目录
 - [ ] 运行链接、占位符、元数据、文档一致性、测试与前端构建验证并修复发现的问题
 - [ ] 完成回流审计，将 B-167 置为 `done` 并删除本 plan
@@ -69,10 +69,10 @@
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
 | 模板版本、profile、packs、项目扩展及迁移边界 | `template-mapping.md`、`.docs-template/state.tsv` | [ ] |
-| 文档导航、职责、当前产品状态和事实来源 | `README.md`、`docs/README.md` | [ ] |
-| 需求、架构、API、数据、权限、前后端契约与功能索引 | `docs/requirements/`、`docs/design/`、`docs/features/` | [ ] |
-| 开发、运维、安全、支持、贡献、迁移与排障指南 | `docs/guides/`、`CONTRIBUTING.md`、`SECURITY.md` | [ ] |
-| ADR/功能/RFC/DevLog/Postmortem 等复用模板 | `docs/adr/`、`docs/features/`、`docs/design/`、`docs/devlog/` | [ ] |
+| 文档导航、职责、当前产品状态和事实来源 | `README.md`、`docs/README.md` | [x] |
+| 需求、架构、API、数据、权限、前后端契约与功能索引 | `docs/requirements/`、`docs/design/`、`docs/features/` | [x] |
+| 开发、运维、安全、支持、贡献、迁移与排障指南 | `docs/guides/`、`CONTRIBUTING.md`、`SECURITY.md` | [x] |
+| ADR/功能/RFC/DevLog/Postmortem 等复用模板 | `docs/adr/`、`docs/features/`、`docs/design/`、`docs/devlog/` | [x] |
 | DevLog 年月归档规则和历史入口 | `docs/devlog/README.md`、`docs/README.md` | [ ] |
 | GitHub 协作资产与自动化文档门禁 | `.github/`、`scripts/` | [ ] |
 
@@ -84,12 +84,13 @@
 - 2026-07-30：保留 `docs/architecture/`、`docs/release/`、`docs/superpowers/`、`docs/previews/` 等项目历史扩展，不做批量删除。
 - 2026-07-30：已机械复用模板 1.0.0 中 32 个缺失 scaffold 文件，并以当前目标文件哈希生成 64 行 `.docs-template/state.tsv`；未覆盖任何既有文件。
 - 2026-07-30：暂不创建 `.docs-template/strict-ci`。活动文档完成语义迁移且消费者占位符检查归零后再激活；本地 `.venv`、运行时副本和 GitHub Actions 表达式的误报留待校验切片修正。
+- 2026-07-30：完成正式文档语义迁移。按当前后端、Vue/Tauri、Obsidian 插件和发布事实重写入口、治理、契约与运维文档，并将 37 张当前 SQLite 表、未挂载视图、URL 摘录参数缺口、v2 备份路径漂移和 Tauri 动态连通性风险明确写回正式文档与 BACKLOG。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-07-30
-- **进度**：已完成 0 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`8da4942` — chore: 发布 v2.0.0
-- **代码状态**：`main`；创建 plan 前工作区干净；尚未开始正式文档重构
-- **下一步**：建立模板消费与治理基线
-- **续任务须知**：使用源码事实替换模板占位内容；不得新增 LICENSE 或修改公共 API、数据库 schema、Agent 权限
+- **进度**：已完成 1 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`694ed27` — docs: 建立模板治理与协作基线
+- **代码状态**：`main`；模板治理基线已提交；状态快照为下一提交的计划更新
+- **下一步**：重构正式文档入口、映射、需求、设计、功能、指南与 ADR 模板/索引
+- **续任务须知**：使用源码事实替换模板占位内容；不得新增 LICENSE 或修改公共 API、数据库 schema、Agent 权限；严格占位符门禁尚未激活

@@ -2,23 +2,24 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
-> Scope：Knowledge Island Web MVP 系统级设计
+> Last Updated：2026-07-30
+> Scope：Knowledge Island v2.0.0 Web、Tauri、Obsidian 插件与 1.x 兼容服务的系统级设计
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/requirements/functional-modules.md
 
 ## 1. 设计目标
 
-- 以少量明确依赖实现本地 RAG 问答闭环（FastAPI + Uvicorn + SQLite）
+- 以本地单体实现项目资料、RAG 问答、项目知识分析、评估和学习计划闭环
 - 支持可选的云端 LLM / Embedding，降级为本地 fallback 时不中断核心功能
 - 保持 API 透明可测，前后端通过 REST JSON 解耦
 - 在单进程内完成所有处理，不引入消息队列或微服务复杂度
+- 让 Obsidian 同步和发布保持显式配对、令牌、幂等、预览、确认和冲突阻断
 
 ## 2. 系统边界
 
-- **系统输入**：用户通过浏览器交互（创建项目、导入文件、提问、评估）
-- **系统输出**：知识库索引、RAG 问答结果（含来源）、掌握度评估结果
-- **外部依赖**：可选 LLM API（DeepSeek / OpenAI-compatible / Ollama）、可选 Embedding API
-- **非目标范围**：多用户 / 团队空间（B-118 已完成研究，当前不实现）、远程访问、网页自动抓取（B-119 已完成研究，当前不实现）、图像识别、语音处理
+- **系统输入**：浏览器/桌面 UI 的项目资料与操作、Obsidian 插件 Markdown 事件、可选外部模型响应
+- **系统输出**：索引、带来源问答、项目分析、覆盖评估、学习计划和经确认的 Obsidian 发布任务
+- **外部依赖**：可选 Ollama/OpenAI-compatible LLM、可选 Embedding API、可选 Qdrant local mode、Git clone 和 Obsidian 桌面插件
+- **非目标范围**：多用户/团队/租户/RBAC、默认公网部署、登录态浏览器抓取、图像识别、语音处理和自动覆盖用户 Vault 文件
 
 ## 3. 逻辑组成
 
@@ -34,7 +35,10 @@
 | LLM 客户端（backend/domain/llm.py）| OpenAI-compatible Chat Completions | Prompt | 回答文本 |
 | 模型 Profile（backend/domain/model_profiles.py）| Profile CRUD 与 Key 引用管理 | Profile 配置 | 有效配置 |
 | Agent 工具（backend/domain/agent_tools.py）| 只读工具执行与审计 | 工具名 + 参数 | 工具结果 + 审计记录 |
+| Coach 领域（backend/domain/project_analysis.py 等）| 项目分析、定向评估、覆盖与学习计划 | 项目来源 + 用户回答 | 可追踪知识点、评估与计划版本 |
 | 静态前端（backend/static_dist/）| Vue/Vite 生产 UI 与用户交互 | 用户操作 | API 调用 + 页面状态 |
+| Tauri 壳（src-tauri/）| 窗口、托盘和 sidecar 生命周期 | 桌面事件 | 同一 Vue UI + 本地后端 |
+| Obsidian Bridge（integrations/obsidian-plugin/）| Markdown 事件同步和受控发布执行 | Vault 事件 / pending publication | 幂等同步或 applied/conflict/failed 结果 |
 
 ## 4. 核心流程
 

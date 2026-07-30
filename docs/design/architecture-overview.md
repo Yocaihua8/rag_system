@@ -6,11 +6,11 @@
 > Scope：Knowledge Island 1.x 兼容架构基线与 2.0 当前实现架构
 > Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 当前架构与分片落地状态。v2.0.0 正式发布证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
+> 阅读边界：§ 1～§ 8 描述当前 v2 继续复用的本地 RAG/兼容服务基线；§ 9 描述项目知识教练、独立数据代际和 Obsidian 插件架构。v2.0.0 正式发布证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
-## 1. 1.x 当前架构结论
+## 1. 当前共享架构结论
 
-Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-164 已把 Vue 主导航和页面状态切换到项目知识教练闭环；B-143 已删除 legacy 静态前端 fallback；B-155 后后端源码统一位于 `backend/`，Web 首页只服务 `backend/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
+Knowledge Island v2.0.0 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP/SSE 与静态文件，SQLite 承担持久化，Vue 3 + Vite 承担当前主 UI；项目知识教练继续复用导入、检索、聊天和设置等兼容服务。B-155 后后端源码统一位于 `backend/`，Web 首页只服务 `backend/static_dist/` 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；写入型导入通过进程内项目级协调器实现跨项目并发、同项目串行。Tauri 只承载窗口/托盘/sidecar，Obsidian Bridge 作为独立 desktop-only 插件接入。
 
 | 字段 | 值 |
 |------|----|

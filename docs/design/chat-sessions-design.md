@@ -1,8 +1,8 @@
 # Web 多会话聊天模型设计
 
-> 状态：Design
+> 状态：Archived
 > Owner：RAG 团队
-> Last Updated：2026-05-23
+> Last Updated：2026-07-30
 > Scope：B-107，仅设计 `chat_sessions` 与现有 `chat_messages` 的兼容关系；本文件不代表已建表或已实现 UI。
 
 ## 1. 背景

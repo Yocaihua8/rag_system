@@ -1,154 +1,170 @@
-# 文档总览
-
+# Knowledge Island 文档总览
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-07-30
-> Related：CONTRIBUTING.md, CHANGELOG.md, AGENTS.md
+> Scope：Knowledge Island v2.0.0 正式文档、过程记录、复用模板与历史扩展的统一入口
+> Related：`../README.md`、`../AGENTS.md`、`../CONTRIBUTING.md`、`../template-mapping.md`
 
-本仓库的文档按"项目约束 → 架构设计 → 开发流程"分层组织，遵循 `docs/style-guide.md` 写作规范。新的文档目录降低历史冗余，并保持与现有 `docs/architecture`、`docs/release` 历史文档的兼容。
+本目录按 docs-template 1.0.0 的职责组织文档。模板提供结构，项目源码、测试和发布证据提供事实；不得用模板占位内容替代项目结论，也不得把历史计划或未来方向写成当前已实现能力。
 
----
+## 1. 模板消费状态
 
-## 0. 产品代际边界
+- Profile：`open-source`
+- Packs：`access-control, ai-planning, api, architecture, core, data, frontend, frontend-api-contract, github, github-ci, glossary, migration, open-source, operations, release-support, requirements, security, tooling, tracking, workflow`
+- 状态清单：`../.docs-template/state.tsv`
+- 归类映射：`../template-mapping.md`
+- 严格门禁：活动文档填完且本地占位符检查返回 0 后，才允许提交 `.docs-template/strict-ci`
+- 许可证边界：仓库当前无 `LICENSE`；profile 表示“开源协作准备态”，不表示已经授予开源许可证
 
-- **当前源码**：B-160～B-166 已把产品主线切换为本地项目知识教练，并完成依赖安全、本地/远端 CI、Windows 原生包和 v2.0.0 正式发布；Vue 一级入口为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，评估使用覆盖层，Obsidian 一次性只读导入与插件连接、受控发布使用不同流程和状态。
-- **兼容边界**：原有导入、聊天和 `/api/assessment/*` 契约继续保留；旧 `AssessmentView` 与旧评估 API 只用于兼容，不再承载 2.0 主闭环。
-- **发布边界**：B-166 已完成在线依赖审计、完整本地 CI 等价矩阵、PR #4 两项 GitHub Actions 检查、`main` 合并、`v2.0.0` Tag、GitHub Release 和 Windows 未签名 NSIS 资产，证据见 `release/V2_0_0_READINESS_2026-07-24.md`。macOS / Linux v2 原生产物本轮未运行，不以历史产物替代。
-- **状态解释**：设计文档的 `Active` 表示设计决策有效。当前接口和行为以源码、测试及 `design/api-spec.md` 为准；本地验收、目标平台原生产物和正式远端发布必须分别记录，不能互相替代。
-- **停止方向**：B-157“全局资料库 / 跨工作区共享资料”不再作为 2.0 前置能力。
+## 2. 当前事实边界
 
-## 1. 阅读顺序
+| 主题 | 当前权威事实 |
+|------|--------------|
+| 产品 | `v2.0.0` 已正式发布，主线为本地项目知识教练 |
+| Web | Vue 3 + FastAPI/Uvicorn；默认 `127.0.0.1:8765` |
+| 页面 | `教练 / 学习地图 / 学习计划 / 资料 / 设置`；资料是模态入口，评估是覆盖层 |
+| 数据 | v2 默认 `runtime/v2/app.db`；正式 Web 写链路执行数据代际校验 |
+| Tauri | 复用 Vue 构建产物并启动后端 sidecar；构建证据不能替代安装包动态连通性验证 |
+| Obsidian | 独立 desktop-only 插件；增量同步与用户确认后的受控发布是两条不同链路 |
+| 兼容 | 1.x 导入、聊天、评估等 API 仍有兼容用途；旧 PySide6 只在 archive 中保留 |
 
-**先读（理解项目是什么）：**
+当文档与代码冲突时，先按下列优先级核验，不得直接选择对当前任务最方便的说法：
 
-1. `requirements/project-background-and-scope.md` — 项目背景、目标用户、范围与约束
-2. `requirements/functional-modules.md` — 各功能模块边界与优先级
-3. `features/project-knowledge-coach.md` — Knowledge Island 2.0 教练闭环、评价口径与兼容边界
-4. `design/system-design-overview.md` — 系统级设计、核心流程、非功能约束
-5. `design/architecture-overview.md` — 架构结论、技术栈、分层职责、备选方案
-6. `design/database-design.md` — SQLite 表结构、实体关系、迁移规范
-7. `design/api-spec.md` — HTTP API 接口清单与契约说明
-8. `design/model-profiles-design.md` — 模型 Profile 多配置设计（B-111/B-112 已落地，接口以 api-spec 为准）
-9. `design/document-collections-design.md` — 文档集合分组设计（B-113/B-114 已落地）
-10. `design/import-batches-design.md` — 导入批次历史设计（B-115/B-116 已落地）
-11. `design/api-route-split-blueprint.md` — API 兼容分发按领域拆分蓝图（B-131/B-138，B-155 后路径位于 `backend/`）
+1. 当前源码、数据库建表代码和自动化测试；
+2. `design/api-spec.md`、`design/database-design.md` 与已接受 ADR；
+3. 当前功能、需求和指南；
+4. release/devlog 历史快照；
+5. `architecture/`、`superpowers/` 与 archive 历史材料。
 
-**再读（参与开发）：**
+## 3. 最小阅读顺序
 
-12. `../CONTRIBUTING.md` — 贡献流程、代码规范、测试要求、文档要求
-13. `guides/setup.md` — 环境搭建与启动步骤
-14. `guides/branch-conventions.md` — 分支命名与提交规范
-15. `guides/testing.md` — 测试分层与回归清单
-16. `guides/release-process.md` — 发布检查与打包步骤
+### 理解产品
 
-**按需读：**
+1. [`requirements/project-background-and-scope.md`](requirements/project-background-and-scope.md)
+2. [`requirements/functional-modules.md`](requirements/functional-modules.md)
+3. [`features/project-knowledge-coach.md`](features/project-knowledge-coach.md)
+4. [`requirements/use-cases.md`](requirements/use-cases.md)
+5. [`requirements/mvp-scope-freeze.md`](requirements/mvp-scope-freeze.md)
 
-17. `release/V2_0_0_READINESS_2026-07-24.md` — v2.0.0 本地/远端验收、Windows 资产与正式发布证据
-18. `BACKLOG.md` — 未完成项、技术债与优先级（含预估工时）
-19. `adr/` — 重大架构决策记录
-20. `devlog/` — 开发过程日志（日报/周报）
-21. `plans/` — AI 任务计划（关心"当前任务进度"时）
-22. `../CHANGELOG.md` — 对外发布变更记录
-23. `design/permission-matrix.md` — 权限边界说明
-24. `design/ui-wireframes.md` — 当前 Vue 项目知识教练页面事实、兼容页面与页面布局
-25. `design/codex-workspace-chat-import-design.md` — 项目知识教练工作流、资料导入与 Obsidian 受控发布边界
-26. `design/codex-ui-visual-system.md` — Codex 中性视觉令牌、组件状态、动效与无障碍规范
-27. `design/state-flow-and-acceptance.md` — 状态流转与验收标准
-28. `design/risk-register.md` — 风险清单
-29. `design/api-changes.md` — API 变更分级与迁移指南
-30. `style-guide.md` — 文档写作规范
-31. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
-32. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
-33. `features/team-workspace-research.md` — B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
-34. `features/web-crawling-research.md` — B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
-35. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
+### 理解系统
 
----
+1. [`design/system-design-overview.md`](design/system-design-overview.md)
+2. [`design/architecture-overview.md`](design/architecture-overview.md)
+3. [`design/api-spec.md`](design/api-spec.md)
+4. [`design/database-design.md`](design/database-design.md)
+5. [`design/permission-matrix.md`](design/permission-matrix.md)
+6. [`design/ui-wireframes.md`](design/ui-wireframes.md)
+7. [`design/state-flow-and-acceptance.md`](design/state-flow-and-acceptance.md)
 
-## 2. 目录说明
+### 参与开发
 
-| 路径 | 用途 | 是否必需 |
+1. [`../AGENTS.md`](../AGENTS.md)
+2. [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
+3. [`guides/setup.md`](guides/setup.md)
+4. [`guides/testing.md`](guides/testing.md)
+5. [`guides/branch-conventions.md`](guides/branch-conventions.md)
+6. [`guides/security.md`](guides/security.md)
+7. [`guides/release-process.md`](guides/release-process.md)
+
+## 4. 目录说明
+
+| 路径 | 职责 | 当前性质 |
 |------|------|----------|
-| `requirements/` | 项目背景、功能模块、用户范围 | 是 |
-| `design/` | 架构、接口、数据库、权限、状态流转、风险 | 是 |
-| `guides/` | 启动、分支、测试、发布等开发指引 | 是 |
-| `adr/` | 重大架构决策记录 | 按需 |
-| `devlog/` | 开发过程日志（日报/周报）| 是 |
-| `plans/` | AI 任务计划（与 BACKLOG 联动，执行完删除） | 按需 |
-| `features/` | 功能级规格文档 | 按需 |
-| `BACKLOG.md` | 待办、技术债与优先级 | 是 |
-| `style-guide.md` | 文档写作规范 | 是 |
-| `release/` | 发布说明与历史快照 | 按需 |
-| `architecture/` | Legacy 企业基线架构文档（历史参考，非当前默认）| 否 |
+| [`requirements/`](requirements/) | 产品背景、模块、用例和版本范围 | 正式需求 |
+| [`design/`](design/) | 系统、架构、API、数据、权限、状态、UI 和契约 | 正式设计 |
+| [`features/`](features/) | 单一功能行为、边界和验收 | 正式功能规格 |
+| [`guides/`](guides/) | 搭建、测试、发布、安全、运维、支持、迁移和排障 | 正式指南 |
+| [`adr/`](adr/) | 重要架构决策及其理由 | 永久决策记录 |
+| [`devlog/`](devlog/) | 按 `YYYY/MM/` 归档的开发过程和复盘 | 过程记录 |
+| [`plans/`](plans/) | 与 BACKLOG 关联的当前 AI 执行计划 | 临时，完成即删除 |
+| [`release/`](release/) | 已完成发布/候选的证据快照 | 项目扩展，历史证据 |
+| [`architecture/`](architecture/) | 旧企业基线与早期架构材料 | 项目扩展，Archived |
+| [`superpowers/`](superpowers/) | 旧工具生成的规格和计划 | 项目扩展，历史参考 |
+| [`previews/`](previews/) | 交互原型和设计预览 | 项目扩展，不代表正式实现 |
+| [`glossary.md`](glossary.md) | 当前术语、实体与废弃用词 | 正式词汇表 |
+| [`BACKLOG.md`](BACKLOG.md) | 待办、技术债和已知问题 | 活动跟踪 |
+| [`style-guide.md`](style-guide.md) | 文档写作与模板占位符规范 | 复用规范 |
 
-仓库根目录保留 `template-mapping.md`，定义历史文档与新结构的归类关系。
+## 5. 正式设计索引
 
----
+| 文档 | 职责 |
+|------|------|
+| [`design/system-design-overview.md`](design/system-design-overview.md) | 系统边界与主流程 |
+| [`design/architecture-overview.md`](design/architecture-overview.md) | 分层、依赖、运行面和架构约束 |
+| [`design/api-spec.md`](design/api-spec.md) | HTTP 字段级契约 |
+| [`design/api-changes.md`](design/api-changes.md) | 破坏性 API 变化与迁移 |
+| [`design/database-design.md`](design/database-design.md) | SQLite 表、关系、代际和迁移规则 |
+| [`design/permission-matrix.md`](design/permission-matrix.md) | 本地单用户、可选认证和插件令牌边界 |
+| [`design/state-flow-and-acceptance.md`](design/state-flow-and-acceptance.md) | 业务状态和验收条件 |
+| [`design/ui-wireframes.md`](design/ui-wireframes.md) | 当前页面结构与交互事实 |
+| [`design/page-module-contract.md`](design/page-module-contract.md) | 页面装配和文件责任 |
+| [`design/component-api-contract.md`](design/component-api-contract.md) | 关键组件 props/emits/边界 |
+| [`design/frontend-backend-contract-check.md`](design/frontend-backend-contract-check.md) | 当前前后端可达能力与缺口 |
+| [`design/codex-workspace-chat-import-design.md`](design/codex-workspace-chat-import-design.md) | 教练、资料与 Obsidian 工作流 |
+| [`design/codex-ui-visual-system.md`](design/codex-ui-visual-system.md) | 视觉令牌、状态和无障碍 |
+| [`design/risk-register.md`](design/risk-register.md) | 当前风险与发布门禁 |
+| [`design/model-profiles-design.md`](design/model-profiles-design.md) | 模型 Profile 设计 |
+| [`design/document-collections-design.md`](design/document-collections-design.md) | 文档集合设计 |
+| [`design/import-batches-design.md`](design/import-batches-design.md) | 导入批次设计 |
+| [`design/project-prompt-settings-design.md`](design/project-prompt-settings-design.md) | 项目 Prompt 预设设计 |
+| [`design/chat-sessions-design.md`](design/chat-sessions-design.md) | 历史会话设计记录 |
+| [`design/api-route-split-blueprint.md`](design/api-route-split-blueprint.md) | 已完成 API 拆分蓝图 |
+| [`design/legacy-conversation-sessions-design.md`](design/legacy-conversation-sessions-design.md) | 已归档 legacy 会话设计 |
 
-## 3. 维护规则
+## 6. 可复用模板
 
-| 变更场景 | 需更新的文档 |
-|----------|-------------|
-| 新增需求 / 调整范围 | `requirements/project-background-and-scope.md` |
-| 新增模块 / 改动功能 | `requirements/functional-modules.md` |
-| API 接口变更 | `design/api-spec.md` |
-| API 破坏性变更 | `design/api-spec.md` + `design/api-changes.md` |
-| 数据库 Schema 变更 | `design/database-design.md` + ADR（必要时）|
-| 架构模式 / 分层边界变化 | `design/architecture-overview.md` + ADR（必要时）|
-| 产品定位 / 一级入口变化 | `requirements/project-background-and-scope.md` + `design/ui-wireframes.md` + `design/codex-workspace-chat-import-design.md` |
-| 页面结构 / 交互变更 | `design/ui-wireframes.md` |
-| 视觉令牌 / 组件状态 / 动效变更 | `design/codex-ui-visual-system.md` |
-| 重大架构决策 | `adr/ADR-XXX.md` |
-| 已知问题 / 技术债 | `BACKLOG.md` |
-| 版本发布 | `../CHANGELOG.md` |
+下列文件允许保留合法的模板占位符，复制到新文件后必须全部替换；其他活动文档不得保留占位符。
 
-`docs/README.md` 的目录说明必须与实际文件保持一致。
+| 模板 | 用途 |
+|------|------|
+| [`features/feature-template.md`](features/feature-template.md) | 功能规格 |
+| [`adr/ADR-000-template.md`](adr/ADR-000-template.md) | ADR |
+| [`design/rfc-template.md`](design/rfc-template.md) | RFC / 跨模块提案 |
+| [`plans/plan-template.md`](plans/plan-template.md) | AI 执行计划 |
+| [`devlog/devlog-template.md`](devlog/devlog-template.md) | 日报/迭代日志 |
+| [`devlog/postmortem-template.md`](devlog/postmortem-template.md) | 问题/事故复盘 |
+| [`guides/contributor-guide-template.md`](guides/contributor-guide-template.md) | 特定贡献场景指南 |
+| [`guides/integration-guide-template.md`](guides/integration-guide-template.md) | API/第三方接入指南 |
+| [`guides/migration-guide-template.md`](guides/migration-guide-template.md) | 使用方版本迁移指南 |
 
----
+## 7. 文档状态
 
-## 4. 何时应新建 ADR
+正式文档使用：
 
-**强制新建 ADR**：
+- `Draft`：尚未作为当前约束；
+- `In Review`：正在评审；
+- `Active`：当前有效；
+- `Deprecated`：仍保留但不应继续采用；
+- `Archived`：历史记录，不定义当前行为。
 
-- 技术选型存在多个可行方案，影响 ≥ 2 个模块（如：向量库迁移 Qdrant、引入 FastAPI）
-- 存储模型 / 权限模型 / 认证方式发生变化
-- 跨模块数据契约的破坏性变更
-- 用新方案**替代**现有方案（需保留历史理由）
-- 依赖变更带来新的安全、合规或成本风险
+ADR 可使用 `Proposed / Accepted / Deprecated / Superseded`；plan 使用 `Draft / Active / Interrupted / Done`。实现进度写进正文或 BACKLOG，不把 `Implemented`、`Released` 等进度词混作正式文档状态。
 
-**非强制（写 devlog 即可）**：
+## 8. 维护联动
 
-- 可逆的局部重构
-- 不影响对外契约的实现细节调整
-- 个人偏好或风格微调
+| 变化 | 必须核对 |
+|------|----------|
+| 产品目标、用户或范围 | `requirements/`、相关 feature、BACKLOG |
+| 功能行为或页面流程 | 对应 `features/*.md`、`design/ui-wireframes.md` |
+| HTTP 方法、路径、字段或错误 | `design/api-spec.md`；破坏性变化再更新 `api-changes.md` |
+| 数据表、字段、约束或代际 | `design/database-design.md` + 必要 ADR |
+| 架构边界或技术选型 | `design/architecture-overview.md` + 必要 ADR |
+| 权限、认证或 Agent 白名单 | `design/permission-matrix.md`、安全文档 + 必要 ADR |
+| 启动、测试、部署或发布 | 对应 guide、CI、`CHANGELOG.md` |
+| 新发现缺陷或技术债 | `BACKLOG.md § 6` 或新增 B-ID |
+| 文档目录或模板 pack | 本文件、`../README.md`、`../template-mapping.md`、`.docs-template/state.tsv` |
 
-ADR 模板见 `adr/ADR-000-template.md`。
+## 9. ADR 触发条件
 
----
+出现以下任一情况必须先评估 ADR：
 
-## 5. 文档状态约定
+- 存储、认证、权限、Agent 工具能力或数据代际变化；
+- 影响两个及以上模块的技术选型；
+- 跨模块或对外契约的破坏性变化；
+- 用新方案替代当前已接受方案；
+- 依赖变化引入新的安全、合规、成本或不可逆迁移风险。
 
-建议统一使用以下状态：
+可逆局部重构、无契约变化的实现细节和单纯文档修正不强制新增 ADR。模板见 [`adr/ADR-000-template.md`](adr/ADR-000-template.md)。
 
-- `Draft`：草稿
-- `In Review`：评审中
-- `Active`：当前有效
-- `Deprecated`：已废弃（需在文档头部注明 `Deprecated since` 与 `Replaced by`）
-- `Archived`：已归档
+## 10. 历史材料边界
 
-状态只描述文档本身是否有效。同一份 `Active` 设计文档包含当前实现、兼容边界和发布结果时，必须逐节明确标注，不能把本地候选验收写成 Git Tag、远端发布或未生成的原生产物已经完成。
-
----
-
-## 6. 历史文档兼容说明
-
-以下旧文档保持可读，但作为历史参考归档，不作为第一默认阅读页：
-
-- `architecture/ARCHITECTURE_ENTERPRISE_BASELINE.md`
-- `architecture/STRUCTURE_BASELINE.md`
-- `architecture/SYSTEM_ARCHITECTURE.md`
-- `architecture/RAG_PIPELINE.md`
-- `architecture/DATA_MODEL.md`
-- `architecture/LLM_PROVIDER_DESIGN.md`
-
-当它们与 `AGENTS.md`、`requirements/`、`design/`、`guides/` 冲突时，以 `AGENTS.md` 与当前 `requirements/`、`design/` 为准。当前默认入口以本地 Web MVP（`app.py`）为准，历史架构文档不定义当前默认启动方式。
+`architecture/`、`release/`、`superpowers/`、`previews/` 和 `archive/src-desktop-legacy/` 均保留为项目扩展或历史证据，不批量删除。它们与当前源码、正式需求/设计冲突时，不作为当前事实源；历史文件内的旧路径、旧状态和旧测试数可以保留，但入口文档必须明确其时间边界。

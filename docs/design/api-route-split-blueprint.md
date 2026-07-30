@@ -1,8 +1,8 @@
 # api.py 路由拆分蓝图
 
-> 状态：Implemented
+> 状态：Archived
 > Owner：RAG 团队
-> Last Updated：2026-07-01
+> Last Updated：2026-07-30
 > Scope：B-131 / B-138，规划并实施 API 兼容分发按领域拆分的迁移边界；B-155 后路径迁移到 `backend/`
 > Related：docs/design/architecture-overview.md, docs/design/api-spec.md, docs/guides/testing.md
 

@@ -5,12 +5,12 @@
 
 ## 1. 项目概述
 
-Knowledge Island 是一个本地 RAG（检索增强生成）知识库系统，帮助用户将本地文档转化为可检索的知识库，并通过 LLM 回答基于文档的问题。支持关键词检索、语义向量检索、Agent 工具辅助问答。
+Knowledge Island 是面向个人开发学习的本地项目知识教练。它把项目代码、文档和笔记转化为可检索资料，通过有来源的问答、项目知识分析、覆盖评估、学习计划和受控 Obsidian 发布帮助用户理解当前项目；1.x 的导入、聊天和基础评估能力继续作为兼容基线。
 
 | 项 | 值 |
 |----|----|
 | 项目类型 | Web 全栈（FastAPI + Uvicorn 后端 + Vue 3/Vite 前端 + Tauri 桌面壳） |
-| 当前阶段 | MVP |
+| 当前阶段 | v2.0.0 已发布，进入维护与增量迭代 |
 | 主要用户 | 本地个人用户、小团队知识沉淀场景 |
 | 文档入口 | `docs/README.md` |
 
@@ -21,7 +21,7 @@ Knowledge Island 是一个本地 RAG（检索增强生成）知识库系统，�
 | 语言 | Python | 3.10+ | 后端运行时 |
 | HTTP 框架 | FastAPI + Uvicorn | FastAPI 0.115+ / Uvicorn 0.30+ | B-139 迁移，ADR-001 |
 | 数据库 | SQLite | 随 Python | 全量存储，含向量（ADR-002） |
-| 向量存储 | SQLite 内置扩展 | — | B-134 评估 Qdrant 替换 |
+| 向量存储 | SQLite 兼容副本 + 可选 Qdrant local mode | qdrant-client 1.10+ | Qdrant 不可用时回退 SQLite |
 | 前端 | Vue 3 + Vite | Vue 3.5+ / Vite 7+ | B-141/B-142 已完成主要 Web UI 迁移；B-143 已移除 legacy static fallback；B-155 后构建输出到 `backend/static_dist/` |
 | 桌面壳 | Tauri 2 | Tauri CLI 2.11+ | B-145 Windows 打包验证链路 |
 | 测试框架 | pytest | 7+ | — |
@@ -33,6 +33,8 @@ Knowledge Island 是一个本地 RAG（检索增强生成）知识库系统，�
 |------|------|
 | `frontend/` | Vue 3 + Vite 前端工程源码（B-141 起） |
 | `backend/` | Web/Tauri 共享后端源码根目录（API、routes、domain、storage、config、provider） |
+| `src-tauri/` | Tauri 2 桌面壳、sidecar 与 bundle 配置 |
+| `integrations/obsidian-plugin/` | 独立 desktop-only Obsidian Bridge 插件 |
 | `archive/src-desktop-legacy/` | 已归档 PySide6 / 六边形 legacy 代码，仅历史参考 |
 | `tests/` | 测试代码根目录 |
 | `docs/requirements/` | 需求背景、功能范围、MVP 定义 |
@@ -53,22 +55,27 @@ Knowledge Island 是一个本地 RAG（检索增强生成）知识库系统，�
 python -m venv .venv
 .venv\Scripts\activate                    # Windows
 pip install -r requirements.txt
+npm ci
+npm run build
 cp .env.example .env                      # 配置 API Key 等环境变量
-.venv\Scripts\python.exe app.py           # 启动 Web MVP（默认 http://127.0.0.1:8765）
+.venv\Scripts\python.exe app.py           # 启动本地 Web 应用（默认 http://127.0.0.1:8765）
 ```
 
 可选依赖（按需安装）：
 
 ```bash
 pip install pymupdf    # PDF 正文抽取
-pip install jieba      # 中文分词（提升关键词检索质量）
 ```
 
 ### 4.2 测试与验证
 
 ```bash
-# Web MVP 全量测试
-.venv\Scripts\python.exe -m pytest tests/test_webapp -q
+# Python 后端与 Web 契约
+.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q
+
+# Vue 单测与构建
+npm run test:unit
+npm run build
 
 # Tauri/桌面打包静态回归（按需）
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q
@@ -78,20 +85,23 @@ pip install jieba      # 中文分词（提升关键词检索质量）
 
 ## 5. 架构概要
 
-本项目默认入口为 Web MVP，采用**三层架构**；旧 PySide6 / 六边形桌面端已在 B-147 归档到 `archive/src-desktop-legacy/`，不再作为当前开发入口。
+本项目默认业务入口为本地 Web 应用，采用**三层后端 + Vue 表现层**；Tauri 复用同一 Vue 构建产物并启动后端 sidecar，Obsidian Bridge 作为独立插件通过受限 HTTP API 交互。旧 PySide6 / 六边形桌面端已在 B-147 归档到 `archive/src-desktop-legacy/`，不再作为当前开发入口。
 
-**Web MVP 三层职责**：
+**当前运行职责**：
 
 - 表现层：`frontend/`（Vue 3 + Vite 工程源码）、`backend/static_dist/`（生产构建产物）、`backend/api/server.py`（FastAPI app、静态文件、SSE）、`backend/api/dispatch.py`（兼容分发、参数校验）
 - 业务层：`backend/domain/answers.py`（回答生成）、`backend/domain/search.py`（检索）、`backend/domain/ingestion.py`（导入管线）、`backend/domain/agent_tools.py`（Agent 工具）
 - 数据层：`backend/storage/knowledge_store.py`（SQLite 唯一读写入口）
+- 桌面承载：`src-tauri/`（窗口、托盘、sidecar 生命周期；不复制业务逻辑）
+- Obsidian 集成：`integrations/obsidian-plugin/`（增量 Markdown 事件与经确认发布执行）
 
 **关键边界**：
 
-- `api.py` 只做参数校验和用例编排，不直接操作 SQLite
-- `storage.py` 是 SQLite 唯一入口，不承载业务规则
+- `backend/api/` 与 `backend/routes/` 只做 HTTP 适配、参数校验和用例编排，不直接操作 SQLite
+- `backend/storage/` 是 SQLite 唯一入口，不承载页面或业务编排规则
 - Agent 工具只允许只读操作，白名单硬编码在 `backend/domain/agent_tools.py`（ADR-003）
 - API Key 只保存引用（`env:*` / `saved:*`），任何接口响应不得包含明文 Key（ADR-004）
+- 默认 v2 数据根为 `runtime/v2/`；正式 Web 启动必须执行数据代际校验
 
 > 完整说明见 `docs/design/architecture-overview.md`。接口契约见 `docs/design/api-spec.md`。
 
@@ -105,7 +115,7 @@ pip install jieba      # 中文分词（提升关键词检索质量）
 ### 6.2 文件组织
 
 - `backend/` 按职责拆分为 `api/`、`routes/`、`domain/`、`storage/`、`config/`、`providers/`；每个模块文件只承载一个清晰职责
-- 可选依赖（pymupdf / jieba）必须用 `try/except ImportError` 引入，失败时提供明确降级
+- 可选依赖（如 `pymupdf`、Cross-Encoder 运行依赖）必须用 `try/except ImportError` 引入，失败时提供明确降级
 - Vue 前端源码放在 `frontend/src/`，生产构建输出到 `backend/static_dist/`，不得提交 `node_modules/` 或构建产物
 
 ### 6.3 明确禁用的模式
@@ -121,7 +131,11 @@ pip install jieba      # 中文分词（提升关键词检索质量）
 
 | 类型 | 路径模式 | 运行命令 |
 |------|----------|----------|
-| Web MVP 单元/集成 | `tests/test_webapp/` | `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` |
+| 后端/provider 单元 | `tests/test_backend/` | `.venv\Scripts\python.exe -m pytest tests/test_backend -q` |
+| Web/API 单元/集成 | `tests/test_webapp/` | `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` |
+| Vue 单元 | `frontend/src/**/*.test.js` | `npm run test:unit` |
+| 浏览器 E2E | `e2e/` | `npm run test:e2e` |
+| Obsidian 插件 | `integrations/obsidian-plugin/` | 在插件目录运行 `npm test && npm run typecheck && npm run build` |
 | Tauri 打包静态回归 | `tests/test_webapp/test_tauri_packaging.py` | `.venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q` |
 
 测试优先级：API 契约 > 核心业务规则（检索 / 回答 / 导入） > 数据层集成 > 前端静态文件。

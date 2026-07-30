@@ -12,7 +12,7 @@ B-06 为本地 Knowledge Island Web MVP 补齐最小运维维护能力。它面�
 
 ## 2. 用户可见行为
 
-- `ops/scripts/backup_db.sh` 可备份当前 SQLite 数据库，默认路径为 `runtime/webapp/knowledge_island.db`；存在 `KI_QDRANT_DIR` 或 `RAG_QDRANT_PATH` 指向的 Qdrant local 目录时一并打包向量存储目录。
+- `ops/scripts/backup_db.sh` 仍默认指向历史路径 `runtime/webapp/knowledge_island.db`，与当前默认 `runtime/v2/app.db` 不一致；修复并完成恢复演练前，不得把该默认命令描述为可直接使用的 v2 备份。显式传入正确数据库路径时仍需核对 Qdrant 目录和恢复证据，见 BACKLOG ISSUE-006。
 - `ops/scripts/cleanup_runtime.sh` 只清理 runtime 下的临时文件、缓存和 Python 字节码，不删除 SQLite 数据库、`runtime/backups`、Qdrant 数据目录或用户导入内容。
 - `ops/scripts/rebuild_index.sh` 调用本地 `POST /api/admin/rebuild-index`，由后端基于 SQLite 已存文档内容重建 chunk 与向量索引；未传项目 ID 时重建全部项目，传 `KI_PROJECT_ID` 或第一个脚本参数时只重建指定项目。
 - 启用认证时，`rebuild_index.sh` 需要携带 API Key 或 Bearer Token；脚本不得保存或输出密钥明文。

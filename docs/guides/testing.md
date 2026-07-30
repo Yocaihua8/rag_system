@@ -91,8 +91,8 @@ docker compose config
 - 变更导入批次历史时，必须覆盖 `/api/import/batches`、`/api/import/batches/detail`、项目隔离、只展示跳过/读取失败明细、不提供回滚/删除/重试操作，以及前端资料库入口。
 - 变更文档集合时，必须覆盖 `/api/document-collections`、`/api/document-collections/update`、`/api/document-collections/delete`、`/api/document-collections/items/add`、`/api/document-collections/items/remove`、按集合过滤文档列表、未分组过滤、跨项目文档拒绝、删除集合不删除文档和前端资料库入口。
 - 变更 Vue 文档集合筛选入口时，必须覆盖 `GET /api/document-collections`、前端集合列表读取、全部/未分组/指定集合筛选、选择后刷新文档列表，并确认不提供集合新建/删除/加入/移出入口。
-- 变更 Vue 文档集合管理入口时，必须覆盖 `POST /api/document-collections`、`POST /api/document-collections/update`、`POST /api/document-collections/delete`、前端集合名称校验、新建后刷新集合列表、重命名后刷新集合列表、删除前确认、删除集合不删除文档提示，以及删除当前筛选集合后清空筛选并刷新文档列表。
-- 变更 Vue 文档集合加入/移出入口时，必须覆盖 `POST /api/document-collections/items/add`、`POST /api/document-collections/items/remove`、前端文档列表单文档加入集合、指定集合筛选下移出当前集合、成功后刷新集合列表和文档列表，以及未选集合/文档的错误提示。
+- 变更兼容 `LibraryView` 的文档集合管理能力时，必须覆盖 `POST /api/document-collections`、`POST /api/document-collections/update`、`POST /api/document-collections/delete`、前端集合名称校验、新建后刷新集合列表、重命名后刷新集合列表、删除前确认、删除集合不删除文档提示，以及删除当前筛选集合后清空筛选并刷新文档列表；该视图当前未挂载到 `VIEW_KEYS`，不能据此宣称主导航已有管理闭环。
+- 变更兼容 `LibraryView` 的文档集合加入/移出能力时，必须覆盖 `POST /api/document-collections/items/add`、`POST /api/document-collections/items/remove`、前端文档列表单文档加入集合、指定集合筛选下移出当前集合、成功后刷新集合列表和文档列表，以及未选集合/文档的错误提示；当前主路径 `LibraryModal` 只读取和筛选集合。
 - 变更 Vue 文档删除入口时，必须覆盖 `POST /api/documents/delete`、前端文档列表单文档删除按钮、删除前确认、源文件不会被删除提示、成功后刷新文档列表和集合列表，以及删除当前预览文档后的预览清理。
 - 变更 Vue 项目空间改名/删除入口时，必须覆盖 `POST /api/projects/rename`、`POST /api/projects/delete`、前端项目空间面板改名表单、删除前确认、项目内文档记录会被删除提示、改名后刷新项目列表并保持当前项目选中，以及删除后清空当前项目相关资料库状态。
 - 变更 Web 文档处理管线时，必须覆盖 DOCX 正文抽取、PDF 可选 `pymupdf` 正文抽取、缺少 PDF 解析器时明确跳过、浏览器上传 `content_base64` 和普通文本导入兼容行为。
@@ -124,7 +124,7 @@ docker compose config
 - 变更工具来源回填时，必须覆盖 `/api/answer` 的 `tool_run_id/tool_context`、同项目校验、跨项目拒绝和前端上下文提示。
 - 变更问答流式输出或请求取消时，必须覆盖 `/api/answer/stream` 的 SSE `token/done/answer_error` 事件、OpenAI-compatible `stream=true` 解析、EventSource 前端入口、`source.close()` 取消后的状态提示和按钮恢复。
 - 变更回答 Markdown 渲染时，必须覆盖 CDN 入口、`marked.parse`、`DOMPurify.sanitize`、`highlight.js` 代码高亮、纯文本回退和前端静态语法检查。
-- 变更深色模式时，必须覆盖主题切换入口、`prefers-color-scheme`、`data-theme`、`localStorage` 持久化、浅色/深色 CSS 变量和前端静态语法检查。
+- 深色模式当前只有禁用占位入口，未接入主题切换、`prefers-color-scheme`、`data-theme` 或 `localStorage`；后续实现时必须覆盖这些行为、浅色/深色 CSS 变量和前端静态语法检查。
 - 变更 Web 端 LLM、掌握评估、首次引导或静态前端约束时，必须复跑 `tests/test_webapp`。B-143 后 legacy 原生前端已删除，不再执行旧静态 JS 的 Node 语法检查。
 - 变更 Docker 启停入口时，必须复跑 `tests/test_webapp/test_docker_startup.py`，并至少真实执行一次启动或停止脚本。
 - 变更 FastAPI/Uvicorn 运行时、`app.py`、`backend/api/server.py` 或 SSE 外壳时，必须复跑 `tests/test_webapp/test_fastapi_server.py`、`tests/test_webapp/test_app_entrypoint.py` 和 `tests/test_webapp/test_docker_startup.py`。
@@ -146,13 +146,13 @@ docker compose config
 - Web MVP 检索复盘可保存一次诊断快照，保留查询参数、命中来源、来源质量和人工备注
 - Web MVP 浏览器文件夹导入可创建上传项目，并按后缀、忽略目录和大小规则跳过文件；DOCX 可抽取正文，PDF 在安装可选解析器时可抽取正文，缺少解析器时有明确跳过原因
 - Web MVP 文本笔记和 URL 摘录导入会写入 `note:` / `url:` 虚拟来源，同标题或同 URL 再次导入只更新原记录，目录同步和浏览器文件夹导入不会误删这些虚拟来源；真实文件或上传文件撞到笔记相对路径时会被跳过
-- Web MVP 文档集合可新增、删除、加入或移出文档，并按全部、未分组或指定集合过滤资料库列表；集合只保存关联关系，删除集合不删除文档
+- 文档集合 API 与兼容 `LibraryView` 支持新增、删除、加入或移出文档；当前主路径 `LibraryModal` 只支持按全部、未分组或指定集合过滤，集合管理尚不是主导航可达闭环
 - Web MVP DeepSeek 配置存在时优先真实 LLM，失败时本地回退
 - Web MVP 模型设置页可保存 API Base / 模型名 / Key，且不回显 Key 明文
 - Web MVP 模型 Profile 可新增、编辑、删除、设置默认和测试连接；Profile 只保存 Key 引用，默认 Profile 会优先参与真实 LLM 问答
 - Web MVP Prompt 预设可新增、编辑、删除、设置默认；真实 LLM prompt 保留固定来源约束，预设不保存 API Key
 - Web MVP 问答可通过 SSE / EventSource 流式渲染回答，完成后仍保存聊天记录、来源、质量提示和观察性元数据
-- Web MVP 深色模式跟随系统偏好，并可通过侧栏按钮手动切换和持久化
+- 设置页保留禁用的深色模式占位入口；当前没有跟随系统、手动切换或持久化实现
 - Web MVP 掌握评估入口、三类题型生成、逐题作答进度、服务端参考要点评分、四档状态输出、答题记录、待复测列表、题目/回答/结果持久化、回答反馈
 - Coach 定向评估可按知识点或技能节点恢复，作答前不泄露评分依据；覆盖率只使用当前来源版本的有效结果，技能状态区分无项目证据、未验证、部分验证和已验证
 - Coach 学习计划可生成确定性新草稿、完整编辑排序、确认版本和更新任务进度；历史来源按原分析运行解析，旧确认版不会被新草稿覆盖

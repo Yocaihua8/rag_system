@@ -2,47 +2,24 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-24
-> Scope：Knowledge Island 1.x 兼容 SQLite 模型与当前 2.0 数据代际
+> Last Updated：2026-07-30
+> Scope：Knowledge Island v2.0.0 当前 SQLite Schema、2.0 数据代际与只读 legacy 兼容边界
 > Related：docs/design/architecture-overview.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-> 阅读边界：§ 1～§ 4 是兼容保留的 1.x 模型；§ 5 起描述 2.0 数据代际。各实体是否已落地以对应表格的“状态”列为准。
+> 阅读边界：§ 1 是当前源码会初始化的完整表清单；§ 2～§ 4 保留核心表和 legacy 兼容字段的详细说明；§ 5～§ 7 描述 v2 数据代际、Coach 与 Obsidian Bridge。历史实体不等于当前 Schema。
 
 ## 1. 当前已落地实体
 
-当前默认交付形态是本地 Web MVP，其运行时直接使用 `backend/storage/knowledge_store.py` 初始化和读写 SQLite。下列实体中标注 Web MVP 的表是当前默认入口会直接使用的表；未标注 Web MVP 的实体主要服务 legacy 分层代码或历史兼容，不代表 Web MVP 已完成对应 UI 闭环。
+当前入口通过 `KnowledgeStore` 组合四个 storage 模块，共初始化 37 张表。API 和业务层不得直接操作 SQLite。
 
-- `projects`
-- `documents`
-- `document_collections`（Web MVP）
-- `document_collection_items`（Web MVP）
-- `import_batches`（Web MVP）
-- `import_batch_items`（Web MVP）
-- `document_chunks`（Web MVP）
-- `chunk_vectors`（Web MVP）
-- `prompt_presets`（Web MVP）
-- `model_profiles`（Web MVP）
-- `chat_sessions`（Web MVP）
-- `chat_messages`（Web MVP）
-- `answer_feedback`（Web MVP）
-- `assessment_questions`（Web MVP）
-- `assessment_answers`（Web MVP）
-- `assessment_results`（Web MVP）
-- `agent_tool_runs`（Web MVP）
-- `retrieval_reviews`（Web MVP）
-- `chunks`
-- `workspaces`
-- `tasks`
-- `conversations`
-- `tags`
-- `document_tags`
-- `sources`
-- `skill_areas`
-- `knowledge_points`
-- `evidences`
-- `mastery_records`
-- `graph_nodes`（legacy；Web MVP B-126 只读兼容）
-- `graph_edges`（legacy；Web MVP B-126 只读兼容）
+| 分组 | 初始化模块 | 当前表 |
+|------|------------|--------|
+| 核心知识库与问答（19） | `backend/storage/knowledge_store.py` | `app_metadata`、`projects`、`prompt_presets`、`model_profiles`、`documents`、`document_collections`、`document_collection_items`、`import_batches`、`import_batch_items`、`document_chunks`、`chunk_vectors`、`chat_sessions`、`chat_messages`、`answer_feedback`、`assessment_questions`、`assessment_answers`、`assessment_results`、`agent_tool_runs`、`retrieval_reviews` |
+| Coach 分析与技能映射（6） | `backend/storage/coach_store.py` | `coach_analysis_runs`、`coach_knowledge_points`、`coach_knowledge_sources`、`coach_skill_taxonomies`、`coach_skill_nodes`、`coach_knowledge_skill_mappings` |
+| Coach 评估与学习计划（6） | `backend/storage/coach_progress_store.py` | `coach_assessment_sessions`、`coach_assessment_questions`、`coach_assessment_answers`、`coach_assessment_results`、`coach_learning_plans`、`coach_learning_plan_items` |
+| Obsidian Bridge（6） | `backend/storage/obsidian_store.py` | `obsidian_pairings`、`obsidian_connections`、`obsidian_sync_events`、`obsidian_publications`、`obsidian_publication_revisions`、`obsidian_publication_results` |
+
+`graph_nodes` 和 `graph_edges` 不在当前 `_init_schema()` 中创建；仅当既有数据库已包含兼容表结构时，检索链路才做条件式只读查询。`chunks`、`workspaces`、`tasks`、`conversations`、`tags`、`document_tags`、`sources`、`skill_areas`、`knowledge_points`、`evidences`、`mastery_records` 等名称属于历史模型说明，不得据此推断当前数据库会创建这些表。
 
 ## 2. 字段要点
 

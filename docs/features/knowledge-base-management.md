@@ -2,12 +2,15 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-29
+> Last Updated：2026-07-30
+> Scope：项目文档、集合、预览、删除、导入批次与当前主资料入口的可达边界
 > Related：docs/design/ui-wireframes.md, docs/design/api-spec.md, docs/features/frontend-engineering.md
 
 ## 1. 目标
 
-知识库辅助管理页是 C 端用户日常维护单个知识库的入口。它不替代工作台问答，也不替代评估页的逐题作答流程，而是在资料库页顶部聚合当前项目的健康状态、摄入进度、文件列表入口、评估题库和最近结果。
+本文记录知识库辅助管理能力及兼容 `LibraryView` 的设计。它不替代工作台问答，也不替代评估流程；当前 v2 主入口只挂载 `LibraryModal`，因此下列完整管理页能力不能直接视为用户当前可达功能。
+
+> 当前可达边界：v2 主入口使用 `LibraryModal`，未挂载的 `LibraryView` 不属于当前可达页面。因此本文中只有已由 `LibraryModal` 或其他活动组件接通的行为可视为当前 UI；完整集合管理、导入批次和部分高级导入仍需以 API 或未挂载视图说明，不能写成主界面已交付。
 
 ## 2. 页面范围
 

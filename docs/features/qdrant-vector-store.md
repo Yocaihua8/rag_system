@@ -2,7 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
+> Last Updated：2026-07-30
+> Scope：可选 Qdrant local mode 候选检索、SQLite 兼容副本与失败回退
 > Related：docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-007-qdrant-vector-store.md
 
 ## 1. 功能目标

@@ -2,7 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-07-30
+> Scope：Notion ZIP/Obsidian Vault 一次性导入与 desktop-only 插件增量同步、受控发布
 > Related：docs/design/api-spec.md, docs/design/database-design.md, docs/features/project-space-ingestion.md, docs/features/project-knowledge-coach.md, docs/BACKLOG.md B-137 / B-163
 
 ## 1. 目标

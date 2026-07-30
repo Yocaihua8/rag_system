@@ -2,8 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
-> 关联 BACKLOG：B-136
+> Last Updated：2026-07-30
+> Scope：FastAPI OpenAPI 操作清单、Swagger UI 与字段级契约边界
+> Related：`../design/api-spec.md`、BACKLOG B-136
 
 ## 1. 功能目标
 

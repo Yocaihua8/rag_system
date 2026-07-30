@@ -2,7 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
+> Last Updated：2026-07-30
+> Scope：GitHub.com 仓库浅克隆、受控目录摄入和凭据安全边界
 > Related：B-133, docs/design/api-spec.md, docs/requirements/functional-modules.md
 
 ## 1. 目标
@@ -15,7 +16,7 @@ B-133 为开发者用户提供 GitHub 仓库整体导入入口。用户提交 Gi
 - 支持可选分支名；未填写时使用仓库默认分支。
 - 支持可选项目名称；未填写时使用仓库名。
 - 导入过程复用现有目录导入解析能力，遵守 `backend/domain/import_rules.py` 中的可导入后缀与忽略目录规则。
-- 仓库克隆目录位于 Web MVP 的本地运行时目录 `runtime/webapp/github-repos/` 下，不修改 SQLite schema。
+- 默认克隆目录位于当前运行时 `runtime/v2/github-repos/`；通过 `RAG_RUNTIME_DIR` 改写运行根时随之变化。本功能不修改 SQLite schema。
 - 导入完成后返回新建项目、导入摘要、导入批次和文档列表。
 
 ## 3. 暂不支持
