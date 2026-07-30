@@ -92,11 +92,11 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 | 2026-07-30 | Windows PowerShell | `npm run tauri:build:windows` | 通过 | 用时 128.3 秒；完成 Vue 构建、PyInstaller sidecar、Rust release 与 NSIS bundle |
 | 2026-07-30 | Windows PowerShell | NSIS 文件、SHA-256 与 Authenticode 核验 | 通过（未签名候选） | `Knowledge Island_2.0.0_x64-setup.exe` 为 48,948,957 字节；SHA-256 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B`；状态 `NotSigned` |
 | 2026-07-30 | Windows / 本地 CI | npm/pip 安全审计、Python/Vue/插件/Playwright 等价矩阵 | 通过 | npm 所有严重等级为 0、pip-audit 为 0 个已知漏洞；Python 533 项、Vue 22 文件/92 项、插件 17 项和 Chromium Playwright 1 项通过，详见 v2 readiness |
-| 2026-07-30 | GitHub Actions | 当前 v2 分支 CI / Tauri Packaging | 未运行（额度例外） | 用户确认 GitHub Actions 额度已用完，本轮以完整本地 CI 和 Windows 原生构建作为合并前门禁；不宣称远端 green check |
+| 2026-07-30 | GitHub Actions | PR #4 `python-tests` / `frontend-e2e` | 通过 | 初始额度约束未实际阻止 runner；两项 hosted check 均通过。Tauri Packaging workflow 未运行，Windows 产物仍以本机原生构建为证据 |
 | 2026-07-30 | Windows | macOS `.dmg` / Linux `.AppImage` v2 构建 | 未执行 | 当前不是对应原生系统；B-152 历史产物不能替代 v2 原生产物证据 |
 
 当前 Windows NSIS 产物路径为：
 
 `src-tauri/target/release/bundle/nsis/Knowledge Island_2.0.0_x64-setup.exe`
 
-该产物证明 Windows v2 原生打包链路可用，但尚未完成分支推送、PR、`main` 合并、`v2.0.0` Tag 或 GitHub Release；正式发布前继续以 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的外部交付边界为准。
+该产物证明 Windows v2 原生打包链路可用；功能分支已推送，PR #4 的两项 CI 检查已通过，但 `main` 合并、`v2.0.0` Tag 和 GitHub Release 尚未完成。正式发布前继续以 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的外部交付边界为准。

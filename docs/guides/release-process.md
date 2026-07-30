@@ -41,6 +41,8 @@ GitHub-hosted CI 额度耗尽不等于 CI 已通过。仅在仓库负责人明�
 5. 若 required checks 阻止合并，只能使用仓库已有的授权 bypass 完成此次合并并记录操作者、时间和原因；不得永久关闭或删除 `main` 的 required checks。
 6. 额度恢复后立即恢复常规 hosted checks；本地例外不能追溯宣称 GitHub Actions 曾通过，也不能替代后续版本的正常门禁。
 
+B-166 初始按额度不足准备了上述例外证据，但 PR #4 实际取得 runner，`python-tests` 与 `frontend-e2e` 均通过，因此本次最终合并使用真实 hosted green checks，不启用额度 bypass。
+
 ## 3. 发布步骤
 
 1. 确认所有发布前检查通过（§1 的 CI green，或经发布负责人明确批准并完整留证的 §2.1 例外；v1.0.0 / v2.0.0 还需完成各自 readiness）
@@ -129,4 +131,4 @@ npm run tauri:build:linux
 | 版本 | 日期 | 状态 | 边界 |
 |------|------|------|------|
 | v2.0.0 | 2026-07-24 | 本地源码与自动化候选就绪 | 未创建 Tag、未推送远端、未合并 `main`、未创建 GitHub Release；本机缺少 MSVC `link.exe`，未生成 Windows installer，详见 v2 readiness |
-| v2.0.0 | 2026-07-30 | 本地等价 CI 与 Windows NSIS 候选就绪 | GitHub Actions 额度已用尽，hosted checks 未执行；NSIS 未签名；PR、`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending |
+| v2.0.0 | 2026-07-30 | 本地/远端 CI 与 Windows NSIS 候选就绪 | PR #4 `python-tests` / `frontend-e2e` 已通过；NSIS 未签名；`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending |

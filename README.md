@@ -19,7 +19,7 @@ Knowledge Island 2.0 的产品方向已调整为“面向个人开发学习的�
 
 2.0 的“项目知识覆盖”是主评价口径；语言、框架、数据、测试、交付、AI 等通用技能只用于辅助解释当前项目中的差距，不扩张为职业能力或求职评价。现有 1.x 数据不会被静默迁移或删除。
 
-> **v2.0.0 发布状态（2026-07-30）**：`feature/project-knowledge-coach-v2` 已完成 npm / pip 安全审计、Python 533 项、Vue 22 个文件 / 92 项、52 模块构建、Obsidian 插件 17 项及 Playwright Chromium 主流程的本地等价 CI；Windows 原生链路已生成 `Knowledge Island_2.0.0_x64-setup.exe`，但安装包尚未签名。GitHub Actions 额度已用尽，本轮 hosted checks 未执行；PR、`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending，因此以上仅是本地候选证据，不代表正式发布完成。
+> **v2.0.0 发布状态（2026-07-30）**：`feature/project-knowledge-coach-v2` 已完成 npm / pip 安全审计、Python 533 项、Vue 22 个文件 / 92 项、52 模块构建、Obsidian 插件 17 项及 Playwright Chromium 主流程的本地等价 CI；Windows 原生链路已生成 `Knowledge Island_2.0.0_x64-setup.exe`，但安装包尚未签名。功能分支已推送并创建 PR #4，GitHub Actions `python-tests` 与 `frontend-e2e` 均已取得 green check；`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending，因此当前仍是发布候选，不代表正式发布完成。
 
 ---
 
@@ -315,7 +315,7 @@ knowledage_island/
 # 当前测试基线以实际运行结果为准
 ```
 
-2026-07-30 的 v2 候选完整本地等价 CI 结果及 GitHub Actions 额度例外边界见 `docs/guides/testing.md`。当前 Windows 环境中 `E:\Code\knowledage_island` 是指向 `E:\Dev\Projects\knowledage_island` 的 Junction；Node、Vite、Playwright 或 Tauri 若在入口路径遇到权限错误，应核对并从真实路径重跑，同时保留两条路径作为审计证据。
+2026-07-30 的 v2 候选完整本地等价 CI、PR #4 远端检查及 GitHub Actions 额度例外边界见 `docs/guides/testing.md`。当前 Windows 环境中 `E:\Code\knowledage_island` 是指向 `E:\Dev\Projects\knowledage_island` 的 Junction；Node、Vite、Playwright 或 Tauri 若在入口路径遇到权限错误，应核对并从真实路径重跑，同时保留两条路径作为审计证据。
 
 ---
 

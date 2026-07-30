@@ -9,13 +9,13 @@
 
 ## 1. 目标
 
-以最小兼容升级修复根前端锁文件中的两个 high 漏洞，完成 npm/pip 安全审计、Python/Vue/插件/Playwright 本地 CI 等价矩阵和 Windows Tauri 原生包验证；在 GitHub Actions 额度已用完的明确边界下，把本地验证证据写入 PR 与发布文档，随后合并 `main`、创建 `v2.0.0` Tag 和 GitHub Release。
+以最小兼容升级修复根前端锁文件中的两个 high 漏洞，完成 npm/pip 安全审计、Python/Vue/插件/Playwright 本地 CI 等价矩阵和 Windows Tauri 原生包验证；把本地与 GitHub Actions 证据写入 PR 和发布文档，随后合并 `main`、创建 `v2.0.0` Tag 和 GitHub Release。
 
 ## 2. 前置条件
 
 - 已读取 `AGENTS.md`、`CONTRIBUTING.md`、`docs/guides/testing.md`、`docs/guides/release-process.md` 与 v2 readiness。
 - 当前分支为 `feature/project-knowledge-coach-v2`，工作区在任务开始时干净，起点提交为 `85ae4b4`。
-- 用户已明确 GitHub Actions 额度用完，要求以完整本地 CI 测试通过作为合并前门禁。
+- 用户初始报告 GitHub Actions 额度用完，要求以完整本地 CI 作为兜底门禁；PR #4 实际取得 runner 后，两项 hosted check 均已通过。
 
 ## 3. 任务拆解
 
@@ -26,7 +26,7 @@
 - [x] 完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
 - [x] 补齐 MSVC / Windows SDK 后完成 `cargo check` 与 Windows Tauri 安装包验证
 - [x] 同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
-- [ ] 推送功能分支、创建 PR，记录本地 CI 证据并在无远端 CI 额度边界下合并 `main`
+- [ ] 推送功能分支、创建 PR，记录本地/远端 CI 证据并合并 `main`
 - [ ] 创建并推送 `v2.0.0` Tag，创建 GitHub Release，完成发布后审计
 
 ## 4. 影响范围
@@ -60,7 +60,7 @@
 - [x] 两个 high 漏洞及后续新增通告在当前锁文件的 `npm audit --audit-level=high` 中清零
 - [x] `pip-audit`、Python/Vue/插件/Playwright 完整本地 CI 等价矩阵通过
 - [x] Windows `cargo check` 与 `npm run tauri:build:windows` 通过并生成 NSIS 安装包
-- [ ] PR 明确记录无 GitHub Actions 额度及本地验证命令、提交和结果
+- [x] PR 明确记录本地验证命令、提交和结果，且两项 GitHub Actions 检查通过
 - [x] 相关文档已同步（见下方“回流清单”）
 - [ ] BACKLOG 条目 B-166 状态已更新为 `done`
 - [ ] `main`、`v2.0.0` Tag 和 GitHub Release 指向同一已验证发布提交
@@ -77,7 +77,7 @@
 ## 8. 执行记录
 
 - 2026-07-30：冲突扫描未发现 Active/Interrupted 任务 plan；三份 2026-05 superpowers plan 为无状态 legacy 残留，不涉及当前前端依赖与发布文件。
-- 2026-07-30：GitHub Actions 额度不足是用户明确给出的发布约束；本任务不会把本地验证伪装成远端 green check，PR/readiness 将单独记录此例外。
+- 2026-07-30：GitHub Actions 额度不足是用户初始给出的发布约束；本任务先按本地等价矩阵准备可审计例外，不把本地验证伪装成远端 green check。
 - 2026-07-30：不改变根直接依赖版本，仅把锁文件允许范围内的 `brace-expansion` 从 `2.1.1` 升至 `2.1.2`、`postcss` 从 `8.5.15` 升至 `8.5.22`；`npm ci --offline` 与 `npm audit --offline --audit-level=high` 均报告 0 vulnerabilities。
 - 2026-07-30：Vue 单测和构建首次验证被 Windows 路径联接的沙箱权限阻断：Node 将 `E:\Code\knowledage_island` 解析为 `E:\Dev\Projects\knowledage_island`，测试报模块不可访问，构建清理 `backend/static_dist` 报 EPERM；这不是依赖回归，需在获准的真实工作区路径权限下重跑。
 - 2026-07-30：使用独立可写 `--basetemp` 后，`.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q` 实跑 `533 passed`；文档一致性脚本通过，文档/Tauri 契约 `37 passed`，Obsidian 插件 TypeScript 类型检查通过。
@@ -88,6 +88,7 @@
 - 2026-07-30：经用户批准安装 Visual Studio Build Tools 2022 `17.14.37`，核实 VCTools workload、MSVC `14.44.35207`、Windows 11 SDK `10.0.26100.0`、MSBuild `17.14.51.32402` 均可用，安装完整且无需重启。
 - 2026-07-30：`cargo check --manifest-path src-tauri/Cargo.toml` 在 28.18 秒内通过；`npm run tauri:build:windows` 在 128.3 秒内完成 Vue 构建、PyInstaller sidecar、Rust release 与 NSIS bundle，生成 48,948,957 字节的 `Knowledge Island_2.0.0_x64-setup.exe`，SHA-256 为 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B`。产物未签名，签名仍属于本阶段非目标。
 - 2026-07-30：已同步 BACKLOG、readiness、测试/发布/环境指南、桌面与前端工程文档、README、CHANGELOG 和当日 devlog；明确本地候选与正式远端发布边界、Junction 真实路径、Actions 额度例外及未签名风险。`scripts/check_docs_consistency.py` 通过，文档与 Tauri 契约 `37 passed`。
+- 2026-07-30：功能分支已推送并创建 PR #4（head `494fc2b`）；GitHub 实际分配 runner，`python-tests` 与 `frontend-e2e` 均通过，因此本次合并使用真实 hosted green checks，不启用额度 bypass。
 
 ## 9. 状态快照
 
@@ -95,5 +96,5 @@
 - **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
 - **最新 commit**：`1ecbc5c` — docs: 同步 v2.0.0 发布候选证据
 - **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全、本地 CI、Windows NSIS 和正式发布前文档回流均已完成并提交
-- **下一步**：推送功能分支、创建 PR，记录本地 CI 证据并在无远端 CI 额度边界下合并 `main`
-- **续任务须知**：当前工作区应保持干净；readiness 已明确本地候选、Actions 额度例外和未签名风险。下一步推送当前分支并以 PR head SHA 固定证据，人工复核后合并 `main`。
+- **下一步**：提交并推送远端 CI 事实修正，等待 PR #4 新 head 的两项检查通过后合并 `main`
+- **续任务须知**：PR #4 首轮 head `494fc2b` 的两项 hosted check 已通过；当前文档修正会产生新 head，必须等待对应新一轮 checks 终态后再合并。
