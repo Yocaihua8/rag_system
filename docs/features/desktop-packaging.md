@@ -99,4 +99,4 @@ B-147 后，旧 PySide6 / 六边形 `src/` 代码已归档到 `archive/src-deskt
 
 `src-tauri/target/release/bundle/nsis/Knowledge Island_2.0.0_x64-setup.exe`
 
-该产物证明 Windows v2 原生打包链路可用；功能分支已推送，PR #4 的两项 CI 检查已通过，但 `main` 合并、`v2.0.0` Tag 和 GitHub Release 尚未完成。正式发布前继续以 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的外部交付边界为准。
+该产物证明 Windows v2 原生打包链路可用；PR #4 的两项 CI 检查已通过并合并 `main`，但 `v2.0.0` Tag 和 GitHub Release 尚未完成。正式发布前继续以 `docs/release/V2_0_0_READINESS_2026-07-24.md` 的外部交付边界为准。

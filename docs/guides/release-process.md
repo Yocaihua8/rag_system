@@ -131,4 +131,4 @@ npm run tauri:build:linux
 | 版本 | 日期 | 状态 | 边界 |
 |------|------|------|------|
 | v2.0.0 | 2026-07-24 | 本地源码与自动化候选就绪 | 未创建 Tag、未推送远端、未合并 `main`、未创建 GitHub Release；本机缺少 MSVC `link.exe`，未生成 Windows installer，详见 v2 readiness |
-| v2.0.0 | 2026-07-30 | 本地/远端 CI 与 Windows NSIS 候选就绪 | PR #4 `python-tests` / `frontend-e2e` 已通过；NSIS 未签名；`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending |
+| v2.0.0 | 2026-07-30 | 本地/远端 CI、`main` 与 Windows NSIS 候选就绪 | PR #4 `python-tests` / `frontend-e2e` 已通过并合并 `main`；NSIS 未签名；`v2.0.0` Tag 和 GitHub Release 仍为 Pending |

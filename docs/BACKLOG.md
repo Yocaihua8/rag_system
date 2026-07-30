@@ -80,11 +80,18 @@
 | B-163 | feature | Obsidian 插件桥与受控双向同步 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 已实现桌面插件配对、Markdown 幂等事件同步、受控发布、冲突阻断、不可变修订与九个 Obsidian API；保留原单向手动导入。 |
 | B-164 | feature | Vue 项目知识教练闭环 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 已在现有 Codex 风格外壳中接通教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/受控发布交互；浏览器只使用应用侧路由，确认发布后明确显示 `queued` 等待插件执行。 |
 | B-165 | release | Knowledge Island 2.0 发布验收 | done | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 已完成 OpenAPI、文档、533 项后端/Web 测试、Vue、插件、Web E2E、Tauri 静态回归和旧运行时哈希复核，形成 v2.0.0 本地发布候选；正式 Tag、远端发布和原生安装包未执行。 |
-| B-166 | release | v2.0.0 依赖安全修复与正式发布 | doing | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 依赖 high 漏洞已完成兼容修复，在线 npm/pip 审计、Python 533 项、Vue 92 项与构建、插件 17 项/typecheck/build、Playwright 及文档契约均通过；MSVC/Windows SDK 已补齐，`cargo check` 与 Windows v2 NSIS 候选包构建通过。功能分支已推送并创建 PR #4，`python-tests` / `frontend-e2e` 远端检查通过；`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍待执行。执行计划：`docs/plans/B-166-v2-release-hardening.md`。 |
+| B-166 | release | v2.0.0 依赖安全修复与正式发布 | doing | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 依赖 high 漏洞已完成兼容修复，在线 npm/pip 审计、Python 533 项、Vue 92 项与构建、插件 17 项/typecheck/build、Playwright 及文档契约均通过；MSVC/Windows SDK 已补齐，`cargo check` 与 Windows v2 NSIS 候选包构建通过。PR #4 的 `python-tests` / `frontend-e2e` 远端检查通过并已合并 `main`（`cc09293`）；`v2.0.0` Tag 和 GitHub Release 仍待执行。执行计划：`docs/plans/B-166-v2-release-hardening.md`。 |
 
 ---
 
 ## 6. 已知问题
+
+### ISSUE-005：GitHub Actions 官方 Action 的 Node runtime 弃用警告
+
+- **发现时间**：2026-07-30
+- **现象**：PR #4 的 CI 两项 job 均通过，但 GitHub 对 `actions/cache@v4`、`actions/setup-node@v4`、`actions/setup-python@v5` 标注 Node 20 action runtime 已弃用，并由 runner 强制使用 Node 24 执行。
+- **影响范围**：`.github/workflows/ci.yml` 的 Action 运行时；不影响项目通过 `setup-node` 配置的应用 Node 20 测试版本，也不阻断本次发布。
+- **计划处理方式**：后续单独评估并升级到官方已迁移 Node 24 runtime 的 Action 版本，复跑 PR CI；不在 v2.0.0 发布提交中临时改写 workflow。
 
 > ISSUE-004（v2.0.0 前端锁文件包含两个 high 漏洞）已于 2026-07-30 处理：锁文件将 `postcss` 升至 `8.5.22`，并以 `minimatch@9.0.8` 兼容覆盖解析到已修复的 `brace-expansion@5.0.9`；在线 `npm audit --audit-level=high` 与完整本地 CI 均通过，结果已回流 `CHANGELOG.md`。
 

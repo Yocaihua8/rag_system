@@ -13,7 +13,7 @@
 
 - **当前源码**：B-160～B-166 已把产品主线切换为本地项目知识教练并完成依赖安全、本地 CI 与 Windows 原生候选验收；Vue 一级入口为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，评估使用覆盖层，Obsidian 一次性只读导入与插件连接、受控发布使用不同流程和状态。
 - **兼容边界**：原有导入、聊天和 `/api/assessment/*` 契约继续保留；旧 `AssessmentView` 与旧评估 API 只用于兼容，不再承载 2.0 主闭环。
-- **发布边界**：B-166 已完成在线依赖审计、完整本地 CI 等价矩阵、PR #4 两项 GitHub Actions 检查和 Windows 未签名 NSIS 候选，证据见 `release/V2_0_0_READINESS_2026-07-24.md`。本地候选就绪不等于正式发布；`main` 合并、Git Tag 和 GitHub Release 仍待执行，macOS / Linux v2 原生产物也未运行。
+- **发布边界**：B-166 已完成在线依赖审计、完整本地 CI 等价矩阵、PR #4 两项 GitHub Actions 检查、`main` 合并和 Windows 未签名 NSIS 候选，证据见 `release/V2_0_0_READINESS_2026-07-24.md`。本地候选就绪不等于正式发布；Git Tag 和 GitHub Release 仍待执行，macOS / Linux v2 原生产物也未运行。
 - **状态解释**：设计文档的 `Active` 表示设计决策有效。当前接口和行为以源码、测试及 `design/api-spec.md` 为准；本地验收、目标平台原生产物和正式远端发布必须分别记录，不能互相替代。
 - **停止方向**：B-157“全局资料库 / 跨工作区共享资料”不再作为 2.0 前置能力。
 

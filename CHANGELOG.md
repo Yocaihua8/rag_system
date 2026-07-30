@@ -8,7 +8,7 @@
 
 ## [Unreleased]
 
-> 目标版本：`v2.0.0`。依赖安全、完整本地 CI、PR #4 两项 GitHub Actions 检查与 Windows 未签名 NSIS 候选包已完成验收；`main` 合并、Git Tag 和 GitHub Release 仍待执行，正式发布时再按发布流程固化版本日期。
+> 目标版本：`v2.0.0`。依赖安全、完整本地 CI、PR #4 两项 GitHub Actions 检查与 Windows 未签名 NSIS 候选包已完成验收，PR 已合并 `main`；Git Tag 和 GitHub Release 仍待执行，正式发布时再按发布流程固化版本日期。
 
 ### Added
 - **项目知识分析**：为 Python、JavaScript/TypeScript 和常见 Web 项目生成带真实来源的项目理解、稳定知识点、版本化技能映射和 stale 状态；其他文本项目使用目录、清单、文档与 RAG 规则回退。

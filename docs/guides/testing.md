@@ -203,4 +203,4 @@ docker compose config
 | `cargo check --manifest-path src-tauri/Cargo.toml` | 通过 |
 | `npm run tauri:build:windows` | 通过；生成 48,948,957 字节的 `Knowledge Island_2.0.0_x64-setup.exe`，SHA-256 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B` |
 
-该 Windows NSIS 是未签名的本地候选产物，不等于正式发布包。B-166 初始按用户报告的额度不足准备本地例外，但 PR #4 实际取得 runner，`python-tests` 与 `frontend-e2e` 两项 hosted check 均通过；`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending。
+该 Windows NSIS 是未签名的本地候选产物，不等于正式发布包。B-166 初始按用户报告的额度不足准备本地例外，但 PR #4 实际取得 runner，`python-tests` 与 `frontend-e2e` 两项 hosted check 均通过并已合并 `main`；`v2.0.0` Tag 和 GitHub Release 仍为 Pending。

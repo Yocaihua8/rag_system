@@ -26,7 +26,7 @@
 - [x] 完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
 - [x] 补齐 MSVC / Windows SDK 后完成 `cargo check` 与 Windows Tauri 安装包验证
 - [x] 同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
-- [ ] 推送功能分支、创建 PR，记录本地/远端 CI 证据并合并 `main`
+- [x] 推送功能分支、创建 PR，记录本地/远端 CI 证据并合并 `main`
 - [ ] 创建并推送 `v2.0.0` Tag，创建 GitHub Release，完成发布后审计
 
 ## 4. 影响范围
@@ -89,12 +89,13 @@
 - 2026-07-30：`cargo check --manifest-path src-tauri/Cargo.toml` 在 28.18 秒内通过；`npm run tauri:build:windows` 在 128.3 秒内完成 Vue 构建、PyInstaller sidecar、Rust release 与 NSIS bundle，生成 48,948,957 字节的 `Knowledge Island_2.0.0_x64-setup.exe`，SHA-256 为 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B`。产物未签名，签名仍属于本阶段非目标。
 - 2026-07-30：已同步 BACKLOG、readiness、测试/发布/环境指南、桌面与前端工程文档、README、CHANGELOG 和当日 devlog；明确本地候选与正式远端发布边界、Junction 真实路径、Actions 额度例外及未签名风险。`scripts/check_docs_consistency.py` 通过，文档与 Tauri 契约 `37 passed`。
 - 2026-07-30：功能分支已推送并创建 PR #4（head `494fc2b`）；GitHub 实际分配 runner，`python-tests` 与 `frontend-e2e` 均通过，因此本次合并使用真实 hosted green checks，不启用额度 bypass。
+- 2026-07-30：文档事实修正后的 PR head `806480c` 再次通过 `python-tests` 与 `frontend-e2e`（run `30552786248`），PR #4 以 merge 方式合并 `main`，merge commit 为 `cc09293`。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-07-30 22:33
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`1ecbc5c` — docs: 同步 v2.0.0 发布候选证据
-- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全、本地 CI、Windows NSIS 和正式发布前文档回流均已完成并提交
-- **下一步**：提交并推送远端 CI 事实修正，等待 PR #4 新 head 的两项检查通过后合并 `main`
-- **续任务须知**：PR #4 首轮 head `494fc2b` 的两项 hosted check 已通过；当前文档修正会产生新 head，必须等待对应新一轮 checks 终态后再合并。
+- **最后更新**：2026-07-30 22:45
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`cc09293` — feat: 发布 Knowledge Island v2.0.0 (#4)
+- **代码状态**：`main`；PR #4 已在两项 hosted checks 通过后合并，正式发布文件尚未固化
+- **下一步**：固化 CHANGELOG 与正式发布口径，关闭 B-166、删除 plan，推送最终发布提交并在 main CI 通过后创建 `v2.0.0` Tag 和 GitHub Release
+- **续任务须知**：Windows NSIS 产物仍位于忽略目录，大小与 SHA-256 已核验且未签名；最终发布提交不得改业务代码，Tag、main 和 Release 必须指向同一提交。
