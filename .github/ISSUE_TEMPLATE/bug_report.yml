@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible defect or behavior regression.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide enough detail for maintainers to reproduce and triage the issue.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+      placeholder: "Example: Exporting more than 10,000 rows returns a 504 response."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: List the exact steps, commands, inputs, or files needed to reproduce.
+      placeholder: |
+        1. Open the export page.
+        2. Select a date range containing more than 10,000 rows.
+        3. Start the export and observe the response.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Version, runtime, OS, browser, database, deployment target, or other relevant context.
+      placeholder: "Example: v1.2.0, Node.js 22, Windows 11, Chrome 128"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs, screenshots, trace IDs, or error messages. Remove secrets first.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-checks
+      options:
+        - label: I searched existing issues and pull requests.
+          required: true
+        - label: I removed secrets, tokens, and personal data from this report.
+          required: true

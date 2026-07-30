@@ -1,0 +1,34 @@
+name: Docs Checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  docs-checks:
+    name: Check documentation placeholders and local links
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check placeholders after strict mode activation
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath ".docs-template/strict-ci")) {
+            Write-Host "NOTICE strict placeholder CI is not active yet."
+            Write-Host "Fill active documents, run the local placeholder check, then create .docs-template/strict-ci."
+            exit 0
+          }
+          pwsh -NoProfile -File scripts/check-placeholders.ps1
+
+      - name: Check local Markdown links
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/check-doc-links.ps1

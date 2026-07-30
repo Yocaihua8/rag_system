@@ -23,7 +23,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 未完成项不得删除。
 
-- [ ] 建立模板消费与治理基线：记录 profile/packs/state，补齐根级规范、GitHub 协作资产和跨平台文档校验脚本
+- [x] 建立模板消费与治理基线：记录 profile/packs/state，补齐根级规范、GitHub 协作资产和跨平台文档校验脚本
 - [ ] 重构正式文档入口、映射、需求、设计、功能、指南与 ADR 模板/索引，并用源码校准 v2.0.0 事实
 - [ ] 将 dated DevLog 迁入 `docs/devlog/YYYY/MM/`，修复全仓链接和索引，保留历史扩展目录
 - [ ] 运行链接、占位符、元数据、文档一致性、测试与前端构建验证并修复发现的问题
@@ -82,6 +82,8 @@
 - 2026-07-30：选择 `open-source` profile；packs 为 requirements、architecture、workflow、ai-planning、release-support、operations、api、data、frontend、frontend-api-contract、access-control、migration、glossary、github、github-ci。
 - 2026-07-30：仓库公开但无 LICENSE；本任务不擅自选择许可证，许可证状态明确标记为待项目所有者决策。
 - 2026-07-30：保留 `docs/architecture/`、`docs/release/`、`docs/superpowers/`、`docs/previews/` 等项目历史扩展，不做批量删除。
+- 2026-07-30：已机械复用模板 1.0.0 中 32 个缺失 scaffold 文件，并以当前目标文件哈希生成 64 行 `.docs-template/state.tsv`；未覆盖任何既有文件。
+- 2026-07-30：暂不创建 `.docs-template/strict-ci`。活动文档完成语义迁移且消费者占位符检查归零后再激活；本地 `.venv`、运行时副本和 GitHub Actions 表达式的误报留待校验切片修正。
 
 ## 9. 状态快照
 
