@@ -91,9 +91,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-07-30 22:22
-- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`2a98d34` — docs: 记录 Windows Tauri 打包通过
-- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全、本地 CI 和 Windows NSIS 原生打包三项门禁均已完成并提交
-- **下一步**：同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
-- **续任务须知**：本机已具备完整 MSVC/SDK 工具链，`cargo check` 与 `npm run tauri:build:windows` 通过；NSIS 产物哈希已记录且未签名。下一步完成正式发布文档回流，再推送 PR。
+- **最后更新**：2026-07-30 22:33
+- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`1ecbc5c` — docs: 同步 v2.0.0 发布候选证据
+- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全、本地 CI、Windows NSIS 和正式发布前文档回流均已完成并提交
+- **下一步**：推送功能分支、创建 PR，记录本地 CI 证据并在无远端 CI 额度边界下合并 `main`
+- **续任务须知**：当前工作区应保持干净；readiness 已明确本地候选、Actions 额度例外和未签名风险。下一步推送当前分支并以 PR head SHA 固定证据，人工复核后合并 `main`。
