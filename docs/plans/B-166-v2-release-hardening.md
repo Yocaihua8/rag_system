@@ -84,7 +84,7 @@
 
 - **最后更新**：2026-07-30 11:49
 - **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：待生成 — B-166 安全依赖修复
-- **代码状态**：`feature/project-knowledge-coach-v2`；B-166、ISSUE-004、plan 与锁文件修复待提交
+- **最新 commit**：`493794f` — fix: 修复前端依赖高危漏洞
+- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全修复已提交，工作区仅有本状态快照待提交
 - **下一步**：完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
 - **续任务须知**：锁文件和本机 `node_modules` 已解析为 `brace-expansion@2.1.2`、`postcss@8.5.22`；联网 audit 需用户明确允许依赖元数据外发。当前工作区是指向 `E:\Dev\Projects\knowledage_island` 的路径联接，默认沙箱阻断 Node 对真实路径读写，完整前端验证需显式批准。
