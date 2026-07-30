@@ -23,7 +23,7 @@
 未完成项不得删除。
 
 - [x] 登记安全问题并完成 `brace-expansion` / `postcss` 最小兼容升级
-- [ ] 完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
+- [x] 完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
 - [ ] 补齐 MSVC / Windows SDK 后完成 `cargo check` 与 Windows Tauri 安装包验证
 - [ ] 同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
 - [ ] 推送功能分支、创建 PR，记录本地 CI 证据并在无远端 CI 额度边界下合并 `main`
@@ -56,8 +56,8 @@
 
 ## 6. 完成标准
 
-- [ ] 两个 high 漏洞在当前锁文件的 `npm audit --audit-level=high` 中清零
-- [ ] `pip-audit`、Python/Vue/插件/Playwright 完整本地 CI 等价矩阵通过
+- [x] 两个 high 漏洞及后续新增通告在当前锁文件的 `npm audit --audit-level=high` 中清零
+- [x] `pip-audit`、Python/Vue/插件/Playwright 完整本地 CI 等价矩阵通过
 - [ ] Windows `cargo check` 与 `npm run tauri:build:windows` 通过并生成 NSIS 安装包
 - [ ] PR 明确记录无 GitHub Actions 额度及本地验证命令、提交和结果
 - [ ] 相关文档已同步（见下方“回流清单”）
@@ -82,6 +82,8 @@
 - 2026-07-30：使用独立可写 `--basetemp` 后，`.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q` 实跑 `533 passed`；文档一致性脚本通过，文档/Tauri 契约 `37 passed`，Obsidian 插件 TypeScript 类型检查通过。
 - 2026-07-30：插件 Vitest/构建与 Vue Vitest/构建仍被 Node/esbuild 对路径联接真实目录或沙箱父目录的访问限制阻断；在线 npm/pip 审计涉及向官方服务发送依赖元数据，Visual Studio Build Tools + Windows SDK 安装会更改系统并占用较大磁盘，三项均需用户明确批准后继续。
 - 2026-07-30：用户明确批准在线依赖审计、真实路径 Node/Playwright 写入，以及 Visual Studio Build Tools、VCTools 与 Windows SDK 安装；plan 从 Interrupted 恢复为 Active，B-166 恢复为 doing。
+- 2026-07-30：在线 npm 审计新增披露 `GHSA-mh99-v99m-4gvg`，原锁文件因 `minimatch@9.0.9 -> brace-expansion@2.1.2` 产生 6 个 high 传播节点。直接强制 `brace-expansion@5` 会破坏 9.0.9 的默认导入，升级 `js-beautify@2` 又会引入不兼容 CI Node 20 的依赖；最终用 `overrides.minimatch=9.0.8` 保持 9.x 上游约束，并自然解析到已修复的 `brace-expansion@5.0.9`。
+- 2026-07-30：最终依赖树执行 `npm ci` 和在线 `npm audit --audit-level=high` 均通过，所有漏洞等级为 0；在线 `pip-audit` 报告 0 个已知漏洞。真实路径完成 Vue 22 文件 / 92 项单测、52 模块构建、Obsidian 插件 17 项测试 / typecheck / build，以及 Playwright Chromium 1 项主流程；另用 Node `v20.19.5` 复跑 92 项 Vue 单测通过。Python 533 项、文档一致性和 37 项文档/Tauri 契约继续通过。
 
 ## 9. 状态快照
 
