@@ -87,9 +87,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-07-30 21:58
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`d483891` — docs: 更新 B-166 安全修复快照
-- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全修复已提交；外部权限已获批准，恢复完整验证
-- **下一步**：完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
-- **续任务须知**：锁文件和本机 `node_modules` 已解析为 `brace-expansion@2.1.2`、`postcss@8.5.22`；已通过离线 npm audit、Python 533 项、文档一致性、37 项契约与插件 typecheck。后续可直接执行在线 audit、真实路径 Node/Playwright 矩阵和 VS Build Tools 安装。
+- **最后更新**：2026-07-30 22:20
+- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`9f4e0fa` — fix: 修复新增前端依赖高危漏洞
+- **代码状态**：`feature/project-knowledge-coach-v2`；最终依赖树、在线安全审计与完整本地 CI 等价矩阵已提交
+- **下一步**：记录已完成的 MSVC / Windows SDK、`cargo check` 与 Windows Tauri NSIS 安装包验证
+- **续任务须知**：`minimatch@9.0.8 -> brace-expansion@5.0.9` 已通过 npm audit、Node 20 Vue 单测和完整 Node/Playwright 矩阵；Python 533 项与 pip-audit 继续通过。Windows 原生构建已在本机完成，下一步只需按任务 3 回填产物证据并提交。
