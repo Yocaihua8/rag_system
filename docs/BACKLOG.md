@@ -80,7 +80,7 @@
 | B-163 | feature | Obsidian 插件桥与受控双向同步 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 已实现桌面插件配对、Markdown 幂等事件同步、受控发布、冲突阻断、不可变修订与九个 Obsidian API；保留原单向手动导入。 |
 | B-164 | feature | Vue 项目知识教练闭环 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 已在现有 Codex 风格外壳中接通教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/受控发布交互；浏览器只使用应用侧路由，确认发布后明确显示 `queued` 等待插件执行。 |
 | B-165 | release | Knowledge Island 2.0 发布验收 | done | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 已完成 OpenAPI、文档、533 项后端/Web 测试、Vue、插件、Web E2E、Tauri 静态回归和旧运行时哈希复核，形成 v2.0.0 本地发布候选；正式 Tag、远端发布和原生安装包未执行。 |
-| B-166 | release | v2.0.0 依赖安全修复与正式发布 | blocked | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 两个 high 已完成最小锁文件升级，Python 533 项与文档契约已通过；当前等待用户明确批准三项外部操作：在路径联接真实目录执行 Node 构建/测试、向 npm/PyPI 官方服务发送依赖元数据完成在线审计、安装 Visual Studio Build Tools + Windows SDK。执行计划：`docs/plans/B-166-v2-release-hardening.md`。 |
+| B-166 | release | v2.0.0 依赖安全修复与正式发布 | doing | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 两个 high 已完成最小锁文件升级，Python 533 项与文档契约已通过；用户已明确批准真实路径 Node/Playwright 写入、在线依赖审计和 Visual Studio Build Tools + Windows SDK 安装，正在继续完整本地 CI 与正式发布。执行计划：`docs/plans/B-166-v2-release-hardening.md`。 |
 
 ---
 
