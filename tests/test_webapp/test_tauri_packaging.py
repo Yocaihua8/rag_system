@@ -17,6 +17,25 @@ def test_tauri_config_bundles_vue_build_and_backend_sidecar():
     assert config["bundle"]["externalBin"] == ["binaries/knowledge-island-backend"]
 
 
+def test_v2_release_version_is_consistent_across_web_and_tauri_metadata():
+    expected_version = "2.0.0"
+    package = json.loads(Path("package.json").read_text(encoding="utf-8"))
+    package_lock = json.loads(Path("package-lock.json").read_text(encoding="utf-8"))
+    tauri_config = json.loads(Path("src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
+    cargo_toml = Path("src-tauri/Cargo.toml").read_text(encoding="utf-8")
+    cargo_lock = Path("src-tauri/Cargo.lock").read_text(encoding="utf-8")
+
+    assert package["version"] == expected_version
+    assert package_lock["version"] == expected_version
+    assert package_lock["packages"][""]["version"] == expected_version
+    assert tauri_config["version"] == expected_version
+    assert f'version = "{expected_version}"' in cargo_toml
+    assert (
+        'name = "knowledge-island-desktop"\n'
+        f'version = "{expected_version}"'
+    ) in cargo_lock
+
+
 def test_tauri_windows_icon_exists_for_resource_generation():
     icon_path = Path("src-tauri/icons/icon.ico")
 
@@ -50,7 +69,7 @@ def test_tauri_rust_entry_starts_sidecar_and_minimizes_to_tray():
     source = main_rs.read_text(encoding="utf-8")
 
     assert "tauri_plugin_shell::init()" in source
-    assert 'sidecar("binaries/knowledge-island-backend")' in source
+    assert 'sidecar("knowledge-island-backend")' in source
     assert "TrayIconBuilder" in source
     assert "MenuItem" in source
     assert "CloseRequested" in source

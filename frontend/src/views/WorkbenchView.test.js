@@ -24,11 +24,12 @@ function mountWorkbench(props = {}) {
   });
 }
 
-describe("WorkbenchView phase 2 shell", () => {
+describe("WorkbenchView coach shell", () => {
   it("keeps the chat first screen free of migration copy and advanced tool labels", () => {
     const wrapper = mountWorkbench();
 
-    expect(wrapper.text()).toContain("问资料");
+    expect(wrapper.text()).toContain("理解当前项目");
+    expect(wrapper.text()).toContain("围绕当前项目提问");
     expect(wrapper.text()).not.toContain("B-142");
     expect(wrapper.text()).not.toContain("检索调试");
     expect(wrapper.text()).not.toContain("Agent 工具");

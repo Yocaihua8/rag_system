@@ -38,18 +38,35 @@ const child = spawn(pythonExecutable(), ["tests/e2e/e2e_server.py"], {
   stdio: "inherit",
 });
 
+let shutdownRequested = false;
+let shutdownTimer;
+
 function shutdown(signal) {
+  if (shutdownRequested) {
+    return;
+  }
+  shutdownRequested = true;
   if (!child.killed) {
     child.kill(signal);
   }
+  shutdownTimer = setTimeout(() => process.exit(0), 5000);
+  shutdownTimer.unref();
 }
 
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
 child.on("exit", (code, signal) => {
+  if (shutdownTimer) {
+    clearTimeout(shutdownTimer);
+  }
+  if (shutdownRequested) {
+    process.exit(0);
+    return;
+  }
   if (signal) {
-    process.kill(process.pid, signal);
+    process.exit(1);
+    return;
   }
   process.exit(code ?? 0);
 });

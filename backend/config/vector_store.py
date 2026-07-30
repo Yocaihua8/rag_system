@@ -7,7 +7,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from backend.config.paths import app_data_dir
+from backend.config.settings import load_settings
 from backend.providers.base import BaseVectorStore
 from backend.providers.vector_store.qdrant import QdrantVectorStore
 
@@ -20,22 +20,28 @@ DEFAULT_QDRANT_VECTOR_SIZE = 96
 class VectorStoreSettings:
     enabled: bool = False
     provider: str = DEFAULT_VECTOR_STORE_PROVIDER
-    path: Path = app_data_dir() / "qdrant"
+    path: Path | None = None
     collection: str = DEFAULT_QDRANT_COLLECTION
     vector_size: int = DEFAULT_QDRANT_VECTOR_SIZE
 
 
-_CACHED_KEY: tuple[bool, str, Path, str, int] | None = None
+_CACHED_KEY: tuple[bool, str, Path | None, str, int] | None = None
 _CACHED_VECTOR_STORE: BaseVectorStore | None = None
 
 
 def load_vector_store_settings(environ: Mapping[str, str] | None = None) -> VectorStoreSettings:
     values = os.environ if environ is None else environ
     provider = str(values.get("RAG_VECTOR_STORE_PROVIDER") or DEFAULT_VECTOR_STORE_PROVIDER).strip().lower()
+    runtime_override = str(values.get("RAG_RUNTIME_DIR") or "").strip()
+    default_path = (
+        Path(runtime_override).expanduser().resolve() / "vectors" / "qdrant"
+        if runtime_override
+        else load_settings().vector_dir / "qdrant"
+    )
     return VectorStoreSettings(
         enabled=provider == "qdrant",
         provider=provider,
-        path=Path(values.get("RAG_QDRANT_PATH") or app_data_dir() / "qdrant"),
+        path=Path(values.get("RAG_QDRANT_PATH") or default_path).expanduser().resolve(),
         collection=str(values.get("RAG_QDRANT_COLLECTION") or DEFAULT_QDRANT_COLLECTION),
         vector_size=_positive_int(values.get("RAG_QDRANT_VECTOR_SIZE"), DEFAULT_QDRANT_VECTOR_SIZE),
     )
@@ -63,7 +69,7 @@ def build_vector_store(
         )
         return None
     return QdrantVectorStore(
-        path=current.path,
+        path=current.path or load_settings().vector_dir / "qdrant",
         collection=current.collection,
         vector_size=current.vector_size,
     )

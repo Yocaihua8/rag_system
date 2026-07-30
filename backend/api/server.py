@@ -22,6 +22,13 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 STATIC_DIST_DIR = BACKEND_DIR / "static_dist"
 AUTHENTICATION_REQUIRED = {"error": "authentication required"}
 INVALID_CREDENTIALS = {"error": "invalid credentials"}
+OBSIDIAN_SELF_AUTH_PATHS = {
+    "/api/obsidian/pairing/complete",
+    "/api/obsidian/connections/revoke",
+    "/api/obsidian/sync/events",
+    "/api/obsidian/publications/pending",
+    "/api/obsidian/publications/result",
+}
 
 
 def create_app(
@@ -29,7 +36,10 @@ def create_app(
     store: KnowledgeStore | None = None,
     auth_settings: AuthSettings | None = None,
 ) -> FastAPI:
-    knowledge_store = store or KnowledgeStore(db_path or default_db_path())
+    knowledge_store = store or KnowledgeStore(
+        db_path or default_db_path(),
+        expected_generation="v2",
+    )
     auth_config = auth_settings or load_auth_settings()
     app = FastAPI(title="Knowledge Island", docs_url="/docs", redoc_url="/redoc")
     app.state.knowledge_store = knowledge_store
@@ -89,6 +99,14 @@ def create_app(
             request.method,
             _raw_path(request),
             await _json_payload(request),
+            request_context={
+                "authorization": request.headers.get("authorization", ""),
+                "app_authenticated": (
+                    "true"
+                    if _app_authenticated(auth_config, request)
+                    else "false"
+                ),
+            },
         )
         return JSONResponse(status_code=response.status, content=response.body)
 
@@ -123,10 +141,34 @@ def _auth_error(settings: AuthSettings, request: Request) -> str | None:
     return "missing"
 
 
+def _app_authenticated(
+    settings: AuthSettings,
+    request: Request,
+) -> bool:
+    if not settings.enabled:
+        return True
+    api_key = request.headers.get("x-api-key", "")
+    if api_key:
+        return validate_api_key(settings, api_key)
+    authorization = request.headers.get("authorization", "")
+    if not authorization:
+        return False
+    scheme, _, token = authorization.partition(" ")
+    return (
+        scheme.lower() == "bearer"
+        and bool(token.strip())
+        and validate_jwt(settings, token.strip()) is not None
+    )
+
+
 def _requires_auth(settings: AuthSettings, path: str) -> bool:
     if not settings.enabled:
         return False
-    if path in {"/api/health", "/api/auth/token"}:
+    if path in {
+        "/api/health",
+        "/api/auth/token",
+        *OBSIDIAN_SELF_AUTH_PATHS,
+    }:
         return False
     if path == "/docs" or path.startswith("/docs/"):
         return True

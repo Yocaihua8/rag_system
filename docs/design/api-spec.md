@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
-> Scope：本地 Web MVP HTTP API + legacy 进程内接口
+> Last Updated：2026-07-23
+> Scope：本地 Web / Coach HTTP API + legacy 进程内接口
 
 ## 1. 本地 Web MVP HTTP API
 
@@ -79,6 +79,26 @@ B-136 起，`/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的�
 - `GET /api/chat/messages`
 - `POST /api/chat/messages/delete`
 - `POST /api/chat/messages/clear`
+- `POST /api/coach/analyze`
+- `GET /api/coach/overview`
+- `GET /api/coach/knowledge-points`
+- `GET /api/coach/skills`
+- `POST /api/coach/assessments/start`
+- `POST /api/coach/assessments/answer`
+- `GET /api/coach/coverage`
+- `POST /api/coach/learning-plans/generate`
+- `GET /api/coach/learning-plans/current`
+- `POST /api/coach/learning-plans/update`
+- `POST /api/coach/learning-plans/confirm`
+- `POST /api/obsidian/pairing/start`
+- `POST /api/obsidian/pairing/complete`
+- `GET /api/obsidian/connections`
+- `POST /api/obsidian/connections/revoke`
+- `POST /api/obsidian/sync/events`
+- `POST /api/obsidian/publications/preview`
+- `POST /api/obsidian/publications/confirm`
+- `POST /api/obsidian/publications/result`
+- `GET /api/obsidian/publications/pending`
 - `GET /api/agent/tools`
 - `POST /api/agent/tools/run`
 - `GET /api/agent/tools/runs`
@@ -468,7 +488,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 模型设置接口不回显 API Key 明文。`api_key` 留空时不会覆盖既有环境变量或已保存配置；保存位置沿用配置层的 appdata `.env`。
 
-### 1.7 掌握评估
+### 1.7 1.x 兼容掌握评估
 
 | 方法 | 路径 | 请求 | 成功响应 | 错误 |
 |------|------|------|----------|------|
@@ -476,9 +496,105 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 | POST | `/api/assessment/start` | `project_id` | `{"session":{"id":"...","project_id":"...","questions":[{"id":"...","question_type":"concept|flow|code_location","knowledge_point":"...","source_path":"...","prompt":"...","expected_points":[...]}]}}` | `404 project not found`、`400 assessment requires imported documents` |
 | POST | `/api/assessment/answer` | `project_id`、`question`、`answer` | `{"result":{"result_id":"...","answer_id":"...","status":"已掌握|基本理解|需要补充|暂未掌握","score":0.0,"matched_points":[],"missing_points":[],"source_path":"..."}}` | `404 project not found`、`400 assessment question not found`、`400 answer is required` |
 
-Web MVP 评估是最小闭环：题目从已导入文档规则化生成，当前支持 `concept`（概念理解）、`flow`（流程说明）和 `code_location`（代码定位）三类；每题保存轻量 `knowledge_point` 标签和 `source_path`。提交回答时服务端会按题目 ID 读取已保存题目，使用服务端持久化的 `expected_points` 和 `reference_snippet` 评分，不信任前端回传的参考要点；评分结果保存到 `assessment_results`，回答保存到 `assessment_answers`。该实现不等同于 legacy 桌面端完整 Knowledge Mastery 存储模型。
+以下 `/api/assessment/*` 契约继续作为 1.x 兼容接口保留；2.0 Vue 闭环改用 § 1.8 的 Coach API，不修改旧调用方。Web MVP 评估是最小闭环：题目从已导入文档规则化生成，当前支持 `concept`（概念理解）、`flow`（流程说明）和 `code_location`（代码定位）三类；每题保存轻量 `knowledge_point` 标签和 `source_path`。提交回答时服务端会按题目 ID 读取已保存题目，使用服务端持久化的 `expected_points` 和 `reference_snippet` 评分，不信任前端回传的参考要点；评分结果保存到 `assessment_results`，回答保存到 `assessment_answers`。该实现不等同于 legacy 桌面端完整 Knowledge Mastery 存储模型。
 
 `GET /api/assessment/library` 是资料库管理概览使用的只读题库接口。它按当前项目返回题库数量、评估结果数量、题型分布、掌握状态分布、最近题目快照和最近评估结果；不生成新题、不评分、不修改评估会话，也不新增数据库表。
+
+### 1.8 项目知识教练接口（B-161 / B-162）
+
+| 方法 | 路径 | 请求 | 成功响应 | 错误 |
+|------|------|------|----------|------|
+| POST | `/api/coach/analyze` | `project_id` | `{"analysis":{"source_ids":[...],"sources":{...},...}}` | `400 project_id is required`、`400 coach analysis requires imported documents`、`404 project not found` |
+| GET | `/api/coach/overview?project_id=...` | query `project_id` | `{"overview":{...}}` | `400 project_id is required`、`404 project not found`、`404 coach analysis not found` |
+| GET | `/api/coach/knowledge-points?project_id=...` | query `project_id` | `{"knowledge_points":{"analysis":...,"items":[...],"sources":{...}}}` | 同上 |
+| GET | `/api/coach/skills?project_id=...` | query `project_id` | `{"skills":{"analysis":...,"taxonomy":...,"items":[...],"sources":{...}}}` | 同上 |
+
+`POST /api/coach/analyze` 同步分析当前项目已经入库的资料，不直接扫描项目磁盘。首版规则覆盖 Python、JavaScript / TypeScript、`package.json`、`pyproject.toml`、requirements、TypeScript / Vite 配置、Docker / Compose 等常见清单；无法匹配专用规则的文本项目使用 README、目录和高信号文档回退。分析运行的核心字段为：
+
+- `id / project_id / analyzer_version / source_fingerprint / status`
+- `summary / started_at / finished_at`
+- `source_count / knowledge_point_count / skill_mapping_count`
+- `enhancement_mode=rule|model / warning`
+- `source_ids / sources`；分析概览涉及的来源可在同一响应内解析
+
+没有默认模型 Profile 时使用确定性规则结果；配置了可用默认 Profile 或测试显式注入模型客户端时，模型只能增强 `summary.overview`，不能新增知识点、技能映射或来源。模型失败时接口仍返回规则分析成功结果，并在 `warning` 说明回退。
+
+三个 GET 接口会防御性比较当前文档指纹。来源新增、内容修改、路径变化或删除后，旧分析以 `status=stale`、`stale=true` 继续只读返回，直到用户重新分析；接口不会把旧结论静默标记为最新。
+
+知识点的 `source_ids` 必须能在同一响应的 `sources` 对象中解析。来源对象包含：
+
+- `id / run_id / knowledge_point_id`
+- `document_id / chunk_id`（来源删除后可为空）
+- `path / source_hash / excerpt / locator`
+
+技能响应使用版本化 taxonomy。每个节点通过 `mappings` 关联当前项目知识点，映射包含置信度、理由和 `source_ids`；没有当前项目映射的节点标记 `project_evidence=no_project_evidence`。这些结果只解释当前项目知识，不构成职业能力评价。
+
+#### 1.8.1 定向评估与覆盖
+
+| 方法 | 路径 | 请求 | 成功响应 | 主要错误 |
+|------|------|------|----------|----------|
+| POST | `/api/coach/assessments/start` | `project_id` 始终必填；新会话传 `target_type=knowledge_point|skill`、`target_id`，恢复时传 `session_id` 且可省略目标字段；可选 `restart:boolean` | `{"session":{"id":"...","analysis_run_id":"...","target":...,"status":"active|completed|abandoned","resumed":false,"read_only":false,"can_answer":true,"questions":[...],"sources":{...}}}` | `400` 参数错误、`404 project/coach analysis/session not found`、`409 analysis_stale|assessment_target_not_assessable` |
+| POST | `/api/coach/assessments/answer` | `project_id`、`session_id`、`question_id`、`answer`；可选 `evaluation_mode=auto|rule` | `{"result":{"evaluator":"rule|model","score":0.0,"confidence":0.0,"status":"needs_work|developing|mastered","matched_evidence":[...],"missing_points":[...],"source_ids":[...],"low_confidence":true,...},"session":{...},"replayed":false}` | `400` 参数错误、`404` 会话或题目不存在、`409 analysis_stale|assessment_session_not_active|assessment_question_already_answered` |
+| GET | `/api/coach/coverage?project_id=...` | query `project_id` | `{"coverage":{"analysis":...,"stale":false,"can_assess":true,"summary":...,"knowledge_points":[...],"skills":[...],"recent_assessments":[...],"sources":{...}}}` | `400 project_id is required`、`404 project/coach analysis not found`；stale 为 `200` 历史只读响应 |
+
+未作答题目的公开字段为 `id / session_id / knowledge_point_id / prompt / question_type / source_ids / sort_order / answered`，作答前不返回 `expected_points` 或其他评分依据；已作答题目额外包含持久化 `answer / result`。知识点目标生成一题；技能目标按当前运行的映射选择最多三个知识点。相同运行和目标的活动会话会恢复，`restart=true` 仅在按目标发起时放弃当前运行的旧活动会话并创建新会话；显式携带 `session_id` 时只恢复、不重建。新建会话遇到 stale 返回 `409 analysis_stale`；显式恢复历史会话仍返回 `200`，但 `read_only=true / can_answer=false`。
+
+规则评分只使用题面未展示的来源事实，复制题面不会获得分数。模型评分必须完整覆盖服务端评分点，`matched_evidence` 必须逐字来自用户回答；模型输出无效时仅将本题本次作答回退为规则评分，返回 `evaluation_warning`，且置信度不高于 `0.49`。相同题目的相同规范化答案返回 `replayed=true`，不同答案返回 `409 assessment_question_already_answered`。`confidence < 0.65` 时 `low_confidence=true`。状态阈值固定为：
+
+- `score < 0.50` → `needs_work`
+- `0.50 <= score < 0.75` → `developing`
+- `score >= 0.75` → `mastered`
+- 没有当前来源版本下的有效结果 → `unassessed`
+
+覆盖率只统计当前项目、当前分析运行的有效结果，`coverage_ratio = assessed_count / knowledge_point_count`；分析 stale 时旧结果只作为历史记录展示，当前覆盖计数归零。技能节点从其自身及后代节点映射的知识点聚合，`assessment_state=no_project_evidence|unverified|partially_verified|verified` 表示项目证据和验证覆盖完整度；评估强弱另由 `status=needs_work|developing|mastered` 表示，不产生跨项目或职业能力分数。
+
+#### 1.8.2 学习计划
+
+| 方法 | 路径 | 请求 | 成功响应 | 主要错误 |
+|------|------|------|----------|----------|
+| POST | `/api/coach/learning-plans/generate` | `project_id`；可选 `max_items`，默认 `8`、范围 `1..20` | `{"plan":<PlanView>,"sources":{...},"generation_mode":"rule|model","warning":"","scope_notice":"..."}` | `400 project_id/max_items`、`404 project/coach analysis not found`、`409 analysis_stale|no_actionable_learning_gaps` |
+| GET | `/api/coach/learning-plans/current?project_id=...` | query `project_id` | `{"current":{"project_id":"...","analysis":...,"stale":false,"draft":<PlanView>|null,"confirmed":<PlanView>|null,"history":[...],"sources":{...}}}` | `400 project_id is required`、`404 project/coach analysis not found`；stale 为 `200` 历史只读响应 |
+| POST | `/api/coach/learning-plans/update` | `project_id`、`plan_id`，并且只提供 `items` 或 `item_statuses` 之一；可选并发校验字段见下文 | `{"plan":<PlanView>,"sources":{...},"scope_notice":"..."}` | `400` 项目、任务结构或状态非法、`404 project/learning plan not found`、`409 learning_plan_not_editable|learning_plan_not_current_draft|learning_plan_progress_not_editable|analysis_stale|learning_plan_revision_conflict|learning_plan_items_conflict|learning_plan_progress_conflict` |
+| POST | `/api/coach/learning-plans/confirm` | `project_id`、`plan_id`；可选 `expected_revision / expected_items_hash` | `{"plan":<PlanView>,"sources":{...},"scope_notice":"...","replayed":false}`；重复确认同一确认版返回 `replayed=true` | `400 project_id/plan_id/expected_revision`、`404 project/learning plan not found`、`409 analysis_stale|learning_plan_not_current_draft|learning_plan_not_confirmable|learning_plan_revision_conflict|learning_plan_items_conflict` |
+
+规则计划只为 `needs_work / developing / unassessed` 知识点生成任务，按该顺序、分数和知识点 `stable_key` 确定性排序；全部知识点为 `mastered` 时返回 `no_actionable_learning_gaps`。模型只能润色 `objective / practice_question / completion_criteria`，不能修改任务稳定 ID、类型、知识点、技能、来源、顺序、时长或状态；模型失败返回规则草稿和 warning。
+
+`PlanView` 的计划字段为 `id / project_id / revision / status(draft|confirmed|archived) / based_on_run_id / created_at / confirmed_at / items`；任务字段为 `id / plan_id / stable_key / item_type / objective / knowledge_point_id / skill_node_id / source_ids / practice_question / completion_criteria / estimated_minutes / status(todo|in_progress|done|skipped) / sort_order / reading_sources`。服务端另增加：
+
+- `items_hash`：不包含进度状态的结构哈希；`progress_hash`：任务进度哈希。
+- `analysis_status / based_on_current_analysis`：计划是否仍基于当前完成的分析运行。
+- `can_edit_structure / can_update_progress / can_confirm`：服务端能力标志。
+- 每个任务的 `reading_sources`；其 `source_ids` 也能在顶层 `sources` 中解析。
+
+任务 `item_type` 为 `learning / source_gap`。`learning` 必须携带可从该计划 `based_on_run_id` 来源快照解析的来源；`source_gap` 只表达资料缺口，`source_ids` 和 `reading_sources` 必须为空，不得由模型或客户端伪造阅读材料。
+
+草稿结构更新的 `items` 是完整且非空的任务数组，最多 50 项；数组顺序是唯一排序依据，服务端重新编号 `sort_order=0..N-1` 并把状态固定为 `todo`。只有项目最高 revision 计划仍为 `draft` 时，该草稿可编辑和确认；更早草稿只读保留。`current.draft` 也只在项目最高 revision 仍为 `draft` 时返回，否则为 `null`。确认后结构、顺序、关联和来源冻结，只能通过 `item_statuses` 将当前确认版任务更新为 `todo / in_progress / done / skipped`；`item_statuses` 的键可以是任务 `id` 或 `stable_key`。新确认版会归档旧确认版；生成新草稿不会覆盖当前确认版。
+
+客户端可携带 `expected_revision / expected_items_hash` 保护结构更新、进度更新或确认；进度更新还可携带 `expected_progress_hash`。不匹配时分别返回 `learning_plan_revision_conflict / learning_plan_items_conflict / learning_plan_progress_conflict`。重复确认已是 `confirmed` 的同一版本会先按幂等语义返回 `replayed=true`，不再校验 `expected_*`。分析过期会阻止生成、草稿结构更新和确认，但不会阻止已确认计划继续更新进度。历史计划的来源按各自 `based_on_run_id` 解析，不自动换成新运行来源。确认学习计划不会触发 Obsidian 发布。
+
+### 1.9 Obsidian 插件桥接口（B-163）
+
+以下九个接口服务于 Obsidian 桌面插件桥；它们不改变现有 `POST /api/import/obsidian-vault` 的一次性只读导入语义。后端不直接读取或写入 Vault，Markdown 事件采集和文件写入均由插件使用 Obsidian Vault API 执行。
+
+| 方法 | 路径 | 请求 | 成功响应 | 主要错误 |
+|------|------|------|----------|----------|
+| POST | `/api/obsidian/pairing/start` | `project_id`；可选 `output_root` | `{"pairing":{"id":"...","project_id":"...","output_root":"Knowledge Island/项目名","code":"...","expires_at":"...","ttl_seconds":300}}` | `400` 参数/路径非法、`404 project not found`、`409 project already has an active Obsidian connection` |
+| POST | `/api/obsidian/pairing/complete` | `code`、`vault_id`、`vault_name`；可选 `output_root` | `{"connection":{...},"token":"...","token_type":"Bearer"}` | `400` 参数/路径非法、`401 invalid/expired pairing code`、`409 pairing code already used` 或活动连接冲突 |
+| GET | `/api/obsidian/connections?project_id=...` | query `project_id` | `{"connections":[...]}` | `400 project_id is required`、`404 project not found` |
+| POST | `/api/obsidian/connections/revoke` | 主应用：`project_id`、`connection_id`；插件自撤销：Header `Authorization: Bearer <plugin-token>` 与自身 `connection_id` | `{"connection":{...,"status":"revoked"}}` | `400` 必填参数、`401` 主应用/插件鉴权失败、`403` 插件尝试撤销其他连接、`404 active Obsidian connection not found` |
+| POST | `/api/obsidian/sync/events` | Header `Authorization: Bearer <plugin-token>`；`events` 非空数组，最多 100 项 | `{"connection":{...},"results":[{"event_id":"...","status":"applied|ignored|failed","replayed":false,...}]}` | `400` 事件非法、`401` 插件令牌缺失/无效/已撤销 |
+| POST | `/api/obsidian/publications/preview` | `project_id`；可选 `artifact_types`、`assessment_session_ids`、`source_publication_id` | `{"publication":{...,"status":"draft","artifacts":[...]},"source_mode":"current|rollback","scope_notice":"..."}` | `400` 参数非法、`404` 项目/历史发布/评估会话不存在、`409` 无活动连接、分析过期、缺少已确认计划或无可发布产物 |
+| POST | `/api/obsidian/publications/confirm` | `project_id`、`publication_id` | `{"publication":{...,"status":"queued"},"replayed":false}` | `400` 必填参数、`404 publication not found`、`409 publication_not_confirmable` 或连接已失效 |
+| GET | `/api/obsidian/publications/pending` | Header `Authorization: Bearer <plugin-token>` | `{"publications":[...queued publications...]}` | `401` 插件令牌缺失/无效/已撤销 |
+| POST | `/api/obsidian/publications/result` | Header `Authorization: Bearer <plugin-token>`；`publication_id`、非空 `results`，每项含 `revision_id`、`status=applied|conflict|failed`，成功时含 SHA-256 `actual_hash` | `{"publication":{...},"results":[...]}` | `400` 结果非法、`401` 插件令牌无效、`404 publication/revision not found`、`409` 连接或发布状态冲突 |
+
+`pairing/start`、连接查看、主应用撤销以及发布预览/确认使用应用自身认证边界。`pairing/complete` 由一次性配对码鉴权；`sync/events`、`publications/pending`、`publications/result` 和插件自撤销只接受插件 Bearer 令牌，且插件只能撤销令牌绑定的自身连接。服务端只保存配对码和令牌 SHA-256 哈希；明文 `code` 和 `token` 分别只在创建及换取时返回一次，普通连接响应不包含哈希或明文凭证。每个项目最多一个 `active` 连接，撤销后令牌立即失效。
+
+同步事件统一使用 `type=upsert|rename|delete` 和连接内幂等 `event_id`。`upsert / rename` 还需携带 `path / content / content_hash`；`rename` 额外携带 `old_path`；`delete` 不得携带正文。事件可以携带 `frontmatter`、`tags`、`resolved_links`、`unresolved_links` 和 `occurred_at`。链接元数据既接受字符串数组，也接受 `{path: count}` 计数对象。重复 `(connection_id,event_id)` 返回原处理结果和 `replayed=true`，不重复执行。配置 `output_root` 内的事件返回 `ignored`，避免系统生成内容反向摄入。
+
+发布状态统一为 `draft / confirmed / queued / applied / conflict / failed`。当前实现的用户确认把 `draft` 发布原子推进到 `queued`；`confirmed` 是统一状态枚举中的中间语义，插件只领取 `queued` 发布。每个 artifact 包含 `artifact_type / stable_id / target_path / content / content_hash / expected_vault_hash / status`；生成 Markdown 带 `knowledge_island_managed`、稳定 ID、项目 ID、产物类型和修订号。插件发现越界路径、无管理标记、身份不符或 Vault 当前 hash 与 `expected_vault_hash` 不符时必须回传 `conflict`，不能覆盖或自动合并。
+
+默认当前发布包含项目理解、知识覆盖、已确认学习计划和已有评估记录；调用方可用 `artifact_types` 缩小范围。设置 `source_publication_id` 时，以历史发布正文创建新的 `draft` 修订并返回 `source_mode=rollback`，不修改历史发布或修订。发布 revision 和 artifact 内容不可变；插件成功回传的 `actual_hash` 成为同一稳定 artifact 下一次预览的覆盖基线。插件离线时发布保持 `queued`，生成文件被用户删除后不会自动重建。
 
 ## 2. legacy 内部接口边界（应用层）
 

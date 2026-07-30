@@ -6,6 +6,7 @@ const browserChannel = process.env.KI_E2E_BROWSER_CHANNEL;
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalTeardown: "./tests/e2e/global-teardown.mjs",
   timeout: 60_000,
   expect: {
     timeout: 10_000,

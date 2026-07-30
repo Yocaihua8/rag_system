@@ -4,7 +4,7 @@
       <span class="brand-mark" aria-hidden="true">KI</span>
       <div>
         <h1>Knowledge Island</h1>
-        <p>本地资料助手</p>
+        <p>本地项目知识教练</p>
       </div>
       <button
         type="button"
@@ -20,18 +20,40 @@
     <nav class="main-nav" aria-label="主导航">
       <button
         type="button"
-        :class="{ active: currentView === 'chat' }"
-        :aria-current="currentView === 'chat' ? 'page' : undefined"
-        data-view-key="chat"
-        title="聊天"
-        @click="emit('change-view', 'chat')"
+        :class="{ active: currentView === 'coach' }"
+        :aria-current="currentView === 'coach' ? 'page' : undefined"
+        data-view-key="coach"
+        title="教练"
+        @click="emit('change-view', 'coach')"
       >
         <span aria-hidden="true">□</span>
-        聊
+        教练
       </button>
-      <button type="button" data-nav-action="library" title="库" @click="emit('open-library')">
+      <button
+        type="button"
+        :class="{ active: currentView === 'learning-map' }"
+        :aria-current="currentView === 'learning-map' ? 'page' : undefined"
+        data-view-key="learning-map"
+        title="学习地图"
+        @click="emit('change-view', 'learning-map')"
+      >
+        <span aria-hidden="true">◇</span>
+        学习地图
+      </button>
+      <button
+        type="button"
+        :class="{ active: currentView === 'learning-plan' }"
+        :aria-current="currentView === 'learning-plan' ? 'page' : undefined"
+        data-view-key="learning-plan"
+        title="学习计划"
+        @click="emit('change-view', 'learning-plan')"
+      >
+        <span aria-hidden="true">☷</span>
+        学习计划
+      </button>
+      <button type="button" data-nav-action="library" title="资料" @click="emit('open-library')">
         <span aria-hidden="true">▭</span>
-        库
+        资料
       </button>
       <button
         type="button"
@@ -42,7 +64,7 @@
         @click="emit('change-view', 'settings')"
       >
         <span aria-hidden="true">○</span>
-        设
+        设置
       </button>
     </nav>
 
@@ -135,7 +157,7 @@ import { computed } from "vue";
 const props = defineProps({
   currentView: {
     type: String,
-    default: "chat",
+    default: "coach",
   },
   sidebarMode: {
     type: String,

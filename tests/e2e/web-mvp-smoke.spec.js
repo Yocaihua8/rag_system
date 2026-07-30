@@ -15,7 +15,7 @@ test("creates a project, imports a note, and answers from local sources", async 
   await createProjectForm.getByRole("button", { name: "创建知识库" }).click();
   await expect(page.getByText("E2E 知识库").first()).toBeVisible();
 
-  await page.getByRole("button", { name: /库/ }).first().click();
+  await page.locator('[data-nav-action="library"]').click();
   const libraryModal = page.getByRole("dialog", { name: "管理资料" });
   await expect(libraryModal).toBeVisible();
 

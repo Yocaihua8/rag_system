@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-02
-> Scope：B-141 Vue 3 + Vite 前端工程化（已完成 A-Z 页面级迁移收口）；B-142 Vue 工作台 SSE 与会话历史迁移（已完成）；B-143 legacy 静态前端 fallback 移除（已完成）；B-42 知识库辅助管理页（已完成）；B-128 对话分支与历史消息编辑重发；B-145 Tauri 桌面壳复用 Vue 构建产物；B-151 前端 Vitest 单元测试；B-156 第二阶段前端简洁化重设计
+> Last Updated：2026-07-30
+> Scope：B-141 Vue 3 + Vite 前端工程化（已完成 A-Z 页面级迁移收口）；B-142 Vue 工作台 SSE 与会话历史迁移（已完成）；B-143 legacy 静态前端 fallback 移除（已完成）；B-42 知识库辅助管理页（已完成）；B-128 对话分支与历史消息编辑重发；B-145 Tauri 桌面壳复用 Vue 构建产物；B-151 前端 Vitest 单元测试；B-156 第二阶段前端简洁化重设计；B-164 Vue 项目知识教练闭环（已实现）；B-165 本地发布候选验收（已完成）；B-166 前端依赖安全与正式发布收口
 > Related：docs/adr/ADR-006-vue-vite-frontend.md, docs/design/architecture-overview.md, docs/features/desktop-packaging.md, docs/guides/setup.md, docs/guides/testing.md, docs/BACKLOG.md
 
 ## 1. 功能定位
@@ -15,6 +15,8 @@ B-142 的目标是让 Vue 工作台覆盖 legacy 工作台主流程：采用左�
 B-128 在 B-142 工作台基础上增加历史消息“编辑重发”入口。前端只把被编辑消息 ID 作为 `parentMessageId` 传给既有问答 helper，不在前端计算分支序号、不改写原消息；后端负责校验父消息归属和写入 `parent_message_id / branch_index`。
 
 B-156 将 Vue 前端从迁移期四个并列一级页面收束为 `聊 / 库 / 设` 主线：默认进入聊天工作台，工作区和线程统一在左侧侧栏；`库` 改为资料管理弹窗；`设` 改为全屏覆盖页；独立 `评估/练习` 入口收进聊天输入框工具菜单。B-156 不修改后端 API、不修改 SQLite schema、不扩大 Agent 工具权限，也不伪造当前后端尚未提供的全局资料库或跨工作区连接接口。
+
+B-164 在 B-156 的 Codex 中性工作区基线上把当前主线切换为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`。教练复用聊天、流式回答和回答依据；学习地图与学习计划使用 Coach API；评估改为覆盖层；资料和设置接入真实 Obsidian 连接状态与用户侧发布流程。旧 `AssessmentView` 和 `/api/assessment/*` 继续兼容，但不再是 2.0 主入口。
 
 B-143 已收口前端交付边界：删除 legacy 原生前端，`backend/api/server.py` 只服务 Vue/Vite 构建产物；B-155 后构建产物位于 `backend/static_dist/`。B-143 不修改后端 API、不修改 SQLite schema、不扩大 Agent 工具权限。
 
@@ -62,6 +64,12 @@ B-42 在 Vue 资料库页顶部提供知识库辅助管理概览。它复用当�
 - B-156 后，回答来源、检索复盘、工具结果和对比回答进入默认收起的 `EvidenceDrawer`，`AnswerPanel` 只保留回答主体和少量反馈操作。
 - B-156 后，`设` 是全屏覆盖页，顶部有返回按钮，左侧菜单在 `回答 / 资料 / 外观` 单页之间切换；模型连接字段收进“连接详情”，访问密钥仍不回显明文。
 - B-156 后，主界面采用黑白灰中性配色；错误和警告状态保留必要提示色。
+- B-164 后，默认首页为 `教练`，一级入口顺序为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`；资料仍打开弹窗，设置仍使用全屏页。
+- B-164 的 `学习地图` 展示服务端项目理解、知识覆盖、技能差距和评估记录；知识点与技能节点可发起定向评估，所有结论和结果均通过统一来源抽屉查看真实路径、摘录与定位。
+- B-164 的 `CoachAssessmentOverlay` 从教练工具或学习地图进入，作答前隐藏评分依据，作答后展示状态、评估方式、置信度、命中证据、缺失点和来源；关闭后保留当前项目与页面上下文。
+- B-164 的 `学习计划` 支持生成新草稿、编辑任务、上下排序和确认；确认版只允许更新任务进度，重新生成不覆盖已确认版本。
+- B-164 的资料弹窗区分 Obsidian 插件连接与原有“一次性只读导入”；设置页展示真实连接、同步状态、输出目录、一次性配对码和撤销入口，不回显插件令牌。
+- B-164 的 Obsidian 发布先预览目标路径与完整 Markdown，再由用户确认。确认后状态为 `queued / 等待插件执行`；浏览器不调用插件专用的同步事件、待执行领取或结果回传接口。
 
 ## 3. 工程目录
 
@@ -78,10 +86,12 @@ B-42 在 Vue 资料库页顶部提供知识库辅助管理概览。它复用当�
 | `frontend/src/api/document-collections.js` | Vue 资料库文档集合 API helper，调用既有 `/api/document-collections` 列表/新建契约、`/api/document-collections/update` 重命名契约、`/api/document-collections/delete` 删除契约和 `/api/document-collections/items/*` 文档关联契约 |
 | `frontend/src/api/imports.js` | Vue 资料库导入 API helper，调用既有 `/api/import/preview`、`/api/import`、`/api/import/note`、`/api/import/url`、`/api/import/upload`、`/api/import/batches` 和 `/api/import/batches/detail` |
 | `frontend/src/api/settings.js` | Vue 设置页模型配置和 Prompt 预设 API helper，调用既有 `/api/settings/llm`、`/api/settings/llm/test`、`/api/model-profiles*` 和 `/api/prompt-presets*` 契约 |
-| `frontend/src/api/assessment.js` | Vue 评估页 API helper，调用既有 `/api/assessment/start`、`/api/assessment/answer` 和只读 `/api/assessment/library` 契约 |
-| `frontend/src/state/app-state.js` | Vue 迁移期共享状态模型和基础视图切换 |
-| `frontend/src/components/` | 布局和业务组件，例如 `AppShell.vue`、`WorkspaceSidebar.vue`、`QuestionComposer.vue`、`ChatThread.vue`、`AnswerPanel.vue`、`EvidenceDrawer.vue`、`LibraryModal.vue`、`ImportResultList.vue`、`SearchDebugPanel.vue`、`AgentToolsPanel.vue`、`KnowledgeBaseManagementPanel.vue`、`DocumentListPanel.vue`、`DocumentPreviewPanel.vue`、`DocumentImportPanel.vue`、`DocumentCollectionPanel.vue`、`ImportBatchHistoryPanel.vue` |
-| `frontend/src/views/` | 当前一级视图为 `聊` 和 `设`；资料库、评估等视图组件保留给弹窗、抽屉或后续复用 |
+| `frontend/src/api/coach.js` | Vue Coach API helper，调用分析、理解、知识点、技能、定向评估、覆盖和学习计划接口 |
+| `frontend/src/api/obsidian.js` | Vue Obsidian 用户侧 helper，只调用配对发起、连接查询/撤销和发布预览/确认；不调用插件专用接口 |
+| `frontend/src/api/assessment.js` | 1.x 兼容评估 API helper，调用既有 `/api/assessment/start`、`/api/assessment/answer` 和只读 `/api/assessment/library` 契约 |
+| `frontend/src/state/app-state.js` | Vue 共享状态模型，保存五入口、Coach 与 Obsidian 用户侧状态 |
+| `frontend/src/components/` | 布局和业务组件，例如 `AppShell.vue`、`WorkspaceSidebar.vue`、`QuestionComposer.vue`、`ChatThread.vue`、`AnswerPanel.vue`、`EvidenceDrawer.vue`、`CoachSourceDrawer.vue`、`CoachAssessmentOverlay.vue`、`ObsidianPublicationDialog.vue`、`LibraryModal.vue`、`ImportResultList.vue`、`SearchDebugPanel.vue`、`AgentToolsPanel.vue` |
+| `frontend/src/views/` | 当前主视图为 `WorkbenchView.vue`（教练）、`LearningMapView.vue`、`LearningPlanView.vue` 和 `SettingsView.vue`；`AssessmentView.vue` 等旧视图只保留兼容 |
 | `frontend/src/**/*.test.js` | B-151 起的 Vitest 单元测试，覆盖 API helper 和关键组件状态 |
 | `backend/static_dist/` | Vite 生产构建输出，由 FastAPI 托管 |
 | `src-tauri/` | Tauri 2 桌面壳；WebView 加载 `backend/static_dist/`，FastAPI 以 sidecar 方式运行 |
@@ -133,7 +143,7 @@ B-145 起，Tauri Windows 桌面壳也复用 Vue/Vite 生产构建产物。B-155
 
 Vue 3 + Vite 只替代展示层工程组织。B-155 后后端由 `backend/api/server.py` 提供 FastAPI 服务，`backend/api/dispatch.py` 和 `backend/routes/*` 保持 API 契约，业务层和数据层位于 `backend/domain/` 与 `backend/storage/`。
 
-B-141B 起，Vue 侧采用轻量 Composition API 结构：API helper 负责请求和错误归一化，共享状态模块保存当前项目、会话、文档、评估、工具、检索等迁移期字段。B-156 后，`AppShell` 负责 `聊 / 设` 顶层内容容器和侧栏收起状态，`WorkspaceSidebar` 负责 `聊 / 库 / 设` 入口、工作区、线程和资料目标选择。该状态模型只是前端 UI 状态，不新增后端数据规则。
+B-141B 起，Vue 侧采用轻量 Composition API 结构：API helper 负责请求和错误归一化，共享状态模块保存当前项目、会话、文档、评估、工具和检索等字段。B-164 后，`AppShell` 负责教练、学习地图、学习计划和设置的顶层内容容器及侧栏收起状态，`WorkspaceSidebar` 负责五入口、工作区、线程和资料目标选择；`App.vue` 编排 Coach 与 Obsidian 用户侧 API，不在浏览器重算覆盖、评分或冲突规则。该状态模型只是前端 UI 状态，不新增后端数据规则。
 
 B-141C 起，Vue 资料库视图先迁移项目空间薄片：`projects.js` 只调用既有 `GET /api/projects` 和 `POST /api/projects`，`ProjectSpacePanel` 只展示和提交项目空间状态，不承载导入、文档集合、问答或设置业务规则。
 
@@ -190,7 +200,7 @@ B-151 起，前端新增 Vitest + jsdom 单元测试层。`frontend/src/api/*.te
 ## 6. 验收标准
 
 - `frontend/` 存在最小 Vue 3 + Vite 工程。
-- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、`聊 / 设` 当前一级视图、资料管理弹窗、资料库历史能力组件、评估历史能力组件、资料库项目空间选择/创建/改名/删除薄片、资料库文档列表/预览/删除薄片、资料库文本/URL 导入薄片、资料库导入批次历史薄片、资料库普通文件上传薄片、资料库浏览器文件夹上传薄片、资料库当前目录同步薄片、资料库导入预检薄片、资料库文档集合只读筛选/新建/删除/重命名/加入/移出薄片、设置页模型设置/Profile/Prompt 预设薄片、评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文入口。
+- Vue 前端存在 `apiGet` / `apiPost`、共享状态模型、五入口、资料管理弹窗、统一 Coach 来源抽屉、定向评估覆盖层、学习计划与 Obsidian 发布预览，以及资料库、设置和旧评估兼容组件。
 - Vue 工作台可在已选择项目空间时提交问题到既有 `/api/answer`，并展示回答、来源、模型模式和来源质量摘要。
 - Vue 工作台可在回答返回后提交“有用 / 无用 / 来源不准 / 需要更多上下文”四类本地反馈。
 - Vue 工作台可在已选择项目空间时提交检索诊断查询，临时调整 `top_k` / `min_score` / 关键词 / 向量参数，并展示来源质量、分块状态和命中片段。
@@ -198,10 +208,10 @@ B-151 起，前端新增 Vitest + jsdom 单元测试层。`frontend/src/api/*.te
 - Vue 工作台可保存当前查询的检索复盘，查看当前项目复盘历史、单条详情和删除复盘记录。
 - Vue 工作台可在已选择项目空间时查看 Agent 只读工具元数据，手动运行 `project_overview` / `search_sources`，并展示工具结果、运行历史和单条详情。
 - Vue 工作台可在回答来源不足时展示建议工具，用户手动运行 `search_sources` 后可把工具结果标记为下一问上下文，并在下一次 `/api/answer` 中发送 `tool_run_id`。
-- Vue 默认首页可直接进入 `聊`，左侧侧栏同时管理工作区和线程；移动端默认隐藏侧栏，顶部菜单按钮可打开侧栏抽屉。
-- `库` 入口打开资料管理弹窗，不作为一级普通页面；弹窗支持先加入库、再选择资料两个步骤，选择资料时可查看资料夹筛选和资料列表，并把高级来源和导入结果收起。
-- 独立一级 `评估/练习` 入口已取消；练习与小测从聊天输入框左下角工具菜单进入。
-- `设` 入口打开全屏设置页，左侧菜单一次只显示一个设置页面。
+- Vue 默认首页可直接进入 `教练`，左侧侧栏同时管理工作区、线程和 `教练 / 学习地图 / 学习计划 / 资料 / 设置` 五入口；移动端默认隐藏侧栏，顶部菜单按钮可打开侧栏抽屉。
+- `资料` 入口打开资料管理弹窗，不作为一级普通页面；弹窗支持先加入库、再选择资料两个步骤，并区分 Obsidian 插件连接和一次性只读导入。
+- 独立一级 `评估/练习` 入口已取消；定向评估从教练输入框工具菜单或学习地图节点进入覆盖层。
+- `设置` 入口打开全屏设置页，左侧菜单一次只显示一个设置页面，并提供 Obsidian 配对、连接查询、输出目录和撤销。
 - Vue 资料库可在已选择项目空间时读取文档列表，并通过单文档预览接口展示正文。
 - Vue 资料库可在已选择项目空间时提交文本笔记或 URL 摘录导入，并在成功后刷新文档列表。
 - Vue 资料库可在已选择项目空间时读取导入批次历史，点击批次后查看只读详情、汇总计数和跳过/读取失败明细。
@@ -220,7 +230,9 @@ B-151 起，前端新增 Vitest + jsdom 单元测试层。`frontend/src/api/*.te
 - Vue 设置页可读取、保存和测试基础模型设置；API Key 输入留空不覆盖既有 Key，页面不回显明文 Key。
 - Vue 设置页可读取模型 Profile 列表，新增或编辑 Profile，删除 Profile，设置或清空默认 Profile，并测试单个 Profile。
 - Vue 设置页可在已选择项目空间时读取 Prompt 预设和内置模板，新增或编辑 Prompt 预设，删除 Prompt 预设，设置或清空默认 Prompt 预设。
-- Vue 评估页可在已选择项目空间时开始评估、查看当前题目、提交回答、进入下一题或完成本轮，并查看结果概览、答题记录和待复测列表。
+- Vue 学习地图可展示当前项目理解、知识覆盖、技能差距和评估记录，并从知识点或技能节点发起 Coach 定向评估。
+- Vue 学习计划可编辑和排序当前最新草稿、确认计划、更新确认版任务进度，并在连接 Obsidian 后预览和确认发布。
+- 旧 Vue 评估页和 `/api/assessment/*` 继续兼容，但不进入当前一级导航。
 - `npm run build` 可生成 `backend/static_dist/`。
 - `npm run test:unit` 可运行前端 Vitest 单元测试，并覆盖 API helper 请求/错误归一化和关键组件状态。
 - FastAPI 只服务 `backend/static_dist/`；构建产物不存在时明确失败，不回退 legacy 静态目录。
@@ -264,3 +276,15 @@ B-128 完成时需要额外满足：
 - 编辑重发提交后，前端通过 `/api/answer/stream` 发送 `parent_message_id`。
 - 成功返回后刷新回答状态和当前会话消息。
 - 前端不计算 `branch_index`，只展示后端返回的分支信息。
+
+## 10. B-164 验收补充
+
+B-164 当前实现满足：
+
+- `frontend/src/api/coach.js` 覆盖 Coach 分析、理解、知识点、技能、定向评估、覆盖和学习计划；`frontend/src/api/obsidian.js` 只覆盖浏览器用户侧路由。
+- `LearningMapView.vue`、`LearningPlanView.vue`、`CoachSourceDrawer.vue`、`CoachAssessmentOverlay.vue` 和 `ObsidianPublicationDialog.vue` 使用服务端状态，不在前端复制评分、覆盖聚合或冲突规则。
+- 草稿结构更新与确认携带服务端 revision / hash；确认版只提交任务进度和进度 hash。
+- Obsidian 配对码只用于桌面插件完成配对；浏览器不持有插件 token，不调用 `sync/events`、`publications/pending` 或 `publications/result`。
+- 发布确认后界面显示 `queued / 等待插件执行`，不把用户确认写成 Vault 已应用。
+- B-165 已完成 92 项 Vitest、Vue 生产构建、Playwright 流式问答主流程和 Tauri 静态打包回归；本地候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。该结果不代表已生成原生安装包或完成远端发布。
+- B-166 以 `overrides.minimatch=9.0.8` 保持现有 `editorconfig` / `glob` 的 9.x 约束，并解析到已修复的 `brace-expansion@5.0.9`；最终 `npm ci`、在线 npm audit、Node 20 / 24 Vue 单测、构建和 Playwright 均通过。Windows NSIS 候选已生成但未签名，正式远端发布状态仍以 v2 readiness 为准。

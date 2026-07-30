@@ -2,12 +2,12 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（补充 B-155 backend 目录重组）
+> Last Updated：2026-07-30（B-166 Windows v2 原生候选验收）
 
 ## 1. 环境要求
 
 - Python 3.10+（仓库默认以 3.11 为主）
-- Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；当前本机验证为 Node 24 + npm 11）
+- Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；B-166 本机验证为 Node 24 + npm 11，并以 Node 20.19.5 复跑 Vue 单测）
 - Rust stable + Cargo + rustup（仅 Tauri 原生桌面打包需要；Web MVP 浏览器模式不需要）
 - Windows WebView2 + MSVC Build Tools（仅 Windows Tauri 桌面打包需要）
 - macOS / Linux Tauri 平台依赖（仅 macOS `.dmg` / Linux `.AppImage` 原生桌面打包需要）
@@ -48,7 +48,9 @@ pip install -r requirements-dev.txt
 http://127.0.0.1:8765
 ```
 
-当前默认入口使用 FastAPI + Uvicorn、SQLite、可选 Qdrant local mode 和 Vue/Vite 生产前端；`pip install -r requirements.txt` 会安装必需 Web 运行时和 Qdrant Python client。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/`，不再参与 Web/Tauri 启动链路。
+当前默认入口使用 FastAPI + Uvicorn、SQLite、可选 Qdrant local mode 和 Vue/Vite 生产前端；`pip install -r requirements.txt` 会安装必需 Web 运行时和 Qdrant Python client。B-161 起默认数据根为 `runtime/v2/`，SQLite 为 `runtime/v2/app.db`，SQLite 向量、日志、输出和未显式配置的 Qdrant local 目录也派生到该代际。旧 `runtime/app.db`、`runtime/webapp/knowledge_island.db`、旧向量和输出不会自动迁移或删除，用户需要在 v2 中重新导入项目。生产入口若指向一个没有 `data_generation=v2` 标记的非空数据库，会在任何建表、回填或向量初始化前拒绝启动。
+
+测试或受控部署仍可通过 `KI_DB_PATH` 指定 SQLite 文件，通过 `RAG_RUNTIME_DIR` 指定完整运行数据根；目标目录必须是空目录或已带 v2 代际标记的数据库，不能用该配置绕过旧库保护。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/`，不再参与 Web/Tauri 启动链路。
 
 B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
 
@@ -125,7 +127,7 @@ npm run tauri:build:windows
 首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；如果下载超时，先确认网络/代理后重试。成功后会生成：
 
 ```text
-src-tauri/target/release/bundle/nsis/Knowledge Island_0.1.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/Knowledge Island_<version>_x64-setup.exe
 ```
 
 macOS `.dmg` 和 Linux `.AppImage` 需要在对应原生系统执行，不在 Windows 上交叉生成。先安装该平台的 Tauri 依赖、Python 依赖和 `requirements-dev.txt`，再运行：
@@ -149,6 +151,8 @@ src-tauri/icons/icon.ico
 ```
 
 其中 `icon.icns` 用于 macOS bundle，PNG 图标用于 Linux / 通用桌面资源，`icon.ico` 用于 Windows resource 生成。当前仓库仍不在 Windows 上交叉生成 macOS `.dmg` 或 Linux `.AppImage`；只有在目标原生系统完成上述 `npm run tauri:build:*` 命令并产生产物后，才视为对应平台原生验证完成。
+
+B-165 在 2026-07-24 的本机预检中确认 Rust/Cargo、WebView2 和 PyInstaller 可用，但当时缺少含 MSVC 与 Windows SDK 的 Visual Studio Build Tools，`cargo check` 报 `link.exe not found`。B-166 已于 2026-07-30 安装并核实 Build Tools 2022 `17.14.37`、MSVC `14.44.35207` 与 Windows 11 SDK `10.0.26100.0`，随后 `cargo check` 和 `npm run tauri:build:windows` 均通过，生成未签名的 `Knowledge Island_2.0.0_x64-setup.exe`；产物哈希和正式发布边界见 v2 readiness。
 
 如果没有可用的本地 macOS / Linux 机器，可在 GitHub Actions 手动触发 `Tauri Packaging` workflow（`.github/workflows/tauri-packaging.yml`）。该 workflow 使用 `macos-latest` 和 `ubuntu-latest` runner 执行同一组 npm 打包命令，并上传 `.dmg` / `.AppImage` 作为验证产物。
 

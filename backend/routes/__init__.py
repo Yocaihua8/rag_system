@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 
 from backend.domain.models import ApiResponse
@@ -8,11 +10,13 @@ from backend.routes.agent import handle_agent_route
 from backend.routes.answers import handle_answer_route
 from backend.routes.assessment import handle_assessment_route
 from backend.routes.chat import handle_chat_route
+from backend.routes.coach import handle_coach_route
 from backend.routes.documents import handle_documents_route
 from backend.routes.export import handle_export_route
 from backend.routes.health import handle_health_route
 from backend.routes.imports import handle_imports_route
 from backend.routes.ollama import handle_ollama_route
+from backend.routes.obsidian import handle_obsidian_route
 from backend.routes.projects import handle_projects_route
 from backend.routes.search import handle_search_route
 from backend.routes.settings import handle_settings_route
@@ -25,7 +29,10 @@ def dispatch_to_routes(
     query: dict[str, list[str]],
     payload: dict[str, Any],
     llm_client: Any | None = None,
+    request_context: Mapping[str, str] | None = None,
 ) -> ApiResponse | None:
+    request_context = MappingProxyType(dict(request_context or {}))
+
     health_response = handle_health_route(method, path)
     if health_response is not None:
         return health_response
@@ -37,6 +44,17 @@ def dispatch_to_routes(
     admin_response = handle_admin_route(store, method, path, payload)
     if admin_response is not None:
         return admin_response
+
+    obsidian_response = handle_obsidian_route(
+        store,
+        method,
+        path,
+        query,
+        payload,
+        request_context=request_context,
+    )
+    if obsidian_response is not None:
+        return obsidian_response
 
     projects_response = handle_projects_route(store, method, path, query, payload)
     if projects_response is not None:
@@ -65,6 +83,10 @@ def dispatch_to_routes(
     chat_response = handle_chat_route(store, method, path, query, payload)
     if chat_response is not None:
         return chat_response
+
+    coach_response = handle_coach_route(store, method, path, query, payload, llm_client=llm_client)
+    if coach_response is not None:
+        return coach_response
 
     assessment_response = handle_assessment_route(store, method, path, query, payload)
     if assessment_response is not None:

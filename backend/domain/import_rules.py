@@ -1,5 +1,9 @@
+from pathlib import PurePath
+
+
 TEXT_SUFFIXES = {
     ".cfg",
+    ".cjs",
     ".css",
     ".docx",
     ".html",
@@ -8,6 +12,7 @@ TEXT_SUFFIXES = {
     ".json",
     ".jsx",
     ".md",
+    ".mjs",
     ".pdf",
     ".py",
     ".sql",
@@ -15,8 +20,14 @@ TEXT_SUFFIXES = {
     ".ts",
     ".tsx",
     ".txt",
+    ".vue",
     ".yaml",
     ".yml",
+}
+
+TEXT_FILE_NAMES = {
+    "dockerfile",
+    "makefile",
 }
 
 IGNORED_DIR_NAMES = {
@@ -40,3 +51,13 @@ IGNORED_DIR_NAMES = {
 }
 
 MAX_TEXT_FILE_BYTES = 1_000_000
+
+
+def is_supported_text_path(path: str | PurePath) -> bool:
+    candidate = PurePath(path)
+    name = candidate.name.lower()
+    return (
+        candidate.suffix.lower() in TEXT_SUFFIXES
+        or name in TEXT_FILE_NAMES
+        or name.startswith("dockerfile.")
+    )

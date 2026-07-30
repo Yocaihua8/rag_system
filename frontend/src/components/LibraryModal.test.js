@@ -50,6 +50,64 @@ describe("LibraryModal", () => {
     expect(wrapper.find('[data-library-advanced-sources]').exists()).toBe(true);
   });
 
+  it("shows the active Obsidian plugin connection and exposes connection actions", async () => {
+    const wrapper = mountModal({
+      obsidianConnections: [{
+        id: "connection-1",
+        status: "active",
+        sync_status: "syncing",
+        vault_name: "学习 Vault",
+        output_root: "Knowledge Island/示例项目",
+        last_synced_at: "2026-07-23T10:00:00+00:00",
+      }],
+    });
+
+    await wrapper.find('[data-library-source="more"]').trigger("click");
+
+    const obsidianCard = wrapper.find("[data-library-obsidian]");
+    expect(obsidianCard.text()).toContain("已连接");
+    expect(obsidianCard.text()).toContain("学习 Vault");
+    expect(obsidianCard.text()).toContain("同步中");
+    expect(obsidianCard.text()).toContain("Knowledge Island/示例项目");
+    expect(obsidianCard.text()).not.toContain("token");
+
+    const actionButtons = obsidianCard.findAll(".library-obsidian-actions button");
+    await actionButtons[0].trigger("click");
+    await actionButtons[1].trigger("click");
+
+    expect(wrapper.emitted("refresh-obsidian-connections")).toEqual([[]]);
+    expect(wrapper.emitted("open-obsidian-settings")).toEqual([[]]);
+  });
+
+  it("keeps the one-time read-only Vault import separate from plugin pairing", async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('[data-library-source="more"]').trigger("click");
+
+    const obsidianCard = wrapper.find("[data-library-obsidian]");
+    expect(obsidianCard.text()).toContain("未连接");
+    expect(obsidianCard.text()).toContain("一次性只读导入");
+    expect(obsidianCard.text()).toContain("不会建立插件连接");
+    expect(obsidianCard.text()).toContain("不会向 Vault 写回");
+
+    await obsidianCard.find('input[name="obsidian_vault_path"]').setValue("D:\\Notes\\My Vault");
+    await obsidianCard.find(".library-obsidian-readonly-import").trigger("submit");
+
+    expect(wrapper.emitted("import-obsidian-vault")).toEqual([
+      [{ vaultPath: "D:\\Notes\\My Vault" }],
+    ]);
+  });
+
+  it("shows Obsidian connection loading and error states", async () => {
+    const loadingWrapper = mountModal({ obsidianConnectionsLoading: true });
+    await loadingWrapper.find('[data-library-source="more"]').trigger("click");
+    expect(loadingWrapper.text()).toContain("正在读取 Obsidian 连接");
+
+    const errorWrapper = mountModal({ obsidianConnectionsError: "连接状态读取失败" });
+    await errorWrapper.find('[data-library-source="more"]').trigger("click");
+    expect(errorWrapper.text()).toContain("连接状态读取失败");
+  });
+
   it("shows import results through a collapsed summary when nothing new happened", () => {
     const wrapper = mountModal();
 

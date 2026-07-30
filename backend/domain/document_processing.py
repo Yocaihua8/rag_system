@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from zipfile import BadZipFile, ZipFile
 from xml.etree import ElementTree
 
-from backend.domain.import_rules import MAX_TEXT_FILE_BYTES, TEXT_SUFFIXES
+from backend.domain.import_rules import MAX_TEXT_FILE_BYTES, is_supported_text_path
 
 PDF_SKIP_REASON = "pdf extraction requires optional parser"
 BINARY_CONTENT_REQUIRED_REASON = "binary content is required"
@@ -34,7 +34,7 @@ class ProcessedDocument:
 def process_local_file(path: Path, root: Path) -> ProcessedDocument:
     relative_path = path.relative_to(root).as_posix()
     suffix = path.suffix.lower()
-    if suffix not in TEXT_SUFFIXES:
+    if not is_supported_text_path(path):
         return ProcessedDocument(relative_path, skipped_reason="unsupported file type")
     if path.stat().st_size > MAX_TEXT_FILE_BYTES:
         return ProcessedDocument(relative_path, skipped_reason="file too large")
@@ -49,7 +49,7 @@ def process_local_file(path: Path, root: Path) -> ProcessedDocument:
 
 def process_uploaded_file(relative_path: str, entry: dict) -> ProcessedDocument:
     suffix = PurePosixPath(relative_path).suffix.lower()
-    if suffix not in TEXT_SUFFIXES:
+    if not is_supported_text_path(PurePosixPath(relative_path)):
         return ProcessedDocument(relative_path, skipped_reason="unsupported file type")
 
     raw_base64 = entry.get("content_base64")

@@ -2,12 +2,20 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
+> Last Updated：2026-07-30
 > Related：CONTRIBUTING.md, CHANGELOG.md, AGENTS.md
 
 本仓库的文档按"项目约束 → 架构设计 → 开发流程"分层组织，遵循 `docs/style-guide.md` 写作规范。新的文档目录降低历史冗余，并保持与现有 `docs/architecture`、`docs/release` 历史文档的兼容。
 
 ---
+
+## 0. 产品代际边界
+
+- **当前源码**：B-160～B-166 已把产品主线切换为本地项目知识教练并完成依赖安全、本地 CI 与 Windows 原生候选验收；Vue 一级入口为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，评估使用覆盖层，Obsidian 一次性只读导入与插件连接、受控发布使用不同流程和状态。
+- **兼容边界**：原有导入、聊天和 `/api/assessment/*` 契约继续保留；旧 `AssessmentView` 与旧评估 API 只用于兼容，不再承载 2.0 主闭环。
+- **发布边界**：B-166 已完成在线依赖审计、完整本地 CI 等价矩阵、PR #4 两项 GitHub Actions 检查和 Windows 未签名 NSIS 候选，证据见 `release/V2_0_0_READINESS_2026-07-24.md`。本地候选就绪不等于正式发布；`main` 合并、Git Tag 和 GitHub Release 仍待执行，macOS / Linux v2 原生产物也未运行。
+- **状态解释**：设计文档的 `Active` 表示设计决策有效。当前接口和行为以源码、测试及 `design/api-spec.md` 为准；本地验收、目标平台原生产物和正式远端发布必须分别记录，不能互相替代。
+- **停止方向**：B-157“全局资料库 / 跨工作区共享资料”不再作为 2.0 前置能力。
 
 ## 1. 阅读顺序
 
@@ -15,42 +23,45 @@
 
 1. `requirements/project-background-and-scope.md` — 项目背景、目标用户、范围与约束
 2. `requirements/functional-modules.md` — 各功能模块边界与优先级
-3. `design/system-design-overview.md` — 系统级设计、核心流程、非功能约束
-4. `design/architecture-overview.md` — 架构结论、技术栈、分层职责、备选方案
-5. `design/database-design.md` — SQLite 表结构、实体关系、迁移规范
-6. `design/api-spec.md` — HTTP API 接口清单与契约说明
-7. `design/model-profiles-design.md` — 模型 Profile 多配置设计（B-111/B-112 已落地，接口以 api-spec 为准）
-8. `design/document-collections-design.md` — 文档集合分组设计（B-113/B-114 已落地）
-9. `design/import-batches-design.md` — 导入批次历史设计（B-115/B-116 已落地）
-10. `design/api-route-split-blueprint.md` — API 兼容分发按领域拆分蓝图（B-131/B-138，B-155 后路径位于 `backend/`）
+3. `features/project-knowledge-coach.md` — Knowledge Island 2.0 教练闭环、评价口径与兼容边界
+4. `design/system-design-overview.md` — 系统级设计、核心流程、非功能约束
+5. `design/architecture-overview.md` — 架构结论、技术栈、分层职责、备选方案
+6. `design/database-design.md` — SQLite 表结构、实体关系、迁移规范
+7. `design/api-spec.md` — HTTP API 接口清单与契约说明
+8. `design/model-profiles-design.md` — 模型 Profile 多配置设计（B-111/B-112 已落地，接口以 api-spec 为准）
+9. `design/document-collections-design.md` — 文档集合分组设计（B-113/B-114 已落地）
+10. `design/import-batches-design.md` — 导入批次历史设计（B-115/B-116 已落地）
+11. `design/api-route-split-blueprint.md` — API 兼容分发按领域拆分蓝图（B-131/B-138，B-155 后路径位于 `backend/`）
 
 **再读（参与开发）：**
 
-11. `../CONTRIBUTING.md` — 贡献流程、代码规范、测试要求、文档要求
-12. `guides/setup.md` — 环境搭建与启动步骤
-13. `guides/branch-conventions.md` — 分支命名与提交规范
-14. `guides/testing.md` — 测试分层与回归清单
-15. `guides/release-process.md` — 发布检查与打包步骤
+12. `../CONTRIBUTING.md` — 贡献流程、代码规范、测试要求、文档要求
+13. `guides/setup.md` — 环境搭建与启动步骤
+14. `guides/branch-conventions.md` — 分支命名与提交规范
+15. `guides/testing.md` — 测试分层与回归清单
+16. `guides/release-process.md` — 发布检查与打包步骤
 
 **按需读：**
 
-16. `BACKLOG.md` — 未完成项、技术债与优先级（含预估工时）
-17. `adr/` — 重大架构决策记录
-18. `devlog/` — 开发过程日志（日报/周报）
-19. `plans/` — AI 任务计划（关心"当前任务进度"时）
-20. `../CHANGELOG.md` — 对外发布变更记录
-21. `design/permission-matrix.md` — 权限边界说明
-22. `design/ui-wireframes.md` — 页面布局与核心交互
-23. `design/codex-workspace-chat-import-design.md` — Codex 式工作区会话与 AnythingLLM 式资料导入目标设计（评审中，不代表已实现）
-24. `design/state-flow-and-acceptance.md` — 状态流转与验收标准
-25. `design/risk-register.md` — 风险清单
-26. `design/api-changes.md` — API 变更分级与迁移指南
-27. `style-guide.md` — 文档写作规范
-28. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
-29. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
-30. `features/team-workspace-research.md` — B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
-31. `features/web-crawling-research.md` — B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
-32. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
+17. `release/V2_0_0_READINESS_2026-07-24.md` — v2.0.0 本地发布候选验收证据与正式发布边界
+18. `BACKLOG.md` — 未完成项、技术债与优先级（含预估工时）
+19. `adr/` — 重大架构决策记录
+20. `devlog/` — 开发过程日志（日报/周报）
+21. `plans/` — AI 任务计划（关心"当前任务进度"时）
+22. `../CHANGELOG.md` — 对外发布变更记录
+23. `design/permission-matrix.md` — 权限边界说明
+24. `design/ui-wireframes.md` — 当前 Vue 项目知识教练页面事实、兼容页面与页面布局
+25. `design/codex-workspace-chat-import-design.md` — 项目知识教练工作流、资料导入与 Obsidian 受控发布边界
+26. `design/codex-ui-visual-system.md` — Codex 中性视觉令牌、组件状态、动效与无障碍规范
+27. `design/state-flow-and-acceptance.md` — 状态流转与验收标准
+28. `design/risk-register.md` — 风险清单
+29. `design/api-changes.md` — API 变更分级与迁移指南
+30. `style-guide.md` — 文档写作规范
+31. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
+32. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
+33. `features/team-workspace-research.md` — B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
+34. `features/web-crawling-research.md` — B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
+35. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
 
 ---
 
@@ -84,7 +95,9 @@
 | API 破坏性变更 | `design/api-spec.md` + `design/api-changes.md` |
 | 数据库 Schema 变更 | `design/database-design.md` + ADR（必要时）|
 | 架构模式 / 分层边界变化 | `design/architecture-overview.md` + ADR（必要时）|
+| 产品定位 / 一级入口变化 | `requirements/project-background-and-scope.md` + `design/ui-wireframes.md` + `design/codex-workspace-chat-import-design.md` |
 | 页面结构 / 交互变更 | `design/ui-wireframes.md` |
+| 视觉令牌 / 组件状态 / 动效变更 | `design/codex-ui-visual-system.md` |
 | 重大架构决策 | `adr/ADR-XXX.md` |
 | 已知问题 / 技术债 | `BACKLOG.md` |
 | 版本发布 | `../CHANGELOG.md` |
@@ -122,6 +135,8 @@ ADR 模板见 `adr/ADR-000-template.md`。
 - `Active`：当前有效
 - `Deprecated`：已废弃（需在文档头部注明 `Deprecated since` 与 `Replaced by`）
 - `Archived`：已归档
+
+状态只描述文档本身是否有效。同一份 `Active` 设计文档包含当前实现、兼容边界和发布结果时，必须逐节明确标注，不能把本地候选验收写成 Git Tag、远端发布或未生成的原生产物已经完成。
 
 ---
 

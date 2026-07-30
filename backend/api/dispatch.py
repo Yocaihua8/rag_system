@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from types import MappingProxyType
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -18,13 +20,23 @@ def dispatch(
     raw_path: str,
     payload: dict[str, Any] | None = None,
     llm_client: Any | None = None,
+    request_context: Mapping[str, str] | None = None,
 ) -> ApiResponse:
     payload = payload or {}
     parsed = urlparse(raw_path)
     path = parsed.path
     query = parse_qs(parsed.query)
+    readonly_request_context = MappingProxyType(dict(request_context or {}))
 
-    routed_response = dispatch_to_routes(store, method, path, query, payload, llm_client=llm_client)
+    routed_response = dispatch_to_routes(
+        store,
+        method,
+        path,
+        query,
+        payload,
+        llm_client=llm_client,
+        request_context=readonly_request_context,
+    )
     if routed_response is not None:
         return routed_response
 

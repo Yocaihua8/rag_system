@@ -33,6 +33,14 @@
         </button>
         <button
           type="button"
+          :class="{ active: settingsPage === 'obsidian' }"
+          data-settings-page="obsidian"
+          @click="emit('change-settings-page', 'obsidian')"
+        >
+          Obsidian
+        </button>
+        <button
+          type="button"
           :class="{ active: settingsPage === 'appearance' }"
           data-settings-page="appearance"
           @click="emit('change-settings-page', 'appearance')"
@@ -65,6 +73,132 @@
             <button type="button" disabled>恢复不可用</button>
           </article>
         </div>
+      </section>
+
+      <section v-else-if="settingsPage === 'obsidian'" class="settings-page-panel" data-obsidian-settings>
+        <div class="section-title-row">
+          <div>
+            <p class="section-kicker">Obsidian</p>
+            <h3>桌面插件连接</h3>
+          </div>
+          <button
+            type="button"
+            :disabled="obsidianConnectionsLoading || !selectedProjectId"
+            @click="emit('load-obsidian-connections')"
+          >
+            {{ obsidianConnectionsLoading ? "刷新中..." : "刷新连接" }}
+          </button>
+        </div>
+
+        <p class="status-line">
+          每个项目最多保留一个活动连接。插件只同步当前 Vault，并且写回前仍需在学习计划页预览和确认。
+        </p>
+        <p v-if="!selectedProjectId" class="status-line">请先选择项目后管理 Obsidian 连接。</p>
+        <p v-if="obsidianConnectionError" class="status-line error">{{ obsidianConnectionError }}</p>
+
+        <ul v-if="obsidianConnections.length" class="obsidian-connection-list">
+          <li
+            v-for="connection in obsidianConnections"
+            :key="connection.id"
+            :data-obsidian-connection-id="connection.id"
+          >
+            <div class="obsidian-connection-heading">
+              <div>
+                <strong>{{ connection.vault_name || "未命名 Vault" }}</strong>
+                <small>{{ obsidianConnectionStatusLabel(connection.status) }}</small>
+              </div>
+              <span :class="['obsidian-status-badge', connection.sync_status]">
+                {{ obsidianSyncStatusLabel(connection.sync_status) }}
+              </span>
+            </div>
+            <dl class="obsidian-connection-details">
+              <div>
+                <dt>输出目录</dt>
+                <dd>{{ connection.output_root || "未设置" }}</dd>
+              </div>
+              <div>
+                <dt>最近同步</dt>
+                <dd>{{ formatObsidianTimestamp(connection.last_synced_at) }}</dd>
+              </div>
+              <div>
+                <dt>连接时间</dt>
+                <dd>{{ formatObsidianTimestamp(connection.created_at) }}</dd>
+              </div>
+            </dl>
+            <div v-if="connection.status === 'active'" class="actions compact-actions">
+              <button
+                type="button"
+                class="danger-link"
+                :disabled="obsidianRevokingId === connection.id"
+                @click="revokeObsidianConnection(connection)"
+              >
+                {{ obsidianRevokingId === connection.id ? "撤销中..." : "撤销连接" }}
+              </button>
+            </div>
+            <p v-else-if="connection.revoked_at" class="status-line">
+              撤销时间：{{ formatObsidianTimestamp(connection.revoked_at) }}
+            </p>
+          </li>
+        </ul>
+        <p
+          v-else-if="selectedProjectId && !obsidianConnectionsLoading && !obsidianConnectionError"
+          class="status-line"
+        >
+          当前项目尚未连接 Obsidian。
+        </p>
+
+        <section class="settings-subsection obsidian-pairing-section">
+          <div>
+            <p class="section-kicker">受控配对</p>
+            <h4>生成一次性配对码</h4>
+          </div>
+          <p class="status-line">
+            配对码仅在短时间内有效。请在 Obsidian 桌面插件中输入；服务端不会向本页返回或回显连接令牌。
+          </p>
+          <form class="project-form" data-obsidian-pairing-form @submit.prevent="submitObsidianPairing">
+            <label>
+              发布输出目录（可选）
+              <input
+                v-model.trim="obsidianPairingForm.outputRoot"
+                name="obsidian_output_root"
+                placeholder="默认：Knowledge Island/项目名"
+                :disabled="obsidianPairingLoading || Boolean(activeObsidianConnection)"
+              />
+            </label>
+            <div class="actions">
+              <button
+                type="submit"
+                :disabled="!selectedProjectId || obsidianPairingLoading || Boolean(activeObsidianConnection)"
+              >
+                {{ obsidianPairingLoading ? "生成中..." : "生成配对码" }}
+              </button>
+            </div>
+          </form>
+          <p v-if="activeObsidianConnection" class="status-line">
+            当前项目已有活动连接，撤销后才能生成新的配对码。
+          </p>
+          <p v-if="obsidianPairingError" class="status-line error">{{ obsidianPairingError }}</p>
+
+          <article v-if="pairingDetails?.code" class="obsidian-pairing-result" data-obsidian-pairing-result>
+            <span>一次性配对码</span>
+            <code>{{ pairingDetails.code }}</code>
+            <dl>
+              <div>
+                <dt>输出目录</dt>
+                <dd>{{ pairingDetails.output_root || "使用项目默认目录" }}</dd>
+              </div>
+              <div>
+                <dt>过期时间</dt>
+                <dd>{{ formatObsidianTimestamp(pairingDetails.expires_at) }}</dd>
+              </div>
+              <div v-if="pairingDetails.ttl_seconds">
+                <dt>有效时长</dt>
+                <dd>{{ pairingDetails.ttl_seconds }} 秒</dd>
+              </div>
+            </dl>
+            <p>请立即复制到 Obsidian 插件完成配对；过期后需重新生成。</p>
+          </article>
+        </section>
       </section>
 
       <section v-else-if="settingsPage === 'appearance'" class="settings-page-panel">
@@ -386,6 +520,34 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  obsidianConnections: {
+    type: Array,
+    default: () => [],
+  },
+  obsidianConnectionsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  obsidianConnectionError: {
+    type: String,
+    default: "",
+  },
+  obsidianPairing: {
+    type: Object,
+    default: null,
+  },
+  obsidianPairingLoading: {
+    type: Boolean,
+    default: false,
+  },
+  obsidianPairingError: {
+    type: String,
+    default: "",
+  },
+  obsidianRevokingId: {
+    type: String,
+    default: "",
+  },
   promptPresets: {
     type: Array,
     default: () => [],
@@ -428,7 +590,25 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["back", "change-settings-page", "load-settings", "save-llm-settings", "test-llm-settings", "load-model-profiles", "save-model-profile", "delete-model-profile", "set-default-model-profile", "test-model-profile", "load-prompt-presets", "save-prompt-preset", "delete-prompt-preset", "set-default-prompt-preset"]);
+const emit = defineEmits([
+  "back",
+  "change-settings-page",
+  "load-settings",
+  "save-llm-settings",
+  "test-llm-settings",
+  "load-model-profiles",
+  "save-model-profile",
+  "delete-model-profile",
+  "set-default-model-profile",
+  "test-model-profile",
+  "load-prompt-presets",
+  "save-prompt-preset",
+  "delete-prompt-preset",
+  "set-default-prompt-preset",
+  "load-obsidian-connections",
+  "start-obsidian-pairing",
+  "revoke-obsidian-connection",
+]);
 
 const connectionDetailsOpen = ref(false);
 
@@ -458,6 +638,10 @@ const promptPresetForm = reactive({
   answerFormat: "",
 });
 
+const obsidianPairingForm = reactive({
+  outputRoot: "",
+});
+
 watch(
   () => props.llmSettings,
   (settings) => {
@@ -473,12 +657,26 @@ watch(
   () => props.selectedProjectId,
   () => {
     resetPromptPresetForm();
+    obsidianPairingForm.outputRoot = "";
   },
 );
 
 const isRefreshing = computed(() => {
-  return props.llmSettingsLoading || props.modelProfilesLoading || props.promptPresetsLoading;
+  return (
+    props.llmSettingsLoading
+    || props.modelProfilesLoading
+    || props.promptPresetsLoading
+    || props.obsidianConnectionsLoading
+  );
 });
+
+const activeObsidianConnection = computed(() => (
+  props.obsidianConnections.find((connection) => connection.status === "active") || null
+));
+
+const pairingDetails = computed(() => (
+  props.obsidianPairing?.pairing || props.obsidianPairing || null
+));
 
 const llmSettingsSummary = computed(() => {
   if (props.llmSettingsLoading) {
@@ -582,4 +780,162 @@ function submitPromptPreset() {
     projectId: props.selectedProjectId,
   });
 }
+
+function submitObsidianPairing() {
+  if (!props.selectedProjectId || activeObsidianConnection.value) {
+    return;
+  }
+  emit("start-obsidian-pairing", {
+    projectId: props.selectedProjectId,
+    outputRoot: obsidianPairingForm.outputRoot,
+  });
+}
+
+function revokeObsidianConnection(connection) {
+  if (!props.selectedProjectId || !connection?.id) {
+    return;
+  }
+  emit("revoke-obsidian-connection", {
+    projectId: props.selectedProjectId,
+    connectionId: connection.id,
+  });
+}
+
+function obsidianConnectionStatusLabel(status) {
+  return {
+    active: "活动连接",
+    revoked: "已撤销",
+  }[status] || "未知状态";
+}
+
+function obsidianSyncStatusLabel(status) {
+  return {
+    idle: "空闲",
+    syncing: "同步中",
+    error: "同步异常",
+  }[status] || "未知";
+}
+
+function formatObsidianTimestamp(value) {
+  const timestamp = String(value || "").trim();
+  if (!timestamp) {
+    return "尚未同步";
+  }
+  const parsed = new Date(timestamp);
+  return Number.isNaN(parsed.getTime()) ? timestamp : parsed.toLocaleString();
+}
 </script>
+
+<style scoped>
+.obsidian-connection-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.obsidian-connection-list > li,
+.obsidian-pairing-result {
+  background: #f6f6f6;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.obsidian-connection-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.obsidian-connection-heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.obsidian-connection-heading small,
+.obsidian-pairing-result > span,
+.obsidian-pairing-result p {
+  color: #666666;
+}
+
+.obsidian-status-badge {
+  background: #e5e5e5;
+  border-radius: 999px;
+  color: #555555;
+  flex: none;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.obsidian-status-badge.syncing {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.obsidian-status-badge.error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.obsidian-connection-details,
+.obsidian-pairing-result dl {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+
+.obsidian-connection-details div,
+.obsidian-pairing-result dl div {
+  min-width: 0;
+}
+
+.obsidian-connection-details dt,
+.obsidian-pairing-result dt {
+  color: #777777;
+  font-size: 12px;
+}
+
+.obsidian-connection-details dd,
+.obsidian-pairing-result dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.obsidian-pairing-section {
+  border-left: 0;
+  border-top: 1px solid #eeeeee;
+  padding-left: 0;
+  padding-top: 18px;
+}
+
+.obsidian-pairing-section h4 {
+  margin: 0;
+}
+
+.obsidian-pairing-result code {
+  background: #111111;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+  padding: 12px;
+}
+
+.obsidian-pairing-result p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .obsidian-connection-details,
+  .obsidian-pairing-result dl {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

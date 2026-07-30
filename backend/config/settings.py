@@ -188,7 +188,7 @@ def load_settings(override_env: dict[str, str] | None = None) -> AppSettings:
 
     kb_root = Path(_resolve(env, "RAG_KB_ROOT", defaults.KB_ROOT)).expanduser().resolve()
     runtime_dir = Path(
-        _resolve(env, "RAG_RUNTIME_DIR", str(project_root / "runtime"))
+        _resolve(env, "RAG_RUNTIME_DIR", str(project_root / "runtime" / "v2"))
     ).expanduser().resolve()
 
     return AppSettings(

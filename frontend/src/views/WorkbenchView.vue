@@ -2,9 +2,9 @@
   <section class="view-panel chat-view">
     <header class="chat-view-header">
       <div>
-        <p class="section-kicker">聊</p>
-        <h2>问资料</h2>
-        <p>选择左侧工作区，直接围绕资料提问；来源、工具和复盘都收在右侧依据里。</p>
+        <p class="section-kicker">教练</p>
+        <h2>理解当前项目</h2>
+        <p>围绕当前项目提问；回答来源、工具和复盘都收在右侧依据里。</p>
       </div>
     </header>
 

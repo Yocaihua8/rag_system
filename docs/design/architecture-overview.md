@@ -2,20 +2,22 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01
-> Scope：Knowledge Island Web MVP 架构层职责与技术栈
-> Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/design/api-route-split-blueprint.md
+> Last Updated：2026-07-24
+> Scope：Knowledge Island 1.x 兼容架构基线与 2.0 当前实现架构
+> Related：docs/design/system-design-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/adr/ADR-008-project-knowledge-coach-v2.md, docs/adr/ADR-009-obsidian-plugin-bridge.md
 
-## 1. 架构结论
+> 阅读边界：§ 1～§ 8 描述兼容保留的 1.x 能力；§ 9 描述 Knowledge Island 2.0 当前架构与分片落地状态。本地发布候选证据见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
-Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-143 已删除 legacy 静态前端 fallback；B-155 后后端源码统一位于 `backend/`，Web 首页只服务 `backend/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
+## 1. 1.x 当前架构结论
+
+Knowledge Island Web MVP 采用**本地单体分层架构**：FastAPI + Uvicorn 承担本地 HTTP 接口层，SQLite 承担全部持久化，展示层已完成 B-141 Vue 3 + Vite 前端工程化收口；B-142 已把 Vue 工作台补齐为覆盖 SSE、取消和会话历史的主体验；B-164 已把 Vue 主导航和页面状态切换到项目知识教练闭环；B-143 已删除 legacy 静态前端 fallback；B-155 后后端源码统一位于 `backend/`，Web 首页只服务 `backend/static_dist/` Vue/Vite 构建产物。所有处理在本机单进程内完成，无外部消息队列和微服务；B-08 起，写入型导入入口通过进程内项目级协调器实现跨项目并发、同项目串行。
 
 | 字段 | 值 |
 |------|----|
 | 架构模式 | 本地单体（Local Monolith）|
 | 核心边界 | 127.0.0.1:8765，不对外暴露 |
 | 主要入口 | `app.py` → `backend/api/server.py:create_app()` / `run_server()` |
-| 数据持久化 | SQLite（本地默认 `runtime/app.db`；Docker 默认位于 `ki-runtime` volume 的 `/app/runtime/app.db`）|
+| 数据持久化 | SQLite（2.0 本地默认 `runtime/v2/app.db`；Docker 显式 `RAG_RUNTIME_DIR=/app/runtime` 时位于 volume 的 `/app/runtime/app.db`；1.x `runtime/app.db` 保留且不迁移）|
 | 外部依赖 | 可选 LLM API / Embedding API（均有本地 fallback）|
 
 B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-legacy/`，仅作为历史参考，不再被 Web、Docker 或 Tauri sidecar 链路引用。
@@ -59,7 +61,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 
 | 层级 | 技术 | 用途 | 选择原因 |
 |------|------|------|----------|
-| 展示层 | Vue 3 + Vite | 单页应用 UI | B-141A-Z 已完成 Vue 工程骨架和页面级迁移薄片；B-142 补齐 Vue 工作台 SSE/会话；B-143 已删除 legacy static fallback；B-155 后输出到 `backend/static_dist/` |
+| 展示层 | Vue 3 + Vite | 单页应用 UI | B-141A-Z 已完成 Vue 工程骨架和页面级迁移薄片；B-142 补齐 Vue 工作台 SSE/会话；B-164 落地教练、学习地图、学习计划、资料和设置闭环；B-143 已删除 legacy static fallback；B-155 后输出到 `backend/static_dist/` |
 | 接口层 | FastAPI + Uvicorn | HTTP 路由、SSE、OpenAPI | ADR-001；标准化中间件与流式响应 |
 | 业务层 | Python 3.11 | 核心逻辑 | 生态丰富，AI 库支持完善 |
 | 数据层 | SQLite 3（标准库）| 全部持久化 | 零依赖单文件数据库，本地优先最合适 |
@@ -84,9 +86,13 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 - `frontend/src/api/document-collections.js` 封装 Vue 资料库文档集合列表、新建、重命名、删除和文档关联入口，调用既有 `GET/POST /api/document-collections`、`POST /api/document-collections/update`、`POST /api/document-collections/delete` 与 `POST /api/document-collections/items/*` 契约
 - `frontend/src/api/imports.js` 封装 Vue 资料库导入预检、目录同步、文本笔记、URL 摘录、普通文件上传、浏览器文件夹上传和导入批次历史入口，调用既有 `GET /api/import/preview`、`POST /api/import`、`POST /api/import/note`、`POST /api/import/url`、`POST /api/import/upload`、`GET /api/import/batches` 与 `GET /api/import/batches/detail` 契约
 - `frontend/src/api/settings.js` 封装 Vue 设置页基础模型设置、模型 Profile 和 Prompt 预设入口，调用既有 `GET/POST /api/settings/llm`、`POST /api/settings/llm/test`、`/api/model-profiles*` 与 `/api/prompt-presets*` 契约
-- `frontend/src/api/assessment.js` 封装 Vue 评估页开始评估和提交回答入口，调用既有 `POST /api/assessment/start` 与 `POST /api/assessment/answer` 契约
-- `frontend/src/state/app-state.js` 保存迁移期共享 UI 状态，包括当前视图、项目、文档、会话、评估、工具和检索相关字段
-- `frontend/src/components/AppShell.vue` 和 `frontend/src/views/*` 负责基础布局与四个主视图壳；B-142 已将工作台收敛为左侧会话、中间对话、右侧上下文结构，并迁移 Workbench SSE/取消和会话历史
+- `frontend/src/api/coach.js` 封装项目分析、理解、知识点、技能、定向评估、覆盖与学习计划 Coach API；新 Vue 闭环不调用旧评估写接口
+- `frontend/src/api/obsidian.js` 只封装浏览器可调用的配对发起、连接查询/撤销和发布预览/确认；不封装插件令牌交换、同步事件、待执行领取或结果回传
+- `frontend/src/api/assessment.js` 保留既有 `POST /api/assessment/start`、`POST /api/assessment/answer` 与题库读取 helper，供 1.x 兼容组件使用
+- `frontend/src/state/app-state.js` 保存共享 UI 状态，包括五入口当前视图、项目、文档、会话、Coach 分析/覆盖/评估/计划、Obsidian 用户侧状态、工具和检索字段
+- `frontend/src/components/AppShell.vue`、`WorkspaceSidebar.vue` 和 `frontend/src/views/*` 负责五入口布局；`WorkbenchView.vue` 继续承载教练聊天，`LearningMapView.vue` 与 `LearningPlanView.vue` 承载 Coach 只读/写入流程
+- `frontend/src/components/CoachSourceDrawer.vue` 统一展示项目理解、知识点、技能、评估和计划阅读项的真实来源；`CoachAssessmentOverlay.vue` 与 `ObsidianPublicationDialog.vue` 保留进入前页面上下文
+- `frontend/src/components/LibraryModal.vue` 区分插件连接与一次性只读 Vault 导入；`SettingsView.vue` 管理一次性配对码、输出目录、连接状态与撤销，不接触插件令牌
 - `frontend/src/components/ProjectSpacePanel.vue` 是 B-141C/Q 的项目空间薄片，负责资料库中的项目空间选择、创建、改名和删除 UI
 - `frontend/src/components/QuestionPanel.vue`、`frontend/src/components/AnswerPanel.vue`、`frontend/src/components/SearchDebugPanel.vue` 和 `frontend/src/components/AgentToolsPanel.vue` 是 B-141D/U/V/W/X/Y/Z 的工作台薄片，负责问题输入、非流式提交结果、来源、来源质量、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具展示、工具建议和工具来源上下文提示
 - `frontend/src/components/DocumentListPanel.vue` 和 `frontend/src/components/DocumentPreviewPanel.vue` 是 B-141E/O/P 的资料库文档薄片，负责文档列表、加载/空/错误状态、单文档正文预览、单文档加入/移出集合入口以及单文档删除入口
@@ -148,6 +154,13 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | 回答生成 | `build_local_answer` / OpenAI-compatible Chat | `POST /api/answer` |
 | 结果导出 | `export_chat_message_result` | `POST /api/export/result` |
 | Agent 只读工具 | `run_agent_tool` | `POST /api/agent/tools/run` |
+| Coach 项目分析 | `backend.domain.project_analysis` | `/api/coach/analyze` 与三个只读理解接口 |
+| Coach 评估与计划 | `backend.domain.coach_assessment` / `backend.domain.learning_plans` | 七个 B-162 Coach API |
+| Coach 进度存储 | `backend.storage.coach_progress_store.CoachProgressStoreMixin` | `KnowledgeStore` / Coach 领域 |
+| Obsidian 配对与同步 | `backend.domain.obsidian_bridge` / `backend.routes.obsidian` | Obsidian 配对、连接和事件 API |
+| Obsidian 受控发布 | `backend.domain.obsidian_publications` / `backend.domain.obsidian_protocol` | 发布预览、确认、待执行和结果 API |
+| Obsidian 持久化 | `backend.storage.obsidian_store.ObsidianStoreMixin` | `KnowledgeStore` / Obsidian 领域 |
+| Obsidian Vault 适配器 | `integrations/obsidian-plugin/` | Obsidian 桌面 Vault 事件与受控文件写入 |
 | Vue API helper | `frontend/src/api/client.js` | Vue 组件 / 后续页面模块 |
 | Vue 项目空间 helper | `frontend/src/api/projects.js` | `App.vue` / `ProjectSpacePanel.vue` / `SearchDebugPanel.vue` |
 | Vue 问答 helper | `frontend/src/api/answer.js` | `App.vue` / `QuestionPanel.vue` / `AnswerPanel.vue` |
@@ -157,7 +170,9 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | Vue 文档集合 helper | `frontend/src/api/document-collections.js` | `App.vue` / `DocumentCollectionPanel.vue` / `DocumentListPanel.vue` |
 | Vue 导入 helper | `frontend/src/api/imports.js` | `App.vue` / `DocumentImportPanel.vue` / `ImportBatchHistoryPanel.vue` |
 | Vue 设置 helper | `frontend/src/api/settings.js` | `App.vue` / `SettingsView.vue` |
-| Vue 评估 helper | `frontend/src/api/assessment.js` | `App.vue` / `AssessmentView.vue` |
+| Vue Coach helper | `frontend/src/api/coach.js` | `App.vue` / `LearningMapView.vue` / `LearningPlanView.vue` / `CoachAssessmentOverlay.vue` |
+| Vue Obsidian 用户侧 helper | `frontend/src/api/obsidian.js` | `App.vue` / `LibraryModal.vue` / `SettingsView.vue` / `ObsidianPublicationDialog.vue` |
+| Vue 1.x 兼容评估 helper | `frontend/src/api/assessment.js` | `App.vue` / `AssessmentView.vue` |
 | Vue UI 状态 | `frontend/src/state/app-state.js` | `App.vue` / Vue 组件 |
 
 ## 6. 外部依赖
@@ -170,7 +185,7 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | Ollama | 可选本地 | 本地 LLM 推理 | 需用户自行安装并启动服务 |
 | FastAPI / Uvicorn | 必需 Python 包 | 本地 HTTP API、静态文件与 SSE | 无降级；B-139 后为 Web MVP 运行时 |
 | Node.js / npm | 必需前端构建工具 | 安装 Vue/Vite 依赖并生成 `backend/static_dist/` | 未构建时不再回退 legacy 静态前端 |
-| Vue 3 / Vite | 必需前端构建依赖 | B-141 起的前端工程化和生产构建 | B-141A-Z 已完成工程骨架、项目空间选择/创建/改名/删除、非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具、工具来源上下文、文档浏览/删除、轻量导入、批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出、设置页模型配置/Prompt 预设和评估页最小闭环薄片；B-142 已补齐 Workbench SSE/取消、会话历史和消息管理 |
+| Vue 3 / Vite | 必需前端构建依赖 | B-141 起的前端工程化和生产构建 | B-141A-Z 已完成历史页面能力，B-142 补齐 Workbench SSE/取消、会话历史和消息管理，B-164 已接入五入口、Coach 定向评估/计划和 Obsidian 用户侧闭环 |
 | pymupdf | 可选 Python 包 | PDF 文本提取 | 未安装时 PDF 跳过，有明确说明 |
 | Docker | 可选 | 容器化一键启动 | 非必需；`python app.py` 是主要入口 |
 
@@ -187,10 +202,105 @@ B-147 后，旧 PySide6 / 六边形桌面端已归档到 `archive/src-desktop-le
 | 方案 | 是否采用 | 原因 |
 |------|----------|------|
 | FastAPI 替代 `http.server` | 已采用（B-139）| ADR-001；B-155 后兼容入口为 `backend.api.dispatch.dispatch()`，HTTP 契约不变 |
-| Vue 3 + Vite 替代 Vanilla JS | 已采用（B-141A-Z、B-142、B-143 已收口）| ADR-006；B-141 已完成工程骨架和主要页面级入口迁移，B-142 已补齐 Workbench SSE/取消与会话历史；B-143 已删除 legacy static fallback |
+| Vue 3 + Vite 替代 Vanilla JS | 已采用（B-141A-Z、B-142、B-143、B-164 已收口）| ADR-006；B-141 已完成工程骨架和主要页面能力迁移，B-142 补齐 Workbench SSE/取消与会话历史，B-164 接入项目知识教练闭环；B-143 已删除 legacy static fallback |
 | Qdrant 替代 SQLite 向量全扫描 | 已采用（B-134）| Qdrant local mode 提供 HNSW 候选检索；SQLite `chunk_vectors` 保留为兼容副本和降级路径 |
 | Graph-enhanced 检索 | 已采用（B-126）| 不新增必需依赖，不修改 Web MVP schema；仅在当前数据库已有 legacy `graph_nodes` / `graph_edges` 时读取一跳相邻来源并入候选池 |
 | PostgreSQL 替代 SQLite | 否 | 本地单用户场景 SQLite 足够；多用户时再迁移 |
 | LangChain / LlamaIndex 替代自研 | 否 | 引入大型框架与本地极简原则冲突，增加不透明性 |
 | BM25 替代 regex 关键词检索 | 已采用（B-127）| `backend/domain/search.py` 使用内置 BM25 计算 `keyword_score`，不新增必需依赖 |
 | `api.py` 按领域拆分 | 已完成（B-138 / B-155 路径迁移）| 61 个 REST 端点已迁入 `backend/routes/*`；兼容入口位于 `backend/api/dispatch.py`，保持 HTTP 契约不变 |
+
+## 9. Knowledge Island 2.0 架构与落地状态
+
+### 9.1 产品与代际边界
+
+Knowledge Island 2.0 的当前定位是“面向个人开发学习的本地项目知识教练”。主闭环为：导入代码项目与笔记 → 生成有来源的项目理解 → 学习问答 → 项目知识评估 → 通用技能差距 → 学习计划 → 用户确认后发布到 Obsidian。
+
+| 维度 | 1.x 兼容能力 | 2.0 当前架构 |
+|------|--------------|----------------|
+| 核心产品 | 本地 RAG 知识库与问答工作台 | 本地项目知识教练 |
+| 评价主口径 | 文档问答与轻量评估 | 当前项目的知识覆盖 |
+| 辅助口径 | 规则化掌握度结果 | 版本化通用技能树映射；不等同于职业能力 |
+| 默认数据根 | 1.x 数据保留在 `runtime/` | B-161 起默认使用独立 `runtime/v2/` 数据代际 |
+| Obsidian | `/api/import/obsidian-vault` 一次性只读导入 | 桌面插件桥接、事件同步和受控发布 |
+
+2.0 不迁移、不删除、不覆盖 1.x 的 SQLite、向量目录、Qdrant 本地索引或输出文件。B-161 已将默认启动路径切换到独立 v2 数据根，并在写入前验证数据代际；旧数据保留用于 1.x 回退或人工归档，不自动纳入 2.0 项目。
+
+### 9.2 逻辑架构
+
+```text
+┌───────────────────────────────┐       ┌──────────────────────────────┐
+│ Vue：教练 / 学习地图 / 计划   │       │ Obsidian 桌面插件            │
+│ 资料 / 设置 / 依据抽屉        │       │ Vault 事件 + 受控文件写入    │
+└──────────────┬────────────────┘       └──────────────┬───────────────┘
+               │ Coach / 现有 API                       │ Obsidian 专用 API
+┌──────────────▼────────────────────────────────────────▼───────────────┐
+│ FastAPI 路由层：鉴权、参数校验、响应映射；不直接读写 SQLite/Vault    │
+├──────────────────────────────┬───────────────────────────────────────┤
+│ Coach 领域                    │ Obsidian Bridge 领域                  │
+│ 分析、知识点、技能映射        │ 配对、事件幂等、发布状态机、冲突判定  │
+│ 评估、覆盖聚合、学习计划      │ 不直接访问 Vault 文件系统             │
+├──────────────────────────────┴───────────────────────────────────────┤
+│ 既有导入 / 检索 / 回答能力（按 2.0 数据代际复用）                    │
+├──────────────────────────────────────────────────────────────────────┤
+│ v2 Storage：SQLite + 向量索引，唯一持久化入口                         │
+│ runtime/v2/*；来源快照、不可变发布修订、令牌哈希                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### 9.3 Coach 领域边界
+
+- **项目分析**：对 Python、JavaScript/TypeScript 和常见 Web 清单做结构化分析；其他文本项目使用目录、清单、文档和 RAG 通用回退。规则基线必须在无 LLM 时可运行，LLM 只增强摘要、题目和计划。
+- **来源约束**：知识点、知识点—技能映射、评估结论和普通 `learning` 任务必须关联真实项目来源；`source_gap` 任务只能表达资料缺口且来源为空。来源 checksum、路径或内容变化后，相关分析运行标记为 `stale`，不得继续显示为最新结论。
+- **稳定身份**：知识点使用稳定 ID 与分析运行解耦；重新分析产生新运行和新来源快照，不以标题或展示顺序作为身份。
+- **双层评价**：项目知识覆盖是主口径；语言、框架、数据、测试、交付、AI 等通用技能是版本化辅助口径。状态统一为 `unassessed / needs_work / developing / mastered`，界面必须说明结果只针对当前项目。
+- **评估与计划**：评估以持久会话记录题目、回答、评分方式、置信度和来源；学习计划草稿可编辑排序，确认后不可被重新生成覆盖。
+- **分层约束**：Coach 领域不包含 HTTP 对象、SQLite 语句、Vault 文件写入或前端展示规则；路由层与存储层继续遵守现有职责边界。
+
+B-162 当前落地路径：
+
+- `backend/domain/coach_assessment.py`：定向会话、规则/模型评分、覆盖率和技能聚合。
+- `backend/domain/learning_plans.py`：确定性计划生成、受限模型润色、草稿结构更新、确认和进度更新。
+- `backend/storage/coach_progress_store.py`：评估与计划六张表的唯一持久化入口，`backend/storage/knowledge_store.py` 只负责组合存储 mixin。
+- `backend/routes/coach.py`：在 B-161 四个基础接口上新增三个评估/覆盖接口和四个学习计划接口；旧 `/api/assessment/*` 继续由原路由处理。
+- 评估或计划写入前防御性比较当前项目来源指纹；过期分析只读保留，阻止新评估、草稿结构更新和确认，不阻止确认版任务进度更新。
+- 评估评分依据只保存在服务端；学习计划生成、结构更新和确认按项目内进程锁串行，并分别用结构哈希与进度哈希保护客户端更新。
+- 学习计划确认只改变 Coach 持久化状态，不产生 Obsidian 发布副作用；受控写回由 B-163 的独立预览、确认和插件执行链路负责。
+
+### 9.4 Obsidian 桥边界
+
+- 仅支持 Obsidian 桌面插件；后端不直接扫描或写入 Vault，插件是 Vault 变更的唯一执行方。
+- 每个项目最多一个活动连接。一次性限时配对码换取仅可访问 Obsidian 路由的可撤销令牌；服务端只保存令牌哈希。
+- 插件批量发送 Markdown `upsert / rename / delete` 事件，事件携带幂等 ID、Frontmatter、标签以及已解析/未解析 Wikilink。系统生成目录必须从反向摄入中排除。
+- 发布严格经过“预览 → 用户确认 → 插件执行 → 结果回报”。目标路径越界、文件缺少系统标记、稳定 ID 不匹配或内容 hash 已变化时，状态转为 `conflict`；v1 插件不自动合并。
+- 默认输出目录为 `Knowledge Island/<项目名>/`。所有可更新文件必须包含 `knowledge_island_managed`、稳定 ID、项目 ID、产物类型和修订号；生成文件被用户删除后不自动重建。
+- 现有 `/api/import/obsidian-vault` 保持一次性只读导入语义，不升级为后端直接双向文件同步。
+
+B-163 已实现路径：
+
+- `backend/domain/obsidian_bridge.py`：五分钟一次性配对、只存哈希的可撤销插件令牌、连接查询/撤销，以及最多 100 项的幂等同步批次。
+- `backend/domain/obsidian_protocol.py`：Vault 路径规范化、输出根边界、管理 Frontmatter、稳定 artifact ID 与内容 SHA-256。
+- `backend/domain/obsidian_publications.py`：四类 Markdown 预览、用户确认、插件待执行队列、结果汇总，以及从历史发布创建新修订的回滚。
+- `backend/storage/obsidian_store.py`：配对、连接、事件、发布、不可变 artifact 修订和结果六张表的唯一持久化入口。
+- `backend/routes/obsidian.py`：九个 Obsidian API；插件专用路由从请求上下文验证 Bearer 令牌，不把凭证传入普通业务响应。
+- `integrations/obsidian-plugin/`：独立 `desktopOnly` 插件工程。插件监听 Vault Markdown 事件，持久化离线事件/结果队列，排除系统输出目录，领取 `queued` 发布并在 Vault 内原子写入。
+- 插件覆盖前同时校验输出根、`knowledge_island_managed`、稳定 ID、项目 ID、产物类型、修订号和预期 Vault hash。任一校验失败回传 `conflict`，不自动合并、不越权覆盖用户笔记。
+- 生成文件被删除后不自动重建；只有新的用户预览与确认产生后续执行。插件成功回传的实际 hash 成为下一修订覆盖基线。
+
+### 9.5 Vue 教练闭环边界
+
+- B-164 把 `App.vue` 作为前端用例编排层：项目切换时清理 Coach / Obsidian 页面状态，进入学习地图或学习计划时读取对应 API，不在组件中重算覆盖率、技能状态或发布冲突。
+- 学习地图与学习计划只展示服务端返回的当前项目状态；所有来源查看统一落到 `CoachSourceDrawer.vue`，不由浏览器自行拼造来源路径或结论。
+- `CoachAssessmentOverlay.vue` 只通过 Coach API 发起和提交定向评估；旧 `AssessmentView.vue` 和 `/api/assessment/*` 继续兼容，但不进入五入口主导航。
+- 草稿结构编辑、排序、确认和确认版进度更新分别携带服务端 revision / hash；浏览器不绕过服务端锁与冲突校验。
+- 用户侧发布流程只调用预览与确认。确认返回 `queued` 后等待插件；浏览器不持有插件 Bearer token，也不调用 `/api/obsidian/sync/events`、`/api/obsidian/publications/pending` 或 `/api/obsidian/publications/result`。
+
+### 9.6 实施门禁
+
+| 切片 | 目标 | 本文状态 |
+|------|------|----------|
+| B-161 | 项目分析、知识点、来源与技能映射 | 已实现（存储、规则分析与 Coach 基础 API） |
+| B-162 | 持久评估、覆盖聚合与学习计划 | 已实现（领域、存储与七个 Coach API） |
+| B-163 | Obsidian 插件桥、同步与受控发布 | 已实现（领域、存储、九个 API 与独立桌面插件） |
+| B-164 | Vue 教练闭环 | 已实现（五入口、统一来源、定向评估、计划与 Obsidian 用户侧流程） |
+| B-165 | OpenAPI、测试、插件构建、E2E 与发布验收 | 已完成本地发布候选验收；正式 Tag、远端发布和原生安装包另行执行 |

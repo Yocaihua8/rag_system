@@ -1,6 +1,6 @@
 [package]
 name = "knowledge-island-desktop"
-version = "0.1.0"
+version = "2.0.0"
 description = "Knowledge Island Tauri desktop shell"
 authors = ["RAG Team"]
 license = "UNLICENSED"
@@ -14,4 +14,3 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
-

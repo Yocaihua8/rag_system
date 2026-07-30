@@ -133,9 +133,71 @@
               <strong>Notion</strong>
               <span>稍后支持。当前请先导出为文件后加入库。</span>
             </article>
-            <article class="library-import-card library-import-card-disabled">
-              <strong>Obsidian</strong>
-              <span>稍后支持。当前请先选择本机文件夹。</span>
+            <article class="library-import-card library-obsidian-card" data-library-obsidian>
+              <div class="library-obsidian-heading">
+                <div>
+                  <strong>Obsidian 桌面插件</strong>
+                  <span>持续同步当前项目笔记，并在确认后接收 Knowledge Island 发布内容。</span>
+                </div>
+                <span :class="['library-connection-badge', { active: activeObsidianConnection }]">
+                  {{ activeObsidianConnection ? "已连接" : "未连接" }}
+                </span>
+              </div>
+
+              <p v-if="obsidianConnectionsLoading" class="status-line">正在读取 Obsidian 连接...</p>
+              <p v-else-if="obsidianConnectionsError" class="status-line error">
+                {{ obsidianConnectionsError }}
+              </p>
+              <dl v-else-if="activeObsidianConnection" class="library-obsidian-details">
+                <div>
+                  <dt>Vault</dt>
+                  <dd>{{ activeObsidianConnection.vault_name || "未命名 Vault" }}</dd>
+                </div>
+                <div>
+                  <dt>同步状态</dt>
+                  <dd>{{ obsidianSyncStatusLabel(activeObsidianConnection.sync_status) }}</dd>
+                </div>
+                <div>
+                  <dt>输出目录</dt>
+                  <dd>{{ activeObsidianConnection.output_root || "未设置" }}</dd>
+                </div>
+                <div>
+                  <dt>最近同步</dt>
+                  <dd>{{ formatObsidianTimestamp(activeObsidianConnection.last_synced_at) }}</dd>
+                </div>
+              </dl>
+              <p v-else class="status-line">
+                当前项目尚未连接 Obsidian。请先到设置页生成一次性配对码，再由桌面插件完成连接。
+              </p>
+
+              <div class="library-obsidian-actions">
+                <button
+                  type="button"
+                  class="ghost-button"
+                  :disabled="obsidianConnectionsLoading"
+                  @click="emit('refresh-obsidian-connections')"
+                >
+                  {{ obsidianConnectionsLoading ? "刷新中..." : "刷新状态" }}
+                </button>
+                <button type="button" @click="emit('open-obsidian-settings')">
+                  {{ activeObsidianConnection ? "管理连接" : "打开设置并配对" }}
+                </button>
+              </div>
+
+              <form class="library-obsidian-readonly-import" @submit.prevent="submitObsidianVault">
+                <strong>一次性只读导入</strong>
+                <span>
+                  这是原有的本机 Vault 路径导入，只读取一次，不会建立插件连接，也不会向 Vault 写回。
+                </span>
+                <input
+                  v-model.trim="obsidianVaultPath"
+                  name="obsidian_vault_path"
+                  placeholder="例如：D:\Notes\My Vault"
+                />
+                <button type="submit" :disabled="!obsidianVaultPath.trim() || importSubmitting">
+                  {{ importSubmitting ? "导入中..." : "只读导入 Vault" }}
+                </button>
+              </form>
             </article>
           </section>
           <ImportResultList :status="importStatus" :error="importError" />
@@ -146,10 +208,10 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import ImportResultList from "./ImportResultList.vue";
 
-defineProps({
+const props = defineProps({
   open: {
     type: Boolean,
     default: false,
@@ -194,6 +256,22 @@ defineProps({
     type: String,
     default: "",
   },
+  importSubmitting: {
+    type: Boolean,
+    default: false,
+  },
+  obsidianConnections: {
+    type: Array,
+    default: () => [],
+  },
+  obsidianConnectionsLoading: {
+    type: Boolean,
+    default: false,
+  },
+  obsidianConnectionsError: {
+    type: String,
+    default: "",
+  },
 });
 
 const emit = defineEmits([
@@ -204,9 +282,12 @@ const emit = defineEmits([
   "import-folder",
   "import-github-repo",
   "import-note",
+  "import-obsidian-vault",
   "import-url",
+  "open-obsidian-settings",
   "refresh-collections",
   "refresh-documents",
+  "refresh-obsidian-connections",
   "select-collection",
   "select-document",
 ]);
@@ -214,7 +295,11 @@ const emit = defineEmits([
 const noteText = ref("");
 const urlText = ref("");
 const repoUrl = ref("");
+const obsidianVaultPath = ref("");
 const advancedSourcesOpen = ref(false);
+const activeObsidianConnection = computed(() => (
+  props.obsidianConnections.find((connection) => connection.status === "active") || null
+));
 
 function handleFileInput(event) {
   const files = Array.from(event.target.files || []);
@@ -257,6 +342,31 @@ function submitRepo() {
   }
   emit("import-github-repo", { repoUrl: repositoryUrl });
   repoUrl.value = "";
+}
+
+function submitObsidianVault() {
+  const vaultPath = obsidianVaultPath.value.trim();
+  if (!vaultPath) {
+    return;
+  }
+  emit("import-obsidian-vault", { vaultPath });
+}
+
+function obsidianSyncStatusLabel(status) {
+  return {
+    idle: "空闲",
+    syncing: "同步中",
+    error: "同步异常",
+  }[status] || "未知";
+}
+
+function formatObsidianTimestamp(value) {
+  const timestamp = String(value || "").trim();
+  if (!timestamp) {
+    return "尚未同步";
+  }
+  const parsed = new Date(timestamp);
+  return Number.isNaN(parsed.getTime()) ? timestamp : parsed.toLocaleString();
 }
 </script>
 
@@ -360,6 +470,72 @@ function submitRepo() {
   opacity: 0.72;
 }
 
+.library-obsidian-card {
+  grid-column: 1 / -1;
+}
+
+.library-obsidian-heading,
+.library-obsidian-actions {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.library-obsidian-heading > div,
+.library-obsidian-readonly-import {
+  display: grid;
+  gap: 8px;
+}
+
+.library-connection-badge {
+  background: #e5e5e5;
+  border-radius: 999px;
+  color: #666666;
+  flex: none;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.library-connection-badge.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.library-obsidian-details {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.library-obsidian-details div {
+  background: #ffffff;
+  border: 1px solid #e2e2e2;
+  border-radius: 6px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+}
+
+.library-obsidian-details dt {
+  color: #777777;
+  font-size: 12px;
+}
+
+.library-obsidian-details dd {
+  color: #111111;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.library-obsidian-readonly-import {
+  border-top: 1px solid #dddddd;
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
 .library-document-list,
 .library-folder-list {
   display: grid;
@@ -399,6 +575,10 @@ function submitRepo() {
   }
 
   .library-advanced-sources {
+    grid-template-columns: 1fr;
+  }
+
+  .library-obsidian-details {
     grid-template-columns: 1fr;
   }
 }

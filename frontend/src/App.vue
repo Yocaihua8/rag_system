@@ -7,7 +7,7 @@
     :library-target-project-id="appState.libraryTargetProjectId"
     :chat-sessions="appState.chatSessions"
     :selected-chat-session-id="appState.selectedChatSessionId"
-    @change-view="showView"
+    @change-view="handleChangeView"
     @open-library="openLibraryModal"
     @back-to-threads="showThreadSidebar"
     @select-library-target-project="handleSelectLibraryTargetProject"
@@ -15,7 +15,45 @@
     @select-chat-session="handleSelectChatSession"
     @create-chat-session="handleCreateChatSession"
   >
+    <LearningMapView
+      v-if="appState.currentView === 'learning-map'"
+      :selected-project-id="appState.selectedProjectId"
+      :overview="appState.coachOverview"
+      :knowledge-points="appState.coachKnowledgePoints"
+      :skills="appState.coachSkills"
+      :coverage="appState.coachCoverage"
+      :loading="appState.coachLoading"
+      :analyzing="appState.coachAnalyzing"
+      :error="appState.coachError"
+      @analyze="handleAnalyzeCoachProject"
+      @refresh="loadCoachWorkspace"
+      @start-assessment="handleOpenCoachAssessment"
+      @open-sources="handleOpenCoachSources"
+    />
+    <LearningPlanView
+      v-else-if="appState.currentView === 'learning-plan'"
+      :selected-project-id="appState.selectedProjectId"
+      :current-plan="appState.learningPlan"
+      :loading="appState.learningPlanLoading"
+      :generating="appState.learningPlanGenerating"
+      :saving="appState.learningPlanSaving"
+      :confirming="appState.learningPlanConfirming"
+      :error="appState.learningPlanError"
+      :status="appState.learningPlanStatus"
+      :obsidian-connection="activeObsidianConnection"
+      :publication-loading="appState.obsidianPublicationLoading"
+      :publication-error="appState.obsidianPublicationError"
+      :publication-status="appState.obsidianPublicationStatus"
+      @generate="handleGenerateLearningPlan"
+      @refresh="loadCurrentLearningPlan"
+      @update-plan="handleUpdateLearningPlan"
+      @confirm="handleConfirmLearningPlan"
+      @preview-publication="handlePreviewObsidianPublication"
+      @open-sources="handleOpenCoachSources"
+      @open-obsidian-settings="openObsidianSettings"
+    />
     <component
+      v-else
       :is="currentViewComponent"
       :status-message="statusMessage"
       :projects="appState.projects"
@@ -170,16 +208,6 @@
       :prompt-preset-default-submitting="appState.promptPresetDefaultSubmitting"
       :prompt-preset-mutation-error="appState.promptPresetMutationError"
       :prompt-preset-status="appState.promptPresetStatus"
-      :assessment-session="appState.assessmentSession"
-      :assessment-question="appState.assessmentQuestion"
-      :assessment-question-index="appState.assessmentQuestionIndex"
-      :assessment-results="appState.assessmentResults"
-      :assessment-missed-questions="appState.assessmentMissedQuestions"
-      :assessment-answered-current="appState.assessmentAnsweredCurrent"
-      :assessment-loading="appState.assessmentLoading"
-      :assessment-submitting="appState.assessmentSubmitting"
-      :assessment-error="appState.assessmentError"
-      :assessment-status="appState.assessmentStatus"
       @check-health="checkHealth"
       @open-library="openLibraryModal"
       @refresh-projects="loadProjectSpaces"
@@ -239,7 +267,7 @@
       @refresh-batches="loadImportBatches"
       @select-batch="handleSelectImportBatch"
       @load-settings="loadSettingsPage"
-      @back="showView('chat')"
+      @back="handleChangeView('coach')"
       @change-settings-page="handleChangeSettingsPage"
       @save-llm-settings="handleSaveLlmSettings"
       @test-llm-settings="handleTestLlmSettings"
@@ -252,10 +280,16 @@
       @save-prompt-preset="handleSavePromptPreset"
       @delete-prompt-preset="handleDeletePromptPreset"
       @set-default-prompt-preset="handleSetDefaultPromptPreset"
-      @start-assessment="handleStartAssessment"
-      @submit-assessment-answer="handleSubmitAssessmentAnswer"
-      @next-assessment-question="handleNextAssessmentQuestion"
-      @reset-assessment="resetAssessmentState"
+      :obsidian-connections="appState.obsidianConnections"
+      :obsidian-connections-loading="appState.obsidianConnectionsLoading"
+      :obsidian-connection-error="appState.obsidianConnectionError"
+      :obsidian-pairing="appState.obsidianPairing"
+      :obsidian-pairing-loading="appState.obsidianPairingLoading"
+      :obsidian-pairing-error="appState.obsidianPairingError"
+      :obsidian-revoking-id="appState.obsidianRevokingId"
+      @load-obsidian-connections="loadObsidianConnections"
+      @start-obsidian-pairing="handleStartObsidianPairing"
+      @revoke-obsidian-connection="handleRevokeObsidianConnection"
     />
     <LibraryModal
       :open="appState.libraryModalOpen"
@@ -269,6 +303,10 @@
       :document-collections-load-error="appState.documentCollectionsLoadError"
       :import-status="appState.importStatus"
       :import-error="appState.importError"
+      :import-submitting="appState.importSubmitting"
+      :obsidian-connections="appState.obsidianConnections"
+      :obsidian-connections-loading="appState.obsidianConnectionsLoading"
+      :obsidian-connections-error="appState.obsidianConnectionError"
       @close="closeLibraryModal"
       @back-to-upload="openLibraryModal('upload')"
       @choose-material="handleChooseLibraryMaterial"
@@ -281,6 +319,41 @@
       @import-files="handleImportFiles"
       @import-folder="handleImportFolder"
       @import-github-repo="handleImportGithubRepo"
+      @import-obsidian-vault="handleImportObsidianVault"
+      @refresh-obsidian-connections="loadObsidianConnections"
+      @open-obsidian-settings="openObsidianSettings"
+    />
+    <CoachSourceDrawer
+      :open="appState.coachSourceDrawerOpen"
+      :title="appState.selectedCoachSource?.title"
+      :source-ids="appState.selectedCoachSource?.source_ids || []"
+      :sources="appState.selectedCoachSource?.sources || {}"
+      @close="closeCoachSourceDrawer"
+    />
+    <CoachAssessmentOverlay
+      :open="appState.coachAssessmentOverlayOpen"
+      :knowledge-points="appState.coachKnowledgePoints"
+      :skills="appState.coachSkills"
+      :initial-target="appState.coachAssessmentTarget"
+      :session="appState.coachAssessmentSession"
+      :assessment-result="appState.coachAssessmentResult"
+      :loading="appState.coachAssessmentLoading"
+      :submitting="appState.coachAssessmentSubmitting"
+      :error="appState.coachAssessmentError"
+      @close="appState.coachAssessmentOverlayOpen = false"
+      @open-sources="handleOpenCoachSources"
+      @start="handleStartCoachAssessment"
+      @restart="handleStartCoachAssessment"
+      @submit-answer="handleSubmitCoachAssessmentAnswer"
+    />
+    <ObsidianPublicationDialog
+      :open="appState.obsidianPublicationDialogOpen"
+      :preview="appState.obsidianPublicationPreview"
+      :loading="appState.obsidianPublicationLoading"
+      :error="appState.obsidianPublicationError"
+      :status="appState.obsidianPublicationStatus"
+      @close="appState.obsidianPublicationDialogOpen = false"
+      @confirm="handleConfirmObsidianPublication"
     />
   </AppShell>
 </template>
@@ -306,9 +379,29 @@ import {
   renameChatSession,
   submitAnswerFeedback,
 } from "./api/answer.js";
-import { loadAssessmentLibrary, startAssessmentSession, submitAssessmentAnswer } from "./api/assessment.js";
+import { loadAssessmentLibrary } from "./api/assessment.js";
 import { apiGet } from "./api/client.js";
+import {
+  analyzeCoachProject,
+  answerCoachAssessment,
+  confirmLearningPlan,
+  generateLearningPlan,
+  getCoachCoverage,
+  getCoachKnowledgePoints,
+  getCoachOverview,
+  getCoachSkills,
+  getCurrentLearningPlan,
+  startCoachAssessment,
+  updateLearningPlan,
+} from "./api/coach.js";
 import { getOllamaStatus, pullOllamaModel } from "./api/ollama.js";
+import {
+  confirmObsidianPublication,
+  listObsidianConnections,
+  previewObsidianPublication,
+  revokeObsidianConnection,
+  startObsidianPairing,
+} from "./api/obsidian.js";
 import {
   addDocumentToCollection,
   createDocumentCollection,
@@ -366,13 +459,18 @@ import {
   saveRetrievalReview,
 } from "./api/search.js";
 import AppShell from "./components/AppShell.vue";
+import CoachAssessmentOverlay from "./components/CoachAssessmentOverlay.vue";
+import CoachSourceDrawer from "./components/CoachSourceDrawer.vue";
 import LibraryModal from "./components/LibraryModal.vue";
+import ObsidianPublicationDialog from "./components/ObsidianPublicationDialog.vue";
 import { appState, showView } from "./state/app-state.js";
+import LearningMapView from "./views/LearningMapView.vue";
+import LearningPlanView from "./views/LearningPlanView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import WorkbenchView from "./views/WorkbenchView.vue";
 
 const viewComponents = {
-  chat: WorkbenchView,
+  coach: WorkbenchView,
   settings: SettingsView,
 };
 
@@ -381,6 +479,13 @@ const projectFormStatus = ref("");
 
 const currentViewComponent = computed(() => {
   return viewComponents[appState.currentView] || WorkbenchView;
+});
+
+const activeObsidianConnection = computed(() => {
+  return appState.obsidianConnections.find((connection) => (
+    connection.project_id === appState.selectedProjectId
+    && connection.status === "active"
+  )) || null;
 });
 
 const projectStatusMessage = computed(() => {
@@ -424,6 +529,7 @@ function openLibraryModal(step = "upload") {
     appState.libraryTargetProjectId = appState.selectedProjectId;
   }
   appState.sidebarMode = step === "select" ? "workspace-select" : "threads";
+  void loadObsidianConnections();
 }
 
 async function handleChooseLibraryMaterial() {
@@ -452,11 +558,35 @@ function showThreadSidebar() {
 
 function handleChangeSettingsPage(page) {
   appState.settingsPage = page;
+  if (page === "obsidian") {
+    void loadObsidianConnections();
+  }
 }
 
 function handleStartAssessmentTool() {
-  appState.currentView = "chat";
-  appState.answerStatus = "练习与小测会在聊天中进行";
+  handleOpenCoachAssessment(null);
+}
+
+async function handleChangeView(view) {
+  showView(view);
+  if (view === "learning-map") {
+    await loadCoachWorkspace();
+    return;
+  }
+  if (view === "learning-plan") {
+    await Promise.all([loadCurrentLearningPlan(), loadObsidianConnections()]);
+    return;
+  }
+  if (view === "settings") {
+    await loadObsidianConnections();
+  }
+}
+
+function openObsidianSettings() {
+  appState.libraryModalOpen = false;
+  appState.obsidianPublicationDialogOpen = false;
+  appState.settingsPage = "obsidian";
+  void handleChangeView("settings");
 }
 
 function handleSelectLibraryTargetProject(projectId) {
@@ -533,7 +663,11 @@ function formatOllamaPullStatus(data) {
 }
 
 async function loadSettingsPage() {
-  await Promise.all([loadModelSettings(), loadModelProfiles(), loadPromptPresets()]);
+  const tasks = [loadModelSettings(), loadModelProfiles(), loadPromptPresets()];
+  if (appState.selectedProjectId) {
+    tasks.push(loadObsidianConnections());
+  }
+  await Promise.all(tasks);
 }
 
 async function loadModelSettings() {
@@ -733,84 +867,448 @@ async function handleSetDefaultPromptPreset(presetId) {
   }
 }
 
-async function handleStartAssessment() {
-  appState.assessmentLoading = true;
-  appState.assessmentError = "";
-  appState.assessmentStatus = "正在生成评估题...";
+async function loadCoachWorkspace() {
+  const projectId = appState.selectedProjectId;
+  appState.coachError = "";
+  if (!projectId) {
+    clearCoachWorkspaceState();
+    return;
+  }
+
+  appState.coachLoading = true;
   try {
-    const data = await startAssessmentSession(appState.selectedProjectId);
-    appState.assessmentSession = data.session;
-    appState.assessmentQuestionIndex = 0;
-    appState.assessmentResults = [];
-    appState.assessmentMissedQuestions = [];
-    appState.assessmentAnsweredCurrent = false;
-    appState.assessmentQuestion = currentAssessmentQuestion();
-    appState.assessmentStatus = "评估题已生成";
-    await loadKnowledgeBaseManagementOverview();
+    const [overview, knowledgePoints, skills, coverage] = await Promise.all([
+      getCoachOverview(projectId),
+      getCoachKnowledgePoints(projectId),
+      getCoachSkills(projectId),
+      getCoachCoverage(projectId),
+    ]);
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachOverview = overview;
+    appState.coachKnowledgePoints = knowledgePoints;
+    appState.coachSkills = skills;
+    appState.coachCoverage = coverage;
   } catch (error) {
-    appState.assessmentError = error.message || "评估题生成失败";
-    appState.assessmentStatus = "评估题生成失败";
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachOverview = null;
+    appState.coachKnowledgePoints = [];
+    appState.coachSkills = [];
+    appState.coachCoverage = null;
+    appState.coachError = error.message === "coach analysis not found"
+      ? "当前项目尚未分析。请先运行项目分析。"
+      : error.message || "项目知识地图读取失败";
   } finally {
-    appState.assessmentLoading = false;
+    if (appState.selectedProjectId === projectId) {
+      appState.coachLoading = false;
+    }
   }
 }
 
-async function handleSubmitAssessmentAnswer(answer) {
-  appState.assessmentSubmitting = true;
-  appState.assessmentError = "";
-  appState.assessmentStatus = "正在评估回答...";
+async function loadCoachCoverageView() {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachCoverage = null;
+    return;
+  }
   try {
-    const data = await submitAssessmentAnswer({
-      projectId: appState.selectedProjectId,
-      question: appState.assessmentQuestion,
-      answer,
+    const coverage = await getCoachCoverage(projectId);
+    if (appState.selectedProjectId === projectId) {
+      appState.coachCoverage = coverage;
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachError = error.message || "项目知识覆盖读取失败";
+    }
+  }
+}
+
+async function handleAnalyzeCoachProject() {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.coachAnalyzing = true;
+  appState.coachError = "";
+  try {
+    await analyzeCoachProject(projectId);
+    if (appState.selectedProjectId === projectId) {
+      await loadCoachWorkspace();
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachError = error.message || "项目分析失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachAnalyzing = false;
+    }
+  }
+}
+
+async function handleOpenCoachAssessment(target = null) {
+  appState.coachAssessmentOverlayOpen = true;
+  appState.coachAssessmentTarget = target || {
+    target_type: "knowledge_point",
+    target_id: "",
+  };
+  appState.coachAssessmentSession = null;
+  appState.coachAssessmentQuestion = null;
+  appState.coachAssessmentResult = null;
+  appState.coachAssessmentError = "";
+  appState.coachAssessmentStatus = "";
+  if (!appState.selectedProjectId) {
+    appState.coachAssessmentError = "请先创建或选择项目空间";
+    return;
+  }
+  if (!appState.coachOverview) {
+    await loadCoachWorkspace();
+    if (appState.coachError) {
+      appState.coachAssessmentError = appState.coachError;
+    }
+  }
+}
+
+async function handleStartCoachAssessment(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachAssessmentError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.coachAssessmentLoading = true;
+  appState.coachAssessmentError = "";
+  appState.coachAssessmentStatus = "正在准备当前项目评估...";
+  try {
+    const session = await startCoachAssessment({
+      projectId,
+      targetType: payload.target_type,
+      targetId: payload.target_id,
+      restart: Boolean(payload.restart),
     });
-    const entry = {
-      question: appState.assessmentQuestion,
-      result: data.result,
-    };
-    appState.assessmentResults = [...appState.assessmentResults, entry];
-    appState.assessmentMissedQuestions = appState.assessmentResults.filter((item) => item.result?.status !== "已掌握");
-    appState.assessmentAnsweredCurrent = true;
-    appState.assessmentStatus = "评估反馈已生成";
-    await loadKnowledgeBaseManagementOverview();
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachAssessmentSession = session;
+    appState.coachAssessmentResult = null;
+    appState.coachAssessmentStatus = session?.resumed ? "已恢复评估会话" : "评估会话已开始";
   } catch (error) {
-    appState.assessmentError = error.message || "评估回答失败";
-    appState.assessmentStatus = "评估回答失败";
+    if (appState.selectedProjectId === projectId) {
+      appState.coachAssessmentError = error.message || "评估会话启动失败";
+      appState.coachAssessmentStatus = "";
+    }
   } finally {
-    appState.assessmentSubmitting = false;
+    if (appState.selectedProjectId === projectId) {
+      appState.coachAssessmentLoading = false;
+    }
   }
 }
 
-function handleNextAssessmentQuestion() {
-  if (!appState.assessmentSession) {
-    appState.assessmentStatus = "请先开始评估";
+async function handleSubmitCoachAssessmentAnswer(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachAssessmentError = "请先创建或选择项目空间";
     return;
   }
-  if (!hasNextAssessmentQuestion()) {
-    appState.assessmentQuestion = null;
-    appState.assessmentAnsweredCurrent = true;
-    appState.assessmentStatus = "本轮评估已完成";
+  appState.coachAssessmentSubmitting = true;
+  appState.coachAssessmentError = "";
+  appState.coachAssessmentStatus = "正在评估回答...";
+  try {
+    const data = await answerCoachAssessment({
+      projectId,
+      sessionId: payload.session_id,
+      questionId: payload.question_id,
+      answer: payload.answer,
+    });
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachAssessmentSession = data.session || null;
+    appState.coachAssessmentResult = data.result || null;
+    appState.coachAssessmentStatus = data.replayed ? "已恢复保存的评估结果" : "评估结果已保存";
+    await loadCoachCoverageView();
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachAssessmentError = error.message || "评估回答失败";
+      appState.coachAssessmentStatus = "";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachAssessmentSubmitting = false;
+    }
+  }
+}
+
+function handleOpenCoachSources(payload = {}) {
+  appState.selectedCoachSource = {
+    title: payload.title || "知识来源",
+    source_ids: Array.isArray(payload.source_ids) ? payload.source_ids : [],
+    sources: payload.sources || {},
+  };
+  appState.coachSourceDrawerOpen = true;
+}
+
+function closeCoachSourceDrawer() {
+  appState.coachSourceDrawerOpen = false;
+}
+
+async function loadCurrentLearningPlan() {
+  const projectId = appState.selectedProjectId;
+  appState.learningPlanError = "";
+  if (!projectId) {
+    appState.learningPlan = null;
     return;
   }
-  appState.assessmentQuestionIndex += 1;
-  appState.assessmentQuestion = currentAssessmentQuestion();
-  appState.assessmentAnsweredCurrent = false;
-  appState.assessmentStatus = `进入第 ${appState.assessmentQuestionIndex + 1} 题`;
+  appState.learningPlanLoading = true;
+  try {
+    const current = await getCurrentLearningPlan(projectId);
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlan = current;
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlan = null;
+      appState.learningPlanError = error.message === "coach analysis not found"
+        ? "请先在学习地图分析当前项目，再生成学习计划。"
+        : error.message || "学习计划读取失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanLoading = false;
+    }
+  }
 }
 
-function currentAssessmentQuestion() {
-  const questions = Array.isArray(appState.assessmentSession?.questions)
-    ? appState.assessmentSession.questions
-    : [];
-  return questions[appState.assessmentQuestionIndex] || null;
+async function handleGenerateLearningPlan() {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.learningPlanError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.learningPlanGenerating = true;
+  appState.learningPlanError = "";
+  appState.learningPlanStatus = "正在根据当前项目差距生成新草稿...";
+  try {
+    await generateLearningPlan({ projectId });
+    if (appState.selectedProjectId === projectId) {
+      await loadCurrentLearningPlan();
+      appState.learningPlanStatus = "已生成新的学习计划草稿；已确认计划未被覆盖";
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanError = error.message || "学习计划生成失败";
+      appState.learningPlanStatus = "";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanGenerating = false;
+    }
+  }
 }
 
-function hasNextAssessmentQuestion() {
-  const questions = Array.isArray(appState.assessmentSession?.questions)
-    ? appState.assessmentSession.questions
-    : [];
-  return appState.assessmentQuestionIndex + 1 < questions.length;
+async function handleUpdateLearningPlan(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.learningPlanError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.learningPlanSaving = true;
+  appState.learningPlanError = "";
+  appState.learningPlanStatus = "";
+  try {
+    await updateLearningPlan({ projectId, ...payload });
+    if (appState.selectedProjectId === projectId) {
+      await loadCurrentLearningPlan();
+      appState.learningPlanStatus = payload.itemStatuses
+        ? "学习任务进度已保存"
+        : "学习计划草稿已保存";
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanError = error.message || "学习计划保存失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanSaving = false;
+    }
+  }
+}
+
+async function handleConfirmLearningPlan(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.learningPlanError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.learningPlanConfirming = true;
+  appState.learningPlanError = "";
+  appState.learningPlanStatus = "";
+  try {
+    await confirmLearningPlan({ projectId, ...payload });
+    if (appState.selectedProjectId === projectId) {
+      await loadCurrentLearningPlan();
+      appState.learningPlanStatus = "学习计划已确认；发布到 Obsidian 仍需单独预览和确认";
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanError = error.message || "学习计划确认失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.learningPlanConfirming = false;
+    }
+  }
+}
+
+async function loadObsidianConnections() {
+  const projectId = appState.selectedProjectId;
+  appState.obsidianConnectionError = "";
+  if (!projectId) {
+    appState.obsidianConnections = [];
+    return;
+  }
+  appState.obsidianConnectionsLoading = true;
+  try {
+    const connections = await listObsidianConnections(projectId);
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianConnections = connections;
+      if (connections.some((connection) => connection.status === "active")) {
+        appState.obsidianPairing = null;
+      }
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianConnections = [];
+      appState.obsidianConnectionError = error.message || "Obsidian 连接读取失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianConnectionsLoading = false;
+    }
+  }
+}
+
+async function handleStartObsidianPairing(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.obsidianPairingError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.obsidianPairingLoading = true;
+  appState.obsidianPairingError = "";
+  appState.obsidianPairing = null;
+  try {
+    const data = await startObsidianPairing({
+      projectId,
+      outputRoot: payload.outputRoot,
+    });
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPairing = data;
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPairingError = error.message || "Obsidian 配对码生成失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPairingLoading = false;
+    }
+  }
+}
+
+async function handleRevokeObsidianConnection(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  const connectionId = payload.connectionId;
+  if (!projectId || !connectionId) {
+    appState.obsidianConnectionError = "请选择要撤销的 Obsidian 连接";
+    return;
+  }
+  if (!window.confirm("确认撤销当前项目的 Obsidian 连接？插件令牌将立即失效。")) {
+    return;
+  }
+  appState.obsidianRevokingId = connectionId;
+  appState.obsidianConnectionError = "";
+  try {
+    await revokeObsidianConnection({ projectId, connectionId });
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPairing = null;
+      await loadObsidianConnections();
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianConnectionError = error.message || "Obsidian 连接撤销失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianRevokingId = "";
+    }
+  }
+}
+
+async function handlePreviewObsidianPublication() {
+  const projectId = appState.selectedProjectId;
+  if (!projectId || !activeObsidianConnection.value) {
+    appState.obsidianPublicationError = "请先为当前项目连接 Obsidian";
+    return;
+  }
+  appState.obsidianPublicationDialogOpen = true;
+  appState.obsidianPublicationLoading = true;
+  appState.obsidianPublicationError = "";
+  appState.obsidianPublicationStatus = "";
+  appState.obsidianPublicationPreview = null;
+  try {
+    const preview = await previewObsidianPublication({ projectId });
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPublicationPreview = preview;
+      appState.obsidianPublicationStatus = "请核对全部目标路径和 Markdown 内容后再确认";
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPublicationError = error.message || "Obsidian 发布预览生成失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPublicationLoading = false;
+    }
+  }
+}
+
+async function handleConfirmObsidianPublication(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId || !payload.publicationId) {
+    appState.obsidianPublicationError = "请选择待确认的 Obsidian 发布版本";
+    return;
+  }
+  appState.obsidianPublicationLoading = true;
+  appState.obsidianPublicationError = "";
+  appState.obsidianPublicationStatus = "";
+  try {
+    const data = await confirmObsidianPublication({
+      projectId,
+      publicationId: payload.publicationId,
+    });
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPublicationPreview = {
+        ...(appState.obsidianPublicationPreview || {}),
+        ...data,
+        publication: data.publication,
+      };
+      appState.obsidianPublicationStatus = data.replayed
+        ? "该修订已在插件待执行队列中"
+        : "已进入插件待执行队列；尚未写入 Vault";
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPublicationError = error.message || "Obsidian 发布确认失败";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.obsidianPublicationLoading = false;
+    }
+  }
 }
 
 function formatLlmSettingsStatus(settings = {}) {
@@ -827,6 +1325,8 @@ async function loadProjectSpaces() {
   try {
     await loadProjects();
     appState.selectedProjectId = restoreSelectedProjectId(appState.projects);
+    clearCoachWorkspaceState();
+    clearObsidianWorkspaceState();
     await loadRetrievalSettings();
     await loadRetrievalReviews();
     await loadDocumentCollections();
@@ -837,6 +1337,12 @@ async function loadProjectSpaces() {
     await loadChatSessions();
     await loadChatMessages();
     await loadAgentToolRuns();
+    await loadObsidianConnections();
+    if (appState.currentView === "learning-map") {
+      await loadCoachWorkspace();
+    } else if (appState.currentView === "learning-plan") {
+      await loadCurrentLearningPlan();
+    }
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
   } finally {
@@ -857,6 +1363,8 @@ async function handleSelectProject(projectId) {
   clearAgentToolState();
   clearChatState();
   resetAssessmentState();
+  clearCoachWorkspaceState();
+  clearObsidianWorkspaceState();
   appState.selectedDocumentCollectionId = "";
   clearCollectionItemStatus();
   clearDocumentDeleteStatus();
@@ -871,6 +1379,12 @@ async function handleSelectProject(projectId) {
   await loadChatSessions();
   await loadChatMessages();
   await loadAgentToolRuns();
+  await loadObsidianConnections();
+  if (appState.currentView === "learning-map") {
+    await loadCoachWorkspace();
+  } else if (appState.currentView === "learning-plan") {
+    await loadCurrentLearningPlan();
+  }
 }
 
 async function loadChatSessions() {
@@ -1030,6 +1544,8 @@ async function handleCreateProject(payload) {
     clearAgentToolState();
     clearChatState();
     resetAssessmentState();
+    clearCoachWorkspaceState();
+    clearObsidianWorkspaceState();
     appState.selectedDocumentCollectionId = "";
     await loadDocumentCollections();
     await loadRetrievalSettings();
@@ -1041,6 +1557,12 @@ async function handleCreateProject(payload) {
     await loadChatSessions();
     await loadChatMessages();
     await loadAgentToolRuns();
+    await loadObsidianConnections();
+    if (appState.currentView === "learning-map") {
+      await loadCoachWorkspace();
+    } else if (appState.currentView === "learning-plan") {
+      await loadCurrentLearningPlan();
+    }
   } catch (error) {
     appState.projectFormError = error.message || "项目空间创建失败";
   } finally {
@@ -1112,6 +1634,8 @@ function resetLibraryStateAfterProjectDelete() {
   clearAgentToolState();
   clearKnowledgeBaseManagementOverview();
   resetAssessmentState();
+  clearCoachWorkspaceState();
+  clearObsidianWorkspaceState();
   clearImportPreview();
   clearWebFetchPreview();
   clearCollectionFormStatus();
@@ -1272,6 +1796,7 @@ async function handleSyncDirectory() {
     await loadLibraryDocuments();
     await loadImportBatches();
     await loadKnowledgeBaseManagementOverview();
+    await refreshCoachAfterSourcesChanged();
   } catch (error) {
     appState.importError = error.message || "同步当前项目目录失败";
   } finally {
@@ -1310,6 +1835,7 @@ async function submitLibraryImport(successMessage, action) {
     await loadLibraryDocuments();
     await loadImportBatches();
     await loadKnowledgeBaseManagementOverview();
+    await refreshCoachAfterSourcesChanged();
   } catch (error) {
     appState.importError = error.message || "资料导入失败";
   } finally {
@@ -1401,6 +1927,58 @@ function clearKnowledgeBaseManagementOverview() {
   appState.assessmentLibrary = null;
   appState.assessmentLibraryLoading = false;
   appState.assessmentLibraryError = "";
+}
+
+function clearCoachWorkspaceState() {
+  appState.coachOverview = null;
+  appState.coachKnowledgePoints = [];
+  appState.coachSkills = [];
+  appState.coachCoverage = null;
+  appState.coachLoading = false;
+  appState.coachAnalyzing = false;
+  appState.coachError = "";
+  appState.coachSourceDrawerOpen = false;
+  appState.selectedCoachSource = null;
+  appState.coachAssessmentOverlayOpen = false;
+  appState.coachAssessmentTarget = null;
+  appState.coachAssessmentSession = null;
+  appState.coachAssessmentQuestion = null;
+  appState.coachAssessmentResult = null;
+  appState.coachAssessmentLoading = false;
+  appState.coachAssessmentSubmitting = false;
+  appState.coachAssessmentError = "";
+  appState.coachAssessmentStatus = "";
+  appState.learningPlan = null;
+  appState.learningPlanLoading = false;
+  appState.learningPlanGenerating = false;
+  appState.learningPlanError = "";
+  appState.learningPlanSaving = false;
+  appState.learningPlanConfirming = false;
+  appState.learningPlanStatus = "";
+}
+
+function clearObsidianWorkspaceState() {
+  appState.obsidianConnections = [];
+  appState.obsidianConnectionsLoading = false;
+  appState.obsidianConnectionError = "";
+  appState.obsidianPairing = null;
+  appState.obsidianPairingLoading = false;
+  appState.obsidianPairingError = "";
+  appState.obsidianRevokingId = "";
+  appState.obsidianPublicationPreview = null;
+  appState.obsidianPublicationDialogOpen = false;
+  appState.obsidianPublicationLoading = false;
+  appState.obsidianPublicationError = "";
+  appState.obsidianPublicationStatus = "";
+}
+
+async function refreshCoachAfterSourcesChanged() {
+  clearCoachWorkspaceState();
+  if (appState.currentView === "learning-map") {
+    await loadCoachWorkspace();
+  } else if (appState.currentView === "learning-plan") {
+    await loadCurrentLearningPlan();
+  }
 }
 
 async function loadKnowledgeBaseManagementOverview() {
@@ -2014,6 +2592,7 @@ async function handleDeleteDocument(documentId) {
     await loadDocumentCollections();
     await loadLibraryDocuments();
     await loadKnowledgeBaseManagementOverview();
+    await refreshCoachAfterSourcesChanged();
   } catch (error) {
     appState.documentDeleteError = error.message || "文档删除失败";
   } finally {

@@ -1,6 +1,6 @@
 {
   "name": "knowledge-island-frontend",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -31,5 +31,8 @@
     "@vue/test-utils": "^2.4.11",
     "jsdom": "^29.1.1",
     "vitest": "^4.1.9"
+  },
+  "overrides": {
+    "minimatch": "9.0.8"
   }
 }

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-01（补充 B-155 backend 目录重组回归）
+> Last Updated：2026-07-30（补充 B-166 本地等价 CI、路径联接与额度例外）
 
 ## 1. 目标
 
@@ -17,7 +17,7 @@ B-149 新增 `.github/workflows/ci.yml`，每次向 `main` 推送或发起 PR �
 | `python-tests` | `npm ci` + `npm audit --audit-level=high` + `npm run build` + `pip-audit -r requirements.txt -r requirements-dev.txt` + `pytest tests/test_backend tests/test_webapp -q` + `scripts/check_docs_consistency.py` | Python 版本 + `requirements.txt` + `requirements-dev.txt` hash；Node 版本 + `package-lock.json` hash |
 | `frontend-e2e` | `npm run test:unit` + `npm run build` + `npx playwright install chromium --with-deps` + `npx playwright test` | Node 版本 + `package-lock.json` hash；E2E server 另复用 Python 版本 + requirements hash |
 
-**E2E 说明**：CI 上 `playwright.config.js` 检测到 `CI=true`（GitHub Actions 自动注入）后强制重启后端服务（`reuseExistingServer: false`）、单 worker、失败自动重试 1 次。后端服务由 `tests/e2e/start-web-server.mjs` 启动，使用系统临时目录下的隔离 SQLite DB，不写入默认 `runtime/app.db`。
+**E2E 说明**：CI 上 `playwright.config.js` 检测到 `CI=true`（GitHub Actions 自动注入）后强制重启后端服务（`reuseExistingServer: false`）、单 worker、失败自动重试 1 次。后端服务由 `tests/e2e/start-web-server.mjs` 启动，使用系统临时目录下的隔离 SQLite DB；全局 teardown 通过测试专用路由主动关闭 Uvicorn。该流程不写入 `runtime/v2/`，也不改动旧 `runtime/app.db`、`runtime/webapp/knowledge_island.db` 或旧向量目录。
 
 **前端单测说明**：B-151 起，`frontend-e2e` job 在构建和 Playwright 之前先执行 `npm run test:unit`。Vitest 单测覆盖 `frontend/src/api/*` helper 的请求封装、参数校验、错误归一化和关键 Vue 组件的状态/事件；Playwright 仍负责导入、检索、问答等端到端主流程。
 
@@ -27,7 +27,11 @@ B-149 新增 `.github/workflows/ci.yml`，每次向 `main` 推送或发起 PR �
 
 **合并门禁**：两个 job 均为 required status check，任一失败阻止 PR 合并（分支保护设置见 `docs/guides/release-process.md §2`）。
 
-**本地等价验证**：若本机未安装 `act` 且当前任务不允许 push，可按 CI job 命令分别运行 `npm ci`、`npm audit --audit-level=high`、`npm run build`、`pip-audit -r requirements.txt -r requirements-dev.txt`、`pytest tests/test_backend tests/test_webapp -q`、`scripts/check_docs_consistency.py`、`npm run test:unit`、`npx playwright install chromium --with-deps` 和 `npx playwright test`。如本机网络无法下载 Playwright 托管 Chromium，可临时设置 `KI_E2E_BROWSER_CHANNEL=msedge` 或 `chrome` 使用已安装浏览器验证 E2E 脚本链路；这只能证明命令链本地可通过，真正的 GitHub-hosted status check 仍以 PR / `main` 上的 Actions 结果为准。
+**本地等价验证**：若本机未安装 `act` 且当前任务不允许 push，可按 CI job 命令分别运行 `npm ci`、`npm audit --audit-level=high`、`npm run build`、`pip-audit -r requirements.txt -r requirements-dev.txt`、`pytest tests/test_backend tests/test_webapp -q`、`scripts/check_docs_consistency.py`、`npm run test:unit`、`npx playwright install chromium --with-deps` 和 `npx playwright test`。如本机网络无法下载 Playwright 托管 Chromium，可临时设置 `KI_E2E_BROWSER_CHANNEL=msedge` 或 `chrome` 使用已安装浏览器验证 E2E 脚本链路；这只能证明命令链本地可通过，不得表述为 GitHub-hosted status check 已通过。
+
+**Windows 路径联接注意**：当前本机的仓库入口 `E:\Code\knowledage_island` 是指向 `E:\Dev\Projects\knowledage_island` 的 Junction。Node、Vite、esbuild、Playwright 和 Tauri 可能按真实路径执行文件访问；若在入口路径遇到模块不可访问、构建目录清理 `EPERM` 等权限错误，应先用 `Resolve-Path` / `(Get-Item -LiteralPath <path>).Target` 核对目标，再从真实路径重跑并同时记录入口路径与真实路径。此类路径权限错误本身不能记为代码测试失败或测试通过。
+
+**GitHub Actions 额度例外**：默认合并门禁仍是 PR / `main` 上的两个 required status check。仅当仓库负责人确认 GitHub Actions 额度已用尽、当前候选无法取得 hosted runner 结果时，才允许按 `docs/guides/release-process.md §2.1` 启动一次性、可审计的本地等价例外：固定候选 commit，记录工作区状态、Node/Python/npm 版本、完整命令、用例数量、退出码和失败边界，将证据同步到 PR 与 readiness，并由发布负责人明确批准后再决定是否合并。例外不得写成“远端 CI green”，额度恢复后仍回到常规 required checks。
 
 ## 3. 命令建议
 
@@ -44,10 +48,16 @@ $env:PYTHONUTF8 = "1"
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_ollama_wizard.py tests/test_webapp/test_frontend_ollama_api.py tests/test_webapp/test_frontend_first_run_wizard.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py -q
 .venv\Scripts\python.exe -m pytest tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_app_entrypoint.py tests/test_webapp/test_docker_startup.py -q
+.venv\Scripts\python.exe -m pytest tests/test_backend/test_coach_storage.py tests/test_backend/test_project_analysis.py tests/test_backend/test_coach_progress_storage.py tests/test_backend/test_coach_assessment.py tests/test_backend/test_learning_plans.py tests/test_webapp/test_coach_api.py tests/test_webapp/test_coach_assessment_api.py tests/test_webapp/test_coach_learning_plan_api.py tests/test_webapp/test_fastapi_server.py tests/test_webapp/test_docs_contract.py -q
+.venv\Scripts\python.exe -m pytest tests/test_backend/test_obsidian_storage.py tests/test_backend/test_document_rename.py tests/test_backend/test_obsidian_protocol.py tests/test_backend/test_obsidian_bridge.py tests/test_backend/test_obsidian_publications.py tests/test_webapp/test_request_context.py tests/test_webapp/test_obsidian_api.py tests/test_webapp/test_docs_contract.py -q
+.venv\Scripts\python.exe -m pytest tests/test_webapp/test_frontend_vue_app.py tests/test_webapp/test_e2e_ui.py tests/test_webapp/test_docs_contract.py -q
 npm run test:unit
 npm run build
 npm run e2e:install
 npm run test:e2e
+npm --prefix integrations/obsidian-plugin test
+npm --prefix integrations/obsidian-plugin run typecheck
+npm --prefix integrations/obsidian-plugin run build
 npm run tauri:build:windows
 npm run tauri:build:macos
 npm run tauri:build:linux
@@ -66,10 +76,10 @@ docker compose config
 - B-147 后，旧 PySide6 / 六边形 `src/` 代码与对应旧测试已归档到 `archive/src-desktop-legacy/`，不再作为当前测试基线。
 - 变更认证配置、API Key、JWT、中间件保护路径或 FastAPI docs 访问规则时，必须覆盖 `tests/test_webapp/test_auth.py` 和 `tests/test_webapp/test_auth_middleware.py`，并确认认证关闭时现有 API 行为不变。
 - 变更 `frontend/`、`package.json`、Vite 配置或 `backend/static_dist/` 服务策略时，必须覆盖 `tests/test_webapp/test_frontend_build.py` 并运行 `npm run build`。
-- 变更端到端 UI 自动化测试、Playwright 配置、`tests/e2e/` 或 Web MVP 主流程页面联动时，必须覆盖 `tests/test_webapp/test_e2e_ui.py`，首次本机运行前执行 `npm run e2e:install` 安装 Chromium，并运行 `npm run test:e2e`。E2E 服务通过 `KI_DB_PATH` 使用临时 SQLite DB，不应写入默认 runtime DB；如本机 Chromium 下载受限，可临时设置 `KI_E2E_BROWSER_CHANNEL=chrome` 或 `msedge` 使用已安装浏览器完成验证。
+- 变更端到端 UI 自动化测试、Playwright 配置、`tests/e2e/` 或 Web MVP 主流程页面联动时，必须覆盖 `tests/test_webapp/test_e2e_ui.py`，首次本机运行前执行 `npm run e2e:install` 安装 Chromium，并运行 `npm run test:e2e`。E2E 服务通过 `KI_DB_PATH` 使用临时 SQLite DB，并在全套用例后调用测试专用关闭路由；不得写入 v2 或旧代际 runtime DB。如本机 Chromium 下载受限，可临时设置 `KI_E2E_BROWSER_CHANNEL=chrome` 或 `msedge` 使用已安装浏览器完成验证。
 - 变更 `src-tauri/`、Tauri 配置、Windows/Unix sidecar 脚本、Tauri npm scripts 或桌面打包文档时，必须覆盖 `tests/test_webapp/test_tauri_packaging.py`，运行 `npm run build` 和 `npx tauri info`；具备目标平台 Rust/Cargo、PyInstaller 和 Tauri 原生依赖时继续运行对应平台命令：Windows `npm run tauri:build:windows`、macOS `npm run tauri:build:macos`、Linux `npm run tauri:build:linux`，否则记录缺失工具链或非目标系统原因。B-152 起，该测试还校验桌面 bundle 图标清单：`32x32.png`、`128x128.png`、`128x128@2x.png`、`icon.icns`、`icon.ico`。
 - 变更 First-Run Wizard、Ollama 检测、模型拉取 SSE 或 `frontend/src/api/ollama.js` 时，必须覆盖 `tests/test_webapp/test_ollama_wizard.py`、`tests/test_webapp/test_frontend_ollama_api.py`、`tests/test_webapp/test_frontend_first_run_wizard.py`，并运行 `npm run build`。
-- 变更 Vue API helper、项目空间 helper、问答 helper、检索调试/复盘 helper、文档浏览 helper、文档集合 helper、导入 helper、共享状态、基础布局组件、项目空间选择/创建/改名/删除组件、工作台问答/回答反馈/检索调试/项目级检索默认值/检索复盘/Agent 工具/工具来源上下文组件、资料库文档列表/预览/删除组件、资料库文档集合筛选/新建/删除/重命名/加入/移出入口、资料库轻量导入组件、资料库导入批次历史组件、资料库普通文件上传入口、资料库浏览器文件夹上传入口、资料库当前目录同步入口、资料库导入预检入口或 Vue 主视图壳时，必须先运行 `npm run test:unit`，并覆盖 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
+- 变更 Vue API helper、共享状态、基础布局、教练/学习地图/学习计划/资料/设置入口、Coach 来源/评估覆盖层、Obsidian 发布预览，或历史资料库与工作台组件时，必须先运行 `npm run test:unit`，并覆盖 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`；改动页面主流程时还需覆盖 `tests/test_webapp/test_e2e_ui.py` 并运行 `npm run test:e2e`。
 - 变更 Web RAG 分块、embedding provider、向量索引、搜索排序、检索调试或来源字段时，必须覆盖 chunk 生成、向量持久化、Qdrant provider 同步/降级、API embedding 请求体、失败回退、文档更新后 chunk/vector 重建、搜索响应 `chunk_id/chunk_index/retrieval/keyword_score/vector_score/vector_provider/vector_model`、`/api/search/debug`、`source_quality` 和问答来源兼容。
 - 变更检索复盘时，必须覆盖 `POST/GET /api/retrieval/reviews`、空命中保存、项目隔离、前端保存按钮和 `retrieval_reviews` 文档契约。
 - 变更当前项目目录同步时，必须覆盖 `/api/import`、前端同步入口、未选项目禁用、同步成功后刷新文档列表和导入批次历史。
@@ -92,8 +102,16 @@ docker compose config
 - 变更 Vue 设置页 Prompt 预设时，必须覆盖 `frontend/src/api/settings.js`、`SettingsView.vue`、`App.vue` 设置页状态流、`/api/prompt-presets*` helper、内置模板复制、预设新增/编辑/删除/默认/清空默认入口，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更备份导出或恢复时，必须覆盖 `/api/export/project`、`/api/export/project/restore`、不导出或恢复 API Key、恢复为新项目空间、文档正文/chunk/vector 快照恢复、恢复时不重新调用 embedding，以及聊天来源 `document_id/chunk_id` 映射。
 - 变更 Prompt 预设时，必须覆盖 `/api/prompt-presets`、`/api/prompt-presets/update`、`/api/prompt-presets/delete`、`/api/prompt-presets/default`、项目隔离、默认预设注入 `/api/answer`、固定来源约束优先级和前端设置入口。
-- 变更掌握评估存储、自动出题、回答评估或前端闭环时，必须覆盖 `/api/assessment/start` 生成并持久化题目、题型 `concept / flow / code_location`、轻量知识点标签、`/api/assessment/answer` 使用服务端持久化题目要点评分、四档状态 `已掌握 / 基本理解 / 需要补充 / 暂未掌握`、持久化回答和结果、项目隔离、空项目拒绝、空回答拒绝、前端进度/下一题/答题记录/待复测列表。
-- 变更 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue`、`App.vue` 评估状态流、开始评估、提交回答、下一题/完成、结果概览、答题记录和待复测列表，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
+- 变更 1.x 兼容掌握评估存储、自动出题、回答评估或前端闭环时，必须覆盖 `/api/assessment/start` 生成并持久化题目、题型 `concept / flow / code_location`、轻量知识点标签、`/api/assessment/answer` 使用服务端持久化题目要点评分、四档状态 `已掌握 / 基本理解 / 需要补充 / 暂未掌握`、持久化回答和结果、项目隔离、空项目拒绝、空回答拒绝、前端进度/下一题/答题记录/待复测列表。
+- 变更 B-162 Coach 定向评估或覆盖聚合时，必须覆盖知识点/技能目标、活动会话恢复与 `restart`、作答前评分依据不可见、复制题面不得分、相同答案幂等重放、不同答案冲突、`rule / model` 评分、非法模型结果低置信回退、固定状态阈值、来源指纹 stale、跨项目隔离，以及技能 `no_project_evidence / unverified / partially_verified / verified` 聚合。
+- 变更 B-162 学习计划时，必须覆盖规则优先级、可解析历史来源、`source_gap` 空来源、新草稿不覆盖确认版、只有项目最高 revision 计划仍为 `draft` 时才可编辑/确认、确认新版归档旧确认版、确认后结构冻结与进度更新、结构/进度哈希冲突、重复确认幂等、stale 阻止生成和确认但允许确认版更新进度、模型仅润色文本及非法模型整批回退。
+- 变更 B-163 Obsidian 配对、连接或同步时，必须覆盖一次性配对码过期/重复消费、服务端只存令牌哈希、每项目最多一个活动连接、令牌缺失/无效/撤销、插件只能自撤销、跨项目隔离、最多 100 项批次、重复事件幂等、离线重放、`upsert / rename / delete`、重命名保留文档身份、删除清理索引并标记分析 stale，以及输出目录事件排除。
+- 变更 B-163 受控发布时，必须覆盖内容与路径预览、用户确认后进入 `queued`、插件领取与结果回传、不可变发布 revision、历史发布回滚创建新 revision、无管理标记同名文件、稳定 ID/项目/产物类型/修订号不符、外部编辑 hash 冲突、路径穿越、插件离线和生成文件删除后不自动重建。
+- 变更 `integrations/obsidian-plugin/` 时，必须运行插件自己的 Vitest、TypeScript 类型检查和 esbuild 构建；测试需覆盖 Vault 事件元数据、持久化事件/结果队列、输出目录过滤、管理 Frontmatter 校验、预期 hash 校验、串行 Vault 原子写入及冲突不覆盖。构建生成的 `main.js` 是本地验证产物，不提交仓库。
+- 变更 B-164 Vue Coach API 或学习地图时，必须覆盖 `frontend/src/api/coach.js`、`LearningMapView.vue`、`CoachSourceDrawer.vue`、`CoachAssessmentOverlay.vue` 与 `App.vue`，验证五入口、项目分析空态/stale、真实来源、知识点/技能定向评估、作答前评分依据隐藏、提交后证据/缺失点/置信度和关闭覆盖层后上下文保留。
+- 变更 B-164 Vue 学习计划时，必须覆盖 `LearningPlanView.vue`、`ObsidianPublicationDialog.vue` 与 `App.vue`，验证新草稿不覆盖确认版、任务编辑/排序、结构 revision/hash、确认、确认版进度 hash、发布内容/路径预览和确认后 `queued / 等待插件执行`。
+- 变更 B-164 Obsidian 资料或设置体验时，必须覆盖 `frontend/src/api/obsidian.js`、`LibraryModal.vue`、`SettingsView.vue` 与 `App.vue`，验证真实连接状态、一次性只读导入区分、配对码/输出目录/撤销，以及浏览器 helper 不包含插件专用 `sync/events`、`publications/pending`、`publications/result` 或配对完成调用。
+- 变更 1.x 兼容 Vue 评估页时，必须覆盖 `frontend/src/api/assessment.js`、`AssessmentView.vue` 与旧评估状态；该组件不应重新加入一级导航。
 - 变更 Vue 工作台回答反馈时，必须覆盖 `frontend/src/api/answer.js`、`AnswerPanel.vue`、`WorkbenchView.vue`、`App.vue` 反馈状态流、`/api/answer/feedback` helper、四类反馈按钮、保存中/成功/失败状态，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台检索调试时，必须覆盖 `frontend/src/api/search.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索诊断状态流、`/api/search/debug` helper、`top_k/min_score/use_keyword/use_vector` 临时参数、来源质量/分块/向量状态/命中片段展示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
 - 变更 Vue 工作台项目级检索默认值时，必须覆盖 `frontend/src/api/projects.js`、`SearchDebugPanel.vue`、`WorkbenchView.vue`、`App.vue` 检索默认值读取/保存状态流、`GET/POST /api/projects/retrieval-settings` helper、默认值回填、保存为默认状态提示，并运行 `tests/test_webapp/test_frontend_vue_app.py` 与 `npm run build`。
@@ -136,9 +154,53 @@ docker compose config
 - Web MVP 问答可通过 SSE / EventSource 流式渲染回答，完成后仍保存聊天记录、来源、质量提示和观察性元数据
 - Web MVP 深色模式跟随系统偏好，并可通过侧栏按钮手动切换和持久化
 - Web MVP 掌握评估入口、三类题型生成、逐题作答进度、服务端参考要点评分、四档状态输出、答题记录、待复测列表、题目/回答/结果持久化、回答反馈
+- Coach 定向评估可按知识点或技能节点恢复，作答前不泄露评分依据；覆盖率只使用当前来源版本的有效结果，技能状态区分无项目证据、未验证、部分验证和已验证
+- Coach 学习计划可生成确定性新草稿、完整编辑排序、确认版本和更新任务进度；历史来源按原分析运行解析，旧确认版不会被新草稿覆盖
+- Vue 五入口可在当前项目内串联教练、学习地图、定向评估、学习计划和资料/设置；来源抽屉统一展示真实项目来源，关闭覆盖层不切换项目或丢失教练输入
+- Vue 学习计划区分可编辑草稿和可更新进度的确认版；Obsidian 预览展示目标路径与 Markdown，用户确认后只进入 `queued`，等待插件执行
+- Vue 资料和设置区分插件连接与一次性只读 Vault 导入；浏览器不持有插件 token，不调用插件专用同步、领取或结果回传接口
+- Obsidian 桌面插件可通过限时配对码建立单项目活动连接，离线重放 Markdown 事件且重复事件不产生二次副作用；系统输出目录不会反向摄入
+- Obsidian 发布严格经过预览、确认、插件执行和结果回传；无管理标记、身份不符、hash 变化和越界路径会进入冲突而不覆盖，历史修订可作为新回滚发布来源
 - Web MVP 首次使用引导可检测 Ollama、拉取推荐模型并引导创建第一个知识库
 - Docker 一键启动文件存在且端口、运行时目录、导入目录、DeepSeek 环境变量映射、双击启动/停止入口符合约定
 - 可选认证默认关闭；启用后 `/api/health` 和静态首页放行，受保护 API、`/docs`、`/redoc`、`/openapi.json` 需要 API Key 或 Bearer JWT
 - Vue/Vite 构建链可生成 `backend/static_dist/`；FastAPI 首页只来自 `static_dist`，缺失构建产物时应明确失败，不再回退 legacy 静态前端
 - B-145 / B-24 / B-152 Tauri 桌面打包链路包含 `src-tauri/`、桌面 bundle 图标（`icon.ico`、`icon.icns`、PNG 尺寸图）、`scripts/build-backend-sidecar.ps1`、`scripts/build-backend-sidecar.sh`、`cargo check --manifest-path src-tauri\Cargo.toml`、`npm run tauri:build:windows`、`npm run tauri:build:macos`、`npm run tauri:build:linux`、`.github/workflows/tauri-packaging.yml`、FastAPI sidecar 和系统托盘壳层；无 Rust/Cargo 或非目标系统时只能完成静态契约、`npm run build` 与 `npx tauri info` 验证，不能宣称 `.dmg` 或 `.AppImage` 原生产物通过。
-- Vue 前端包含 API client、共享状态模型和工作台 / 资料库 / 评估 / 设置基础视图壳；B-141 已完成资料库项目空间选择/创建/改名/删除、文档列表/单文档预览/删除、文本笔记/URL 摘录导入、导入批次历史、普通文件上传、浏览器文件夹上传、当前目录同步、导入预检、文档集合筛选/新建/删除/重命名/加入/移出，设置页模型设置/Profile/Prompt 预设，评估页最小闭环，以及工作台非流式问答、回答反馈、检索调试、项目级检索默认值、检索复盘、Agent 只读工具和工具来源上下文入口；B-142 已补齐 Vue 工作台 SSE/取消、会话历史和消息管理验证
+- Vue 前端包含 API client、共享状态模型和教练 / 学习地图 / 学习计划 / 资料 / 设置闭环；B-164 已补齐 Coach 来源、定向评估、计划与 Obsidian 用户侧流程，旧资料库和评估视图只保留兼容。B-165 本地候选 E2E、插件构建、Tauri 静态回归和发布边界见 `docs/release/V2_0_0_READINESS_2026-07-24.md`
+
+## 6. B-165 v2.0.0 本地候选验收结果
+
+2026-07-24 在 `feature/project-knowledge-coach-v2` 的已验证源码快照上执行：
+
+| 命令 | 结果 |
+|------|------|
+| `.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q` | 通过，533 项；包含 `test_v2_coach_end_to_end.py` 的完整项目教练到 Obsidian 发布闭环 |
+| `npm run test:unit` | 通过，22 个文件、92 项 |
+| `npm run build` | 通过，52 个模块 |
+| `npm run test:e2e` | 通过，1 项 Playwright 浏览器主流程，命令正常返回 0 |
+| `npm --prefix integrations/obsidian-plugin test` | 通过，17 项 |
+| `npm --prefix integrations/obsidian-plugin run typecheck` | 通过 |
+| `npm --prefix integrations/obsidian-plugin run build` | 通过 |
+| `.venv\Scripts\python.exe scripts/check_docs_consistency.py` | 通过 |
+| `.venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q` | 通过，11 项静态打包契约 |
+
+额外原生预检中，`cargo metadata` 成功识别 `knowledge-island-desktop 2.0.0`；`npx tauri info` 检测到缺少 MSVC/Windows SDK，`cargo check` 因 `link.exe not found` 未通过。因此未执行或宣称 Windows NSIS、macOS `.dmg`、Linux `.AppImage` v2 原生产物通过。完整证据和旧运行时 SHA-256 对照见 v2 readiness。
+
+## 7. B-166 2026-07-30 本地等价 CI 复验
+
+2026-07-30 在 `feature/project-knowledge-coach-v2` 的 B-166 候选上，从 Junction 的真实路径 `E:\Dev\Projects\knowledage_island` 完成以下复验：
+
+| 门禁 | 结果 |
+|------|------|
+| `npm ci` + `npm audit --audit-level=high` | 通过；最终锁文件所有漏洞等级均为 0 |
+| `pip-audit -r requirements.txt -r requirements-dev.txt` | 通过；0 个已知漏洞 |
+| `.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q` | 通过，533 项 |
+| 文档一致性与文档 / Tauri 契约 | 通过；契约测试 37 项 |
+| `npm run test:unit` | 通过，22 个文件、92 项；另以 Node `v20.19.5` 复跑 92 项通过，与 CI Node 20 基线一致 |
+| `npm run build` | 通过，52 个模块 |
+| Obsidian 插件测试 / typecheck / build | 通过，Vitest 17 项，TypeScript 与 esbuild 无错误 |
+| `npm run test:e2e` | 通过，Chromium 1 项主流程，测试服务正常关闭 |
+| `cargo check --manifest-path src-tauri/Cargo.toml` | 通过 |
+| `npm run tauri:build:windows` | 通过；生成 48,948,957 字节的 `Knowledge Island_2.0.0_x64-setup.exe`，SHA-256 `BD68D8FD29C53231595E164867910425A5403809A80A933A891D8EF83878C98B` |
+
+该 Windows NSIS 是未签名的本地候选产物，不等于正式发布包。B-166 初始按用户报告的额度不足准备本地例外，但 PR #4 实际取得 runner，`python-tests` 与 `frontend-e2e` 两项 hosted check 均通过；`main` 合并、`v2.0.0` Tag 和 GitHub Release 仍为 Pending。

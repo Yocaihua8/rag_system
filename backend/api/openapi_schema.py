@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 OPENAPI_TITLE = "Knowledge Island"
-OPENAPI_VERSION = "0.1.0"
+OPENAPI_VERSION = "2.0.0"
 
 WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("GET", "/api/health", "Health check"),
@@ -73,6 +73,26 @@ WEB_MVP_API_OPERATIONS: list[tuple[str, str, str]] = [
     ("GET", "/api/chat/messages", "List chat messages"),
     ("POST", "/api/chat/messages/delete", "Delete chat message"),
     ("POST", "/api/chat/messages/clear", "Clear chat messages"),
+    ("POST", "/api/coach/analyze", "Analyze project knowledge"),
+    ("GET", "/api/coach/overview", "Get coach project overview"),
+    ("GET", "/api/coach/knowledge-points", "List coach knowledge points"),
+    ("GET", "/api/coach/skills", "List coach skill mappings"),
+    ("POST", "/api/coach/assessments/start", "Start targeted coach assessment"),
+    ("POST", "/api/coach/assessments/answer", "Submit targeted coach assessment answer"),
+    ("GET", "/api/coach/coverage", "Get project knowledge coverage and skill gaps"),
+    ("POST", "/api/coach/learning-plans/generate", "Generate a coach learning plan draft"),
+    ("GET", "/api/coach/learning-plans/current", "Get current coach learning plans"),
+    ("POST", "/api/coach/learning-plans/update", "Update a coach learning plan"),
+    ("POST", "/api/coach/learning-plans/confirm", "Confirm a coach learning plan"),
+    ("POST", "/api/obsidian/pairing/start", "Start Obsidian plugin pairing"),
+    ("POST", "/api/obsidian/pairing/complete", "Complete Obsidian plugin pairing"),
+    ("GET", "/api/obsidian/connections", "List Obsidian connections"),
+    ("POST", "/api/obsidian/connections/revoke", "Revoke an Obsidian connection"),
+    ("POST", "/api/obsidian/sync/events", "Apply Obsidian vault sync events"),
+    ("POST", "/api/obsidian/publications/preview", "Preview an Obsidian publication"),
+    ("POST", "/api/obsidian/publications/confirm", "Confirm an Obsidian publication"),
+    ("POST", "/api/obsidian/publications/result", "Record Obsidian publication results"),
+    ("GET", "/api/obsidian/publications/pending", "List pending Obsidian publications"),
     ("GET", "/api/agent/tools", "List read-only agent tools"),
     ("POST", "/api/agent/tools/run", "Run read-only agent tool"),
     ("GET", "/api/agent/tools/runs", "List agent tool runs"),
@@ -132,6 +152,13 @@ def _operation(method: str, path: str, summary: str) -> dict[str, Any]:
                 }
             },
         }
+    if path.startswith("/api/obsidian/"):
+        operation["responses"]["401"] = _json_response(
+            "Authentication failed"
+        )
+        operation["responses"]["409"] = _json_response(
+            "Request conflicts with current state"
+        )
     if path == "/api/answer/stream":
         operation["responses"]["200"] = {
             "description": "Server-sent event stream",
