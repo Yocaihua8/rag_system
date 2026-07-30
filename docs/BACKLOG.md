@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23（启动 Knowledge Island 2.0 项目知识教练主线）
+> Last Updated：2026-07-30（启动 v2.0.0 依赖安全修复与正式发布）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -80,11 +80,17 @@
 | B-163 | feature | Obsidian 插件桥与受控双向同步 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/notion-obsidian-sync.md, docs/design/api-spec.md, docs/design/database-design.md | 已实现桌面插件配对、Markdown 幂等事件同步、受控发布、冲突阻断、不可变修订与九个 Obsidian API；保留原单向手动导入。 |
 | B-164 | feature | Vue 项目知识教练闭环 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 已在现有 Codex 风格外壳中接通教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/受控发布交互；浏览器只使用应用侧路由，确认发布后明确显示 `queued` 等待插件执行。 |
 | B-165 | release | Knowledge Island 2.0 发布验收 | done | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 已完成 OpenAPI、文档、533 项后端/Web 测试、Vue、插件、Web E2E、Tauri 静态回归和旧运行时哈希复核，形成 v2.0.0 本地发布候选；正式 Tag、远端发布和原生安装包未执行。 |
+| B-166 | release | v2.0.0 依赖安全修复与正式发布 | doing | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 修复 `brace-expansion@2.1.1` 与 `postcss@8.5.15` 的 high 漏洞，完成本地 CI 等价矩阵与 Windows 原生包验证，并在 GitHub Actions 额度不足的已知边界下完成 PR、main 合并、Tag 和 Release。执行计划：`docs/plans/B-166-v2-release-hardening.md`。 |
 
 ---
 
 ## 6. 已知问题
 
-_当前无未决已知问题。_
+### ISSUE-004：v2.0.0 前端锁文件包含两个 high 漏洞
+
+- **发现时间**：2026-07-27
+- **现象**：`npm audit --audit-level=high` 报告 `brace-expansion@2.1.1` 与 `postcss@8.5.15` 两个 high 漏洞，阻断 CI 等价安全门禁。
+- **影响范围**：根 `package-lock.json`；依赖路径分别为 `@vue/test-utils -> js-beautify -> editorconfig -> minimatch -> brace-expansion` 与 `vite` / `@vue/compiler-sfc -> postcss`。
+- **计划处理方式**：由 B-166 执行最小兼容升级，重新完成 npm/pip 安全审计和全量本地 CI 验证；正式发布后移除此条并把结果写入 `CHANGELOG.md`。
 
 > ISSUE-003（文档一致性脚本要求缺失的 `docs/DEVLOG.md`）已于 2026-06-29 处理：确认仓库不维护 `docs/DEVLOG.md` 聚合索引，`scripts/check_docs_consistency.py` 改为在该文件缺失时跳过聚合索引校验（存在时仍校验）。
