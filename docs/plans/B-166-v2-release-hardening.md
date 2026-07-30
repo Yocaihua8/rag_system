@@ -89,9 +89,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-07-30 22:20
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`9f4e0fa` — fix: 修复新增前端依赖高危漏洞
-- **代码状态**：`feature/project-knowledge-coach-v2`；最终依赖树、在线安全审计与完整本地 CI 等价矩阵已提交
-- **下一步**：记录已完成的 MSVC / Windows SDK、`cargo check` 与 Windows Tauri NSIS 安装包验证
-- **续任务须知**：`minimatch@9.0.8 -> brace-expansion@5.0.9` 已通过 npm audit、Node 20 Vue 单测和完整 Node/Playwright 矩阵；Python 533 项与 pip-audit 继续通过。Windows 原生构建已在本机完成，下一步只需按任务 3 回填产物证据并提交。
+- **最后更新**：2026-07-30 22:22
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`2a98d34` — docs: 记录 Windows Tauri 打包通过
+- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全、本地 CI 和 Windows NSIS 原生打包三项门禁均已完成并提交
+- **下一步**：同步 BACKLOG、readiness、测试/发布指南、桌面打包、README、CHANGELOG 和当日 devlog
+- **续任务须知**：本机已具备完整 MSVC/SDK 工具链，`cargo check` 与 `npm run tauri:build:windows` 通过；NSIS 产物哈希已记录且未签名。下一步完成正式发布文档回流，再推送 PR。
