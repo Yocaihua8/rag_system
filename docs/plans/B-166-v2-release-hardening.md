@@ -1,6 +1,6 @@
 # B-166 v2.0.0 依赖安全修复与正式发布
 
-> 状态：Active
+> 状态：Interrupted
 > 创建时间：2026-07-30
 > 创建方：Codex
 > 关联 BACKLOG：B-166
@@ -79,12 +79,14 @@
 - 2026-07-30：GitHub Actions 额度不足是用户明确给出的发布约束；本任务不会把本地验证伪装成远端 green check，PR/readiness 将单独记录此例外。
 - 2026-07-30：不改变根直接依赖版本，仅把锁文件允许范围内的 `brace-expansion` 从 `2.1.1` 升至 `2.1.2`、`postcss` 从 `8.5.15` 升至 `8.5.22`；`npm ci --offline` 与 `npm audit --offline --audit-level=high` 均报告 0 vulnerabilities。
 - 2026-07-30：Vue 单测和构建首次验证被 Windows 路径联接的沙箱权限阻断：Node 将 `E:\Code\knowledage_island` 解析为 `E:\Dev\Projects\knowledage_island`，测试报模块不可访问，构建清理 `backend/static_dist` 报 EPERM；这不是依赖回归，需在获准的真实工作区路径权限下重跑。
+- 2026-07-30：使用独立可写 `--basetemp` 后，`.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q` 实跑 `533 passed`；文档一致性脚本通过，文档/Tauri 契约 `37 passed`，Obsidian 插件 TypeScript 类型检查通过。
+- 2026-07-30：插件 Vitest/构建与 Vue Vitest/构建仍被 Node/esbuild 对路径联接真实目录或沙箱父目录的访问限制阻断；在线 npm/pip 审计涉及向官方服务发送依赖元数据，Visual Studio Build Tools + Windows SDK 安装会更改系统并占用较大磁盘，三项均需用户明确批准后继续。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-07-30 11:49
+- **最后更新**：2026-07-30 11:57
 - **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`493794f` — fix: 修复前端依赖高危漏洞
-- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全修复已提交，工作区仅有本状态快照待提交
+- **最新 commit**：`d483891` — docs: 更新 B-166 安全修复快照
+- **代码状态**：`feature/project-knowledge-coach-v2`；依赖安全修复已提交；任务因所需外部权限等待用户批准
 - **下一步**：完成 npm audit、pip-audit、Python 533 项、Vue 单测/构建、插件与 Playwright 本地 CI 等价矩阵
-- **续任务须知**：锁文件和本机 `node_modules` 已解析为 `brace-expansion@2.1.2`、`postcss@8.5.22`；联网 audit 需用户明确允许依赖元数据外发。当前工作区是指向 `E:\Dev\Projects\knowledage_island` 的路径联接，默认沙箱阻断 Node 对真实路径读写，完整前端验证需显式批准。
+- **续任务须知**：恢复时先把 plan 改回 Active、B-166 改回 doing。锁文件和本机 `node_modules` 已解析为 `brace-expansion@2.1.2`、`postcss@8.5.22`；已通过离线 npm audit、Python 533 项、文档一致性、37 项契约与插件 typecheck。需用户明确批准：① npm/PyPI 依赖元数据外发；② 在 `E:\Dev\Projects\knowledage_island` 真实路径运行 Node 写入型测试/构建；③ 安装 VS Build Tools 的 VCTools workload 与 Windows SDK。
