@@ -22,6 +22,27 @@ $ErrorActionPreference = "Stop"
 $linkPattern = [regex]::new('(?<image>!)?\[[^\]\r\n]*\]\(\s*(?<destination><[^>\r\n]+>|[^)\s\r\n]+)')
 $referencePattern = [regex]::new('^\s*\[[^\]\r\n]+\]:\s*(?<destination><[^>\r\n]+>|\S+)')
 $script:anchorCache = @{}
+$repoRoot = Split-Path -Parent $PSScriptRoot
+
+function Test-IsExcludedScanPath {
+    param([string]$FullName)
+
+    $repoPrefix = $repoRoot.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+    if ($FullName.StartsWith($repoPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        $relativePath = $FullName.Substring($repoPrefix.Length) -replace '\\', '/'
+    }
+    else {
+        $relativePath = $FullName -replace '\\', '/'
+    }
+
+    if (
+        $relativePath -match '(^|/)(?:\.git|\.venv|node_modules|__pycache__|\.pytest_cache)(?:/|$)' -or
+        $relativePath -match '^(?:runtime|backend/static_dist|frontend/dist|frontend/build|build|dist|release|release-cache|docker-workspace|tmp|\.tmp|temp|test-results)(?:/|$)'
+    ) {
+        return $true
+    }
+    return $false
+}
 
 function Test-FenceLine {
     param(
@@ -290,7 +311,10 @@ try {
     }
     else {
         $scanRoot = $targetItem.FullName
-        $files = @(Get-ChildItem -LiteralPath $scanRoot -Recurse -File -Filter '*.md' -Force)
+        $files = @(
+            Get-ChildItem -LiteralPath $scanRoot -Recurse -File -Filter '*.md' -Force |
+                Where-Object { -not (Test-IsExcludedScanPath $_.FullName) }
+        )
     }
 
     Write-Host "==> checking local Markdown links under $($targetItem.FullName)"

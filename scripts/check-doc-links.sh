@@ -65,10 +65,29 @@ if [ -d "$target" ]; then
   fi
   while IFS= read -r -d '' file; do
     files+=("$file")
-  done < <(find "$scan_root" -type f -iname '*.md' -print0 2>/dev/null)
+  done < <(
+    find "$scan_root" \
+      \( -type d \( \
+        -name '.git' -o -name '.venv' -o -name 'node_modules' -o \
+        -name '__pycache__' -o -name '.pytest_cache' -o -name 'runtime' -o \
+        -name 'static_dist' -o -name 'dist' -o -name 'build' -o \
+        -name 'release-cache' -o -name 'docker-workspace' -o -name 'tmp' -o \
+        -name '.tmp' -o -name 'temp' -o -name 'test-results' \
+      \) -prune \) -o \
+      \( -type f -iname '*.md' -print0 \) 2>/dev/null
+  )
   while IFS= read -r -d '' entry; do
     known_paths+=("$entry")
-  done < <(find "$scan_root" -print0 2>/dev/null)
+  done < <(
+    find "$scan_root" \
+      \( -type d \( \
+        -name '.git' -o -name '.venv' -o -name 'node_modules' -o \
+        -name '__pycache__' -o -name '.pytest_cache' -o -name 'runtime' -o \
+        -name 'static_dist' -o -name 'dist' -o -name 'build' -o \
+        -name 'release-cache' -o -name 'docker-workspace' -o -name 'tmp' -o \
+        -name '.tmp' -o -name 'temp' -o -name 'test-results' \
+      \) -prune \) -o -print0 2>/dev/null
+  )
 elif [ -f "$target" ] && [[ "$target" == *.[mM][dD] ]]; then
   target_is_file=1
   target_dir="$(dirname "$target")"

@@ -25,6 +25,13 @@ Knowledge Island 是面向个人开发学习的本地项目知识教练。它把
 - Obsidian 配对、增量 Markdown 事件同步、离线事件重放、发布预览、确认后排队、冲突阻断和执行结果回报。
 - 可选共享 API Key + HS256 JWT 保护。认证默认关闭，当前不是多用户、团队、租户或 RBAC 系统。
 
+关键运行契约：
+
+- 问答工作台支持多会话聊天，真实 LLM 只带入当前会话最近 3 轮历史；Vue 通过 `EventSource` 接收 SSE。来源不足时只显示建议工具，必须由用户手动运行，不会自动执行 Agent 工具。
+- 项目可保存 Prompt 预设、模型 Profile 和项目级检索默认值；回答负载提供不新增数据表的问答可观察性信息，检索诊断结果可保存为检索复盘。
+- 资料侧支持文档集合和导入批次历史；项目数据支持备份导出、备份恢复，已生成的单条问答支持 Markdown/PDF 结果导出。各能力的页面可达边界以功能文档和 BACKLOG 为准。
+- OpenAI-compatible Embedding 的四个配置项是 `RAG_EMBED_PROVIDER`、`RAG_EMBED_API_BASE`、`RAG_EMBED_API_MODEL`、`RAG_EMBED_API_KEY`；Key 只能来自本地环境或未提交配置。
+
 详细功能边界见 [`docs/features/README.md`](docs/features/README.md)；94 个当前 HTTP 操作的字段级契约以 [`docs/design/api-spec.md`](docs/design/api-spec.md) 为准，FastAPI OpenAPI 仅作为操作清单和调试入口。
 
 ## 已知边界

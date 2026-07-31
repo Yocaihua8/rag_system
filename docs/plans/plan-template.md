@@ -6,7 +6,7 @@
 > - [ ] 下方"关联功能文档"和"关联设计文档"已按实际情况填写（不可留空占位符）
 
 > 状态：Draft / Active / Interrupted / Done
-> 创建时间：{{YYYY-MM-DD}}
+> 创建时间：{{CURRENT_DATE}}
 > 创建方：{{CREATOR}}（AI 助手名称 / 开发者姓名）
 > 关联 BACKLOG：{{B_ID}}（必填；无对应条目时填 N/A 并说明原因）
 > 关联功能文档：{{FEATURE_DOC}}（必填；若不存在则新建占位文件并填路径）
@@ -91,8 +91,8 @@ AI 在执行过程中记录关键决策、遇到的问题、与原计划的偏�
 > 目的：无论因额度耗尽、开发者中断还是主动结束，下一个 session 都能从此处冷启动。
 > 正常完成后随 plan 一起删除。
 
-- **最后更新**：{{YYYY-MM-DD HH:MM}}
-- **进度**：已完成 {{N}} / {{TOTAL}} 项（见 § 3 勾选状态）
+- **最后更新**：{{CURRENT_LOCAL_DATETIME}}
+- **进度**：已完成 {{COMPLETED_TASK_COUNT}} / {{TOTAL_TASK_COUNT}} 项（见 § 3 勾选状态）
 - **最新 commit**：`{{COMMIT_HASH}}` — {{COMMIT_MESSAGE}}
 - **代码状态**：{{CODE_STATE}}（分支名；是否有未提交改动；部分完成的模块）
 - **下一步**：{{NEXT_TASK}}（§ 3 中下一个未勾选的任务）

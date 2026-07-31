@@ -96,6 +96,19 @@ function Get-DisplayPath {
     return $File.FullName -replace '\\', '/'
 }
 
+function Test-IsExcludedScanPath {
+    param([System.IO.FileInfo]$File)
+
+    $relativePath = Get-DisplayPath $File
+    if (
+        $relativePath -match '(^|/)(?:\.git|\.venv|node_modules|__pycache__|\.pytest_cache)(?:/|$)' -or
+        $relativePath -match '^(?:runtime|backend/static_dist|frontend/dist|frontend/build|build|dist|release|release-cache|docker-workspace|tmp|\.tmp|temp|test-results)(?:/|$)'
+    ) {
+        return $true
+    }
+    return $false
+}
+
 function Stop-InvalidState {
     param([string]$Message)
     Write-Host "ERROR invalid .docs-template/state.tsv: $Message"
@@ -251,7 +264,7 @@ if ($Mode -eq 'Consumer') {
 if ($targetItem.PSIsContainer) {
     $files = Get-ChildItem -LiteralPath $targetItem.FullName -Recurse -Force -File | Where-Object {
         ($_.Extension -in @('.md', '.yml', '.yaml', '.tsv') -or $_.Name -eq 'CODEOWNERS') -and
-        $_.FullName -notmatch '[/\\]\.git([/\\]|$)'
+        -not (Test-IsExcludedScanPath $_)
     }
 } else {
     $files = @($targetItem) | Where-Object {
@@ -270,6 +283,10 @@ Write-Host ''
 $found = 0
 $balancedPlaceholderPattern = '\{\{([^{}\r\n]*)\}\}'
 $validTokenPattern = '^[A-Z][A-Z0-9_]*$'
+$tokenLikePattern = '^\s*[A-Za-z][A-Za-z0-9_-]*\s*$'
+$githubExpressionPattern = '\$\{\{[^{}\r\n]*\}\}'
+$triplePlaceholderPattern = '\{\{\{\s*[A-Za-z][A-Za-z0-9_-]*\s*\}\}\}'
+$incompletePlaceholderPattern = '\{\{\s*[A-Za-z][A-Za-z0-9_-]*(?:\s*$|\s*\}(?!\}))|(?<!\{)\{\s*[A-Za-z][A-Za-z0-9_-]*\s*\}\}'
 
 foreach ($file in $files) {
     $relForward = Get-DisplayPath $file
@@ -287,27 +304,31 @@ foreach ($file in $files) {
     $lineNumber = 0
     foreach ($line in (Get-Content -LiteralPath $file.FullName -Encoding UTF8)) {
         $lineNumber++
+        $scanLine = [regex]::Replace($line, $githubExpressionPattern, '')
 
-        if ($line -match '\{\{\{|\}\}\}') {
-            Write-Host "  ${relForward}:${lineNumber}: malformed triple-brace marker: $($line.Trim())"
+        if ($scanLine -match $triplePlaceholderPattern) {
+            Write-Host "  ${relForward}:${lineNumber}: malformed triple-brace placeholder: $($line.Trim())"
             $found++
+            $scanLine = [regex]::Replace($scanLine, $triplePlaceholderPattern, '')
         }
 
-        $matches = [regex]::Matches($line, $balancedPlaceholderPattern)
+        $matches = [regex]::Matches($scanLine, $balancedPlaceholderPattern)
         foreach ($match in $matches) {
             $token = $match.Groups[1].Value
             if (-not $tokenAllowed) {
-                Write-Host "  ${relForward}:${lineNumber}: unresolved placeholder $($match.Value)"
-                $found++
+                if ($token -match $tokenLikePattern) {
+                    Write-Host "  ${relForward}:${lineNumber}: unresolved placeholder $($match.Value)"
+                    $found++
+                }
             } elseif ($token -notmatch $validTokenPattern -and -not (Test-IsSyntaxExample $relForward $token)) {
                 Write-Host "  ${relForward}:${lineNumber}: invalid placeholder token $($match.Value)"
                 $found++
             }
         }
 
-        $withoutBalancedPlaceholders = [regex]::Replace($line, $balancedPlaceholderPattern, '')
-        if ($withoutBalancedPlaceholders -match '\{\{|\}\}') {
-            Write-Host "  ${relForward}:${lineNumber}: incomplete double-brace marker: $($line.Trim())"
+        $withoutBalancedPlaceholders = [regex]::Replace($scanLine, $balancedPlaceholderPattern, '')
+        if ($withoutBalancedPlaceholders -match $incompletePlaceholderPattern) {
+            Write-Host "  ${relForward}:${lineNumber}: incomplete token-like placeholder: $($line.Trim())"
             $found++
         }
 

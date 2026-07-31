@@ -90,6 +90,11 @@ CONSUMER_TEMPLATE_RE='(-template\.md$|ADR-000-template\.md$|^docs/style-guide\.m
 TEMPLATE_REPOSITORY_RE='(^AGENTS\.md$|^CHANGELOG\.md$|^CONTRIBUTING\.md$|^README\.md$|^SECURITY\.md$|^TEMPLATE_REPOSITORY_MAINTENANCE\.md$|^template-mapping\.md$|^docs/.*\.md$|^scaffold/.*\.tsv$|^scaffold/templates/.*$|^\.github/pull_request_template\.md$|^\.github/ISSUE_TEMPLATE/.*\.ya?ml$|^\.github/CODEOWNERS$)'
 BALANCED_PLACEHOLDER_RE='\{\{([^{}]*)\}\}'
 VALID_TOKEN_RE='^[A-Z][A-Z0-9_]*$'
+TOKEN_LIKE_RE='^[[:space:]]*[A-Za-z][A-Za-z0-9_-]*[[:space:]]*$'
+GITHUB_EXPRESSION_RE='\$\{\{[^{}]*\}\}'
+TRIPLE_PLACEHOLDER_RE='\{\{\{[[:space:]]*[A-Za-z][A-Za-z0-9_-]*[[:space:]]*\}\}\}'
+INCOMPLETE_OPEN_RE='\{\{[[:space:]]*[A-Za-z][A-Za-z0-9_-]*([[:space:]]*$|[[:space:]]*\}([^}]|$))'
+INCOMPLETE_CLOSE_RE='(^|[^{])\{[[:space:]]*[A-Za-z][A-Za-z0-9_-]*[[:space:]]*\}\}'
 STATE_PRESENT=0
 STATE_ALLOWLIST=""
 STATE_DESTINATION_KEYS=""
@@ -270,18 +275,26 @@ while IFS= read -r -d '' file; do
     line_number=$((line_number + 1))
     original_line="$line"
 
-    if [[ "$line" =~ \{\{\{|\}\}\} ]]; then
-      printf '  %s:%d: malformed triple-brace marker: %s\n' "$rel" "$line_number" "$original_line"
-      found=$((found + 1))
-    fi
+    while [[ "$line" =~ $GITHUB_EXPRESSION_RE ]]; do
+      line="${line/"${BASH_REMATCH[0]}"/}"
+    done
 
     remaining="$line"
+    while [[ "$remaining" =~ $TRIPLE_PLACEHOLDER_RE ]]; do
+      matched="${BASH_REMATCH[0]}"
+      printf '  %s:%d: malformed triple-brace placeholder: %s\n' "$rel" "$line_number" "$original_line"
+      found=$((found + 1))
+      remaining="${remaining/"$matched"/}"
+    done
+
     while [[ "$remaining" =~ $BALANCED_PLACEHOLDER_RE ]]; do
       matched="${BASH_REMATCH[0]}"
       token="${BASH_REMATCH[1]}"
       if [ "$token_allowed" = false ]; then
-        printf '  %s:%d: unresolved placeholder %s\n' "$rel" "$line_number" "$matched"
-        found=$((found + 1))
+        if [[ "$token" =~ $TOKEN_LIKE_RE ]]; then
+          printf '  %s:%d: unresolved placeholder %s\n' "$rel" "$line_number" "$matched"
+          found=$((found + 1))
+        fi
       elif ! [[ "$token" =~ $VALID_TOKEN_RE ]] && ! is_syntax_example "$rel" "$token"; then
         printf '  %s:%d: invalid placeholder token %s\n' "$rel" "$line_number" "$matched"
         found=$((found + 1))
@@ -289,8 +302,8 @@ while IFS= read -r -d '' file; do
       remaining="${remaining/"$matched"/}"
     done
 
-    if [[ "$remaining" == *'{{'* ]] || [[ "$remaining" == *'}}'* ]]; then
-      printf '  %s:%d: incomplete double-brace marker: %s\n' "$rel" "$line_number" "$original_line"
+    if [[ "$remaining" =~ $INCOMPLETE_OPEN_RE ]] || [[ "$remaining" =~ $INCOMPLETE_CLOSE_RE ]]; then
+      printf '  %s:%d: incomplete token-like placeholder: %s\n' "$rel" "$line_number" "$original_line"
       found=$((found + 1))
     fi
 
@@ -304,10 +317,15 @@ while IFS= read -r -d '' file; do
     fi
   done < "$file"
 done < <(
-  find "$SCAN_TARGET" -type f \
-    ! -path '*/.git/*' \
-    \( -iname '*.md' -o -iname '*.yml' -o -iname '*.yaml' -o -iname '*.tsv' -o -name 'CODEOWNERS' \) \
-    -print0
+  find "$SCAN_TARGET" \
+    \( -type d \( \
+      -name '.git' -o -name '.venv' -o -name 'node_modules' -o \
+      -name '__pycache__' -o -name '.pytest_cache' -o -name 'runtime' -o \
+      -name 'static_dist' -o -name 'dist' -o -name 'build' -o \
+      -name 'release-cache' -o -name 'docker-workspace' -o -name 'tmp' -o \
+      -name '.tmp' -o -name 'temp' -o -name 'test-results' \
+    \) -prune \) -o \
+    \( -type f \( -iname '*.md' -o -iname '*.yml' -o -iname '*.yaml' -o -iname '*.tsv' -o -name 'CODEOWNERS' \) -print0 \)
 )
 
 echo

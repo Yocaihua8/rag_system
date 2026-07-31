@@ -1,7 +1,7 @@
 # Knowledge Island 文档模板映射
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
+> Last Updated：2026-07-31
 > Scope：docs-template 1.0.0 到当前仓库文档、协作资产和历史扩展的语义映射
 > Related：`README.md`、`docs/README.md`、`.docs-template/state.tsv`
 
@@ -14,7 +14,7 @@
 - Owner：`RAG 团队`
 - GitHub Owner：`@Yocaihua8`
 - Consumer 状态：`.docs-template/state.tsv`
-- 严格门禁：活动文档和消费者扫描修正完成后，以 `.docs-template/strict-ci` 激活
+- 严格门禁：`.docs-template/strict-ci` 已激活；活动文档占位符、本地链接、索引和元数据纳入 CI
 
 `open-source` profile 在本项目中表示开源协作和治理文件已经准备。仓库当前没有 `LICENSE`，因此不得把“公开仓库”写成“已获得开源授权”；许可证选择继续记录为待项目所有者确认。
 

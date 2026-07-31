@@ -1,4 +1,4 @@
-# DevLog {{YYYY-MM-DD}}
+# DevLog {{CURRENT_DATE}}
 
 > Author：{{AUTHOR}}
 > Iteration：{{ITERATION_OR_SPRINT}}（可选）

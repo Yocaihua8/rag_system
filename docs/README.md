@@ -1,7 +1,7 @@
 # Knowledge Island 文档总览
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
+> Last Updated：2026-07-31
 > Scope：Knowledge Island v2.0.0 正式文档、过程记录、复用模板与历史扩展的统一入口
 > Related：`../README.md`、`../AGENTS.md`、`../CONTRIBUTING.md`、`../template-mapping.md`
 
@@ -13,7 +13,7 @@
 - Packs：`access-control, ai-planning, api, architecture, core, data, frontend, frontend-api-contract, github, github-ci, glossary, migration, open-source, operations, release-support, requirements, security, tooling, tracking, workflow`
 - 状态清单：`../.docs-template/state.tsv`
 - 归类映射：`../template-mapping.md`
-- 严格门禁：活动文档填完且本地占位符检查返回 0 后，才允许提交 `.docs-template/strict-ci`
+- 严格门禁：`.docs-template/strict-ci` 已激活；CI 会校验活动文档占位符、本地链接、索引和元数据
 - 许可证边界：仓库当前无 `LICENSE`；profile 表示“开源协作准备态”，不表示已经授予开源许可证
 
 ## 2. 当前事实边界
