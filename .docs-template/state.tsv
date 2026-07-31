@@ -15,7 +15,7 @@ schema_version	template_version	destination	source	packs	placeholder_policy	sha2
 1	1.0.0	CONTRIBUTING.md	scaffold/templates/CONTRIBUTING.md	team;open-source	replace	740f84ad467f3f6fa42a195f6af17a79da931ede822e54f5f5116133950a3157
 1	1.0.0	README.md	scaffold/templates/project-README.md	core	replace	0eb040ca53b99967cb560d7dd61a84382fb1f9be691d9c00837725428286ee60
 1	1.0.0	SECURITY.md	SECURITY.md	open-source	replace	70fc70cf813e82899cc6b58145b203ca6513c46cd0c68f691d3758a5d49a114c
-1	1.0.0	docs/BACKLOG.md	docs/BACKLOG.md	tracking	replace	2694a9e9c1726f22c15defbf6c77ca791e72c8e87adcbcf145c72843c825a414
+1	1.0.0	docs/BACKLOG.md	docs/BACKLOG.md	tracking	replace	a6cd3d229dd8621d39f75ca61365d819e872e7f9f18268f6ad87ed9fa479c6f9
 1	1.0.0	docs/README.md	scaffold/templates/consumer-docs-README.md	core	replace	b998d8da77d8d56b009ab6bd957f615318631c94f4f80d317c8b2e179499a5c6
 1	1.0.0	docs/adr/ADR-000-template.md	docs/adr/ADR-000-template.md	architecture	preserve-template	2ea12a23bac70f84b352371c07f1cd857039f3a013163711e88b3e66c6c5eb69
 1	1.0.0	docs/adr/README.md	docs/adr/README.md	architecture	replace	87ae3a64eb81893710017e3e995358f9564a4041f1ab9d5532113d68c9fd317d
@@ -56,7 +56,7 @@ schema_version	template_version	destination	source	packs	placeholder_policy	sha2
 1	1.0.0	docs/plans/plan-template.md	docs/plans/plan-template.md	ai-planning	preserve-template	b2fa46a4d999a509e2a701dc92386fefe2a0b96607b492bde571505ff7954d79
 1	1.0.0	docs/requirements/functional-modules.md	docs/requirements/functional-modules.md	requirements	replace	3015dcf0a639561a41b3cb68bb7c706382ea9064b24ba1e13585b3a69aee64a7
 1	1.0.0	docs/requirements/mvp-scope-freeze.md	docs/requirements/mvp-scope-freeze.md	requirements	replace	56050634e58d3107f30ff858cfbb87a1cee373d2dd350116772fd4679a6a4b0a
-1	1.0.0	docs/requirements/project-background-and-scope.md	docs/requirements/project-background-and-scope.md	core	replace	344a4f6ce9a572af81c04d0f45993cb460e60a64a6d39d3f30f766b70b9cc648
+1	1.0.0	docs/requirements/project-background-and-scope.md	docs/requirements/project-background-and-scope.md	core	replace	600cabb19f316d7f1e0cb5f7d0698b017a6dd3248466575cafbf87f09750fbaa
 1	1.0.0	docs/requirements/use-cases.md	docs/requirements/use-cases.md	requirements	replace	09546fd57e4ddf85e338cbd024af7245dcfc86f4c8946670135c0d058e314f8c
 1	1.0.0	docs/style-guide.md	docs/style-guide.md	core	preserve-template	b61b0cadf7c8c124402eb2c7ac9a0a796d10827974cf8c236a83fd789a968336
 1	1.0.0	scripts/check-doc-links.ps1	scripts/check-doc-links.ps1	tooling	none	b0fb99bc32bdf29a8e2d7886e7b94820cb419038db0faa936ade3d6da29d6f6a

@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30（启动 v2.0.0 依赖安全修复与正式发布）
+> Last Updated：2026-07-31（完成 docs-template 1.0.0 文档体系重构）
 > Related：docs/requirements/functional-modules.md, docs/design/api-spec.md, docs/adr/ADR-001-fastapi-migration.md
 
 用于记录尚未完成、待验证、待决策、已知问题和技术债。**这里允许写规划内容**，但应保持可执行和可追踪。
@@ -81,7 +81,7 @@
 | B-164 | feature | Vue 项目知识教练闭环 | done | P0 | XL | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/design/ui-wireframes.md | 已在现有 Codex 风格外壳中接通教练、学习地图、学习计划、评估覆盖层和 Obsidian 连接/受控发布交互；浏览器只使用应用侧路由，确认发布后明确显示 `queued` 等待插件执行。 |
 | B-165 | release | Knowledge Island 2.0 发布验收 | done | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 已完成 OpenAPI、文档、533 项后端/Web 测试、Vue、插件、Web E2E、Tauri 静态回归和旧运行时哈希复核，形成 v2.0.0 本地发布候选；正式 Tag、远端发布和原生安装包未执行。 |
 | B-166 | release | v2.0.0 依赖安全修复与正式发布 | done | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 依赖 high 漏洞已完成兼容修复，在线 npm/pip 审计、本地完整矩阵、PR #4 两项 GitHub Actions 检查、`main` 合并和 Windows v2 NSIS 构建均通过；`v2.0.0` Tag 与 GitHub Release 已发布同一提交，并附带 SHA-256 已核验的未签名 Windows x64 安装包。 |
-| B-167 | docs | 基于 docs-template 1.0.0 重构文档体系 | doing | P1 | XL | maintenance | RAG 团队 | docs/README.md, template-mapping.md | 按 `open-source` profile 与适用 packs 对现有文档做语义迁移，补齐 GitHub 协作和文档校验资产，整理 DevLog 年月目录，并以当前 v2.0.0 源码校准正文；执行计划：`docs/plans/B-167-docs-template-refactor.md`。 |
+| B-167 | docs | 基于 docs-template 1.0.0 重构文档体系 | done | P1 | XL | maintenance | RAG 团队 | docs/README.md, template-mapping.md | 已按 `open-source` profile 与 20 个适用 pack 完成 64 个模板 destination 的语义迁移与状态追踪，以当前 v2.0.0 源码校准正式文档，归档 19 份 DevLog，并激活跨平台占位符、链接、索引和元数据门禁。 |
 
 ---
 

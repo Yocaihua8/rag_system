@@ -2,24 +2,24 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
-> Scope：Knowledge Island 2.0 项目知识教练的业务边界与验收契约
+> Last Updated：2026-07-31
+> Scope：Knowledge Island v2.0.0 项目知识教练的当前业务边界与验收契约
 > Related：docs/requirements/project-background-and-scope.md, docs/requirements/functional-modules.md, docs/design/architecture-overview.md, docs/design/api-spec.md, docs/BACKLOG.md B-160～B-166
 
 ## 1. 状态说明
 
-本文冻结 2.0 目标行为，并逐项记录真实实现状态。未标记“已实现”的能力仍是后续契约。
+本文记录 v2.0.0 已发布的项目知识教练行为，并用 B-161～B-166 的实现与发布证据标明当前边界。未来能力不在本文件混写，统一进入 `docs/BACKLOG.md`。
 
 | 范围 | 状态 |
 |------|------|
-| 1.x 项目导入、RAG 问答、会话、来源、规则化评估、Obsidian vault 一次性导入 | 当前兼容基线 |
+| 1.x 项目导入、RAG 问答、会话、来源、规则化评估、Obsidian vault 一次性导入 | 兼容基线 |
 | 2.0 项目分析与技能映射 | B-161 已实现（后端、存储与 Coach 基础 API） |
 | 2.0 持久评估、差距与学习计划 | B-162 已实现（后端、存储与七个 Coach API） |
 | Obsidian 插件桥与受控发布 | B-163 已实现（后端、存储、九个 API 与独立桌面插件） |
 | Vue 教练闭环 | B-164 已实现（五入口、来源抽屉、定向评估、计划编辑与 Obsidian 用户侧流程） |
 | v2.0.0 发布验收 | B-165/B-166 已完成本地/远端 CI、`main` 合并、Tag、GitHub Release 与 Windows x64 NSIS 发布；安装包未签名，macOS / Linux v2 原生产物未运行 |
 
-## 2. 功能目标
+## 2. 功能定位
 
 项目知识教练把当前项目的代码、文档和笔记转为可验证的学习对象，帮助用户完成：
 
@@ -115,14 +115,14 @@
 
 ## 7. Obsidian 协作边界
 
-### 7.1 输入（B-163 已实现）
+### 7.1 输入（当前实现，B-163）
 
 - 现有 `/api/import/obsidian-vault` 保持一次性只读导入语义。
-- 2.0 通过 `integrations/obsidian-plugin/` 独立桌面插件接收 `upsert / rename / delete` 幂等事件；插件使用 Vault 事件、Frontmatter 和链接元数据 API，不支持移动端。
+- v2.0.0 通过 `integrations/obsidian-plugin/` 独立桌面插件接收 `upsert / rename / delete` 幂等事件；插件使用 Vault 事件、Frontmatter 和链接元数据 API，不支持移动端。
 - 插件可以发送 Frontmatter、标签、已解析和未解析 Wikilink；系统管理输出目录不反向摄入。
 - 每个项目最多一个活动连接；一次性配对码限时有效，换取的插件令牌可撤销，服务端只保存配对码和令牌哈希。
 
-### 7.2 输出（B-163 已实现）
+### 7.2 输出（当前实现，B-163）
 
 默认发布目录为 `Knowledge Island/<项目名>/`，可在配对时修改。目标产物包括：
 
@@ -155,7 +155,7 @@
 
 ## 9. 数据与兼容契约
 
-- 2.0 默认数据根为 `runtime/v2/`，用户需要重新导入项目。
+- v2.0.0 默认数据根为 `runtime/v2/`，用户需要重新导入项目。
 - 不提供 1.x 数据迁移、合并或跨项目能力汇总。
 - 旧 `runtime/app.db`、向量目录和输出保持原样。
 - 现有导入、聊天和 `/api/assessment/*` 契约继续保留；新闭环使用 Coach 和 Obsidian API。

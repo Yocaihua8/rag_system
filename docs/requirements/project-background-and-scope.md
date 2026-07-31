@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
-> Scope：Knowledge Island 2.0 产品定位、目标用户与范围边界
+> Last Updated：2026-07-31
+> Scope：Knowledge Island v2.0.0 当前产品定位、目标用户与范围边界
 > Related：docs/requirements/mvp-scope-freeze.md, docs/requirements/functional-modules.md, docs/features/project-knowledge-coach.md, docs/BACKLOG.md B-160
 
 ## 1. 文档适用边界
@@ -15,7 +15,7 @@
 | 兼容 1.x | 兼容 API、历史运行时和既有功能文档 | 只作为兼容基线，不把 2.0 行为回写为 1.x 事实 |
 | 当前 2.0 | 当前源码、测试、`project-knowledge-coach.md` 和 B-160 后续设计文档 | B-161～B-166 已完成实现、验收和正式发布；平台产物边界另行记录 |
 
-“项目分析、双层差距、学习计划、Obsidian 插件桥”等能力已进入正式发布的 2.0 源码；Tag、GitHub Release、Windows NSIS 与 macOS / Linux 未运行边界见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
+“项目分析、双层差距、学习计划、Obsidian 插件桥”等能力已进入正式发布的 v2.0.0 源码；GitHub Tag / Release 与 Windows x64 NSIS 已发布，macOS / Linux v2 原生产物未运行，证据边界见 `docs/release/V2_0_0_READINESS_2026-07-24.md`。
 
 ## 2. 项目背景
 
@@ -61,7 +61,7 @@ Knowledge Island 2.0 因此从“通用本地 AI 第二大脑”转向“面向�
 
 2.0 不面向团队绩效考核、招聘筛选、企业知识治理或跨成员能力排名。
 
-## 5. 2.0 目标范围
+## 5. v2.0.0 已发布范围
 
 ### 5.1 纳入范围
 
@@ -81,9 +81,9 @@ Knowledge Island 2.0 因此从“通用本地 AI 第二大脑”转向“面向�
 - 不迁移、不删除、不覆盖 1.x 的 `runtime/app.db`、向量目录和输出文件。
 - 用户需要在 2.0 中重新导入项目；不承诺 1.x 与 2.0 之间的数据合并或跨项目能力汇总。
 
-### 5.3 当前 1.x 兼容基线
+### 5.3 1.x 兼容基线
 
-当前 1.x 已具备项目隔离、资料导入、RAG 问答、来源展示、会话、规则化评估和 Obsidian vault 一次性只读导入等能力。2.0 必须保持以下边界：
+1.x 已具备项目隔离、资料导入、RAG 问答、来源展示、会话、规则化评估和 Obsidian vault 一次性只读导入等能力。当前 v2.0.0 继续保持以下兼容边界：
 
 - 现有 `/api/import/obsidian-vault` 继续表示用户手动触发的一次性只读导入，不等同于插件连接或双向同步。
 - 现有导入、聊天和 `/api/assessment/*` 接口继续作为兼容契约；2.0 前端使用新的 Coach 接口承载新闭环。
@@ -123,7 +123,7 @@ Knowledge Island 2.0 因此从“通用本地 AI 第二大脑”转向“面向�
 - 无需用户确认的 Obsidian 自动写回，以及对非系统管理笔记的覆盖。
 - 将 LLM 设为必需依赖，或在无来源时用模型补造项目事实。
 
-## 8. 2.0 成功标准
+## 8. v2.0.0 验收标准
 
 | 维度 | 验收目标 |
 |------|----------|
