@@ -82,6 +82,7 @@
 | B-165 | release | Knowledge Island 2.0 发布验收 | done | P0 | L | v2.0.0 | RAG 团队 | docs/guides/testing.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 已完成 OpenAPI、文档、533 项后端/Web 测试、Vue、插件、Web E2E、Tauri 静态回归和旧运行时哈希复核，形成 v2.0.0 本地发布候选；正式 Tag、远端发布和原生安装包未执行。 |
 | B-166 | release | v2.0.0 依赖安全修复与正式发布 | done | P0 | L | v2.0.0 | RAG 团队 | docs/features/frontend-engineering.md, docs/features/desktop-packaging.md, docs/guides/testing.md, docs/guides/release-process.md, CHANGELOG.md, docs/release/V2_0_0_READINESS_2026-07-24.md | 依赖 high 漏洞已完成兼容修复，在线 npm/pip 审计、本地完整矩阵、PR #4 两项 GitHub Actions 检查、`main` 合并和 Windows v2 NSIS 构建均通过；`v2.0.0` Tag 与 GitHub Release 已发布同一提交，并附带 SHA-256 已核验的未签名 Windows x64 安装包。 |
 | B-167 | docs | 基于 docs-template 1.0.0 重构文档体系 | done | P1 | XL | maintenance | RAG 团队 | docs/README.md, template-mapping.md | 已按 `open-source` profile 与 20 个适用 pack 完成 64 个模板 destination 的语义迁移与状态追踪，以当前 v2.0.0 源码校准正式文档，归档 19 份 DevLog，并激活跨平台占位符、链接、索引和元数据门禁。 |
+| B-168 | refactor | 仓库结构、文档体系与前后端运行时重构 | doing | P0 | XL | maintenance | RAG 团队 | docs/plans/B-168-repository-structure-refactor.md | 按确认方案拆分前后端依赖、构建产物和运行时，重组测试、运维与文档目录，并删除已失效的旧代码、归档、快照、原型和工具计划；HTTP API、SQLite Schema 与 Agent 权限保持不变。 |
 
 ---
 
