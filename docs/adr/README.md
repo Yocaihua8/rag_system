@@ -4,13 +4,13 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：Knowledge Island 架构决策的触发规则、状态和索引
-> Related：`../overview.md`、`../../governance/templates/adr-template.md`
+> Related：`../design/architecture-overview.md`、`ADR-000-template.md`
 
 ADR（Architecture Decision Record）用于记录重要架构决策，重点不是"做了什么"，而是"为什么这样做"。
 
 ## 1. 何时需要新增 ADR
 
-**完整的强制 / 非强制触发条件**以 `../../README.md` 的文档治理规则为权威源，本节不再复述。
+**完整的强制 / 非强制触发条件**以 [`../README.md`](../README.md) 的文档治理规则为权威源，本节不再复述。
 
 速查：出现跨模块的技术选型、存储/权限/认证/状态机变化、破坏性契约变更、替代现有方案时，**必须**新建 ADR；可逆的局部重构直接记录在 Git 提交和关联文档中。
 
@@ -29,7 +29,7 @@ ADR-002-short-title.md
 - 影响
 - 后续动作（含实施计划 / 回滚策略 / 验证方式）
 
-模板见 [`../../governance/templates/adr-template.md`](../../governance/templates/adr-template.md)。复制后从下一个可用编号开始，不把模板当作真实决策。
+模板见 [`ADR-000-template.md`](ADR-000-template.md)。复制后从下一个可用编号开始，不把模板当作真实决策。
 
 ## 4. 已有 ADR 索引
 

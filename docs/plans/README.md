@@ -3,17 +3,17 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-08-01
-> Scope：`docs/governance/plans/` 中 Active/Interrupted plan 的生命周期
-> Related：`../../BACKLOG.md`、`../templates/plan-template.md`、`../../../AGENTS.md`
+> Scope：`docs/plans/` 中 Active/Interrupted plan 的生命周期
+> Related：`../BACKLOG.md`、`plan-template.md`、`../../AGENTS.md`
 
 Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入 `CHANGELOG.md` 与 Git；任务完成后删除 plan。
 
 ## 创建
 
-1. 在 `docs/BACKLOG.md` 找到或新建 `B-xxx`，状态设为 `doing`。
+1. 在 [`../BACKLOG.md`](../BACKLOG.md) 找到或新建 `B-xxx`，状态设为 `doing`。
 2. 扫描本目录所有 `Active` / `Interrupted` plan 的影响范围。
 3. 有重叠时让用户选择等待、合并、覆盖或分区；把结论写入新 plan。
-4. 复制 [`../templates/plan-template.md`](../templates/plan-template.md) 为 `{B-ID}-{slug}.md`。
+4. 复制 [`plan-template.md`](plan-template.md) 为 `{B-ID}-{slug}.md`。
 5. 填写关联 BACKLOG、功能/设计文档、影响范围、回流清单和状态快照。
 6. 把 plan 相对路径写回 BACKLOG。
 

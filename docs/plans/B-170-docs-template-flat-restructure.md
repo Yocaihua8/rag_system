@@ -4,8 +4,8 @@
 > 创建时间：2026-08-01
 > 创建方：Codex
 > 关联 BACKLOG：B-170
-> 关联功能文档：`docs/product/features/README.md`（第二阶段迁移为 `docs/features/README.md`）
-> 关联设计文档：`docs/architecture/overview.md`（第二阶段迁移为 `docs/design/architecture-overview.md`）
+> 关联功能文档：`docs/features/README.md`
+> 关联设计文档：`docs/design/architecture-overview.md`
 
 ## 1. 目标
 
@@ -22,7 +22,7 @@
 每完成一项，立即执行：① 勾选此处 ② `git commit` 保存进度 ③ 更新 § 9 状态快照。
 
 - [x] 创建分支、登记 B-170、完成冲突扫描并生成隔离模板参考骨架。
-- [ ] 建立标准扁平目录和索引，原子迁移活动 plan 与可直接映射的文档。
+- [x] 建立标准扁平目录和索引，原子迁移活动 plan 与可直接映射的文档。
 - [ ] 重写 requirements、design 与 ADR 索引，校准 API、Schema、安全和状态事实。
 - [ ] 重构功能规格与 guides，回流 Desktop、GitHub、Obsidian、Docker 和维护事实后删除旧专题目录。
 - [ ] 更新根 README、AGENTS、CONTRIBUTING、CHANGELOG、文档脚本、CI 与仓库契约测试。
@@ -84,8 +84,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-08-01
-- **进度**：已完成 1 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`905e7c2` — `chore: 完成 B-168 仓库结构重构`
-- **代码状态**：`docs/template-canonical-restructure`；BACKLOG 与本 plan 尚未提交。
-- **下一步**：提交任务启动记录，然后建立标准扁平目录和索引。
+- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`a9d5db6` — `docs: 启动 B-170 模板文档重构`
+- **代码状态**：`docs/template-canonical-restructure`；标准目录、索引和可直接映射文档已迁移，复杂专题仍留在旧目录等待内容回流。
+- **下一步**：重写 requirements、design 与 ADR 索引，校准 API、Schema、安全和状态事实。
 - **续任务须知**：模板参考目录位于系统临时目录；目标仓库不得运行初始化器或恢复模板状态目录。

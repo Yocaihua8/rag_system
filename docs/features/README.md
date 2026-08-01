@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：当前已实现功能及明确的兼容/可达边界
-> Related：`../modules.md`、`../../architecture/backend/api.md`、`../../BACKLOG.md`
+> Related：`../requirements/functional-modules.md`、`../design/api-spec.md`、`../BACKLOG.md`
 
 | 功能 | 规格 |
 |------|------|
@@ -23,13 +23,13 @@
 | Vue 前端工程 | [`frontend-engineering.md`](frontend-engineering.md) |
 | OpenAPI/Swagger | [`openapi-swagger-docs.md`](openapi-swagger-docs.md) |
 
-跨模块集成不在本目录重复维护：桌面、Obsidian 和 GitHub 分别见 [`../../integrations/`](../../integrations/)。
+Desktop、Obsidian 和 GitHub 的用户能力将在本目录对应规格中说明；搭建、运行和排障步骤统一进入 [`../guides/README.md`](../guides/README.md)。
 
 ### 可达性原则
 
 - 后端存在接口不等于当前主导航已提供完整入口。
 - 未挂载的兼容组件不作为用户主流程能力。
-- 可见但未接线的控件以 [`../../BACKLOG.md`](../../BACKLOG.md) 为准，不得描述为已交付闭环。
+- 可见但未接线的控件以 [`../BACKLOG.md`](../BACKLOG.md) 为准，不得描述为已交付闭环。
 - 完成的新行为更新本索引和对应规格；未完成设想只进入 BACKLOG。
 
-新功能文档使用 [`../../governance/templates/feature-template.md`](../../governance/templates/feature-template.md)。
+新功能文档使用 [`feature-template.md`](feature-template.md)。
