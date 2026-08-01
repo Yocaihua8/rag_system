@@ -26,7 +26,7 @@
 - [x] 分离前端、npm workspace、E2E、Docker 与 Tauri 构建运行边界
 - [x] 分类测试和工具，删除旧代码、可再生成产物及无引用 1.x 工具
 - [x] 重构文档目录，回流有效 v2 事实，删除历史体系并新增 ADR-010
-- [ ] 运行完整验证矩阵，清理 B-168 活动记录与 plan
+- [x] 运行完整验证矩阵，清理 B-168 活动记录与 plan
 
 ## 4. 影响范围
 
@@ -59,10 +59,10 @@
 
 - [x] 后端以 `python -m backend` 启动，根路由 404，CORS、OPTIONS、SSE 与认证头契约通过
 - [x] 前端通过 `VITE_API_BASE_URL` 使用绝对 API URL，并独立构建到 `frontend/dist/`
-- [ ] Docker、Tauri、E2E 和 Obsidian 插件验证路径符合目标边界
-- [ ] HTTP API、SQLite Schema 与 Agent 权限白名单未发生变化
+- [x] Docker、Tauri、E2E 和 Obsidian 插件验证路径符合目标边界
+- [x] HTTP API、SQLite Schema 与 Agent 权限白名单未发生变化
 - [x] 文档索引、元数据、链接、占位符、当前事实和根目录 allowlist 检查通过
-- [ ] BACKLOG 仅保留未完成事项，B-168 完成事实写入 `CHANGELOG.md` 后移除活动条目
+- [x] BACKLOG 仅保留未完成事项，B-168 完成事实写入 `CHANGELOG.md` 后移除活动条目
 
 ## 7. 回流清单
 
@@ -84,8 +84,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-08-01
-- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`a27650c` — `docs: 重构当前文档体系并清理历史`
-- **代码状态**：`refactor/repository-structure`；代码、运行时、历史清理与文档重构均已分阶段提交；376 项后端/集成测试与 15 项文档契约检查通过
-- **下一步**：运行完整验证矩阵，清理 B-168 活动记录与 plan
+- **进度**：已完成 6 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`26dbe0b` — `fix: 对齐 Docker 项目目录与前端 URL 契约`
+- **代码状态**：`refactor/repository-structure`；515 项 Python 测试、92 项前端单测、跨域 E2E、Docker 双镜像/双健康检查、Tauri NSIS 安装后 sidecar、Obsidian 插件及依赖审计均通过
+- **下一步**：按完成流程删除本 plan
 - **续任务须知**：保留 6 个未推送 B-167 提交；本任务不推送、不建 PR、不合并、不发布

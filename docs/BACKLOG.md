@@ -22,8 +22,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
-| B-168 | refactor | 仓库结构、文档体系与前后端运行时重构 | doing | P0 | XL | RAG 团队 | `governance/plans/B-168-repository-structure-refactor.md` | 分离前后端依赖、构建产物和运行时，重组测试、运维与文档目录，删除失效历史；HTTP API、SQLite Schema 与 Agent 权限保持不变。 |
-
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`governance/plans/README.md`](governance/plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题
@@ -35,12 +33,12 @@
 - **影响范围**：`frontend/src/components/LibraryModal.vue`、`WorkspaceSidebar.vue`、`QuestionComposer.vue`、`WorkbenchView.vue`、`frontend/src/App.vue`。
 - **计划处理方式**：分别建立最小前端/联调任务，冻结交互和 API 契约后补参数、事件和 E2E；修复前功能文档不得描述为完整闭环。
 
-### ISSUE-007：Tauri 安装后 API 动态连通性仍需当前构建证明
+### ISSUE-007：Tauri 安装后完整用户流程与非 Windows 平台仍需验证
 
 - **发现时间**：2026-07-30
-- **现象**：B-168 已明确 WebView 通过绝对 API base 访问 `127.0.0.1:8765` sidecar，但结构契约、bundle 成功不能替代安装后主流程验证。
+- **现象**：B-168 已用当前 Windows NSIS 安装包验证 sidecar 可启动，`/api/health` 返回 200 且根路由返回 404；尚未在已安装 WebView 中跑完 SSE 与核心用户流程，macOS/Linux bundle 也未验证。
 - **影响范围**：`src-tauri/`、`frontend/src/api/`、Windows/macOS/Linux 原生运行时。
-- **计划处理方式**：在目标平台安装当前 bundle，验证 sidecar 启动、CORS、SSE 和核心用户流程；未执行的平台不得声称通过。
+- **计划处理方式**：在 Windows 已安装 WebView 中补跑 SSE 与核心用户流程，并在 macOS/Linux 目标机完成 bundle、安装和动态连通性验证；未执行的平台不得声称通过。
 
 ### ISSUE-006：v2 输出路径与部分配置仍存在漂移
 
