@@ -42,4 +42,20 @@ describe("WorkbenchView coach shell", () => {
     expect(wrapper.findComponent({ name: "ChatSessionPanel" }).exists()).toBe(false);
     expect(wrapper.findComponent({ name: "EvidenceDrawer" }).exists()).toBe(true);
   });
+
+  it("passes the active learning summary to the coach menu and forwards its action", async () => {
+    const learningSession = {
+      id: "learning-1",
+      status: "learning",
+      current_step: { title: "理解 Web 入口" },
+      progress: { current: 1, total: 2 },
+    };
+    const wrapper = mountWorkbench({ coachLearningSession: learningSession });
+    const composer = wrapper.findComponent({ name: "QuestionComposer" });
+
+    expect(composer.props("learningSession")).toEqual(learningSession);
+    composer.vm.$emit("start-learning-tool");
+    await wrapper.vm.$nextTick();
+    expect(wrapper.emitted("start-learning-tool")).toEqual([[]]);
+  });
 });

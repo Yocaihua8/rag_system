@@ -18,6 +18,14 @@ function requiredText(value, message) {
   return cleanValue;
 }
 
+function requiredVersion(value) {
+  const version = Number(value);
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error("学习会话版本无效，请刷新后重试");
+  }
+  return version;
+}
+
 function projectQuery(projectId) {
   return new URLSearchParams({
     project_id: requiredProjectId(projectId),
@@ -91,6 +99,93 @@ export async function answerCoachAssessment({
     question_id: requiredText(questionId, "请选择评估问题"),
     answer: requiredText(answer, "请输入评估回答"),
     evaluation_mode: String(evaluationMode || "auto").trim() || "auto",
+  });
+}
+
+export async function startCoachLearningSession({
+  projectId,
+  targetType = "",
+  targetId = "",
+  planId = "",
+  planItemId = "",
+  originType = "",
+}) {
+  const cleanTargetType = String(targetType || "").trim();
+  const cleanTargetId = String(targetId || "").trim();
+  const cleanPlanId = String(planId || "").trim();
+  const cleanPlanItemId = String(planItemId || "").trim();
+  const hasTarget = Boolean(cleanTargetType || cleanTargetId);
+  const hasPlanItem = Boolean(cleanPlanId || cleanPlanItemId);
+  if (hasTarget === hasPlanItem) {
+    throw new Error("请选择学习目标");
+  }
+  const payload = {
+    project_id: requiredProjectId(projectId),
+  };
+  if (hasTarget) {
+    payload.target_type = requiredText(cleanTargetType, "请选择学习目标类型");
+    payload.target_id = requiredText(cleanTargetId, "请选择学习目标");
+    const cleanOriginType = String(originType || "").trim();
+    if (cleanOriginType) {
+      payload.origin_type = cleanOriginType;
+    }
+  } else {
+    payload.plan_id = requiredText(cleanPlanId, "请选择已确认的学习计划");
+    payload.plan_item_id = requiredText(cleanPlanItemId, "请选择学习计划任务");
+  }
+  const data = await apiPost("/api/coach/learning-sessions/start", payload);
+  return data.session || null;
+}
+
+export async function getCurrentCoachLearningSession({
+  projectId,
+  sessionId = "",
+} = {}) {
+  const query = new URLSearchParams({
+    project_id: requiredProjectId(projectId),
+  });
+  const cleanSessionId = String(sessionId || "").trim();
+  if (cleanSessionId) {
+    query.set("session_id", cleanSessionId);
+  }
+  const data = await apiGet(`/api/coach/learning-sessions/current?${query.toString()}`);
+  return data.session || null;
+}
+
+export async function transitionCoachLearningSession({
+  projectId,
+  sessionId,
+  expectedVersion,
+  action,
+}) {
+  const data = await apiPost("/api/coach/learning-sessions/transition", {
+    project_id: requiredProjectId(projectId),
+    session_id: requiredText(sessionId, "请先开始学习会话"),
+    expected_version: requiredVersion(expectedVersion),
+    action: requiredText(action, "请选择学习操作"),
+  });
+  return data.session || null;
+}
+
+export async function submitCoachLearningAttempt({
+  projectId,
+  sessionId,
+  exerciseId,
+  answer,
+  expectedVersion,
+  idempotencyKey,
+}) {
+  const rawAnswer = String(answer ?? "");
+  if (!rawAnswer.trim()) {
+    throw new Error("请输入本题答案");
+  }
+  return apiPost("/api/coach/learning-sessions/attempts", {
+    project_id: requiredProjectId(projectId),
+    session_id: requiredText(sessionId, "请先开始学习会话"),
+    exercise_id: requiredText(exerciseId, "当前练习不可用，请刷新后重试"),
+    answer: rawAnswer,
+    expected_version: requiredVersion(expectedVersion),
+    idempotency_key: requiredText(idempotencyKey, "作答请求标识无效，请重试"),
   });
 }
 

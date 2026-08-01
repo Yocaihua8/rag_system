@@ -28,6 +28,7 @@
       @analyze="handleAnalyzeCoachProject"
       @refresh="loadCoachWorkspace"
       @start-assessment="handleOpenCoachAssessment"
+      @start-learning="handleOpenCoachLearning"
       @open-sources="handleOpenCoachSources"
     />
     <LearningPlanView
@@ -49,6 +50,7 @@
       @update-plan="handleUpdateLearningPlan"
       @confirm="handleConfirmLearningPlan"
       @preview-publication="handlePreviewObsidianPublication"
+      @start-learning="handleOpenCoachLearning"
       @open-sources="handleOpenCoachSources"
       @open-obsidian-settings="openObsidianSettings"
     />
@@ -208,6 +210,7 @@
       :prompt-preset-default-submitting="appState.promptPresetDefaultSubmitting"
       :prompt-preset-mutation-error="appState.promptPresetMutationError"
       :prompt-preset-status="appState.promptPresetStatus"
+      :coach-learning-session="activeCoachLearningSession"
       @check-health="checkHealth"
       @open-library="openLibraryModal"
       @refresh-projects="loadProjectSpaces"
@@ -218,6 +221,7 @@
       @submit-question="handleSubmitQuestion"
       @compare-answers="handleCompareAnswers"
       @start-assessment-tool="handleStartAssessmentTool"
+      @start-learning-tool="handleOpenCoachLearning"
       @refresh-ollama-status="loadOllamaStatus"
       @pull-ollama-model="handlePullOllamaModel"
       @dismiss-first-run="dismissFirstRunWizard"
@@ -346,6 +350,21 @@
       @restart="handleStartCoachAssessment"
       @submit-answer="handleSubmitCoachAssessmentAnswer"
     />
+    <CoachLearningSessionOverlay
+      :open="appState.coachLearningOverlayOpen"
+      :knowledge-points="appState.coachKnowledgePoints"
+      :skills="appState.coachSkills"
+      :initial-target="appState.coachLearningTarget"
+      :session="appState.coachLearningSession"
+      :loading="appState.coachLearningLoading"
+      :submitting="appState.coachLearningSubmitting"
+      :error="appState.coachLearningError"
+      @close="appState.coachLearningOverlayOpen = false"
+      @open-sources="handleOpenCoachSources"
+      @start="handleStartCoachLearning"
+      @transition="handleTransitionCoachLearning"
+      @submit-attempt="handleSubmitCoachLearningAttempt"
+    />
     <ObsidianPublicationDialog
       :open="appState.obsidianPublicationDialogOpen"
       :preview="appState.obsidianPublicationPreview"
@@ -390,8 +409,12 @@ import {
   getCoachKnowledgePoints,
   getCoachOverview,
   getCoachSkills,
+  getCurrentCoachLearningSession,
   getCurrentLearningPlan,
   startCoachAssessment,
+  startCoachLearningSession,
+  submitCoachLearningAttempt,
+  transitionCoachLearningSession,
   updateLearningPlan,
 } from "./api/coach.js";
 import { getOllamaStatus, pullOllamaModel } from "./api/ollama.js";
@@ -460,6 +483,7 @@ import {
 } from "./api/search.js";
 import AppShell from "./components/AppShell.vue";
 import CoachAssessmentOverlay from "./components/CoachAssessmentOverlay.vue";
+import CoachLearningSessionOverlay from "./components/CoachLearningSessionOverlay.vue";
 import CoachSourceDrawer from "./components/CoachSourceDrawer.vue";
 import LibraryModal from "./components/LibraryModal.vue";
 import ObsidianPublicationDialog from "./components/ObsidianPublicationDialog.vue";
@@ -486,6 +510,14 @@ const activeObsidianConnection = computed(() => {
     connection.project_id === appState.selectedProjectId
     && connection.status === "active"
   )) || null;
+});
+
+const activeCoachLearningSession = computed(() => {
+  const session = appState.coachLearningSession;
+  if (!session || ["completed", "abandoned"].includes(session.status)) {
+    return null;
+  }
+  return session;
 });
 
 const projectStatusMessage = computed(() => {
@@ -574,7 +606,15 @@ async function handleChangeView(view) {
     return;
   }
   if (view === "learning-plan") {
-    await Promise.all([loadCurrentLearningPlan(), loadObsidianConnections()]);
+    await Promise.all([
+      loadCurrentLearningPlan(),
+      loadActiveCoachLearningSession(),
+      loadObsidianConnections(),
+    ]);
+    return;
+  }
+  if (view === "coach") {
+    await loadActiveCoachLearningSession();
     return;
   }
   if (view === "settings") {
@@ -877,11 +917,12 @@ async function loadCoachWorkspace() {
 
   appState.coachLoading = true;
   try {
-    const [overview, knowledgePoints, skills, coverage] = await Promise.all([
+    const [overview, knowledgePoints, skills, coverage, learningSession] = await Promise.all([
       getCoachOverview(projectId),
       getCoachKnowledgePoints(projectId),
       getCoachSkills(projectId),
       getCoachCoverage(projectId),
+      getCurrentCoachLearningSession({ projectId }),
     ]);
     if (appState.selectedProjectId !== projectId) {
       return;
@@ -890,6 +931,7 @@ async function loadCoachWorkspace() {
     appState.coachKnowledgePoints = knowledgePoints;
     appState.coachSkills = skills;
     appState.coachCoverage = coverage;
+    appState.coachLearningSession = learningSession;
   } catch (error) {
     if (appState.selectedProjectId !== projectId) {
       return;
@@ -904,6 +946,41 @@ async function loadCoachWorkspace() {
   } finally {
     if (appState.selectedProjectId === projectId) {
       appState.coachLoading = false;
+    }
+  }
+}
+
+async function loadActiveCoachLearningSession({ sessionId = "" } = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachLearningSession = null;
+    appState.coachLearningError = "";
+    return null;
+  }
+  appState.coachLearningLoading = true;
+  appState.coachLearningError = "";
+  try {
+    const session = await getCurrentCoachLearningSession({
+      projectId,
+      sessionId,
+    });
+    if (appState.selectedProjectId !== projectId) {
+      return null;
+    }
+    appState.coachLearningSession = session;
+    return session;
+  } catch (error) {
+    if (appState.selectedProjectId !== projectId) {
+      return null;
+    }
+    appState.coachLearningSession = null;
+    if (error.message !== "coach analysis not found") {
+      appState.coachLearningError = error.message || "学习会话恢复失败";
+    }
+    return null;
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachLearningLoading = false;
     }
   }
 }
@@ -970,6 +1047,176 @@ async function handleOpenCoachAssessment(target = null) {
     if (appState.coachError) {
       appState.coachAssessmentError = appState.coachError;
     }
+  }
+}
+
+async function handleOpenCoachLearning(target = null) {
+  appState.coachLearningOverlayOpen = true;
+  appState.coachLearningTarget = target?.target_id
+    ? {
+        target_type: target.target_type,
+        target_id: target.target_id,
+      }
+    : null;
+  appState.coachLearningError = "";
+  appState.coachLearningStatus = "";
+  if (!appState.selectedProjectId) {
+    appState.coachLearningError = "请先创建或选择项目空间";
+    return;
+  }
+  if (target?.target_id || target?.planId || target?.plan_id) {
+    await handleStartCoachLearning(target);
+    return;
+  }
+  if (activeCoachLearningSession.value) {
+    await loadActiveCoachLearningSession({
+      sessionId: activeCoachLearningSession.value.id,
+    });
+    return;
+  }
+  appState.coachLearningSession = null;
+  if (!appState.coachOverview) {
+    await loadCoachWorkspace();
+    if (appState.coachError) {
+      appState.coachLearningError = appState.coachError;
+    }
+  }
+}
+
+async function handleStartCoachLearning(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachLearningError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.coachLearningLoading = true;
+  appState.coachLearningError = "";
+  appState.coachLearningStatus = "正在准备逐点学习会话...";
+  try {
+    const session = await startCoachLearningSession({
+      projectId,
+      targetType: payload.target_type,
+      targetId: payload.target_id,
+      planId: payload.planId || payload.plan_id,
+      planItemId: payload.planItemId || payload.plan_item_id,
+      originType: payload.origin_type,
+    });
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachLearningSession = session;
+    appState.coachLearningStatus = session?.resumed
+      ? "已恢复逐点学习会话"
+      : "逐点学习会话已开始";
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      const message = error.message || "逐点学习会话启动失败";
+      const recovered = await getCurrentCoachLearningSession({ projectId }).catch(() => null);
+      if (appState.selectedProjectId === projectId && recovered) {
+        appState.coachLearningSession = recovered;
+      }
+      appState.coachLearningError = message;
+      appState.coachLearningStatus = "";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachLearningLoading = false;
+    }
+  }
+}
+
+async function handleTransitionCoachLearning(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachLearningError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.coachLearningLoading = true;
+  appState.coachLearningError = "";
+  try {
+    const session = await transitionCoachLearningSession({
+      projectId,
+      sessionId: payload.session_id,
+      expectedVersion: payload.expected_version,
+      action: payload.action,
+    });
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachLearningSession = session;
+    appState.coachLearningStatus = "学习进度已更新";
+    if (payload.action === "next") {
+      await refreshCoachAfterLearning(session);
+    }
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      const message = error.message || "学习状态更新失败";
+      const recovered = await getCurrentCoachLearningSession({
+        projectId,
+        sessionId: payload.session_id,
+      }).catch(() => null);
+      if (appState.selectedProjectId === projectId && recovered) {
+        appState.coachLearningSession = recovered;
+      }
+      appState.coachLearningError = message;
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachLearningLoading = false;
+    }
+  }
+}
+
+async function handleSubmitCoachLearningAttempt(payload = {}) {
+  const projectId = appState.selectedProjectId;
+  if (!projectId) {
+    appState.coachLearningError = "请先创建或选择项目空间";
+    return;
+  }
+  appState.coachLearningSubmitting = true;
+  appState.coachLearningError = "";
+  appState.coachLearningStatus = "正在批改本题...";
+  try {
+    const data = await submitCoachLearningAttempt({
+      projectId,
+      sessionId: payload.session_id,
+      exerciseId: payload.exercise_id,
+      answer: payload.answer,
+      expectedVersion: payload.expected_version,
+      idempotencyKey: payload.idempotency_key,
+    });
+    if (appState.selectedProjectId !== projectId) {
+      return;
+    }
+    appState.coachLearningSession = data.session || null;
+    appState.coachLearningStatus = data.replayed
+      ? "已恢复保存的作答结果"
+      : "本题已批改";
+    await refreshCoachAfterLearning(data.session);
+  } catch (error) {
+    if (appState.selectedProjectId === projectId) {
+      const message = error.message || "本题提交失败";
+      const recovered = await getCurrentCoachLearningSession({
+        projectId,
+        sessionId: payload.session_id,
+      }).catch(() => null);
+      if (appState.selectedProjectId === projectId && recovered) {
+        appState.coachLearningSession = recovered;
+      }
+      appState.coachLearningError = message;
+      appState.coachLearningStatus = "";
+    }
+  } finally {
+    if (appState.selectedProjectId === projectId) {
+      appState.coachLearningSubmitting = false;
+    }
+  }
+}
+
+async function refreshCoachAfterLearning(session) {
+  await loadCoachCoverageView();
+  if (session?.plan_sync?.linked) {
+    await loadCurrentLearningPlan();
   }
 }
 
@@ -1340,8 +1587,11 @@ async function loadProjectSpaces() {
     await loadObsidianConnections();
     if (appState.currentView === "learning-map") {
       await loadCoachWorkspace();
-    } else if (appState.currentView === "learning-plan") {
-      await loadCurrentLearningPlan();
+    } else {
+      await loadActiveCoachLearningSession();
+      if (appState.currentView === "learning-plan") {
+        await loadCurrentLearningPlan();
+      }
     }
   } catch (error) {
     appState.projectLoadError = error.message || "项目空间读取失败";
@@ -1382,8 +1632,11 @@ async function handleSelectProject(projectId) {
   await loadObsidianConnections();
   if (appState.currentView === "learning-map") {
     await loadCoachWorkspace();
-  } else if (appState.currentView === "learning-plan") {
-    await loadCurrentLearningPlan();
+  } else {
+    await loadActiveCoachLearningSession();
+    if (appState.currentView === "learning-plan") {
+      await loadCurrentLearningPlan();
+    }
   }
 }
 
@@ -1948,6 +2201,13 @@ function clearCoachWorkspaceState() {
   appState.coachAssessmentSubmitting = false;
   appState.coachAssessmentError = "";
   appState.coachAssessmentStatus = "";
+  appState.coachLearningOverlayOpen = false;
+  appState.coachLearningTarget = null;
+  appState.coachLearningSession = null;
+  appState.coachLearningLoading = false;
+  appState.coachLearningSubmitting = false;
+  appState.coachLearningError = "";
+  appState.coachLearningStatus = "";
   appState.learningPlan = null;
   appState.learningPlanLoading = false;
   appState.learningPlanGenerating = false;

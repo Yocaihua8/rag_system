@@ -257,6 +257,15 @@
             >
               查看阅读来源（{{ item.source_ids?.length || 0 }}）
             </button>
+            <button
+              v-if="item.item_type === 'learning'"
+              type="button"
+              :disabled="stale || busy || saving"
+              data-learning-plan-action="start-learning"
+              @click="startLearning(item)"
+            >
+              {{ item.status === "todo" ? "开始学习" : "继续学习" }}
+            </button>
           </li>
         </ol>
         <div class="learning-plan-footer-actions">
@@ -340,6 +349,7 @@ const emit = defineEmits([
   "preview-publication",
   "open-sources",
   "open-obsidian-settings",
+  "start-learning",
 ]);
 
 const selectedPlanKind = ref("draft");
@@ -484,6 +494,23 @@ function openSources(item) {
     title: item.objective || "学习任务来源",
     source_ids: [...(item.source_ids || [])],
     sources,
+  });
+}
+
+function startLearning(item) {
+  if (
+    !activePlan.value
+    || activePlan.value.status !== "confirmed"
+    || item.item_type !== "learning"
+    || stale.value
+    || busy.value
+    || props.saving
+  ) {
+    return;
+  }
+  emit("start-learning", {
+    planId: activePlan.value.id,
+    planItemId: item.id,
   });
 }
 

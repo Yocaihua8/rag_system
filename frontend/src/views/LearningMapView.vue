@@ -21,7 +21,7 @@
     <p v-else-if="!activeProjectId" class="status-line">请先选择项目。</p>
     <div v-else-if="stale" class="learning-map-stale" role="alert">
       <strong>项目来源已变化，当前分析已过期。</strong>
-      <p>请重新分析后再发起定向评估；历史结果仅供回看。</p>
+      <p>请重新分析后再发起逐点学习或定向评估；历史结果仅供回看。</p>
     </div>
 
     <section class="learning-map-overview">
@@ -81,6 +81,14 @@
               <button
                 type="button"
                 :disabled="stale || !canAssess"
+                data-learning-map-action="learn-knowledge-point"
+                @click="startLearning('knowledge_point', point.id)"
+              >
+                开始学习
+              </button>
+              <button
+                type="button"
+                :disabled="stale || !canAssess"
                 data-learning-map-action="assess-knowledge-point"
                 @click="startAssessment('knowledge_point', point.id)"
               >
@@ -127,6 +135,14 @@
               {{ skill.mapped_knowledge_point_count || mappingCount(skill) }} 个关联知识点。
             </p>
             <div class="learning-map-card-actions">
+              <button
+                type="button"
+                :disabled="stale || !canAssess || skill.project_evidence === 'no_project_evidence'"
+                data-learning-map-action="learn-skill"
+                @click="startLearning('skill', skill.id)"
+              >
+                开始学习
+              </button>
               <button
                 type="button"
                 :disabled="stale || !canAssess || skill.project_evidence === 'no_project_evidence'"
@@ -216,7 +232,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["analyze", "refresh", "start-assessment", "open-sources"]);
+const emit = defineEmits(["analyze", "refresh", "start-assessment", "start-learning", "open-sources"]);
 
 const activeProjectId = computed(() => props.projectId || props.selectedProjectId);
 const overviewData = computed(() => props.overview?.overview || props.overview || {});
@@ -253,6 +269,14 @@ const skillItems = computed(() => {
 
 function startAssessment(targetType, targetId) {
   emit("start-assessment", { target_type: targetType, target_id: targetId });
+}
+
+function startLearning(targetType, targetId) {
+  emit("start-learning", {
+    target_type: targetType,
+    target_id: targetId,
+    origin_type: "learning_map",
+  });
 }
 
 function openSources(title, sourceIds = []) {
