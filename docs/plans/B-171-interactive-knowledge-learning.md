@@ -26,7 +26,7 @@
 - [x] 语义移植学习会话、步骤、练习、attempt 领域模型、六张增量表和四个 Coach API。
 - [x] 语义移植临时 SQLite 只读沙箱、确定性评分、SQL 练习生成和安全专项测试。
 - [x] 接入 Vue 逐知识点覆盖层、三个现有入口、绝对 API URL 单测与双运行时 Playwright 闭环。
-- [ ] 合并有效 attempt 掌握证据、联动确认学习计划进度并按当前文档体系完成 ADR/规格回流。
+- [x] 合并有效 attempt 掌握证据、联动确认学习计划进度并按当前文档体系完成 ADR/规格回流。
 - [ ] 运行专项、完整、依赖与文档门禁，完成 PR 最终 SHA 与 main 合并提交 CI。
 
 ## 4. 影响范围
@@ -57,26 +57,26 @@
 
 ## 6. 完成标准
 
-- [ ] 功能行为符合 `docs/features/project-knowledge-coach.md` 的项目内学习与来源规则。
-- [ ] 六张新表只做增量初始化，不改写旧评估数据或正式运行库。
-- [ ] 四个新 API、旧 Coach API 和 legacy API 契约测试通过。
-- [ ] SQL 沙箱安全、确定性评分和正式数据库隔离测试通过。
-- [ ] Vue 单测、构建、Playwright 学习闭环和无新增一级导航验证通过。
-- [ ] 后端/集成/仓库完整 pytest、依赖审计与文档一致性门禁通过。
-- [ ] ADR-011 已根据当前实现证据决议，相关文档已同步。
+- [x] 功能行为符合 `docs/features/project-knowledge-coach.md` 的项目内学习与来源规则。
+- [x] 六张新表只做增量初始化，不改写旧评估数据或正式运行库。
+- [x] 四个新 API、旧 Coach API 和 legacy API 契约测试通过。
+- [x] SQL 沙箱安全、确定性评分和正式数据库隔离测试通过。
+- [x] Vue 单测、构建、Playwright 学习闭环和无新增一级导航验证通过。
+- [x] 后端/集成/仓库完整 pytest、依赖审计与文档一致性门禁通过。
+- [x] ADR-011 已根据当前实现证据决议，相关文档已同步。
 - [ ] BACKLOG 条目 B-171 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史。
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 学习会话、attempt、重试、答案揭示和掌握证据规则 | `docs/features/project-knowledge-coach.md`、`docs/requirements/functional-modules.md` | [ ] |
-| 四个学习会话 API 与兼容错误语义 | `docs/design/api-spec.md` | [ ] |
-| 六张新表、索引、增量初始化与回滚边界 | `docs/design/database-design.md` | [ ] |
-| 七态状态机和验收条件 | `docs/design/state-flow-and-acceptance.md` | [ ] |
-| 覆盖层、样例表、恢复、只读和现有入口交互 | `docs/design/ui-wireframes.md` | [ ] |
-| SQL 沙箱、模块边界和安全限制 | `docs/adr/ADR-011-interactive-learning-sql-sandbox.md`、`docs/design/architecture-overview.md`、`docs/guides/security.md` | [ ] |
-| 新增测试矩阵和验证结果 | `docs/guides/testing.md` | [ ] |
+| 学习会话、attempt、重试、答案揭示和掌握证据规则 | `docs/features/project-knowledge-coach.md`、`docs/requirements/functional-modules.md` | [x] |
+| 四个学习会话 API 与兼容错误语义 | `docs/design/api-spec.md` | [x] |
+| 六张新表、索引、增量初始化与回滚边界 | `docs/design/database-design.md` | [x] |
+| 七态状态机和验收条件 | `docs/design/state-flow-and-acceptance.md` | [x] |
+| 覆盖层、样例表、恢复、只读和现有入口交互 | `docs/design/ui-wireframes.md` | [x] |
+| SQL 沙箱、模块边界和安全限制 | `docs/adr/ADR-011-interactive-learning-sql-sandbox.md`、`docs/design/architecture-overview.md`、`docs/guides/security.md` | [x] |
+| 新增测试矩阵和验证结果 | `docs/guides/testing.md` | [x] |
 | 对外变更、任务状态和执行记录 | `CHANGELOG.md`、`docs/BACKLOG.md` | [ ] |
 
 ## 8. 执行记录
@@ -86,12 +86,14 @@
 - 2026-08-01：ADR-011 先以 Proposed 建立；只有当前主线实现和完整门禁产生证据后才转 Accepted。
 - 2026-08-01：逐知识点覆盖层已接入教练、学习地图和确认计划入口；保留 `apiUrl()` 绝对请求，E2E 页面使用 4173、API 使用 `KI_E2E_API_BASE_URL`（默认 18765）。前端单测 24 files / 105 tests、生产构建与 E2E 语法/发现检查通过；真实 E2E 等后端整合后执行。
 - 2026-08-01：七态学习会话、六张增量表、四个 Coach API、临时 SQLite 只读沙箱和确定性评分已按最终旧分支语义移植到当前目录；保留当前 API-only FastAPI 契约。B-171 专项 82 passed，既有评估/学习计划回归 34 passed，合计 116 passed。
+- 2026-08-01：按当前扁平文档体系回流功能、需求、API、数据库、状态、UI、架构、安全和测试契约；源码派生事实更新为 90 paths / 98 operations / 43 tables，ADR-011 根据当前实现与验证证据转为 Accepted。
+- 2026-08-01：真实双运行时 Playwright 2 passed；Vue 24 files / 105 tests，生产构建 56 modules，Cargo check、npm audit（0 vulnerabilities）、pip-audit（无已知漏洞）和三项文档门禁通过。完整 Python 首轮为 586 passed / 1 failed，定位到仓库静态测试仍匹配旧二项加载字符串；改为校验计划、活动会话和 Obsidian 三项调用后，该文件 88 passed，最终完整套件 587 passed。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-01 15:45（Asia/Shanghai）
-- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`ca7acda` — test: 覆盖交互学习与 SQL 安全边界
-- **代码状态**：`agent/b-171-interactive-learning`；后端状态机、存储、API、SQL 沙箱、掌握证据、前端闭环及专项测试均已提交，永久文档正在回流
-- **下一步**：完成掌握证据/计划联动文档与 ADR 回流，再运行整合后的真实 E2E 和完整门禁
+- **最后更新**：2026-08-01 16:06（Asia/Shanghai）
+- **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`c13a7ae` — docs: 接受逐知识点学习与 SQL 沙箱决策
+- **代码状态**：`agent/b-171-interactive-learning`；实现、测试、永久文档、Accepted ADR 和完整本地门禁均已完成，工作区仅包含本快照更新
+- **下一步**：推送 ready PR，等待最终 SHA 的 GitHub Actions，全绿后合并并验证 main 合并提交 CI
 - **续任务须知**：保留 `apiUrl()`/`VITE_API_BASE_URL` 与 API-only FastAPI；测试使用工作区隔离 basetemp/数据库；不得读取或覆盖正式运行库。
