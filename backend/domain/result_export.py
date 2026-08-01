@@ -7,6 +7,7 @@ from pathlib import Path
 from textwrap import wrap
 from typing import Any
 
+from backend.config.settings import load_settings
 from backend.domain.models import ChatMessage
 
 SUPPORTED_RESULT_EXPORT_FORMATS = {"markdown", "pdf"}
@@ -52,7 +53,7 @@ def result_output_dir() -> Path:
     configured = os.getenv("KI_OUTPUT_DIR") or os.getenv("RAG_OUTPUT_DIR")
     if configured:
         return Path(configured)
-    return Path("data") / "outputs"
+    return load_settings().outputs_dir
 
 
 def _markdown_bytes(message: ChatMessage, project_name: str, title: str) -> bytes:
