@@ -37,14 +37,14 @@ def test_fastapi_create_app_rejects_unmarked_database_without_writing(tmp_path):
     assert hashlib.sha256(db_path.read_bytes()).hexdigest() == before
 
 
-def test_fastapi_app_serves_static_index(tmp_path):
+def test_fastapi_app_keeps_root_unserved_in_api_only_mode(tmp_path):
     client = _client(tmp_path / "app.db")
 
     response = client.get("/")
 
-    assert response.status_code == 200
-    assert response.headers["content-type"].startswith("text/html")
-    assert "<title>知识岛</title>" in response.text
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {"detail": "Not Found"}
 
 
 def test_fastapi_app_returns_json_not_found_for_unknown_api(tmp_path):

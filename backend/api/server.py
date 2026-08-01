@@ -6,20 +6,25 @@ from typing import Any, Iterable
 
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
 from backend.api.dispatch import answer_stream_events, dispatch
 from backend.api.auth import AuthSettings, issue_jwt, load_auth_settings, validate_api_key, validate_jwt
-from backend.config.web import DEFAULT_HOST, DEFAULT_PORT, default_db_path
+from backend.config.web import (
+    CORS_ALLOWED_HEADERS,
+    CORS_ALLOWED_METHODS,
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    cors_origins,
+    default_db_path,
+)
 from backend.api.openapi_schema import install_custom_openapi
 from backend.routes.ollama import ollama_pull_events, validate_ollama_pull_payload
 from backend.storage import KnowledgeStore
 
 
-BACKEND_DIR = Path(__file__).resolve().parents[1]
-STATIC_DIST_DIR = BACKEND_DIR / "static_dist"
 AUTHENTICATION_REQUIRED = {"error": "authentication required"}
 INVALID_CREDENTIALS = {"error": "invalid credentials"}
 OBSIDIAN_SELF_AUTH_PATHS = {
@@ -53,6 +58,16 @@ def create_app(
         if auth_error == "invalid":
             return _auth_error_response(INVALID_CREDENTIALS)
         return await call_next(request)
+
+    # CORS must wrap the authentication middleware so browser preflight requests
+    # are answered before API authentication is evaluated.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(cors_origins()),
+        allow_credentials=False,
+        allow_methods=list(CORS_ALLOWED_METHODS),
+        allow_headers=list(CORS_ALLOWED_HEADERS),
+    )
 
     @app.get("/api/answer/stream")
     async def answer_stream(request: Request) -> StreamingResponse:
@@ -111,7 +126,6 @@ def create_app(
         return JSONResponse(status_code=response.status, content=response.body)
 
     install_custom_openapi(app)
-    app.mount("/", StaticFiles(directory=_frontend_static_dir(), html=True), name="static")
     return app
 
 
@@ -121,7 +135,7 @@ def run_server(
     db_path: Path | None = None,
 ) -> int:
     target_app = create_app(db_path=db_path)
-    print(f"Knowledge Island Web is running at http://{host}:{port}")
+    print(f"Knowledge Island API is running at http://{host}:{port}")
     uvicorn.run(target_app, host=host, port=port)
     return 0
 
@@ -185,12 +199,6 @@ def _auth_error_response(content: dict[str, str]) -> JSONResponse:
         content=content,
         headers={"WWW-Authenticate": "Bearer"},
     )
-
-
-def _frontend_static_dir() -> Path:
-    if not (STATIC_DIST_DIR / "index.html").exists():
-        raise RuntimeError("Vue build output missing. Run `npm run build` before starting Knowledge Island.")
-    return STATIC_DIST_DIR
 
 
 app = create_app()

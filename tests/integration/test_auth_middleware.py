@@ -28,7 +28,7 @@ def test_auth_disabled_keeps_existing_api_access(tmp_path):
     assert "projects" in response.json()
 
 
-def test_auth_enabled_allows_health_and_static_index_without_credentials(tmp_path):
+def test_auth_enabled_allows_health_but_root_remains_api_only(tmp_path):
     client = _client(tmp_path, _auth_settings())
 
     health_response = client.get("/api/health")
@@ -36,8 +36,7 @@ def test_auth_enabled_allows_health_and_static_index_without_credentials(tmp_pat
 
     assert health_response.status_code == 200
     assert health_response.json() == {"status": "ok"}
-    assert index_response.status_code == 200
-    assert index_response.headers["content-type"].startswith("text/html")
+    assert index_response.status_code == 404
 
 
 def test_auth_enabled_rejects_protected_api_without_credentials(tmp_path):

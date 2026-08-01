@@ -20,18 +20,21 @@ def test_webapp_package_is_removed_from_tracked_sources():
     assert _tracked_files("webapp") == []
 
 
-def test_root_launcher_uses_backend_api_server():
-    source = (PROJECT_ROOT / "app.py").read_text(encoding="utf-8")
+def test_backend_module_is_the_only_python_service_entrypoint():
+    source = (PROJECT_ROOT / "backend/__main__.py").read_text(encoding="utf-8")
 
-    assert "from backend.api.server import app, run_server" in source
-    assert "webapp" not in source
+    assert not (PROJECT_ROOT / "app.py").exists()
+    assert "from backend.api.server import run_server" in source
+    assert "KI_API_HOST" in source
+    assert "KI_API_PORT" in source
 
 
-def test_vite_outputs_to_backend_static_dist_without_touching_frontend_source():
+def test_vite_outputs_to_frontend_dist_without_touching_backend_source():
     source = (PROJECT_ROOT / "frontend/vite.config.js").read_text(encoding="utf-8")
 
-    assert 'outDir: path.resolve(__dirname, "../backend/static_dist")' in source
-    assert "../webapp/static_dist" not in source
+    assert "backend/static_dist" not in source
+    assert "../backend" not in source
+    assert not (PROJECT_ROOT / "backend/static_dist").exists()
 
 
 def test_active_python_imports_use_backend_namespace():
@@ -42,10 +45,8 @@ def test_active_python_imports_use_backend_namespace():
         f"{legacy_package}.",
     )
     scan_roots = [
-        PROJECT_ROOT / "app.py",
-        PROJECT_ROOT / "entrypoint.sh",
         PROJECT_ROOT / "backend",
-        PROJECT_ROOT / "scripts",
+        PROJECT_ROOT / "tools",
         PROJECT_ROOT / "tests",
     ]
     offenders: list[str] = []

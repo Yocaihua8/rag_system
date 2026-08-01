@@ -68,7 +68,9 @@ def test_load_settings_uses_defaults_and_derived_paths(monkeypatch, tmp_path):
 
 def test_load_settings_applies_file_env_os_env_and_override_precedence(monkeypatch, tmp_path):
     settings_module, project_root, app_data = _isolate_settings(monkeypatch, tmp_path)
-    (project_root / ".env").write_text(
+    backend_root = project_root / "backend"
+    backend_root.mkdir()
+    (backend_root / ".env").write_text(
         "\n".join(
             [
                 "RAG_KB_ROOT='relative-kb'",
