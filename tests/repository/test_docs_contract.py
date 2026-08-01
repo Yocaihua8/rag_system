@@ -51,10 +51,10 @@ def test_api_spec_matches_every_current_http_path_and_operation_count(tmp_path):
     post_count = sum("post" in operations for operations in paths.values())
 
     assert "/" not in paths
-    assert len(paths) == 86
-    assert get_count == 31
-    assert post_count == 63
-    assert get_count + post_count == 94
+    assert len(paths) == 90
+    assert get_count == 32
+    assert post_count == 66
+    assert get_count + post_count == 98
     assert all(path in api_spec for path in paths if path.startswith("/api/"))
     for event_name in ("token", "done", "answer_error"):
         assert event_name in api_spec
@@ -75,7 +75,7 @@ def test_database_spec_matches_current_tables_and_documents_fields(tmp_path):
         )
 
     database = _read("docs/design/database-design.md")
-    assert len(tables) == 37
+    assert len(tables) == 43
     assert document_fields == (
         "id",
         "project_id",
