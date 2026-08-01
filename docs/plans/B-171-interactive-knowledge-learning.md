@@ -1,6 +1,6 @@
 # B-171 逐知识点交互学习流程与只读 SQL 练习
 
-> 状态：Done（待生命周期清理）
+> 状态：Done
 > 创建时间：2026-08-01
 > 创建方：Codex
 > 关联 BACKLOG：B-171
@@ -64,7 +64,7 @@
 - [x] Vue 单测、构建、Playwright 学习闭环和无新增一级导航验证通过。
 - [x] 后端/集成/仓库完整 pytest、依赖审计与文档一致性门禁通过。
 - [x] ADR-011 已根据当前实现证据决议，相关文档已同步。
-- [ ] BACKLOG 条目 B-171 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史。
+- [x] BACKLOG 条目 B-171 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史。
 
 ## 7. 回流清单
 
@@ -77,7 +77,7 @@
 | 覆盖层、样例表、恢复、只读和现有入口交互 | `docs/design/ui-wireframes.md` | [x] |
 | SQL 沙箱、模块边界和安全限制 | `docs/adr/ADR-011-interactive-learning-sql-sandbox.md`、`docs/design/architecture-overview.md`、`docs/guides/security.md` | [x] |
 | 新增测试矩阵和验证结果 | `docs/guides/testing.md` | [x] |
-| 对外变更、任务状态和执行记录 | `CHANGELOG.md`、`docs/BACKLOG.md` | [ ] |
+| 对外变更、任务状态和执行记录 | `CHANGELOG.md`、`docs/BACKLOG.md` | [x] |
 
 ## 8. 执行记录
 
@@ -89,12 +89,13 @@
 - 2026-08-01：按当前扁平文档体系回流功能、需求、API、数据库、状态、UI、架构、安全和测试契约；源码派生事实更新为 90 paths / 98 operations / 43 tables，ADR-011 根据当前实现与验证证据转为 Accepted。
 - 2026-08-01：真实双运行时 Playwright 2 passed；Vue 24 files / 105 tests，生产构建 56 modules，Cargo check、npm audit（0 vulnerabilities）、pip-audit（无已知漏洞）和三项文档门禁通过。完整 Python 首轮为 586 passed / 1 failed，定位到仓库静态测试仍匹配旧二项加载字符串；改为校验计划、活动会话和 Obsidian 三项调用后，该文件 88 passed，最终完整套件 587 passed。
 - 2026-08-01：PR #7 首轮远端门禁在 `5c22ea86553f3e01caf05fa3e543ebc08864bbc6` 全部通过：CI/python-tests、CI/frontend-e2e 和 Docs Checks 均为 success，合并状态为 CLEAN。该证据完成第 5 项；生命周期清理会产生新的最终 SHA，仍须重新等待该 SHA 的远端门禁。
+- 2026-08-01：完成事实已回流 `CHANGELOG.md`、Accepted ADR-011 与 Git 历史，B-171 已从 BACKLOG 和活动计划索引移除；本 plan 将在下一独立提交删除。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-08-01 16:11（Asia/Shanghai）
-- **进度**：已完成 5 / 5 项（见 § 3 勾选状态）；仅剩 plan 生命周期清理
-- **最新 commit**：`5c22ea8` — docs: 记录 B-171 本地完整验收
-- **代码状态**：`agent/b-171-interactive-learning`；实现、文档、本地门禁和 PR #7 首轮远端门禁均已完成
-- **下一步**：移除 B-171 BACKLOG 行、更新活动计划索引并删除本 plan，再重新等待最终 SHA 的 GitHub Actions
+- **进度**：已完成 5 / 5 项（见 § 3 勾选状态）；完成标准和回流清单均已满足
+- **最新 commit**：`a273fe4` — docs: 完成 B-171 交互学习验收
+- **代码状态**：`agent/b-171-interactive-learning`；B-171 已完成并从 BACKLOG 与活动计划索引移除
+- **下一步**：删除本 plan，推送最终 SHA 并重新等待 GitHub Actions
 - **续任务须知**：保留 `apiUrl()`/`VITE_API_BASE_URL` 与 API-only FastAPI；测试使用工作区隔离 basetemp/数据库；不得读取或覆盖正式运行库。
