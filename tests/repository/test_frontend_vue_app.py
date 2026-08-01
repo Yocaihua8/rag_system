@@ -289,9 +289,18 @@ def test_vue_app_wires_learning_map_and_editable_learning_plan_flow():
         "@confirm=\"handleConfirmLearningPlan\"",
         "async function handleChangeView(view)",
         "await loadCoachWorkspace()",
-        "await Promise.all([loadCurrentLearningPlan(), loadObsidianConnections()])",
     ]:
         assert marker in app_vue
+
+    learning_plan_branch = app_vue.split('if (view === "learning-plan") {', 1)[1].split(
+        "return;", 1
+    )[0]
+    for marker in (
+        "loadCurrentLearningPlan()",
+        "loadActiveCoachLearningSession()",
+        "loadObsidianConnections()",
+    ):
+        assert marker in learning_plan_branch
 
     for marker in [
         "当前项目知识地图",
