@@ -51,4 +51,4 @@ ADR-002-short-title.md
 | [ADR-008](ADR-008-project-knowledge-coach-v2.md) | 项目知识教练与 v2 数据代际 | Accepted | 2026-07-23 | v2 数据边界与 Coach 主线有效；实现偏差需在当前文档列明 |
 | [ADR-009](ADR-009-obsidian-plugin-bridge.md) | Obsidian 桌面插件桥与受控写回 | Accepted | 2026-07-23 | desktop-only 插件、幂等同步和受控发布边界有效 |
 | [ADR-010](ADR-010-runtime-separation.md) | 前后端运行时分离 | Accepted | 2026-08-01 | 取代 ADR-006 的静态托管/同源请求部分，不拆分产品领域 |
-| [ADR-011](ADR-011-interactive-learning-sql-sandbox.md) | 逐知识点学习会话与只读 SQL 沙箱 | Proposed | 2026-08-01 | B-171 实施与当前主线验证完成后再决定是否接受 |
+| [ADR-011](ADR-011-interactive-learning-sql-sandbox.md) | 逐知识点学习会话与只读 SQL 沙箱 | Accepted | 2026-08-01 | 增量会话模型与隔离只读 SQL 评分边界已由 B-171 当前提交验证 |
