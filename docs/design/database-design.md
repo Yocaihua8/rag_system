@@ -116,7 +116,7 @@
 | Qdrant local | `runtime/v2/vectors/qdrant/` | 启用时的可重建向量索引 |
 | 运行日志 | `runtime/v2/logs/` | 由运行配置派生 |
 | 配置对象输出目录 | `runtime/v2/outputs/` | `AppSettings.outputs_dir` |
-| 结果导出端点默认目录 | `data/outputs/` | `result_output_dir()` 当前独立默认；可由 `KI_OUTPUT_DIR` / `RAG_OUTPUT_DIR` 覆盖 |
+| 结果导出端点默认目录 | `runtime/v2/outputs/` | 默认复用 `AppSettings.outputs_dir`；可由 `KI_OUTPUT_DIR` / `RAG_OUTPUT_DIR` 覆盖，前者优先 |
 | 用户应用配置 | 平台应用数据目录下 `KnowledgeIsland/.env` | 兼容全局 LLM 设置可能写入明文 API Key |
 
 备份必须覆盖 SQLite，并在启用 Qdrant 或需要导出文件时明确纳入相应目录。`/api/health` 不验证备份完整性、数据库读写或向量一致性。

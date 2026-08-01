@@ -28,7 +28,7 @@ Knowledge Island 1.x 已形成以本地资料导入、RAG 检索问答和轻量�
 - 2.0 首次启动创建新库，用户重新导入项目。若目标路径被识别为 1.x schema 或旧向量目录，必须停止写入并报告配置错误。
 - 旧数据只用于原版本回退或人工归档；未来若需要迁移，必须另立 ADR 和显式迁移工具。
 
-当前实现偏差：问答结果导出仍默认写入 `data/outputs/`，可由 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖，并未纳入 `runtime/v2/`。该偏差记录在 [`BACKLOG.md`](../BACKLOG.md)，不能把本 ADR 的“独立代际”目标误报为已对所有输出路径完成。
+当前实现已由 B-169 将问答结果导出默认目录对齐为活动 `<runtime>/outputs/`，本地默认是 `runtime/v2/outputs/`；`KI_OUTPUT_DIR` 和 `RAG_OUTPUT_DIR` 仍可显式覆盖。SQLite 备份脚本只备份数据库，导出文件与 Qdrant local 数据仍需按实际范围单独纳入备份。
 
 ### 2.3 Coach 领域模型
 
