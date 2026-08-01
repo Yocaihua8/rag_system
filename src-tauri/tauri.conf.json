@@ -4,10 +4,10 @@
   "version": "2.0.0",
   "identifier": "local.knowledge-island.app",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm --prefix .. run frontend:dev",
+    "beforeBuildCommand": "npm --prefix .. run frontend:build",
     "devUrl": "http://127.0.0.1:5173",
-    "frontendDist": "../backend/static_dist"
+    "frontendDist": "../frontend/dist"
   },
   "app": {
     "windows": [
@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; connect-src ipc: http://ipc.localhost http://127.0.0.1:8765; img-src 'self' asset: http://asset.localhost data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'"
     }
   },
   "bundle": {

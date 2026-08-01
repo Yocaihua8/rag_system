@@ -1,4 +1,5 @@
 import { apiGet, apiPost } from "./client.js";
+import { apiUrl } from "./config.js";
 
 export async function askQuestion({ projectId, question, toolRunId = "", parentMessageId = "" }) {
   const trimmedQuestion = (question || "").trim();
@@ -51,7 +52,7 @@ export function askQuestionStream({
     params.set("parent_message_id", parentMessageId);
   }
 
-  const source = new EventSource(`/api/answer/stream?${params.toString()}`);
+  const source = new EventSource(apiUrl(`/api/answer/stream?${params.toString()}`));
   let settled = false;
   let answer = "";
   let rejectPromise = () => {};

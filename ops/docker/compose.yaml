@@ -1,0 +1,66 @@
+name: knowledge-island
+
+services:
+  backend:
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+    image: knowledge-island-backend:local
+    ports:
+      - "${KI_API_PORT:-8765}:8765"
+    environment:
+      RAG_RUNTIME_DIR: /app/runtime/v2
+      RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-api}
+      RAG_LLM_API_BASE: ${RAG_LLM_API_BASE:-https://api.deepseek.com/v1}
+      RAG_LLM_API_MODEL: ${RAG_LLM_API_MODEL:-deepseek-chat}
+      RAG_LLM_API_KEY: ${RAG_LLM_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      RAG_EMBED_PROVIDER: ${RAG_EMBED_PROVIDER:-}
+      RAG_EMBED_API_BASE: ${RAG_EMBED_API_BASE:-}
+      RAG_EMBED_API_MODEL: ${RAG_EMBED_API_MODEL:-}
+      RAG_EMBED_API_KEY: ${RAG_EMBED_API_KEY:-}
+      RAG_AUTH_ENABLED: ${RAG_AUTH_ENABLED:-false}
+      RAG_AUTH_API_KEY: ${RAG_AUTH_API_KEY:-}
+      RAG_AUTH_JWT_SECRET: ${RAG_AUTH_JWT_SECRET:-}
+      KI_CORS_ORIGINS: ${KI_CORS_ORIGINS:-http://127.0.0.1:4173,http://localhost:4173}
+    volumes:
+      - ki-runtime:/app/runtime
+      - ${KNOWLEDGE_ISLAND_WORKSPACE:-../../docker-workspace}:/workspace
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/api/health', timeout=5).read()
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${KI_PUBLIC_API_URL:-http://127.0.0.1:8765}
+    image: knowledge-island-frontend:local
+    ports:
+      - "${KI_WEB_PORT:-4173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --quiet
+        - --tries=1
+        - --spider
+        - http://127.0.0.1/
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+
+volumes:
+  ki-runtime:

@@ -46,7 +46,7 @@ describe("askQuestionStream", () => {
     const source = FakeEventSource.instances[0];
 
     expect(source.url).toBe(
-      "/api/answer/stream?project_id=p+1&question=%E9%BB%98%E8%AE%A4%E5%85%A5%E5%8F%A3%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F&session_id=s1&tool_run_id=run1&parent_message_id=m1",
+      "http://127.0.0.1:8765/api/answer/stream?project_id=p+1&question=%E9%BB%98%E8%AE%A4%E5%85%A5%E5%8F%A3%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F&session_id=s1&tool_run_id=run1&parent_message_id=m1",
     );
 
     source.emit("token", { text: "知" });

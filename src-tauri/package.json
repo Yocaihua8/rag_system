@@ -1,0 +1,16 @@
+{
+  "name": "@knowledge-island/desktop",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/prepare-sidecar.mjs && tauri dev",
+    "build:windows": "npm run sidecar:build:windows && tauri build",
+    "build:macos": "npm run sidecar:build:unix && tauri build --bundles dmg",
+    "build:linux": "npm run sidecar:build:unix && tauri build --bundles appimage",
+    "sidecar:build:windows": "powershell -ExecutionPolicy Bypass -File scripts/build-backend-sidecar.ps1",
+    "sidecar:build:unix": "bash scripts/build-backend-sidecar.sh"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.3"
+  }
+}

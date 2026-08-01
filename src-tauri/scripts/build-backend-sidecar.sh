@@ -2,14 +2,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-PROJECT_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
-TAURI_BINARY_DIR="$PROJECT_ROOT/src-tauri/binaries"
+PROJECT_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
+TAURI_ROOT="$PROJECT_ROOT/src-tauri"
+TAURI_BINARY_DIR="$TAURI_ROOT/binaries"
+BUILD_ROOT="$TAURI_ROOT/build/sidecar"
 BACKEND_NAME="knowledge-island-backend"
 PYTHON_BIN="${PYTHON:-}"
 TARGET_TRIPLE="${KI_TAURI_TARGET_TRIPLE:-}"
 
 if [ -z "$PYTHON_BIN" ]; then
-  if command -v python3 >/dev/null 2>&1; then
+  if [ -x "$PROJECT_ROOT/.venv/bin/python" ]; then
+    PYTHON_BIN="$PROJECT_ROOT/.venv/bin/python"
+  elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="python3"
   else
     PYTHON_BIN="python"
@@ -31,20 +35,20 @@ fi
 
 cd "$PROJECT_ROOT"
 
-echo "Building Vue/Vite frontend..."
-npm run build
-
-echo "Building FastAPI sidecar with PyInstaller for $TARGET_TRIPLE..."
+echo "Building API-only FastAPI sidecar with PyInstaller for $TARGET_TRIPLE..."
 "$PYTHON_BIN" -m PyInstaller \
   --noconfirm \
   --clean \
   --onefile \
   --name "$BACKEND_NAME" \
-  --add-data "backend/static_dist:backend/static_dist" \
-  app.py
+  --paths "$PROJECT_ROOT" \
+  --distpath "$BUILD_ROOT/dist" \
+  --workpath "$BUILD_ROOT/work" \
+  --specpath "$BUILD_ROOT/spec" \
+  backend/__main__.py
 
-SOURCE_BIN="$PROJECT_ROOT/dist/$BACKEND_NAME"
-TARGET_BIN="$TAURI_BINARY_DIR/knowledge-island-backend-${TARGET_TRIPLE}"
+SOURCE_BIN="$BUILD_ROOT/dist/$BACKEND_NAME"
+TARGET_BIN="$TAURI_BINARY_DIR/$BACKEND_NAME-$TARGET_TRIPLE"
 
 if [ ! -f "$SOURCE_BIN" ]; then
   echo "Expected PyInstaller output was not found: $SOURCE_BIN" >&2

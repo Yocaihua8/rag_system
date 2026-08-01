@@ -1,12 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const e2ePort = process.env.KI_E2E_PORT || "18765";
-const baseURL = process.env.KI_E2E_BASE_URL || `http://127.0.0.1:${e2ePort}`;
+const frontendPort = process.env.KI_E2E_FRONTEND_PORT || "4173";
+const baseURL = process.env.KI_E2E_BASE_URL || `http://127.0.0.1:${frontendPort}`;
 const browserChannel = process.env.KI_E2E_BROWSER_CHANNEL;
 
 export default defineConfig({
-  testDir: "./tests/e2e",
-  globalTeardown: "./tests/e2e/global-teardown.mjs",
+  testDir: "../tests/e2e",
+  outputDir: "../test-results",
   timeout: 60_000,
   expect: {
     timeout: 10_000,
@@ -30,12 +30,4 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "node tests/e2e/start-web-server.mjs",
-    url: `${baseURL}/api/health`,
-    timeout: 120_000,
-    reuseExistingServer: !process.env.CI,
-    stdout: "pipe",
-    stderr: "pipe",
-  },
 });

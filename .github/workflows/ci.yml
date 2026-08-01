@@ -38,7 +38,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
+          key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('backend/requirements/base.txt', 'backend/requirements/dev.txt') }}
           restore-keys: |
             venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
@@ -49,22 +49,22 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Build frontend
-        run: npm run build
+        run: npm run frontend:build
 
       - name: Install Python dependencies
         run: |
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+          .venv/bin/pip install -r backend/requirements/dev.txt
 
       - name: Run Python dependency audit
-        run: .venv/bin/pip-audit -r requirements.txt -r requirements-dev.txt
+        run: .venv/bin/pip-audit -r backend/requirements/base.txt
 
       - name: Run pytest
-        run: .venv/bin/python -m pytest tests/test_backend tests/test_webapp -q
+        run: .venv/bin/python -m pytest tests/backend tests/integration tests/repository -q
 
       - name: Docs consistency check
-        run: .venv/bin/python scripts/check_docs_consistency.py
+        run: .venv/bin/python tools/docs/check_docs_consistency.py
 
   frontend-e2e:
     runs-on: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
+          key: venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('backend/requirements/base.txt', 'backend/requirements/dev.txt') }}
           restore-keys: |
             venv-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
 
@@ -100,19 +100,16 @@ jobs:
         run: npm ci
 
       - name: Run frontend unit tests
-        run: npm run test:unit
+        run: npm run frontend:test
 
       - name: Install Python dependencies
         run: |
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
-
-      - name: Build frontend
-        run: npm run build
+          .venv/bin/pip install -r backend/requirements/dev.txt
 
       - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+        run: npm exec --workspace frontend -- playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: npx playwright test
+        run: npm run frontend:e2e

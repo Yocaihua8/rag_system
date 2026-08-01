@@ -22,8 +22,7 @@ Thumbs.db
 node_modules/
 frontend/dist/
 frontend/build/
-webapp/static_dist/
-backend/static_dist/
+frontend/playwright-report/
 
 # Runtime outputs
 runtime/**

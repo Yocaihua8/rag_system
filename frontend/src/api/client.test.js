@@ -23,7 +23,7 @@ describe("api client", () => {
 
     await expect(apiGet("/api/projects")).resolves.toEqual({ ok: true });
 
-    expect(fetch).toHaveBeenCalledWith("/api/projects");
+    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:8765/api/projects");
   });
 
   it("apiPost sends JSON payload and forwards AbortController signal", async () => {
@@ -32,7 +32,7 @@ describe("api client", () => {
 
     await expect(apiPost("/api/projects", { name: "项目" }, { signal })).resolves.toEqual({ saved: true });
 
-    expect(fetch).toHaveBeenCalledWith("/api/projects", {
+    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:8765/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "项目" }),

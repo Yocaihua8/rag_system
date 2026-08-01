@@ -23,7 +23,7 @@
 
 - [x] 建立 B-168 分支、BACKLOG 与执行 plan，锁定删除边界和冲突扫描结论
 - [x] 分离后端入口、依赖、API-only 服务与受限 CORS，并补齐后端契约测试
-- [ ] 分离前端、npm workspace、E2E、Docker 与 Tauri 构建运行边界
+- [x] 分离前端、npm workspace、E2E、Docker 与 Tauri 构建运行边界
 - [ ] 分类测试和工具，删除旧代码、可再生成产物及无引用 1.x 工具
 - [ ] 重构文档目录，回流有效 v2 事实，删除历史体系并新增 ADR-010
 - [ ] 运行完整验证矩阵，清理 B-168 活动记录与 plan
@@ -58,7 +58,7 @@
 ## 6. 完成标准
 
 - [x] 后端以 `python -m backend` 启动，根路由 404，CORS、OPTIONS、SSE 与认证头契约通过
-- [ ] 前端通过 `VITE_API_BASE_URL` 使用绝对 API URL，并独立构建到 `frontend/dist/`
+- [x] 前端通过 `VITE_API_BASE_URL` 使用绝对 API URL，并独立构建到 `frontend/dist/`
 - [ ] Docker、Tauri、E2E 和 Obsidian 插件验证路径符合目标边界
 - [ ] HTTP API、SQLite Schema 与 Agent 权限白名单未发生变化
 - [ ] 文档索引、元数据、链接、占位符、当前事实和根目录 allowlist 检查通过
@@ -82,8 +82,8 @@
 ## 9. 状态快照
 
 - **最后更新**：2026-08-01
-- **进度**：已完成 2 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`b7f42fd` — `docs: 启动 B-168 仓库结构重构`
-- **代码状态**：`refactor/repository-structure`；后端 API-only 与 CORS 已通过 142 项聚焦测试，待阶段提交
-- **下一步**：分离前端、npm workspace、E2E、Docker 与 Tauri 构建运行边界
+- **进度**：已完成 3 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`7d29b56` — `refactor: 分离后端 API 运行时与依赖`
+- **代码状态**：`refactor/repository-structure`；前端 92 项单测、构建、真实跨域 E2E、Tauri/sidecar 验证和 23 项结构契约通过，待阶段提交
+- **下一步**：分类测试和工具，删除旧代码、可再生成产物及无引用 1.x 工具
 - **续任务须知**：保留 6 个未推送 B-167 提交；本任务不推送、不建 PR、不合并、不发布

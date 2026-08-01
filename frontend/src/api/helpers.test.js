@@ -67,7 +67,7 @@ describe("frontend api helpers", () => {
     expect(appState.selectedProjectId).toBe("p2");
 
     await expect(createProject({ name: "三", path: "E:/Code/demo" })).resolves.toEqual({ id: "p3", name: "三" });
-    expect(fetch.mock.calls[1][0]).toBe("/api/projects");
+    expect(fetch.mock.calls[1][0]).toBe("http://127.0.0.1:8765/api/projects");
     expect(postBodyAt(1)).toEqual({ name: "三", path: "E:/Code/demo" });
     expect(appState.selectedProjectId).toBe("p3");
     expect(localStorage.getItem("knowledge-island:selected-project-id")).toBe("p3");
@@ -79,7 +79,7 @@ describe("frontend api helpers", () => {
       .mockResolvedValueOnce(jsonResponse({ settings: { top_k: 3, min_score: 0.25 } }));
 
     await expect(getRetrievalSettings("项目 1")).resolves.toEqual({ top_k: 8 });
-    expect(fetch.mock.calls[0][0]).toBe("/api/projects/retrieval-settings?project_id=%E9%A1%B9%E7%9B%AE%201");
+    expect(fetch.mock.calls[0][0]).toBe("http://127.0.0.1:8765/api/projects/retrieval-settings?project_id=%E9%A1%B9%E7%9B%AE%201");
 
     await expect(saveRetrievalSettings({
       projectId: "p1",
@@ -119,7 +119,7 @@ describe("frontend api helpers", () => {
     await expect(compareAnswers({ projectId: "p1", question: "Q", profileIds: ["a", "b"] })).resolves.toEqual({
       comparison: [],
     });
-    expect(fetch.mock.calls[1][0]).toBe("/api/answer/compare");
+    expect(fetch.mock.calls[1][0]).toBe("http://127.0.0.1:8765/api/answer/compare");
 
     await expect(submitAnswerFeedback({ projectId: "p1", messageId: "m1", rating: "useful" })).resolves.toEqual({
       saved: true,
@@ -154,7 +154,7 @@ describe("frontend api helpers", () => {
 
     await expect(listRetrievalReviews("")).resolves.toEqual([]);
     await expect(deleteRetrievalReview("r1")).resolves.toEqual([{ id: "r1" }]);
-    expect(fetch.mock.calls[1][0]).toBe("/api/retrieval/reviews/delete");
+    expect(fetch.mock.calls[1][0]).toBe("http://127.0.0.1:8765/api/retrieval/reviews/delete");
   });
 
   it("document helpers build read/delete routes and skip empty project list requests", async () => {
@@ -165,10 +165,10 @@ describe("frontend api helpers", () => {
 
     await expect(listDocuments("")).resolves.toEqual([]);
     await expect(listDocuments("p 1", "uncategorized")).resolves.toEqual([{ id: "d1" }]);
-    expect(fetch.mock.calls[0][0]).toBe("/api/documents?project_id=p+1&collection_id=uncategorized");
+    expect(fetch.mock.calls[0][0]).toBe("http://127.0.0.1:8765/api/documents?project_id=p+1&collection_id=uncategorized");
 
     await expect(getDocument("doc/1")).resolves.toEqual({ id: "d1" });
-    expect(fetch.mock.calls[1][0]).toBe("/api/document?document_id=doc%2F1");
+    expect(fetch.mock.calls[1][0]).toBe("http://127.0.0.1:8765/api/document?document_id=doc%2F1");
 
     await expect(deleteDocument("d1")).resolves.toEqual({ ok: true });
     expect(postBodyAt(2)).toEqual({ document_id: "d1" });
@@ -181,7 +181,7 @@ describe("frontend api helpers", () => {
       .mockResolvedValueOnce(jsonResponse({ ok: true }));
 
     await expect(listDocumentCollections("p1")).resolves.toEqual([{ id: "c1" }]);
-    expect(fetch.mock.calls[0][0]).toBe("/api/document-collections?project_id=p1");
+    expect(fetch.mock.calls[0][0]).toBe("http://127.0.0.1:8765/api/document-collections?project_id=p1");
 
     await expect(createDocumentCollection({ projectId: "p1", name: "  资料 " })).resolves.toEqual({
       collection: { id: "c2" },
@@ -213,7 +213,7 @@ describe("frontend api helpers", () => {
     });
 
     await expect(previewProjectImport({ projectId: "p1" })).resolves.toEqual({ importable: 1 });
-    expect(fetch.mock.calls[2][0]).toBe("/api/import/preview?project_id=p1");
+    expect(fetch.mock.calls[2][0]).toBe("http://127.0.0.1:8765/api/import/preview?project_id=p1");
 
     const textFile = new File(["hello"], "note.txt", { type: "text/plain" });
     const pdfFile = new File([new Uint8Array([80, 68, 70])], "paper.pdf", { type: "application/pdf" });
@@ -266,7 +266,7 @@ describe("frontend api helpers", () => {
       maxTokens: 800,
       apiKeyRef: "env:RAG_LLM_API_KEY",
     })).resolves.toEqual({ profile: { id: "m1" } });
-    expect(fetch.mock.calls[1][0]).toBe("/api/model-profiles");
+    expect(fetch.mock.calls[1][0]).toBe("http://127.0.0.1:8765/api/model-profiles");
     expect(postBodyAt(1).name).toBe("DeepSeek");
     expect(postBodyAt(1).model).toBe("deepseek-chat");
 
