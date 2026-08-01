@@ -12,8 +12,13 @@ from backend.domain.coach_models import (
     CoachAssessmentQuestion,
     CoachAssessmentResult,
     CoachAssessmentSession,
+    CoachLearningAttempt,
+    CoachLearningExercise,
     CoachLearningPlan,
     CoachLearningPlanItem,
+    CoachLearningSession,
+    CoachLearningStep,
+    CoachSqlExerciseFixture,
 )
 
 
@@ -29,6 +34,35 @@ ASSESSMENT_RESULT_STATUSES = {
 LEARNING_PLAN_STATUSES = {"draft", "confirmed", "archived"}
 LEARNING_PLAN_ITEM_TYPES = {"learning", "source_gap"}
 LEARNING_PLAN_ITEM_STATUSES = {"todo", "in_progress", "done", "skipped"}
+LEARNING_SESSION_TARGET_TYPES = {"knowledge_point", "skill"}
+LEARNING_SESSION_ORIGIN_TYPES = {"coach", "learning_map", "learning_plan"}
+LEARNING_SESSION_STATUSES = {
+    "ready",
+    "learning",
+    "awaiting_answer",
+    "evaluated",
+    "retrying",
+    "completed",
+    "abandoned",
+}
+LEARNING_SESSION_NON_TERMINAL_STATUSES = LEARNING_SESSION_STATUSES - {
+    "completed",
+    "abandoned",
+}
+LEARNING_OUTCOMES = {"", "mastered", "needs_work", "assisted"}
+LEARNING_STEP_STATUSES = {
+    "ready",
+    "learning",
+    "awaiting_answer",
+    "evaluated",
+    "retrying",
+    "completed",
+}
+LEARNING_EXERCISE_VARIANTS = {"primary", "reinforcement"}
+LEARNING_EXERCISE_TYPES = {"concept", "flow", "code_location", "sql_query"}
+LEARNING_ATTEMPT_STATUSES = {"grading", "evaluated", "failed"}
+LEARNING_ATTEMPT_EVALUATORS = {"", "rule", "model", "sql"}
+_UNCHANGED = object()
 
 
 class CoachProgressStoreMixin:
@@ -174,8 +208,896 @@ class CoachProgressStoreMixin:
 
             CREATE INDEX IF NOT EXISTS idx_coach_learning_plan_items_plan
                 ON coach_learning_plan_items(plan_id, sort_order);
+
+            CREATE TABLE IF NOT EXISTS coach_learning_sessions (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                analysis_run_id TEXT NOT NULL,
+                target_type TEXT NOT NULL
+                    CHECK(target_type IN ('knowledge_point', 'skill')),
+                target_id TEXT NOT NULL,
+                origin_type TEXT NOT NULL
+                    CHECK(origin_type IN ('coach', 'learning_map', 'learning_plan')),
+                plan_id TEXT,
+                plan_item_id TEXT,
+                status TEXT NOT NULL
+                    CHECK(status IN (
+                        'ready', 'learning', 'awaiting_answer', 'evaluated',
+                        'retrying', 'completed', 'abandoned'
+                    )),
+                current_step_id TEXT,
+                version INTEGER NOT NULL DEFAULT 1 CHECK(version > 0),
+                outcome TEXT NOT NULL DEFAULT ''
+                    CHECK(outcome IN ('', 'mastered', 'needs_work', 'assisted')),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                completed_at TEXT NOT NULL DEFAULT '',
+                abandoned_at TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY(analysis_run_id)
+                    REFERENCES coach_analysis_runs(id) ON DELETE CASCADE,
+                FOREIGN KEY(plan_id)
+                    REFERENCES coach_learning_plans(id) ON DELETE SET NULL,
+                FOREIGN KEY(plan_item_id)
+                    REFERENCES coach_learning_plan_items(id) ON DELETE SET NULL,
+                FOREIGN KEY(current_step_id)
+                    REFERENCES coach_learning_steps(id) ON DELETE SET NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_coach_learning_sessions_project
+                ON coach_learning_sessions(project_id, updated_at);
+
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_coach_learning_active_run
+                ON coach_learning_sessions(project_id, analysis_run_id)
+                WHERE status IN (
+                    'ready', 'learning', 'awaiting_answer',
+                    'evaluated', 'retrying'
+                );
+
+            CREATE TABLE IF NOT EXISTS coach_learning_steps (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                knowledge_point_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                explanation TEXT NOT NULL,
+                completion_threshold REAL NOT NULL DEFAULT 0.75
+                    CHECK(completion_threshold >= 0 AND completion_threshold <= 1),
+                max_attempts INTEGER NOT NULL DEFAULT 3
+                    CHECK(max_attempts > 0 AND max_attempts <= 3),
+                status TEXT NOT NULL DEFAULT 'ready'
+                    CHECK(status IN (
+                        'ready', 'learning', 'awaiting_answer',
+                        'evaluated', 'retrying', 'completed'
+                    )),
+                outcome TEXT NOT NULL DEFAULT ''
+                    CHECK(outcome IN ('', 'mastered', 'needs_work', 'assisted')),
+                sort_order INTEGER NOT NULL CHECK(sort_order >= 0),
+                created_at TEXT NOT NULL,
+                completed_at TEXT NOT NULL DEFAULT '',
+                UNIQUE(session_id, sort_order),
+                UNIQUE(id, session_id),
+                FOREIGN KEY(session_id)
+                    REFERENCES coach_learning_sessions(id) ON DELETE CASCADE,
+                FOREIGN KEY(knowledge_point_id)
+                    REFERENCES coach_knowledge_points(id) ON DELETE RESTRICT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_coach_learning_steps_session
+                ON coach_learning_steps(session_id, sort_order);
+
+            CREATE TABLE IF NOT EXISTS coach_learning_step_sources (
+                step_id TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                sort_order INTEGER NOT NULL CHECK(sort_order >= 0),
+                PRIMARY KEY(step_id, source_id),
+                UNIQUE(step_id, sort_order),
+                FOREIGN KEY(step_id)
+                    REFERENCES coach_learning_steps(id) ON DELETE CASCADE,
+                FOREIGN KEY(source_id)
+                    REFERENCES coach_knowledge_sources(id) ON DELETE RESTRICT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_coach_learning_step_sources_source
+                ON coach_learning_step_sources(source_id);
+
+            CREATE TABLE IF NOT EXISTS coach_learning_exercises (
+                id TEXT PRIMARY KEY,
+                step_id TEXT NOT NULL,
+                variant TEXT NOT NULL
+                    CHECK(variant IN ('primary', 'reinforcement')),
+                question_type TEXT NOT NULL
+                    CHECK(question_type IN (
+                        'concept', 'flow', 'code_location', 'sql_query'
+                    )),
+                prompt TEXT NOT NULL,
+                expected_points_json TEXT NOT NULL DEFAULT '[]',
+                reference_answer TEXT NOT NULL,
+                sort_order INTEGER NOT NULL CHECK(sort_order >= 0),
+                revealed_at TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL,
+                UNIQUE(step_id, variant),
+                UNIQUE(step_id, sort_order),
+                UNIQUE(id, step_id),
+                FOREIGN KEY(step_id)
+                    REFERENCES coach_learning_steps(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_coach_learning_exercises_step
+                ON coach_learning_exercises(step_id, sort_order);
+
+            CREATE TABLE IF NOT EXISTS coach_sql_exercise_fixtures (
+                exercise_id TEXT PRIMARY KEY,
+                schema_json TEXT NOT NULL,
+                seed_rows_json TEXT NOT NULL,
+                expected_columns_json TEXT NOT NULL,
+                expected_rows_json TEXT NOT NULL,
+                order_sensitive INTEGER NOT NULL DEFAULT 0
+                    CHECK(order_sensitive IN (0, 1)),
+                required_semantics_json TEXT NOT NULL DEFAULT '{}',
+                limits_json TEXT NOT NULL DEFAULT '{}',
+                fixture_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(exercise_id)
+                    REFERENCES coach_learning_exercises(id) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS coach_learning_attempts (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                step_id TEXT NOT NULL,
+                exercise_id TEXT NOT NULL,
+                attempt_no INTEGER NOT NULL
+                    CHECK(attempt_no > 0 AND attempt_no <= 3),
+                idempotency_key TEXT NOT NULL,
+                request_hash TEXT NOT NULL,
+                answer TEXT NOT NULL,
+                status TEXT NOT NULL
+                    CHECK(status IN ('grading', 'evaluated', 'failed')),
+                evaluator TEXT NOT NULL DEFAULT ''
+                    CHECK(evaluator IN ('', 'rule', 'model', 'sql')),
+                score REAL CHECK(score IS NULL OR (score >= 0 AND score <= 1)),
+                confidence REAL
+                    CHECK(confidence IS NULL OR (confidence >= 0 AND confidence <= 1)),
+                feedback TEXT NOT NULL DEFAULT '',
+                error_code TEXT NOT NULL DEFAULT '',
+                error_message TEXT NOT NULL DEFAULT '',
+                result_preview_json TEXT NOT NULL DEFAULT 'null',
+                scoring_details_json TEXT NOT NULL DEFAULT '{}',
+                counts_for_mastery INTEGER NOT NULL DEFAULT 0
+                    CHECK(counts_for_mastery IN (0, 1)),
+                created_at TEXT NOT NULL,
+                evaluated_at TEXT NOT NULL DEFAULT '',
+                UNIQUE(step_id, attempt_no),
+                UNIQUE(session_id, idempotency_key),
+                FOREIGN KEY(session_id)
+                    REFERENCES coach_learning_sessions(id) ON DELETE CASCADE,
+                FOREIGN KEY(step_id, session_id)
+                    REFERENCES coach_learning_steps(id, session_id) ON DELETE CASCADE,
+                FOREIGN KEY(exercise_id, step_id)
+                    REFERENCES coach_learning_exercises(id, step_id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_coach_learning_attempts_session
+                ON coach_learning_attempts(session_id, created_at);
+
+            CREATE INDEX IF NOT EXISTS idx_coach_learning_attempts_evidence
+                ON coach_learning_attempts(
+                    session_id, counts_for_mastery, evaluated_at
+                );
             """
         )
+
+    def create_coach_learning_session(
+        self,
+        project_id: str,
+        analysis_run_id: str,
+        target_type: str,
+        target_id: str,
+        steps: Iterable[Mapping[str, Any]],
+        *,
+        origin_type: str = "coach",
+        plan_id: str = "",
+        plan_item_id: str = "",
+    ) -> CoachLearningSession:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_run_id = _required_text_value(analysis_run_id, "analysis_run_id")
+        clean_target_type = _enum_value(
+            target_type, "target_type", LEARNING_SESSION_TARGET_TYPES
+        )
+        clean_target_id = _required_text_value(target_id, "target_id")
+        clean_origin_type = _enum_value(
+            origin_type, "origin_type", LEARNING_SESSION_ORIGIN_TYPES
+        )
+        clean_plan_id = str(plan_id or "").strip()
+        clean_plan_item_id = str(plan_item_id or "").strip()
+        if bool(clean_plan_id) != bool(clean_plan_item_id):
+            raise ValueError("plan_id and plan_item_id must be provided together")
+        if clean_origin_type == "learning_plan" and not clean_plan_id:
+            raise ValueError("learning_plan origin requires plan linkage")
+        step_drafts = list(steps)
+        if not step_drafts:
+            raise ValueError("at least one learning step is required")
+
+        session_id = str(uuid.uuid4())
+        now = _utc_now()
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            _require_project(conn, clean_project_id)
+            _require_analysis_run(conn, clean_project_id, clean_run_id)
+            _require_assessment_target(
+                conn,
+                clean_project_id,
+                clean_run_id,
+                clean_target_type,
+                clean_target_id,
+            )
+            if _active_learning_session_row(conn, clean_project_id, clean_run_id):
+                raise ValueError("learning_session_active_conflict")
+            _require_learning_plan_link(
+                conn,
+                clean_project_id,
+                clean_run_id,
+                clean_plan_id,
+                clean_plan_item_id,
+            )
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO coach_learning_sessions
+                        (id, project_id, analysis_run_id, target_type, target_id,
+                         origin_type, plan_id, plan_item_id, status,
+                         current_step_id, version, outcome, created_at, updated_at,
+                         completed_at, abandoned_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ready', NULL, 1, '', ?, ?, '', '')
+                    """,
+                    (
+                        session_id,
+                        clean_project_id,
+                        clean_run_id,
+                        clean_target_type,
+                        clean_target_id,
+                        clean_origin_type,
+                        clean_plan_id or None,
+                        clean_plan_item_id or None,
+                        now,
+                        now,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                if _active_learning_session_row(
+                    conn, clean_project_id, clean_run_id
+                ):
+                    raise ValueError("learning_session_active_conflict") from exc
+                raise
+
+            step_ids: list[tuple[int, str]] = []
+            seen_step_orders: set[int] = set()
+            for fallback_order, draft in enumerate(step_drafts):
+                if not isinstance(draft, Mapping):
+                    raise ValueError("learning step must be an object")
+                knowledge_point_id = _required_mapping_text(
+                    draft, "knowledge_point_id"
+                )
+                _require_question_knowledge_point(
+                    conn,
+                    clean_project_id,
+                    clean_run_id,
+                    clean_target_type,
+                    clean_target_id,
+                    knowledge_point_id,
+                )
+                source_ids = _non_empty_text_list(
+                    draft.get("source_ids"), "source_ids"
+                )
+                _require_sources_for_analysis_run(
+                    conn,
+                    clean_project_id,
+                    clean_run_id,
+                    source_ids,
+                    knowledge_point_id,
+                )
+                sort_order = _non_negative_integer(
+                    draft.get("sort_order"),
+                    fallback_order,
+                    "sort_order",
+                )
+                if sort_order in seen_step_orders:
+                    raise ValueError("learning step sort_order must be unique")
+                seen_step_orders.add(sort_order)
+                completion_threshold = _unit_interval(
+                    draft.get("completion_threshold", 0.75),
+                    "completion_threshold",
+                )
+                max_attempts = _bounded_integer(
+                    draft.get("max_attempts"),
+                    3,
+                    "max_attempts",
+                    1,
+                    3,
+                )
+                exercise_drafts = list(draft.get("exercises") or ())
+                if not exercise_drafts:
+                    raise ValueError("learning step requires exercises")
+
+                step_id = str(uuid.uuid4())
+                step_ids.append((sort_order, step_id))
+                conn.execute(
+                    """
+                    INSERT INTO coach_learning_steps
+                        (id, session_id, knowledge_point_id, title, explanation,
+                         completion_threshold, max_attempts, status, outcome,
+                         sort_order, created_at, completed_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'ready', '', ?, ?, '')
+                    """,
+                    (
+                        step_id,
+                        session_id,
+                        knowledge_point_id,
+                        _required_mapping_text(draft, "title"),
+                        _required_mapping_text(draft, "explanation"),
+                        completion_threshold,
+                        max_attempts,
+                        sort_order,
+                        now,
+                    ),
+                )
+                conn.executemany(
+                    """
+                    INSERT INTO coach_learning_step_sources
+                        (step_id, source_id, sort_order)
+                    VALUES (?, ?, ?)
+                    """,
+                    [
+                        (step_id, source_id, source_order)
+                        for source_order, source_id in enumerate(source_ids)
+                    ],
+                )
+                _insert_learning_exercises(conn, step_id, exercise_drafts, now)
+
+            current_step_id = min(step_ids)[1]
+            conn.execute(
+                """
+                UPDATE coach_learning_sessions
+                SET current_step_id = ?
+                WHERE id = ?
+                """,
+                (current_step_id, session_id),
+            )
+            session = _learning_session_from_db(conn, clean_project_id, session_id)
+        if session is None:
+            raise RuntimeError("learning session was not persisted")
+        return session
+
+    def get_active_coach_learning_session(
+        self,
+        project_id: str,
+        analysis_run_id: str,
+    ) -> CoachLearningSession | None:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_run_id = _required_text_value(analysis_run_id, "analysis_run_id")
+        with self._connect() as conn:
+            row = _active_learning_session_row(
+                conn, clean_project_id, clean_run_id
+            )
+            if not row:
+                return None
+            return _learning_session_from_db(
+                conn, clean_project_id, str(row["id"])
+            )
+
+    def get_coach_learning_session(
+        self,
+        project_id: str,
+        session_id: str,
+    ) -> CoachLearningSession | None:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_session_id = _required_text_value(session_id, "session_id")
+        with self._connect() as conn:
+            return _learning_session_from_db(
+                conn, clean_project_id, clean_session_id
+            )
+
+    def list_coach_learning_sessions(
+        self,
+        project_id: str,
+        limit: int = 500,
+    ) -> list[CoachLearningSession]:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_limit = _bounded_integer(limit, 500, "limit", 1, 500)
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id
+                FROM coach_learning_sessions
+                WHERE project_id = ?
+                ORDER BY created_at DESC, rowid DESC
+                LIMIT ?
+                """,
+                (clean_project_id, clean_limit),
+            ).fetchall()
+            sessions = [
+                _learning_session_from_db(
+                    conn,
+                    clean_project_id,
+                    str(row["id"]),
+                )
+                for row in rows
+            ]
+            return [session for session in sessions if session is not None]
+
+    def list_coach_learning_attempts(
+        self,
+        project_id: str,
+        session_id: str,
+        step_id: str = "",
+    ) -> list[CoachLearningAttempt]:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_session_id = _required_text_value(session_id, "session_id")
+        clean_step_id = str(step_id or "").strip()
+        with self._connect() as conn:
+            if not _learning_session_row(conn, clean_project_id, clean_session_id):
+                return []
+            sql = """
+                SELECT a.*
+                FROM coach_learning_attempts a
+                WHERE a.session_id = ?
+            """
+            params: list[object] = [clean_session_id]
+            if clean_step_id:
+                sql += " AND a.step_id = ?"
+                params.append(clean_step_id)
+            sql += " ORDER BY a.created_at ASC, a.attempt_no ASC, a.id ASC"
+            rows = conn.execute(sql, params).fetchall()
+            return [_learning_attempt_from_row(row) for row in rows]
+
+    def transition_coach_learning_session(
+        self,
+        project_id: str,
+        session_id: str,
+        expected_version: int,
+        status: str,
+        *,
+        current_step_id: str | None = None,
+        outcome: str | None = None,
+        step_id: str = "",
+        step_status: str = "",
+        step_outcome: str | None = None,
+        reveal_exercise_id: str = "",
+    ) -> CoachLearningSession:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_session_id = _required_text_value(session_id, "session_id")
+        clean_status = _enum_value(
+            status, "status", LEARNING_SESSION_STATUSES
+        )
+        clean_expected_version = _positive_integer(
+            expected_version, "expected_version"
+        )
+        clean_outcome = (
+            None
+            if outcome is None
+            else _enum_value(outcome, "outcome", LEARNING_OUTCOMES)
+        )
+        clean_step_id = str(step_id or "").strip()
+        clean_step_status = str(step_status or "").strip()
+        if clean_step_status:
+            clean_step_status = _enum_value(
+                clean_step_status, "step_status", LEARNING_STEP_STATUSES
+            )
+            if not clean_step_id:
+                raise ValueError("step_id is required when step_status is provided")
+        clean_step_outcome = (
+            None
+            if step_outcome is None
+            else _enum_value(
+                step_outcome, "step_outcome", LEARNING_OUTCOMES
+            )
+        )
+        clean_reveal_id = str(reveal_exercise_id or "").strip()
+        now = _utc_now()
+
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = _learning_session_row(conn, clean_project_id, clean_session_id)
+            if not row:
+                raise ValueError("learning session not found")
+            if int(row["version"]) != clean_expected_version:
+                raise ValueError("learning_session_version_conflict")
+
+            next_step_id: str | None | object = _UNCHANGED
+            if current_step_id is not None:
+                candidate_step_id = str(current_step_id).strip()
+                if candidate_step_id:
+                    _require_learning_step(
+                        conn, clean_session_id, candidate_step_id
+                    )
+                    next_step_id = candidate_step_id
+                else:
+                    next_step_id = None
+
+            if clean_step_id:
+                _require_learning_step(conn, clean_session_id, clean_step_id)
+                step_assignments: list[str] = []
+                step_values: list[object] = []
+                if clean_step_status:
+                    step_assignments.append("status = ?")
+                    step_values.append(clean_step_status)
+                    if clean_step_status == "completed":
+                        step_assignments.append("completed_at = ?")
+                        step_values.append(now)
+                if clean_step_outcome is not None:
+                    step_assignments.append("outcome = ?")
+                    step_values.append(clean_step_outcome)
+                if step_assignments:
+                    step_values.extend((clean_step_id, clean_session_id))
+                    conn.execute(
+                        f"""
+                        UPDATE coach_learning_steps
+                        SET {", ".join(step_assignments)}
+                        WHERE id = ? AND session_id = ?
+                        """,
+                        step_values,
+                    )
+
+            if clean_reveal_id:
+                exercise_row = conn.execute(
+                    """
+                    SELECT e.id
+                    FROM coach_learning_exercises e
+                    JOIN coach_learning_steps s ON s.id = e.step_id
+                    WHERE e.id = ? AND s.session_id = ?
+                    """,
+                    (clean_reveal_id, clean_session_id),
+                ).fetchone()
+                if not exercise_row:
+                    raise ValueError("learning exercise does not belong to session")
+                conn.execute(
+                    """
+                    UPDATE coach_learning_exercises
+                    SET revealed_at = CASE
+                        WHEN revealed_at = '' THEN ?
+                        ELSE revealed_at
+                    END
+                    WHERE id = ?
+                    """,
+                    (now, clean_reveal_id),
+                )
+
+            assignments = [
+                "status = ?",
+                "version = version + 1",
+                "updated_at = ?",
+            ]
+            values: list[object] = [clean_status, now]
+            if next_step_id is not _UNCHANGED:
+                assignments.append("current_step_id = ?")
+                values.append(next_step_id)
+            if clean_outcome is not None:
+                assignments.append("outcome = ?")
+                values.append(clean_outcome)
+            if clean_status == "completed":
+                assignments.append("completed_at = ?")
+                values.append(now)
+            if clean_status == "abandoned":
+                assignments.append("abandoned_at = ?")
+                values.append(now)
+            values.extend(
+                (clean_session_id, clean_project_id, clean_expected_version)
+            )
+            cursor = conn.execute(
+                f"""
+                UPDATE coach_learning_sessions
+                SET {", ".join(assignments)}
+                WHERE id = ? AND project_id = ? AND version = ?
+                """,
+                values,
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("learning_session_version_conflict")
+            session = _learning_session_from_db(
+                conn, clean_project_id, clean_session_id
+            )
+        if session is None:
+            raise RuntimeError("learning session disappeared")
+        return session
+
+    def reserve_coach_learning_attempt(
+        self,
+        project_id: str,
+        session_id: str,
+        exercise_id: str,
+        answer: str,
+        expected_version: int,
+        idempotency_key: str,
+        request_hash: str,
+    ) -> tuple[CoachLearningAttempt, CoachLearningSession, bool]:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_session_id = _required_text_value(session_id, "session_id")
+        clean_exercise_id = _required_text_value(exercise_id, "exercise_id")
+        raw_answer = str(answer)
+        if not raw_answer.strip():
+            raise ValueError("answer is required")
+        clean_expected_version = _positive_integer(
+            expected_version, "expected_version"
+        )
+        clean_idempotency_key = _required_text_value(
+            idempotency_key, "idempotency_key"
+        )
+        clean_request_hash = _required_text_value(request_hash, "request_hash")
+        now = _utc_now()
+
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            existing = _learning_attempt_by_idempotency(
+                conn,
+                clean_project_id,
+                clean_session_id,
+                clean_idempotency_key,
+            )
+            if existing:
+                if (
+                    str(existing["request_hash"]) != clean_request_hash
+                    or str(existing["exercise_id"]) != clean_exercise_id
+                    or str(existing["answer"]) != raw_answer
+                ):
+                    raise ValueError("learning_attempt_idempotency_conflict")
+                session = _learning_session_from_db(
+                    conn, clean_project_id, clean_session_id
+                )
+                if session is None:
+                    raise RuntimeError("learning session disappeared")
+                return _learning_attempt_from_row(existing), session, True
+
+            session_row = _learning_session_row(
+                conn, clean_project_id, clean_session_id
+            )
+            if not session_row:
+                raise ValueError("learning session not found")
+            if int(session_row["version"]) != clean_expected_version:
+                raise ValueError("learning_session_version_conflict")
+            exercise_row = conn.execute(
+                """
+                SELECT e.id, e.step_id, s.max_attempts
+                FROM coach_learning_exercises e
+                JOIN coach_learning_steps s ON s.id = e.step_id
+                WHERE e.id = ? AND s.session_id = ?
+                """,
+                (clean_exercise_id, clean_session_id),
+            ).fetchone()
+            if not exercise_row:
+                raise ValueError("learning exercise does not belong to session")
+            step_id_value = str(exercise_row["step_id"])
+            count_row = conn.execute(
+                """
+                SELECT COUNT(*) AS attempt_count
+                FROM coach_learning_attempts
+                WHERE step_id = ?
+                """,
+                (step_id_value,),
+            ).fetchone()
+            attempt_no = int(count_row["attempt_count"]) + 1
+            if attempt_no > int(exercise_row["max_attempts"]):
+                raise ValueError("learning_attempt_limit_reached")
+
+            attempt_id = str(uuid.uuid4())
+            conn.execute(
+                """
+                INSERT INTO coach_learning_attempts
+                    (id, session_id, step_id, exercise_id, attempt_no,
+                     idempotency_key, request_hash, answer, status, evaluator,
+                     score, confidence, feedback, error_code, error_message,
+                     result_preview_json, scoring_details_json,
+                     counts_for_mastery, created_at, evaluated_at)
+                VALUES (
+                    ?, ?, ?, ?, ?, ?, ?, ?, 'grading', '',
+                    NULL, NULL, '', '', '', 'null', '{}', 0, ?, ''
+                )
+                """,
+                (
+                    attempt_id,
+                    clean_session_id,
+                    step_id_value,
+                    clean_exercise_id,
+                    attempt_no,
+                    clean_idempotency_key,
+                    clean_request_hash,
+                    raw_answer,
+                    now,
+                ),
+            )
+            cursor = conn.execute(
+                """
+                UPDATE coach_learning_sessions
+                SET version = version + 1, updated_at = ?
+                WHERE id = ? AND project_id = ? AND version = ?
+                """,
+                (
+                    now,
+                    clean_session_id,
+                    clean_project_id,
+                    clean_expected_version,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("learning_session_version_conflict")
+            attempt_row = _learning_attempt_row(
+                conn, clean_project_id, attempt_id
+            )
+            session = _learning_session_from_db(
+                conn, clean_project_id, clean_session_id
+            )
+        if attempt_row is None or session is None:
+            raise RuntimeError("learning attempt reservation was not persisted")
+        return _learning_attempt_from_row(attempt_row), session, False
+
+    def finalize_coach_learning_attempt(
+        self,
+        project_id: str,
+        session_id: str,
+        attempt_id: str,
+        expected_version: int,
+        *,
+        evaluator: str,
+        score: float,
+        confidence: float = 1.0,
+        feedback: str = "",
+        error_code: str = "",
+        error_message: str = "",
+        result_preview: object = None,
+        scoring_details: Mapping[str, Any] | None = None,
+        counts_for_mastery: bool = False,
+        session_status: str = "evaluated",
+        session_outcome: str | None = None,
+        step_status: str = "evaluated",
+        step_outcome: str | None = None,
+        plan_item_status: str = "",
+    ) -> tuple[CoachLearningAttempt, CoachLearningSession, str]:
+        clean_project_id = _required_text_value(project_id, "project_id")
+        clean_session_id = _required_text_value(session_id, "session_id")
+        clean_attempt_id = _required_text_value(attempt_id, "attempt_id")
+        clean_expected_version = _positive_integer(
+            expected_version, "expected_version"
+        )
+        clean_evaluator = _enum_value(
+            evaluator,
+            "evaluator",
+            LEARNING_ATTEMPT_EVALUATORS - {""},
+        )
+        clean_score = _unit_interval(score, "score")
+        clean_confidence = _unit_interval(confidence, "confidence")
+        clean_session_status = _enum_value(
+            session_status, "session_status", LEARNING_SESSION_STATUSES
+        )
+        clean_step_status = _enum_value(
+            step_status, "step_status", LEARNING_STEP_STATUSES
+        )
+        clean_session_outcome = (
+            None
+            if session_outcome is None
+            else _enum_value(
+                session_outcome, "session_outcome", LEARNING_OUTCOMES
+            )
+        )
+        clean_step_outcome = (
+            None
+            if step_outcome is None
+            else _enum_value(
+                step_outcome, "step_outcome", LEARNING_OUTCOMES
+            )
+        )
+        clean_plan_status = str(plan_item_status or "").strip()
+        if clean_plan_status not in {"", "in_progress", "done"}:
+            raise ValueError("plan_item_status must be in_progress or done")
+        clean_details = dict(scoring_details or {})
+        now = _utc_now()
+
+        with self._connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            attempt_row = _learning_attempt_row(
+                conn, clean_project_id, clean_attempt_id
+            )
+            if (
+                not attempt_row
+                or str(attempt_row["session_id"]) != clean_session_id
+            ):
+                raise ValueError("learning attempt not found")
+            if str(attempt_row["status"]) != "grading":
+                session = _learning_session_from_db(
+                    conn, clean_project_id, clean_session_id
+                )
+                if session is None:
+                    raise RuntimeError("learning session disappeared")
+                return _learning_attempt_from_row(attempt_row), session, "unchanged"
+            session_row = _learning_session_row(
+                conn, clean_project_id, clean_session_id
+            )
+            if not session_row:
+                raise ValueError("learning session not found")
+            if int(session_row["version"]) != clean_expected_version:
+                raise ValueError("learning_session_version_conflict")
+
+            conn.execute(
+                """
+                UPDATE coach_learning_attempts
+                SET status = 'evaluated', evaluator = ?, score = ?,
+                    confidence = ?, feedback = ?, error_code = ?,
+                    error_message = ?, result_preview_json = ?,
+                    scoring_details_json = ?, counts_for_mastery = ?,
+                    evaluated_at = ?
+                WHERE id = ? AND status = 'grading'
+                """,
+                (
+                    clean_evaluator,
+                    clean_score,
+                    clean_confidence,
+                    str(feedback or ""),
+                    str(error_code or ""),
+                    str(error_message or ""),
+                    _json_dump(result_preview),
+                    _json_dump(clean_details),
+                    int(bool(counts_for_mastery)),
+                    now,
+                    clean_attempt_id,
+                ),
+            )
+            step_id_value = str(attempt_row["step_id"])
+            step_assignments = ["status = ?"]
+            step_values: list[object] = [clean_step_status]
+            if clean_step_outcome is not None:
+                step_assignments.append("outcome = ?")
+                step_values.append(clean_step_outcome)
+            if clean_step_status == "completed":
+                step_assignments.append("completed_at = ?")
+                step_values.append(now)
+            step_values.extend((step_id_value, clean_session_id))
+            conn.execute(
+                f"""
+                UPDATE coach_learning_steps
+                SET {", ".join(step_assignments)}
+                WHERE id = ? AND session_id = ?
+                """,
+                step_values,
+            )
+
+            plan_sync = _sync_linked_learning_plan_item(
+                conn, session_row, clean_plan_status
+            )
+            session_assignments = [
+                "status = ?",
+                "version = version + 1",
+                "updated_at = ?",
+            ]
+            session_values: list[object] = [clean_session_status, now]
+            if clean_session_outcome is not None:
+                session_assignments.append("outcome = ?")
+                session_values.append(clean_session_outcome)
+            if clean_session_status == "completed":
+                session_assignments.append("completed_at = ?")
+                session_values.append(now)
+            if clean_session_status == "abandoned":
+                session_assignments.append("abandoned_at = ?")
+                session_values.append(now)
+            session_values.extend(
+                (clean_session_id, clean_project_id, clean_expected_version)
+            )
+            cursor = conn.execute(
+                f"""
+                UPDATE coach_learning_sessions
+                SET {", ".join(session_assignments)}
+                WHERE id = ? AND project_id = ? AND version = ?
+                """,
+                session_values,
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("learning_session_version_conflict")
+            finalized_row = _learning_attempt_row(
+                conn, clean_project_id, clean_attempt_id
+            )
+            session = _learning_session_from_db(
+                conn, clean_project_id, clean_session_id
+            )
+        if finalized_row is None or session is None:
+            raise RuntimeError("learning attempt finalization was not persisted")
+        return _learning_attempt_from_row(finalized_row), session, plan_sync
 
     def create_coach_assessment_session(
         self,
@@ -917,6 +1839,516 @@ class CoachProgressStoreMixin:
         return plan
 
 
+def _insert_learning_exercises(
+    conn: sqlite3.Connection,
+    step_id: str,
+    exercise_drafts: Iterable[Mapping[str, Any]],
+    created_at: str,
+) -> None:
+    seen_variants: set[str] = set()
+    seen_orders: set[int] = set()
+    for fallback_order, draft in enumerate(exercise_drafts):
+        if not isinstance(draft, Mapping):
+            raise ValueError("learning exercise must be an object")
+        variant = _enum_value(
+            draft.get("variant"),
+            "variant",
+            LEARNING_EXERCISE_VARIANTS,
+        )
+        if variant in seen_variants:
+            raise ValueError("learning exercise variant must be unique")
+        seen_variants.add(variant)
+        question_type = _enum_value(
+            draft.get("question_type"),
+            "question_type",
+            LEARNING_EXERCISE_TYPES,
+        )
+        sort_order = _non_negative_integer(
+            draft.get("sort_order"),
+            fallback_order,
+            "sort_order",
+        )
+        if sort_order in seen_orders:
+            raise ValueError("learning exercise sort_order must be unique")
+        seen_orders.add(sort_order)
+        expected_points = _text_list(
+            draft.get("expected_points") or (),
+            "expected_points",
+        )
+        exercise_id = str(uuid.uuid4())
+        conn.execute(
+            """
+            INSERT INTO coach_learning_exercises
+                (id, step_id, variant, question_type, prompt,
+                 expected_points_json, reference_answer, sort_order,
+                 revealed_at, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', ?)
+            """,
+            (
+                exercise_id,
+                step_id,
+                variant,
+                question_type,
+                _required_mapping_text(draft, "prompt"),
+                _json_dump(expected_points),
+                _required_mapping_text(draft, "reference_answer"),
+                sort_order,
+                created_at,
+            ),
+        )
+        fixture = draft.get("sql_fixture")
+        if question_type == "sql_query":
+            if not isinstance(fixture, Mapping):
+                raise ValueError("sql_query exercise requires sql_fixture")
+            _insert_sql_exercise_fixture(
+                conn,
+                exercise_id,
+                fixture,
+                created_at,
+            )
+        elif fixture is not None:
+            raise ValueError("sql_fixture is only valid for sql_query exercises")
+    if "primary" not in seen_variants:
+        raise ValueError("learning step requires a primary exercise")
+
+
+def _insert_sql_exercise_fixture(
+    conn: sqlite3.Connection,
+    exercise_id: str,
+    fixture: Mapping[str, Any],
+    created_at: str,
+) -> None:
+    schema = _mapping_list(fixture.get("schema"), "schema")
+    if not schema:
+        raise ValueError("sql fixture schema requires at least one table")
+    if len(schema) > 8:
+        raise ValueError("sql fixture schema supports at most 8 tables")
+    seed_rows = _seed_rows_mapping(fixture.get("seed_rows"))
+    if sum(len(rows) for rows in seed_rows.values()) > 1000:
+        raise ValueError("sql fixture supports at most 1000 seed rows")
+    expected_columns = _non_empty_text_list(
+        fixture.get("expected_columns"),
+        "expected_columns",
+    )
+    expected_rows = _row_list(fixture.get("expected_rows"), "expected_rows")
+    required_semantics = _mapping_value(
+        fixture.get("required_semantics"),
+        "required_semantics",
+    )
+    limits = _mapping_value(fixture.get("limits"), "limits")
+    fixture_hash = _required_mapping_text(fixture, "fixture_hash")
+    conn.execute(
+        """
+        INSERT INTO coach_sql_exercise_fixtures
+            (exercise_id, schema_json, seed_rows_json, expected_columns_json,
+             expected_rows_json, order_sensitive, required_semantics_json,
+             limits_json, fixture_hash, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            exercise_id,
+            _json_dump(schema),
+            _json_dump(seed_rows),
+            _json_dump(expected_columns),
+            _json_dump(expected_rows),
+            int(bool(fixture.get("order_sensitive", False))),
+            _json_dump(required_semantics),
+            _json_dump(limits),
+            fixture_hash,
+            created_at,
+        ),
+    )
+
+
+def _require_learning_plan_link(
+    conn: sqlite3.Connection,
+    project_id: str,
+    analysis_run_id: str,
+    plan_id: str,
+    plan_item_id: str,
+) -> None:
+    if not plan_id and not plan_item_id:
+        return
+    row = conn.execute(
+        """
+        SELECT p.id
+        FROM coach_learning_plans p
+        JOIN coach_learning_plan_items i ON i.plan_id = p.id
+        WHERE p.id = ?
+          AND i.id = ?
+          AND p.project_id = ?
+          AND p.based_on_run_id = ?
+          AND p.status = 'confirmed'
+          AND i.item_type = 'learning'
+        """,
+        (plan_id, plan_item_id, project_id, analysis_run_id),
+    ).fetchone()
+    if not row:
+        raise ValueError(
+            "learning plan item must belong to the current confirmed plan"
+        )
+
+
+def _learning_session_row(
+    conn: sqlite3.Connection,
+    project_id: str,
+    session_id: str,
+) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT id, project_id, analysis_run_id, target_type, target_id,
+               origin_type, plan_id, plan_item_id, status, current_step_id,
+               version, outcome, created_at, updated_at, completed_at,
+               abandoned_at
+        FROM coach_learning_sessions
+        WHERE id = ? AND project_id = ?
+        """,
+        (session_id, project_id),
+    ).fetchone()
+
+
+def _active_learning_session_row(
+    conn: sqlite3.Connection,
+    project_id: str,
+    analysis_run_id: str,
+) -> sqlite3.Row | None:
+    placeholders = ",".join(
+        "?" for _ in LEARNING_SESSION_NON_TERMINAL_STATUSES
+    )
+    return conn.execute(
+        f"""
+        SELECT id, project_id, analysis_run_id, target_type, target_id,
+               origin_type, plan_id, plan_item_id, status, current_step_id,
+               version, outcome, created_at, updated_at, completed_at,
+               abandoned_at
+        FROM coach_learning_sessions
+        WHERE project_id = ?
+          AND analysis_run_id = ?
+          AND status IN ({placeholders})
+        ORDER BY updated_at DESC, rowid DESC
+        LIMIT 1
+        """,
+        (
+            project_id,
+            analysis_run_id,
+            *sorted(LEARNING_SESSION_NON_TERMINAL_STATUSES),
+        ),
+    ).fetchone()
+
+
+def _learning_session_from_db(
+    conn: sqlite3.Connection,
+    project_id: str,
+    session_id: str,
+) -> CoachLearningSession | None:
+    row = _learning_session_row(conn, project_id, session_id)
+    if not row:
+        return None
+    step_rows = conn.execute(
+        """
+        SELECT id, session_id, knowledge_point_id, title, explanation,
+               completion_threshold, max_attempts, status, outcome,
+               sort_order, created_at, completed_at
+        FROM coach_learning_steps
+        WHERE session_id = ?
+        ORDER BY sort_order ASC, rowid ASC
+        """,
+        (session_id,),
+    ).fetchall()
+    steps = tuple(
+        _learning_step_from_row(
+            conn,
+            step_row,
+            _learning_exercises_for_step(conn, str(step_row["id"])),
+            _learning_attempts_for_step(conn, str(step_row["id"])),
+        )
+        for step_row in step_rows
+    )
+    return CoachLearningSession(
+        id=str(row["id"]),
+        project_id=str(row["project_id"]),
+        analysis_run_id=str(row["analysis_run_id"]),
+        target_type=str(row["target_type"]),
+        target_id=str(row["target_id"]),
+        origin_type=str(row["origin_type"]),
+        plan_id=str(row["plan_id"] or ""),
+        plan_item_id=str(row["plan_item_id"] or ""),
+        status=str(row["status"]),
+        current_step_id=str(row["current_step_id"] or ""),
+        version=int(row["version"]),
+        outcome=str(row["outcome"]),
+        created_at=str(row["created_at"]),
+        updated_at=str(row["updated_at"]),
+        completed_at=str(row["completed_at"]),
+        abandoned_at=str(row["abandoned_at"]),
+        steps=steps,
+    )
+
+
+def _learning_step_from_row(
+    conn: sqlite3.Connection,
+    row: sqlite3.Row,
+    exercises: tuple[CoachLearningExercise, ...],
+    attempts: tuple[CoachLearningAttempt, ...],
+) -> CoachLearningStep:
+    source_rows = conn.execute(
+        """
+        SELECT source_id
+        FROM coach_learning_step_sources
+        WHERE step_id = ?
+        ORDER BY sort_order ASC, rowid ASC
+        """,
+        (str(row["id"]),),
+    ).fetchall()
+    return CoachLearningStep(
+        id=str(row["id"]),
+        session_id=str(row["session_id"]),
+        knowledge_point_id=str(row["knowledge_point_id"]),
+        title=str(row["title"]),
+        explanation=str(row["explanation"]),
+        completion_threshold=float(row["completion_threshold"]),
+        max_attempts=int(row["max_attempts"]),
+        status=str(row["status"]),
+        outcome=str(row["outcome"]),
+        sort_order=int(row["sort_order"]),
+        created_at=str(row["created_at"]),
+        completed_at=str(row["completed_at"]),
+        source_ids=tuple(str(source["source_id"]) for source in source_rows),
+        exercises=exercises,
+        attempts=attempts,
+    )
+
+
+def _learning_exercises_for_step(
+    conn: sqlite3.Connection,
+    step_id: str,
+) -> tuple[CoachLearningExercise, ...]:
+    rows = conn.execute(
+        """
+        SELECT id, step_id, variant, question_type, prompt,
+               expected_points_json, reference_answer, sort_order,
+               revealed_at, created_at
+        FROM coach_learning_exercises
+        WHERE step_id = ?
+        ORDER BY sort_order ASC, rowid ASC
+        """,
+        (step_id,),
+    ).fetchall()
+    return tuple(_learning_exercise_from_row(conn, row) for row in rows)
+
+
+def _learning_exercise_from_row(
+    conn: sqlite3.Connection,
+    row: sqlite3.Row,
+) -> CoachLearningExercise:
+    fixture_row = conn.execute(
+        """
+        SELECT exercise_id, schema_json, seed_rows_json,
+               expected_columns_json, expected_rows_json, order_sensitive,
+               required_semantics_json, limits_json, fixture_hash, created_at
+        FROM coach_sql_exercise_fixtures
+        WHERE exercise_id = ?
+        """,
+        (str(row["id"]),),
+    ).fetchone()
+    return CoachLearningExercise(
+        id=str(row["id"]),
+        step_id=str(row["step_id"]),
+        variant=str(row["variant"]),
+        question_type=str(row["question_type"]),
+        prompt=str(row["prompt"]),
+        expected_points=tuple(_json_text_list(row["expected_points_json"])),
+        reference_answer=str(row["reference_answer"]),
+        sort_order=int(row["sort_order"]),
+        revealed_at=str(row["revealed_at"]),
+        created_at=str(row["created_at"]),
+        sql_fixture=(
+            _sql_exercise_fixture_from_row(fixture_row)
+            if fixture_row is not None
+            else None
+        ),
+    )
+
+
+def _sql_exercise_fixture_from_row(row: sqlite3.Row) -> CoachSqlExerciseFixture:
+    schema = _json_list(row["schema_json"])
+    raw_seed_rows = _json_mapping(row["seed_rows_json"])
+    expected_rows = _json_list(row["expected_rows_json"])
+    return CoachSqlExerciseFixture(
+        exercise_id=str(row["exercise_id"]),
+        schema=tuple(
+            dict(item) for item in schema if isinstance(item, Mapping)
+        ),
+        seed_rows={
+            str(table_name): tuple(
+                dict(item)
+                for item in rows
+                if isinstance(item, Mapping)
+            )
+            for table_name, rows in raw_seed_rows.items()
+            if isinstance(rows, list)
+        },
+        expected_columns=tuple(
+            _json_text_list(row["expected_columns_json"])
+        ),
+        expected_rows=tuple(
+            tuple(item) if isinstance(item, list) else (item,)
+            for item in expected_rows
+        ),
+        order_sensitive=bool(row["order_sensitive"]),
+        required_semantics=_json_mapping(row["required_semantics_json"]),
+        limits=_json_mapping(row["limits_json"]),
+        fixture_hash=str(row["fixture_hash"]),
+        created_at=str(row["created_at"]),
+    )
+
+
+def _learning_attempts_for_step(
+    conn: sqlite3.Connection,
+    step_id: str,
+) -> tuple[CoachLearningAttempt, ...]:
+    rows = conn.execute(
+        """
+        SELECT *
+        FROM coach_learning_attempts
+        WHERE step_id = ?
+        ORDER BY attempt_no ASC, created_at ASC, id ASC
+        """,
+        (step_id,),
+    ).fetchall()
+    return tuple(_learning_attempt_from_row(row) for row in rows)
+
+
+def _learning_attempt_from_row(row: sqlite3.Row) -> CoachLearningAttempt:
+    return CoachLearningAttempt(
+        id=str(row["id"]),
+        session_id=str(row["session_id"]),
+        step_id=str(row["step_id"]),
+        exercise_id=str(row["exercise_id"]),
+        attempt_no=int(row["attempt_no"]),
+        idempotency_key=str(row["idempotency_key"]),
+        request_hash=str(row["request_hash"]),
+        answer=str(row["answer"]),
+        status=str(row["status"]),
+        evaluator=str(row["evaluator"]),
+        score=(float(row["score"]) if row["score"] is not None else None),
+        confidence=(
+            float(row["confidence"])
+            if row["confidence"] is not None
+            else None
+        ),
+        feedback=str(row["feedback"]),
+        error_code=str(row["error_code"]),
+        error_message=str(row["error_message"]),
+        result_preview=_json_load(row["result_preview_json"]),
+        scoring_details=_json_mapping(row["scoring_details_json"]),
+        counts_for_mastery=bool(row["counts_for_mastery"]),
+        created_at=str(row["created_at"]),
+        evaluated_at=str(row["evaluated_at"]),
+    )
+
+
+def _learning_attempt_row(
+    conn: sqlite3.Connection,
+    project_id: str,
+    attempt_id: str,
+) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT a.*
+        FROM coach_learning_attempts a
+        JOIN coach_learning_sessions s ON s.id = a.session_id
+        WHERE a.id = ? AND s.project_id = ?
+        """,
+        (attempt_id, project_id),
+    ).fetchone()
+
+
+def _learning_attempt_by_idempotency(
+    conn: sqlite3.Connection,
+    project_id: str,
+    session_id: str,
+    idempotency_key: str,
+) -> sqlite3.Row | None:
+    return conn.execute(
+        """
+        SELECT a.*
+        FROM coach_learning_attempts a
+        JOIN coach_learning_sessions s ON s.id = a.session_id
+        WHERE a.session_id = ?
+          AND a.idempotency_key = ?
+          AND s.project_id = ?
+        """,
+        (session_id, idempotency_key, project_id),
+    ).fetchone()
+
+
+def _require_learning_step(
+    conn: sqlite3.Connection,
+    session_id: str,
+    step_id: str,
+) -> None:
+    row = conn.execute(
+        """
+        SELECT id
+        FROM coach_learning_steps
+        WHERE id = ? AND session_id = ?
+        """,
+        (step_id, session_id),
+    ).fetchone()
+    if not row:
+        raise ValueError("learning step does not belong to session")
+
+
+def _sync_linked_learning_plan_item(
+    conn: sqlite3.Connection,
+    session_row: sqlite3.Row,
+    desired_status: str,
+) -> str:
+    plan_id = str(session_row["plan_id"] or "")
+    plan_item_id = str(session_row["plan_item_id"] or "")
+    if not plan_id or not plan_item_id:
+        return "not_linked"
+    if not desired_status:
+        return "unchanged"
+    row = conn.execute(
+        """
+        SELECT i.status
+        FROM coach_learning_plans p
+        JOIN coach_learning_plan_items i ON i.plan_id = p.id
+        WHERE p.id = ?
+          AND i.id = ?
+          AND p.project_id = ?
+          AND p.based_on_run_id = ?
+          AND p.status = 'confirmed'
+          AND i.item_type = 'learning'
+        """,
+        (
+            plan_id,
+            plan_item_id,
+            str(session_row["project_id"]),
+            str(session_row["analysis_run_id"]),
+        ),
+    ).fetchone()
+    if not row:
+        return "detached"
+    current_status = str(row["status"])
+    if current_status in {"done", "skipped"}:
+        return "unchanged"
+    if desired_status == "in_progress" and current_status != "todo":
+        return "unchanged"
+    conn.execute(
+        """
+        UPDATE coach_learning_plan_items
+        SET status = ?
+        WHERE id = ? AND plan_id = ?
+          AND status IN ('todo', 'in_progress')
+        """,
+        (desired_status, plan_item_id, plan_id),
+    )
+    return "updated"
+
+
 def _replace_learning_plan_items(
     conn: sqlite3.Connection,
     project_id: str,
@@ -1523,6 +2955,99 @@ def _integer(value: object, default: int) -> int:
         return default
 
 
+def _positive_integer(value: object, name: str) -> int:
+    try:
+        clean_value = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a positive integer") from exc
+    if clean_value <= 0:
+        raise ValueError(f"{name} must be a positive integer")
+    return clean_value
+
+
+def _non_negative_integer(value: object, default: int, name: str) -> int:
+    try:
+        clean_value = int(value) if value is not None else default
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a non-negative integer") from exc
+    if clean_value < 0:
+        raise ValueError(f"{name} must be a non-negative integer")
+    return clean_value
+
+
+def _bounded_integer(
+    value: object,
+    default: int,
+    name: str,
+    minimum: int,
+    maximum: int,
+) -> int:
+    try:
+        clean_value = int(value) if value is not None else default
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{name} must be between {minimum} and {maximum}"
+        ) from exc
+    if clean_value < minimum or clean_value > maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return clean_value
+
+
+def _mapping_list(value: object, name: str) -> list[dict[str, Any]]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise ValueError(f"{name} must be a list")
+    result: list[dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{name} entries must be objects")
+        result.append(dict(item))
+    return result
+
+
+def _mapping_value(value: object, name: str) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{name} must be an object")
+    return dict(value)
+
+
+def _seed_rows_mapping(value: object) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(value, Mapping):
+        raise ValueError("seed_rows must be an object")
+    result: dict[str, list[dict[str, Any]]] = {}
+    for raw_table_name, raw_rows in value.items():
+        table_name = str(raw_table_name).strip()
+        if not table_name:
+            raise ValueError("seed_rows table name is required")
+        if (
+            isinstance(raw_rows, (str, bytes, Mapping))
+            or not isinstance(raw_rows, Iterable)
+        ):
+            raise ValueError("seed_rows table value must be a list")
+        rows: list[dict[str, Any]] = []
+        for raw_row in raw_rows:
+            if not isinstance(raw_row, Mapping):
+                raise ValueError("seed_rows entries must be objects")
+            rows.append(dict(raw_row))
+        result[table_name] = rows
+    return result
+
+
+def _row_list(value: object, name: str) -> list[list[Any]]:
+    if isinstance(value, (str, bytes, Mapping)) or not isinstance(value, Iterable):
+        raise ValueError(f"{name} must be a list")
+    result: list[list[Any]] = []
+    for row in value:
+        if (
+            isinstance(row, (str, bytes, Mapping))
+            or not isinstance(row, Iterable)
+        ):
+            raise ValueError(f"{name} entries must be lists")
+        result.append(list(row))
+    return result
+
+
 def _json_dump(value: object) -> str:
     return json.dumps(value, ensure_ascii=False)
 
@@ -1539,6 +3064,18 @@ def _json_text_list(value: object) -> list[str]:
     return [str(item) for item in _json_list(value) if str(item).strip()]
 
 
+def _json_mapping(value: object) -> dict[str, Any]:
+    parsed = _json_load(value)
+    return dict(parsed) if isinstance(parsed, Mapping) else {}
+
+
+def _json_load(value: object) -> Any:
+    try:
+        return json.loads(str(value))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -1549,7 +3086,16 @@ __all__ = [
     "ASSESSMENT_SESSION_STATUSES",
     "ASSESSMENT_TARGET_TYPES",
     "CoachProgressStoreMixin",
+    "LEARNING_ATTEMPT_EVALUATORS",
+    "LEARNING_ATTEMPT_STATUSES",
+    "LEARNING_EXERCISE_TYPES",
+    "LEARNING_EXERCISE_VARIANTS",
+    "LEARNING_OUTCOMES",
     "LEARNING_PLAN_ITEM_STATUSES",
     "LEARNING_PLAN_ITEM_TYPES",
     "LEARNING_PLAN_STATUSES",
+    "LEARNING_SESSION_ORIGIN_TYPES",
+    "LEARNING_SESSION_STATUSES",
+    "LEARNING_SESSION_TARGET_TYPES",
+    "LEARNING_STEP_STATUSES",
 ]

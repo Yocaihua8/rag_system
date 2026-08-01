@@ -271,6 +271,296 @@ class CoachAssessmentResult:
 
 
 @dataclass(frozen=True)
+class CoachSqlExerciseFixture:
+    exercise_id: str
+    schema: tuple[dict[str, Any], ...]
+    seed_rows: dict[str, tuple[dict[str, Any], ...]]
+    expected_columns: tuple[str, ...]
+    expected_rows: tuple[tuple[Any, ...], ...]
+    order_sensitive: bool
+    required_semantics: dict[str, Any]
+    limits: dict[str, Any]
+    fixture_hash: str
+    created_at: str
+
+    def to_dict(self, include_scoring_basis: bool = False) -> dict[str, Any]:
+        data = {
+            "schema": [dict(table) for table in self.schema],
+            "seed_rows": {
+                table_name: [dict(row) for row in rows]
+                for table_name, rows in self.seed_rows.items()
+            },
+        }
+        if include_scoring_basis:
+            data.update(
+                {
+                    "expected_columns": list(self.expected_columns),
+                    "expected_rows": [list(row) for row in self.expected_rows],
+                    "order_sensitive": self.order_sensitive,
+                    "required_semantics": dict(self.required_semantics),
+                    "limits": dict(self.limits),
+                    "fixture_hash": self.fixture_hash,
+                }
+            )
+        return data
+
+
+@dataclass(frozen=True)
+class CoachLearningExercise:
+    id: str
+    step_id: str
+    variant: str
+    question_type: str
+    prompt: str
+    expected_points: tuple[str, ...]
+    reference_answer: str
+    sort_order: int
+    revealed_at: str
+    created_at: str
+    sql_fixture: CoachSqlExerciseFixture | None = None
+
+    def to_dict(self, include_scoring_basis: bool = False) -> dict[str, Any]:
+        data = {
+            "id": self.id,
+            "step_id": self.step_id,
+            "variant": self.variant,
+            "variant_no": 1 if self.variant == "primary" else 2,
+            "question_type": self.question_type,
+            "prompt": self.prompt,
+            "sort_order": self.sort_order,
+            "revealed_at": self.revealed_at,
+        }
+        if self.sql_fixture is not None:
+            data["sql_fixture"] = self.sql_fixture.to_dict(
+                include_scoring_basis=include_scoring_basis
+            )
+        if include_scoring_basis:
+            data["expected_points"] = list(self.expected_points)
+            data["reference_answer"] = self.reference_answer
+        return data
+
+
+@dataclass(frozen=True)
+class CoachLearningAttempt:
+    id: str
+    session_id: str
+    step_id: str
+    exercise_id: str
+    attempt_no: int
+    idempotency_key: str
+    request_hash: str
+    answer: str
+    status: str
+    evaluator: str
+    score: float | None
+    confidence: float | None
+    feedback: str
+    error_code: str
+    error_message: str
+    result_preview: Any
+    scoring_details: dict[str, Any]
+    counts_for_mastery: bool
+    created_at: str
+    evaluated_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "session_id": self.session_id,
+            "step_id": self.step_id,
+            "exercise_id": self.exercise_id,
+            "attempt_no": self.attempt_no,
+            "answer": self.answer,
+            "status": self.status,
+            "evaluator": self.evaluator,
+            "score": self.score,
+            "confidence": self.confidence,
+            "feedback": self.feedback,
+            "error_code": self.error_code,
+            "error_message": self.error_message,
+            "result_preview": self.result_preview,
+            "scoring_details": dict(self.scoring_details),
+            "counts_for_mastery": self.counts_for_mastery,
+            "created_at": self.created_at,
+            "evaluated_at": self.evaluated_at,
+        }
+
+
+@dataclass(frozen=True)
+class CoachLearningStep:
+    id: str
+    session_id: str
+    knowledge_point_id: str
+    title: str
+    explanation: str
+    completion_threshold: float
+    max_attempts: int
+    status: str
+    outcome: str
+    sort_order: int
+    created_at: str
+    completed_at: str
+    source_ids: tuple[str, ...] = field(default_factory=tuple)
+    exercises: tuple[CoachLearningExercise, ...] = field(default_factory=tuple)
+    attempts: tuple[CoachLearningAttempt, ...] = field(default_factory=tuple)
+
+    @property
+    def current_exercise(self) -> CoachLearningExercise | None:
+        if not self.exercises:
+            return None
+        if len(self.attempts) >= 2:
+            reinforcement = next(
+                (
+                    exercise
+                    for exercise in self.exercises
+                    if exercise.variant == "reinforcement"
+                ),
+                None,
+            )
+            if reinforcement is not None:
+                return reinforcement
+        return self.exercises[0]
+
+    def to_dict(
+        self,
+        include_scoring_basis: bool = False,
+        include_all_exercises: bool = False,
+    ) -> dict[str, Any]:
+        current_exercise = (
+            self.current_exercise
+            if self.status in {"awaiting_answer", "evaluated", "retrying"}
+            else None
+        )
+        data = {
+            "id": self.id,
+            "session_id": self.session_id,
+            "knowledge_point_id": self.knowledge_point_id,
+            "title": self.title,
+            "explanation": self.explanation,
+            "completion_threshold": self.completion_threshold,
+            "max_attempts": self.max_attempts,
+            "status": self.status,
+            "outcome": self.outcome,
+            "sort_order": self.sort_order,
+            "completed_at": self.completed_at,
+            "source_ids": list(self.source_ids),
+            "attempts": [attempt.to_dict() for attempt in self.attempts],
+            "current_exercise": (
+                current_exercise.to_dict(
+                    include_scoring_basis=include_scoring_basis
+                )
+                if current_exercise is not None
+                else None
+            ),
+        }
+        if include_all_exercises:
+            data["exercises"] = [
+                exercise.to_dict(include_scoring_basis=include_scoring_basis)
+                for exercise in self.exercises
+            ]
+        return data
+
+
+@dataclass(frozen=True)
+class CoachLearningSession:
+    id: str
+    project_id: str
+    analysis_run_id: str
+    target_type: str
+    target_id: str
+    origin_type: str
+    plan_id: str
+    plan_item_id: str
+    status: str
+    current_step_id: str
+    version: int
+    outcome: str
+    created_at: str
+    updated_at: str
+    completed_at: str
+    abandoned_at: str
+    steps: tuple[CoachLearningStep, ...] = field(default_factory=tuple)
+
+    @property
+    def current_step(self) -> CoachLearningStep | None:
+        if self.current_step_id:
+            current = next(
+                (step for step in self.steps if step.id == self.current_step_id),
+                None,
+            )
+            if current is not None:
+                return current
+        return self.steps[0] if self.steps else None
+
+    def to_dict(self, include_scoring_basis: bool = False) -> dict[str, Any]:
+        current_step = self.current_step
+        current_index = (
+            next(
+                (
+                    index
+                    for index, step in enumerate(self.steps)
+                    if current_step is not None and step.id == current_step.id
+                ),
+                0,
+            )
+            if self.steps
+            else 0
+        )
+        data = {
+            "id": self.id,
+            "project_id": self.project_id,
+            "analysis_run_id": self.analysis_run_id,
+            "target_type": self.target_type,
+            "target_id": self.target_id,
+            "origin_type": self.origin_type,
+            "plan_id": self.plan_id,
+            "plan_item_id": self.plan_item_id,
+            "status": self.status,
+            "current_step_id": self.current_step_id,
+            "version": self.version,
+            "outcome": self.outcome,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "completed_at": self.completed_at,
+            "abandoned_at": self.abandoned_at,
+            "progress": {
+                "current": current_index + 1 if self.steps else 0,
+                "total": len(self.steps),
+            },
+            "current_step": (
+                current_step.to_dict(
+                    include_scoring_basis=include_scoring_basis,
+                    include_all_exercises=False,
+                )
+                if current_step is not None
+                else None
+            ),
+            "current_exercise": (
+                current_step.to_dict(
+                    include_scoring_basis=include_scoring_basis,
+                    include_all_exercises=False,
+                )["current_exercise"]
+                if current_step is not None
+                else None
+            ),
+            "attempts": (
+                [attempt.to_dict() for attempt in current_step.attempts]
+                if current_step is not None
+                else []
+            ),
+        }
+        if include_scoring_basis:
+            data["steps"] = [
+                step.to_dict(
+                    include_scoring_basis=True,
+                    include_all_exercises=True,
+                )
+                for step in self.steps
+            ]
+        return data
+
+
+@dataclass(frozen=True)
 class CoachLearningPlanItem:
     id: str
     plan_id: str
@@ -337,8 +627,13 @@ __all__ = [
     "CoachKnowledgePoint",
     "CoachKnowledgeSkillMapping",
     "CoachKnowledgeSource",
+    "CoachLearningAttempt",
+    "CoachLearningExercise",
     "CoachLearningPlan",
     "CoachLearningPlanItem",
+    "CoachLearningSession",
+    "CoachLearningStep",
+    "CoachSqlExerciseFixture",
     "CoachSkillNode",
     "CoachSkillTaxonomy",
 ]

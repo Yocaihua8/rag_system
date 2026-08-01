@@ -11,6 +11,14 @@ from backend.domain.coach_assessment import (
     build_coach_coverage,
     start_coach_assessment,
 )
+from backend.domain.coach_learning import (
+    CoachLearningConflictError,
+    CoachLearningNotFoundError,
+    get_current_coach_learning_session,
+    start_coach_learning_session,
+    submit_coach_learning_attempt,
+    transition_coach_learning_session,
+)
 from backend.domain.models import ApiResponse
 from backend.domain.learning_plans import (
     CoachLearningPlanConflictError,
@@ -106,6 +114,88 @@ def handle_coach_route(
             return ApiResponse(404, {"error": str(exc)})
         except CoachAssessmentConflictError as exc:
             return ApiResponse(409, {"error": str(exc)})
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, result)
+
+    if method == "POST" and path == "/api/coach/learning-sessions/start":
+        project_id = str(payload.get("project_id") or "").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            session = start_coach_learning_session(
+                store,
+                project_id,
+                str(payload.get("target_type") or ""),
+                str(payload.get("target_id") or ""),
+                plan_id=str(payload.get("plan_id") or ""),
+                plan_item_id=str(payload.get("plan_item_id") or ""),
+                origin_type=str(payload.get("origin_type") or "coach"),
+            )
+        except CoachLearningNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        except CoachLearningConflictError as exc:
+            return _learning_conflict_response(exc)
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, {"session": session})
+
+    if method == "GET" and path == "/api/coach/learning-sessions/current":
+        project_id = query_value(query, "project_id").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            session = get_current_coach_learning_session(
+                store,
+                project_id,
+                session_id=query_value(query, "session_id").strip(),
+            )
+        except CoachLearningNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        return ApiResponse(200, {"session": session})
+
+    if method == "POST" and path == "/api/coach/learning-sessions/transition":
+        project_id = str(payload.get("project_id") or "").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            session = transition_coach_learning_session(
+                store,
+                project_id,
+                str(payload.get("session_id") or ""),
+                str(payload.get("action") or ""),
+                payload.get("expected_version"),
+            )
+        except CoachLearningNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        except CoachLearningConflictError as exc:
+            return _learning_conflict_response(exc)
+        except ValueError as exc:
+            return ApiResponse(400, {"error": str(exc)})
+        return ApiResponse(200, {"session": session})
+
+    if method == "POST" and path == "/api/coach/learning-sessions/attempts":
+        project_id = str(payload.get("project_id") or "").strip()
+        project_error = _project_error(store, project_id)
+        if project_error is not None:
+            return project_error
+        try:
+            result = submit_coach_learning_attempt(
+                store,
+                project_id,
+                str(payload.get("session_id") or ""),
+                str(payload.get("exercise_id") or ""),
+                str(payload.get("answer") or ""),
+                payload.get("expected_version"),
+                str(payload.get("idempotency_key") or ""),
+            )
+        except CoachLearningNotFoundError as exc:
+            return ApiResponse(404, {"error": str(exc)})
+        except CoachLearningConflictError as exc:
+            return _learning_conflict_response(exc)
         except ValueError as exc:
             return ApiResponse(400, {"error": str(exc)})
         return ApiResponse(200, result)
@@ -228,3 +318,12 @@ def _project_error(store: KnowledgeStore, project_id: str) -> ApiResponse | None
     if not store.get_project(project_id):
         return ApiResponse(404, {"error": "project not found"})
     return None
+
+
+def _learning_conflict_response(
+    error: CoachLearningConflictError,
+) -> ApiResponse:
+    body: dict[str, Any] = {"error": str(error)}
+    if error.session is not None:
+        body["session"] = error.session
+    return ApiResponse(409, body)
