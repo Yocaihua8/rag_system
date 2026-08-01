@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
-> Scope：Knowledge Island v2.0.0 当前 Vue 主壳、主视图与覆盖层装配接口
+> Last Updated：2026-08-01
+> Scope：Knowledge Island v2.0.0 当前 Vue 主壳、主视图、评估与逐点学习覆盖层装配接口
 > Related：`page-module-contract.md`、`frontend-backend-contract-check.md`、`ui-wireframes.md`
 
 本文档冻结当前主路径组件的职责、props、emits 和插槽。`defineProps / defineEmits` 是组件定义的事实源，`frontend/src/App.vue` 是当前装配关系的事实源。
@@ -15,11 +15,12 @@
 | `App` | `frontend/src/App.vue` | 集成 Owner | 保存共享页面状态、装配视图与覆盖层、调用 API 模块、处理事件 | 复用型展示组件内部布局 |
 | `AppShell` | `frontend/src/components/AppShell.vue` | 页面壳 | 侧边栏、顶栏、主内容插槽 | 业务 API 和页面业务状态机 |
 | `WorkspaceSidebar` | `frontend/src/components/WorkspaceSidebar.vue` | 导航组件 | 主导航、项目选择、资料入口、线程选择 | 直接修改父状态或调用 API |
-| `WorkbenchView` | `frontend/src/views/WorkbenchView.vue` | 教练页面 | 组合提问、聊天、回答依据、检索复盘和工具模块 | HTTP/SSE 请求编排 |
-| `LearningMapView` | `frontend/src/views/LearningMapView.vue` | 学习地图页面 | 展示项目理解、知识点、技能映射和评估记录 | 重新计算服务端分析或评估结果 |
-| `LearningPlanView` | `frontend/src/views/LearningPlanView.vue` | 学习计划页面 | 草稿编辑、确认入口、进度更新和发布入口 | 决定服务端可编辑性或并发版本 |
+| `WorkbenchView` | `frontend/src/views/WorkbenchView.vue` | 教练页面 | 组合提问、聊天、回答依据、检索复盘、评估和逐点学习工具 | HTTP/SSE 请求编排 |
+| `LearningMapView` | `frontend/src/views/LearningMapView.vue` | 学习地图页面 | 展示项目理解、知识点、技能映射、评估和学习入口 | 重新计算服务端分析、评估或掌握结果 |
+| `LearningPlanView` | `frontend/src/views/LearningPlanView.vue` | 学习计划页面 | 草稿编辑、确认入口、进度更新、确认任务学习和发布入口 | 决定服务端可编辑性、学习完成条件或并发版本 |
 | `SettingsView` | `frontend/src/views/SettingsView.vue` | 设置页面 | 回答、资料、Obsidian 和外观设置界面 | 保存明文密钥；伪造禁用能力 |
 | `LibraryModal` | `frontend/src/components/LibraryModal.vue` | 覆盖层 | 资料导入与选择 | 成为独立主视图或直接切换 `currentView` |
+| `CoachLearningSessionOverlay` | `frontend/src/components/CoachLearningSessionOverlay.vue` | 覆盖层 | 展示当前学习步骤、exercise、fixture、attempt、反馈和允许动作 | 评分、重试判定、证据资格、计划进度或数据库访问 |
 
 ## 2. 页面壳组件
 
@@ -95,10 +96,11 @@
 | 检索设置 | `retrievalSettings`、`retrievalSettingsLoading`、`retrievalSettingsSaving`、`retrievalSettingsStatus`、`retrievalSettingsError` |
 | 检索复盘 | `retrievalReviews`、`retrievalReviewsLoading`、`retrievalReviewsError`、`retrievalReviewSaving`、`retrievalReviewError`、`retrievalReviewStatus`、`selectedRetrievalReview`、`retrievalReviewDetailLoading`、`retrievalReviewDetailError`、`deletingRetrievalReviewId` |
 | Agent 工具 | `agentTools`、`agentToolsLoading`、`agentToolsError`、`agentToolRuns`、`agentToolRunsLoading`、`agentToolRunsError`、`selectedAgentToolRun`、`agentToolResult`、`agentToolStatus`、`agentToolError`、`agentToolSubmittingName`、`agentToolDetailLoading`、`agentToolDetailError` |
+| 逐点学习 | `coachLearningSession:Object = null`；向 `QuestionComposer.learningSession` 下发活动会话摘要 |
 
 emits：
 
-`cancel-answer`、`check-health`、`clear-chat-messages`、`clear-tool-context`、`compare-answers`、`create-project`、`delete-chat-message`、`delete-retrieval-review`、`dismiss-first-run`、`edit-chat-message`、`load-agent-tool-runs`、`load-agent-tools`、`open-library`、`pull-ollama-model`、`refresh-ollama-status`、`run-agent-tool`、`run-search-debug`、`run-tool-suggestion`、`save-retrieval-review`、`save-retrieval-settings`、`select-agent-tool-run`、`select-retrieval-review`、`submit-answer-feedback`、`submit-question`、`start-assessment-tool`、`toggle-evidence`、`use-tool-result-context`。
+`cancel-answer`、`check-health`、`clear-chat-messages`、`clear-tool-context`、`compare-answers`、`create-project`、`delete-chat-message`、`delete-retrieval-review`、`dismiss-first-run`、`edit-chat-message`、`load-agent-tool-runs`、`load-agent-tools`、`open-library`、`pull-ollama-model`、`refresh-ollama-status`、`run-agent-tool`、`run-search-debug`、`run-tool-suggestion`、`save-retrieval-review`、`save-retrieval-settings`、`select-agent-tool-run`、`select-retrieval-review`、`submit-answer-feedback`、`submit-question`、`start-assessment-tool`、`start-learning-tool`、`toggle-evidence`、`use-tool-result-context`。
 
 ### 3.2 `LearningMapView`
 
@@ -119,6 +121,7 @@ emits：
 |------|---------|
 | `analyze`、`refresh` | 无 |
 | `start-assessment` | `{ target_type, target_id }` |
+| `start-learning` | `{ target_type, target_id, origin_type: "learning_map" }` |
 | `open-sources` | `{ title, source_ids, sources }` |
 
 ### 3.3 `LearningPlanView`
@@ -141,6 +144,7 @@ emits：
 | `update-plan` | 草稿结构：`{ planId, items, expectedRevision, expectedItemsHash }`；任务进度：`{ planId, itemStatuses, expectedProgressHash }` |
 | `confirm` | `{ planId, expectedRevision, expectedItemsHash }` |
 | `open-sources` | `{ title, source_ids, sources }` |
+| `start-learning` | `{ planId, planItemId }`；只由当前确认版的 `learning` 任务发出 |
 
 ### 3.4 `SettingsView`
 
@@ -178,6 +182,7 @@ emits：
 |------|-------|-------|
 | `CoachSourceDrawer` | `open`、`title`、`sourceIds`、`sources` | `close` |
 | `CoachAssessmentOverlay` | `open`、`knowledgePoints`、`skills`、`initialTarget`、`session`、`assessmentResult`、`loading`、`submitting`、`error` | `close`、`open-sources`、`start`、`restart`、`submit-answer` |
+| `CoachLearningSessionOverlay` | `open`、`session`、`loading`、`submitting`、`error`、`knowledgePoints`、`skills`、`initialTarget` | `close`；`open-sources:{title,source_ids,sources}`；`start:{target_type,target_id,origin_type}`；`transition:{session_id,expected_version,action}`；`submit-attempt:{session_id,exercise_id,answer,expected_version,idempotency_key}` |
 | `ObsidianPublicationDialog` | `open`、`preview`、`loading`、`error`、`status` | `close`、`confirm` |
 
 ## 5. slots 与内容边界
@@ -197,6 +202,7 @@ emits：
 | `WorkbenchView` | `.view-panel.chat-view` |
 | `LearningMapView` | `.view-panel.learning-map-view`、`data-learning-map-action` |
 | `LearningPlanView` | `.view-panel.learning-plan-view`、`data-learning-plan-action`、`data-learning-plan-field`、`data-learning-plan-tab` |
+| `CoachLearningSessionOverlay` | `.coach-learning-backdrop`、`.coach-learning-overlay`、`data-coach-learning-action`、`data-coach-learning-field`、`data-coach-learning-source-action` |
 | `SettingsView` | `.settings-fullscreen`、`data-settings-page`、`data-settings-action`、`data-obsidian-settings` |
 
 组件私有样式继续使用当前语义前缀。禁止为单个组件新增无前缀全局选择器，或删除测试和交互依赖的 `data-*`。
@@ -207,7 +213,7 @@ emits：
 - `App.vue` 是业务状态和副作用 Owner；视图组件通过 props 消费状态，通过 emits 请求动作。
 - 真实 HTTP/SSE 请求只能经 `frontend/src/api/*.js` 中的现有封装进入。
 - 组件不得把 API snake_case 字段改造成另一套未经记录的持久化契约。
-- 来源、覆盖、评估、学习计划能力和发布状态必须直接使用服务端响应，不得由组件伪造。
+- 来源、覆盖、评估、学习会话允许动作、评分、证据资格、学习计划能力和发布状态必须直接使用服务端响应，不得由组件伪造。
 
 ## 8. 变更规则
 
@@ -226,6 +232,7 @@ emits：
 - [ ] 四个主视图只消费 props、发出本契约列出的事件
 - [ ] `App.vue` 已处理新增或变更的事件
 - [ ] 覆盖层调用方接口与 `App.vue` 当前装配一致
+- [ ] 逐点学习回答保留原始文本，提交中复用幂等键且组件不自行计算状态迁移
 - [ ] 空、加载、错误、stale 和禁用状态没有被 mock 数据掩盖
 - [ ] 组件未新增绕过 `frontend/src/api/*.js` 的请求
 - [ ] 稳定 class 和 `data-*` 未被无说明重命名

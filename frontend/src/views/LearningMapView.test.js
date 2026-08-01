@@ -84,16 +84,22 @@ describe("LearningMapView", () => {
     expect(wrapper.text()).not.toContain("职业能力不足");
   });
 
-  it("emits targeted assessment and real source payloads", async () => {
+  it("emits targeted assessment, learning, and real source payloads", async () => {
     const wrapper = mountMap();
 
     await wrapper.find('[data-learning-map-action="assess-knowledge-point"]').trigger("click");
+    await wrapper.find('[data-learning-map-action="learn-knowledge-point"]').trigger("click");
+    await wrapper.find('[data-learning-map-action="learn-skill"]').trigger("click");
     await wrapper.find('[data-learning-map-action="open-knowledge-sources"]').trigger("click");
     await wrapper.find('[data-learning-map-action="open-overview-sources"]').trigger("click");
     await wrapper.find('[data-learning-map-action="open-assessment-sources"]').trigger("click");
 
     expect(wrapper.emitted("start-assessment")[0]).toEqual([
       { target_type: "knowledge_point", target_id: "kp-1" },
+    ]);
+    expect(wrapper.emitted("start-learning")).toEqual([
+      [{ target_type: "knowledge_point", target_id: "kp-1", origin_type: "learning_map" }],
+      [{ target_type: "skill", target_id: "skill-1", origin_type: "learning_map" }],
     ]);
     expect(wrapper.emitted("open-sources")[0][0]).toMatchObject({
       title: "Web 入口",
@@ -118,5 +124,6 @@ describe("LearningMapView", () => {
 
     expect(wrapper.text()).toContain("当前分析已过期");
     expect(wrapper.findAll('[data-learning-map-action^="assess-"]').every((button) => button.attributes("disabled") !== undefined)).toBe(true);
+    expect(wrapper.findAll('[data-learning-map-action^="learn-"]').every((button) => button.attributes("disabled") !== undefined)).toBe(true);
   });
 });

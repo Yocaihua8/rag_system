@@ -35,12 +35,14 @@
           :error="answerError"
           :status-message="answerStatus || statusMessage"
           :answer-cancel-status="answerCancelStatus"
+          :learning-session="coachLearningSession"
           @submit-question="(question) => emit('submit-question', question)"
           @cancel-answer="emit('cancel-answer')"
           @check-health="emit('check-health')"
           @open-library="emit('open-library')"
           @compare-answers="(payload) => emit('compare-answers', payload)"
           @start-assessment-tool="emit('start-assessment-tool')"
+          @start-learning-tool="emit('start-learning-tool')"
         />
         <ChatThread
           :chat-messages="chatMessages"
@@ -284,6 +286,10 @@ defineProps({
     type: String,
     default: "",
   },
+  coachLearningSession: {
+    type: Object,
+    default: null,
+  },
   modelProfiles: {
     type: Array,
     default: () => [],
@@ -500,6 +506,7 @@ const emit = defineEmits([
   "submit-answer-feedback",
   "submit-question",
   "start-assessment-tool",
+  "start-learning-tool",
   "toggle-evidence",
   "use-tool-result-context",
 ]);

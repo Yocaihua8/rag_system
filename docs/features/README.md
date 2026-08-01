@@ -14,7 +14,7 @@
 | 资料浏览与分组 | [`knowledge-base-management.md`](knowledge-base-management.md) | 资料弹窗；集合写操作只在未挂载视图中保留 |
 | 检索与有来源问答 | [`retrieval-and-question-answering.md`](retrieval-and-question-answering.md) | 教练工作台 |
 | 对话分支 | [`chat-branching.md`](chat-branching.md) | 教练工作台 |
-| 项目知识教练 | [`project-knowledge-coach.md`](project-knowledge-coach.md) | 教练、学习地图、学习计划 |
+| 项目知识教练与逐点学习 | [`project-knowledge-coach.md`](project-knowledge-coach.md) | 教练、学习地图、学习计划及学习覆盖层 |
 | 首次运行引导 | [`first-run-wizard.md`](first-run-wizard.md) | 教练工作台首次状态 |
 | 多模型比较 | [`multi-model-comparison.md`](multi-model-comparison.md) | 教练工作台高级区域 |
 | 模型配置 | [`model-profile-settings.md`](model-profile-settings.md) | 设置页 |

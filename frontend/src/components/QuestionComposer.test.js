@@ -75,6 +75,26 @@ describe("QuestionComposer", () => {
     expect(wrapper.emitted("start-assessment-tool")).toEqual([[]]);
   });
 
+  it("shows and resumes the active step-by-step learning summary from the coach menu", async () => {
+    const wrapper = mountComposer({
+      selectedProjectId: "p1",
+      statusMessage: "等待提问",
+      learningSession: {
+        id: "learning-1",
+        status: "awaiting_answer",
+        progress: { current: 2, total: 3 },
+        current_step: { title: "理解路由分发" },
+      },
+    });
+
+    expect(wrapper.text()).toContain("继续逐点学习");
+    expect(wrapper.text()).toContain("理解路由分发");
+    expect(wrapper.text()).toContain("知识点 2 / 3");
+    await wrapper.find('[data-composer-action="start-learning"]').trigger("click");
+
+    expect(wrapper.emitted("start-learning-tool")).toEqual([[]]);
+  });
+
   it("shows cancel status and service error while preserving controls", () => {
     const wrapper = mountComposer({
       selectedProjectId: "p1",

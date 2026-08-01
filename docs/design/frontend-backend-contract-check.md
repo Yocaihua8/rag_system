@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
-> Scope：Knowledge Island v2.0.0 Vue 主路径与本地 FastAPI HTTP/SSE 契约
+> Last Updated：2026-08-01
+> Scope：Knowledge Island v2.0.0 Vue 主路径、逐点学习覆盖层与本地 FastAPI HTTP/SSE 契约
 > Related：`api-spec.md`、`page-module-contract.md`、`component-api-contract.md`
 
 本文档对照当前 Vue 主路径和现有后端接口。它不定义新接口；方法、路径、字段、响应和错误仍以 `api-spec.md` 为权威源。
@@ -15,7 +15,7 @@
 | 前端集成入口 | `frontend/src/App.vue` |
 | 前端请求边界 | `frontend/src/api/*.js`；`App.vue` 只直接使用其中的 `apiGet` 检查健康状态 |
 | 传输方式 | JSON HTTP；问答与 Ollama 拉取使用 SSE |
-| 页面范围 | 教练、学习地图、学习计划、资料弹窗、设置及相关覆盖层 |
+| 页面范围 | 教练、学习地图、学习计划、资料弹窗、设置及评估/逐点学习等覆盖层 |
 | 验收标准 | 前端只调用 `api-spec.md` 已定义的接口；请求参数和响应解包与现有契约一致；未接入能力不伪装成功 |
 
 ## 2. 通用调用契约
@@ -92,9 +92,24 @@
 | 发起 / 恢复评估 | `startCoachAssessment` | `POST /api/coach/assessments/start` | 新会话使用目标类型和 ID；恢复使用 `session_id`；可选 `restart` |
 | 提交评估回答 | `answerCoachAssessment` | `POST /api/coach/assessments/answer` | `project_id`、`session_id`、`question_id`、`answer` 必填 |
 
-前端必须保留服务端 stale 语义：来源变化后历史分析可读，但不能把它当作当前结果，也不能绕过 `409 analysis_stale` 发起新评估。
+前端必须保留服务端 stale 语义：来源变化后历史分析可读，但不能把它当作当前结果，也不能绕过 `409 analysis_stale` 发起新评估或逐点学习。
 
-### 3.4 学习计划
+### 3.4 逐点学习
+
+| 前端行为 | API 封装 | 接口 | 当前契约 |
+|----------|----------|------|----------|
+| 启动或恢复目标 | `startCoachLearningSession` | `POST /api/coach/learning-sessions/start` | 直接目标与计划任务参数二选一；前端取 `session` |
+| 恢复活动或历史会话 | `getCurrentCoachLearningSession` | `GET /api/coach/learning-sessions/current` | `project_id` 必填，`session_id` 可选；前端取 `session` 或 `null` |
+| 推进会话状态 | `transitionCoachLearningSession` | `POST /api/coach/learning-sessions/transition` | 发送服务端会话 `version` 和 `allowed_actions` 中的动作；前端取 `session` |
+| 提交 attempt | `submitCoachLearningAttempt` | `POST /api/coach/learning-sessions/attempts` | 保留原始 `answer`，发送 `expected_version / idempotency_key`；前端使用返回的 `attempt / session / replayed / plan_sync` |
+
+- `startCoachLearningSession` 只接受 `{targetType,targetId}` 或 `{planId,planItemId}` 其中一组；组件参数在 helper 中转换为 snake_case。
+- `expectedVersion` 必须是大于等于 1 的整数。答案只以 `trim()` 判断非空，真正提交时保留原始换行和缩进。
+- `CoachLearningSessionOverlay` 只发送服务端 `allowed_actions` 中的动作。一次提交生命周期复用同一幂等键；加载或提交中禁止重复操作。
+- 请求冲突或失败后，`App.vue` 重新读取指定会话并展示服务端最新快照，不在客户端合并 attempt、重算版本或伪造成功。
+- attempt 更新当前覆盖后重新加载 coverage；仅 `plan_sync.linked=true` 时重新加载当前学习计划。组件不得从分数自行决定掌握或任务完成。
+
+### 3.5 学习计划
 
 | 前端行为 | API 封装 | 现有接口 | 当前契约 |
 |----------|----------|----------|----------|
@@ -107,7 +122,9 @@
 
 结构更新可携带 `expected_revision / expected_items_hash`；进度更新还可携带 `expected_progress_hash`。前端必须展示冲突，不得吞掉 `learning_plan_*_conflict` 后覆盖服务端新版本。
 
-### 3.5 资料弹窗
+确认版 `learning` 任务通过 `start-learning` 事件把 `planId / planItemId` 交给 `App.vue`，再由逐点学习 API 启动绑定会话。打开会话不会在前端修改任务；服务端 `plan_sync` 更新后重新请求当前计划。
+
+### 3.6 资料弹窗
 
 | 前端行为 | API 封装 | 现有接口 |
 |----------|----------|----------|
@@ -122,7 +139,7 @@
 
 当前资料弹窗的 GitHub 和 Vault 导入是后端现有导入能力；Obsidian Vault 一次性导入不等同于插件连接、持续同步或成果发布。
 
-### 3.6 设置
+### 3.7 设置
 
 | 设置区域 | API 封装 | 现有接口 | 当前状态 |
 |----------|----------|----------|----------|
@@ -145,15 +162,16 @@
 | 项目导出 / 恢复 | `api-spec.md` 已有后端接口，但当前主设置页和 API 封装未接入 | 这是前端未接入，不是后端缺失；后续接入需单独设计交互和验证 |
 | 可选认证 | `api-spec.md` 支持 `RAG_AUTH_ENABLED=1`；当前 `api/client.js` 不附加 `X-API-Key` 或 Bearer Header，`EventSource` 也无凭证装配 | 当前 Vue 主路径只承诺默认本地认证关闭模式；启用认证前必须先补完整前端凭证链 |
 | 插件端接口 | `/pairing/complete`、`/sync/events`、`/publications/pending`、`/publications/result` 面向 Obsidian 插件 | 主 Vue 前端不得冒充插件调用这些接口 |
+| SQL 练习执行 | 前端只显示服务端公开 fixture 并提交原始 SQL | 不在浏览器执行 SQL，不传数据库路径，不显示 reveal 前的评分依据 |
 
 ## 5. 缺口结论
 
 | 检查项 | 结论 |
 |--------|------|
-| 当前五个主入口需要新增后端 API | 未发现；当前调用均可映射到 `api-spec.md` 的既有 HTTP/SSE 接口 |
+| 当前五个主入口与逐点覆盖层的新增 API | 当前 Unreleased 源码新增四个 `/api/coach/learning-sessions/*` 操作，均已在 `api-spec.md` 和 `frontend/src/api/coach.js` 映射 |
 | 当前前端请求路径与 API 规格冲突 | 未发现明显路径冲突；URL 摘录属于请求参数装配缺口 |
 | 需要明确的运行边界 | URL 摘录参数不完整；可选认证尚未接入 Vue 凭证链；资料备份/恢复和外观仍是禁用 UI |
-| 本轮允许的改动 | 仅契约文档语义化；不新增接口、不修改请求字段、不改变页面行为 |
+| 逐点学习接线边界 | 新增逐点覆盖层和三个现有入口，不新增主视图键；业务状态、评分、证据资格和计划联动仍归后端 |
 
 ## 6. 联调验证清单
 
@@ -161,6 +179,9 @@
 - [ ] 未选择项目时，API 封装不会发送要求 `project_id` 的业务请求
 - [ ] 问答 SSE 能处理 `token / done / answer_error`，取消后关闭连接
 - [ ] 学习地图在 stale 时只读展示并禁止新评估
+- [ ] 教练、学习地图和确认计划任务都经同一 API helper 打开逐点学习；工作区可恢复活动会话且不自动打开覆盖层
+- [ ] 学习提交保留原始答案、幂等键和服务端 version；冲突后恢复最新快照，不出现重复 attempt
+- [ ] SQL fixture 只展示合成数据，浏览器不执行 SQL或接收正式数据库路径；stale、completed、abandoned 文案可区分
 - [ ] 学习计划更新保持 `items` 与 `item_statuses` 二选一，并传递服务端并发校验字段
 - [ ] 资料弹窗只调用现有导入、文档和连接接口；URL 摘录修复前保持已知失败边界
 - [ ] 设置页不回显明文 Key / Token，未接入按钮保持禁用
@@ -177,6 +198,7 @@
 - `frontend/src/views/WorkbenchView.vue`：教练页面。
 - `frontend/src/views/LearningMapView.vue`：学习地图。
 - `frontend/src/views/LearningPlanView.vue`：学习计划。
+- `frontend/src/components/CoachLearningSessionOverlay.vue`：当前逐点学习步骤、练习、fixture、attempt 和动作展示。
 - `frontend/src/views/SettingsView.vue`：当前设置能力与禁用边界。
 - `frontend/src/api/*.js`：现有 HTTP/SSE 调用封装。
 
@@ -188,6 +210,6 @@
 
 ## 8. 结论
 
-- 当前 v2.0.0 Vue 主路径已接入教练、学习地图、学习计划、资料和设置所需的现有 HTTP/SSE API；URL 摘录、可选认证等已列缺口不在“闭环完成”范围内。
-- 本轮不需要补造接口；任何新页面动作必须先在 `api-spec.md` 找到现有契约，找不到时按后端变更流程处理。
+- 当前 Vue 主路径已接入教练、学习地图、学习计划、资料和设置所需的 HTTP/SSE API，并通过四个 Coach 学习会话操作接入逐点学习覆盖层；URL 摘录、可选认证等已列缺口不在该闭环范围内。
+- 新页面动作仍必须先在 `api-spec.md` 找到契约；逐点学习组件不得绕过 `frontend/src/api/coach.js` 或复制服务端状态机。
 - 可选认证、资料备份/恢复和外观主题是明确边界，不能在未实现完整链路前写成“可用”。

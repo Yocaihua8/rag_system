@@ -6,11 +6,15 @@ import {
   confirmLearningPlan,
   generateLearningPlan,
   getCoachCoverage,
+  getCurrentCoachLearningSession,
   getCoachKnowledgePoints,
   getCoachOverview,
   getCoachSkills,
   getCurrentLearningPlan,
+  startCoachLearningSession,
   startCoachAssessment,
+  submitCoachLearningAttempt,
+  transitionCoachLearningSession,
   updateLearningPlan,
 } from "./coach.js";
 
@@ -152,6 +156,107 @@ describe("coach api helpers", () => {
       expected_revision: 2,
       expected_items_hash: "confirmed",
     });
+  });
+
+  it("maps learning-session start, recovery, transition, and raw attempts", async () => {
+    fetch
+      .mockResolvedValueOnce(jsonResponse({ session: { id: "learn-1", status: "ready" } }))
+      .mockResolvedValueOnce(jsonResponse({ session: { id: "learn-2", status: "ready" } }))
+      .mockResolvedValueOnce(jsonResponse({ session: { id: "learn-1", status: "learning" } }))
+      .mockResolvedValueOnce(jsonResponse({ session: { id: "learn-1", status: "awaiting_answer" } }))
+      .mockResolvedValueOnce(jsonResponse({ session: { id: "learn-1", status: "evaluated" } }));
+
+    await expect(startCoachLearningSession({
+      projectId: " p1 ",
+      targetType: " knowledge_point ",
+      targetId: " kp-1 ",
+      originType: " learning_map ",
+    })).resolves.toEqual({ id: "learn-1", status: "ready" });
+    expect(postBodyAt(0)).toEqual({
+      project_id: "p1",
+      target_type: "knowledge_point",
+      target_id: "kp-1",
+      origin_type: "learning_map",
+    });
+
+    await expect(startCoachLearningSession({
+      projectId: " p1 ",
+      planId: " plan-1 ",
+      planItemId: " item-1 ",
+    })).resolves.toEqual({ id: "learn-2", status: "ready" });
+    expect(postBodyAt(1)).toEqual({
+      project_id: "p1",
+      plan_id: "plan-1",
+      plan_item_id: "item-1",
+    });
+
+    await expect(getCurrentCoachLearningSession({
+      projectId: " p1 ",
+      sessionId: " learn-1 ",
+    })).resolves.toEqual({ id: "learn-1", status: "learning" });
+    expect(fetch.mock.calls[2][0]).toBe(
+      "http://127.0.0.1:8765/api/coach/learning-sessions/current?project_id=p1&session_id=learn-1",
+    );
+
+    await transitionCoachLearningSession({
+      projectId: " p1 ",
+      sessionId: " learn-1 ",
+      expectedVersion: 3,
+      action: " begin_question ",
+    });
+    expect(postBodyAt(3)).toEqual({
+      project_id: "p1",
+      session_id: "learn-1",
+      expected_version: 3,
+      action: "begin_question",
+    });
+
+    const rawSql = "\nSELECT name,\n       total\nFROM orders\nWHERE total > 10;\n";
+    await submitCoachLearningAttempt({
+      projectId: " p1 ",
+      sessionId: " learn-1 ",
+      exerciseId: " exercise-1 ",
+      answer: rawSql,
+      expectedVersion: 4,
+      idempotencyKey: " request-1 ",
+    });
+    expect(postBodyAt(4)).toEqual({
+      project_id: "p1",
+      session_id: "learn-1",
+      exercise_id: "exercise-1",
+      answer: rawSql,
+      expected_version: 4,
+      idempotency_key: "request-1",
+    });
+  });
+
+  it("requires learning-session identifiers and rejects whitespace-only attempts", async () => {
+    await expect(startCoachLearningSession({
+      projectId: "p1",
+      targetType: "",
+      targetId: "",
+    })).rejects.toThrow("请选择学习目标");
+    await expect(getCurrentCoachLearningSession({
+      projectId: "p1",
+      sessionId: " ",
+    })).resolves.toBeNull();
+    expect(fetch.mock.calls[0][0]).toBe(
+      "http://127.0.0.1:8765/api/coach/learning-sessions/current?project_id=p1",
+    );
+    await expect(transitionCoachLearningSession({
+      projectId: "p1",
+      sessionId: " ",
+      expectedVersion: 0,
+      action: "begin_learning",
+    })).rejects.toThrow("请先开始学习会话");
+    await expect(submitCoachLearningAttempt({
+      projectId: "p1",
+      sessionId: "learn-1",
+      exerciseId: "exercise-1",
+      answer: " \n\t ",
+      expectedVersion: 1,
+      idempotencyKey: "request-1",
+    })).rejects.toThrow("请输入本题答案");
   });
 
   it("validates required UI state and leaves API errors to the shared client", async () => {

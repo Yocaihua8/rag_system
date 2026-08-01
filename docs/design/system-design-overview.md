@@ -12,9 +12,9 @@ Knowledge Island 是一个本地优先的完整系统。Vue、FastAPI、SQLite�
 
 | 组成 | 当前职责 | 不承担 |
 |------|----------|--------|
-| Vue 应用 | 工作区导航、教练、学习地图、学习计划、资料弹窗、设置和覆盖层 | 业务状态机、数据库访问、Agent 权限判断 |
+| Vue 应用 | 工作区导航、教练、学习地图、学习计划、资料弹窗、设置和评估/逐点学习覆盖层 | 业务状态机、数据库访问、重试/评分/计划完成判定、Agent 权限判断 |
 | FastAPI | HTTP/SSE、CORS、可选认证、参数校验、OpenAPI 和用例分发 | 托管前端静态文件、直接在 HTTP 层写 SQL |
-| 领域与存储 | 导入、检索、回答、Coach、发布和 SQLite 持久化 | 页面布局或浏览器状态 |
+| 领域与存储 | 导入、检索、回答、Coach 分析/评估/逐点学习、SQL 练习评分、发布和 SQLite 持久化 | 页面布局或浏览器状态 |
 | SQLite | 当前关系数据、来源、向量兼容副本、审计和状态 | 多租户隔离或远端共享数据库承诺 |
 | Qdrant local mode | 启用时提供向量候选 | 替代 SQLite 权威数据或保存业务状态 |
 | Tauri | 窗口、托盘、sidecar 生命周期和安装包 | 复制后端业务逻辑 |
@@ -39,8 +39,8 @@ FastAPI 根路由不提供产品首页，`GET /` 返回 404；接口文档位于
   -> 导入适配与校验
   -> documents / document_chunks / chunk_vectors
   -> BM25 + 向量检索（可选 Qdrant）
-  -> 来源约束回答、项目分析或评估
-  -> 聊天、覆盖、计划与审计记录
+  -> 来源约束回答、项目分析、评估或逐点学习
+  -> 聊天、评估/attempt 证据、覆盖、计划与审计记录
   -> 用户预览并确认
   -> Obsidian 插件写入受管 Markdown 并回传结果
 ```
@@ -48,6 +48,8 @@ FastAPI 根路由不提供产品首页，`GET /` 返回 404；接口文档位于
 - 导入时分块实现当前固定使用 700 字符上限和 80 字符重叠；配置对象虽加载 `RAG_CHUNK_SIZE` / `RAG_CHUNK_OVERLAP`，当前 Web 入库链路没有把它们传给分块函数。
 - 问答 SSE 使用 `GET /api/answer/stream`，按 `token`、`done`、`answer_error` 事件推进；Ollama 拉取是另一条 `POST /api/ollama/pull` SSE 流。
 - 来源变化会影响检索，并使相关 Coach 分析进入 `stale`；历史结果可以追溯但不能冒充当前结果。
+- 逐点学习一次只公开当前步骤和 exercise；有效 attempt 可进入当前覆盖投影，从确认计划任务启动时还可单调推进该任务进度。
+- SQL 题由来源中的可解析 SQLite Schema 证据生成，学习者查询只在结构化 fixture 创建的临时只读数据库中执行，不连接正式业务 SQLite。
 - 发布确认只把任务推进到 `queued`；只有插件回传结果后才进入 `applied`、`conflict` 或 `failed`。
 
 ## 4. 依赖真实状态
@@ -65,7 +67,7 @@ FastAPI 根路由不提供产品首页，`GET /` 返回 404；接口文档位于
 ## 5. 权威源
 
 - 方法、路径和字段：[`api-spec.md`](api-spec.md) 与 routes/dispatch 测试。
-- 当前 37 张表和字段：[`database-design.md`](database-design.md) 与 `backend/storage/`。
+- 当前 43 张表和字段：[`database-design.md`](database-design.md) 与 `backend/storage/`。
 - 可达页面和接线状态：[`page-module-contract.md`](page-module-contract.md) 与 `frontend/src/App.vue`。
 - 认证、CORS、Key 和工具边界：[`permission-matrix.md`](permission-matrix.md)。
 - 决策原因和取代关系：[`../adr/README.md`](../adr/README.md)。

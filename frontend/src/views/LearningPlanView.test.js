@@ -163,6 +163,49 @@ describe("LearningPlanView", () => {
     });
   });
 
+  it("starts or continues only learning tasks from the confirmed plan", async () => {
+    const confirmed = {
+      ...currentPlan().draft,
+      id: "plan-confirmed",
+      status: "confirmed",
+      can_edit_structure: false,
+      can_confirm: false,
+      can_update_progress: true,
+      items: [
+        planItem({
+          id: "todo-item",
+          plan_id: "plan-confirmed",
+          status: "todo",
+        }),
+        planItem({
+          id: "progress-item",
+          plan_id: "plan-confirmed",
+          stable_key: "learn:routes",
+          status: "in_progress",
+        }),
+        planItem({
+          id: "source-gap-item",
+          plan_id: "plan-confirmed",
+          stable_key: "source:missing",
+          item_type: "source_gap",
+          status: "todo",
+        }),
+      ],
+    };
+    const wrapper = mountPlan({
+      currentPlan: currentPlan({ draft: null, confirmed }),
+    });
+    const learningButtons = wrapper.findAll('[data-learning-plan-action="start-learning"]');
+
+    expect(learningButtons).toHaveLength(2);
+    expect(learningButtons[0].text()).toBe("开始学习");
+    expect(learningButtons[1].text()).toBe("继续学习");
+    await learningButtons[1].trigger("click");
+    expect(wrapper.emitted("start-learning")).toEqual([[
+      { planId: "plan-confirmed", planItemId: "progress-item" },
+    ]]);
+  });
+
   it("blocks stale structure actions and Obsidian publication without fabricating completion", () => {
     const wrapper = mountPlan({
       currentPlan: currentPlan({ stale: true }),

@@ -1,6 +1,6 @@
 # Knowledge Island
 
-Knowledge Island 是面向个人开发学习的本地项目知识教练。它把项目代码、文档和笔记转化为可检索资料，通过有来源的问答、项目知识分析、覆盖评估、学习计划和受控 Obsidian 发布，帮助用户理解当前项目。
+Knowledge Island 是面向个人开发学习的本地项目知识教练。它把项目代码、文档和笔记转化为可检索资料，通过有来源的问答、项目知识分析、覆盖评估、逐知识点学习、学习计划和受控 Obsidian 发布，帮助用户理解当前项目。
 
 当前正式版本为 `v2.0.0`。Vue 前端、FastAPI 后端和 Tauri 桌面壳拥有独立依赖与构建边界；Obsidian Bridge 继续作为独立 desktop-only 插件维护。
 
@@ -24,7 +24,7 @@ Knowledge Island 是面向个人开发学习的本地项目知识教练。它把
 - 文档分块、BM25 关键词召回、本地 hashing 向量、可选 OpenAI-compatible Embedding、可选 Qdrant local mode 和可选 Cross-Encoder rerank。
 - HTTP API 与 SSE 流式问答；模型不可用时明确回退到有来源的本地回答。
 - 多会话聊天、来源抽屉、回答反馈、检索诊断/复盘、双模型对比和两个只读 Agent 工具。
-- 项目分析、知识点和技能映射、项目覆盖评估、定向评估、版本化学习计划。
+- 项目分析、知识点和技能映射、项目覆盖评估、定向评估、逐知识点交互学习和版本化学习计划；项目存在可解析 SQLite Schema 证据时可生成隔离的只读 SQL 练习。
 - Obsidian 配对、增量事件、离线重放、发布预览、用户确认、冲突阻断和结果回报。
 - 可选共享 API Key + HS256 JWT；默认关闭，当前不是多用户、团队、租户或 RBAC 系统。
 

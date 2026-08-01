@@ -44,6 +44,18 @@
           <div class="composer-menu" aria-label="添加">
             <button type="button" @click="emit('open-library')">加入资料</button>
             <button type="button">上传临时文件</button>
+            <button
+              type="button"
+              data-composer-action="start-learning"
+              @click="emit('start-learning-tool')"
+            >
+              {{ learningSession ? "继续逐点学习" : "逐点学习" }}
+            </button>
+            <p v-if="learningSession" class="composer-learning-summary">
+              {{ learningSession.current_step?.title || "当前知识点" }}
+              · 知识点 {{ learningSession.progress?.current || 1 }} /
+              {{ learningSession.progress?.total || 1 }}
+            </p>
             <button type="button" @click="emit('start-assessment-tool')">练习与小测</button>
             <button type="button">整理要点</button>
           </div>
@@ -119,6 +131,10 @@ defineProps({
     type: String,
     default: "",
   },
+  learningSession: {
+    type: Object,
+    default: null,
+  },
 });
 
 const emit = defineEmits([
@@ -127,6 +143,7 @@ const emit = defineEmits([
   "compare-answers",
   "open-library",
   "open-tool-panel",
+  "start-learning-tool",
   "start-assessment-tool",
   "submit-question",
 ]);
@@ -136,3 +153,12 @@ function submitQuestion() {
   emit("submit-question", questionText.value);
 }
 </script>
+
+<style scoped>
+.composer-learning-summary {
+  margin: 0;
+  padding: 0 var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+</style>

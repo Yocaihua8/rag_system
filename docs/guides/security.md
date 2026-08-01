@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：网络、认证、凭证、数据、插件与供应链边界
-> Related：`../../SECURITY.md`、`../design/permission-matrix.md`、`../adr/ADR-004-api-key-reference.md`、`../adr/ADR-005-remote-auth.md`
+> Related：`../../SECURITY.md`、`../design/permission-matrix.md`、`../adr/ADR-004-api-key-reference.md`、`../adr/ADR-005-remote-auth.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
 
 ## 1. 网络与认证
 
@@ -38,7 +38,17 @@
 - `runtime/`（包括 `runtime/v2/outputs/`）、用户 `.env`、导入资料和容器 volume 不属于源码清理范围。
 - 删除或恢复前验证绝对目标、运行进程、备份可读性和兼容性；默认不执行递归删除或删除 Docker volume。
 
-## 5. 供应链审计
+## 5. SQL 练习隔离
+
+- 只有当前知识点真实来源中可解析的简单 SQLite `CREATE TABLE` 证据可触发 SQL 练习。来源 DDL 只转成受校验的表、列、关系和合成行，不直接执行。
+- fixture 在持久化时保存完整性 hash。评分模块只接受结构化 fixture 和学习者 SQL，不接受 `KnowledgeStore`、正式数据库连接或数据库路径。
+- 每次评分创建独立临时 SQLite 文件，完成 fixture 建库后关闭写连接，再通过 `mode=ro` URI 重开；同时启用 `query_only`、关闭可信 Schema，并拒绝扩展加载。
+- 只允许一条 `SELECT` 或非递归 `WITH ... SELECT`。词法检查、SQLite authorizer、表/列/函数白名单和必要语义检查共同拒绝多语句、DML、DDL、`PRAGMA`、`ATTACH/DETACH`、递归 CTE、虚表、Schema 读取和危险函数。
+- 单次默认上限为：SQL 10000 字符、1 秒、1000000 VM steps、200 行、32 列、256 KiB 结果、8 张 fixture 表和 1000 条 seed row；fixture 不能自行提高这些绝对上限。
+- 评分只信任确定性执行结果和必要语义检查。模型不得推翻结论；语法、安全、超时、结果大小或语义错误都必须返回失败，不能转成已掌握。
+- 安全测试必须使用仓库正式运行目录之外的临时 SQLite，并以哨兵或 SHA-256 验证 `runtime/v2/app.db` 未被打开或改写；不得为了测试复用已启动的正式服务。
+
+## 6. 供应链审计
 
 ```powershell
 npm audit --audit-level=high
@@ -48,6 +58,6 @@ npm --prefix integrations/obsidian-plugin audit --audit-level=high
 
 根 npm 审计覆盖 frontend 与 src-tauri workspace；插件独立审计。Python 生产依赖使用 `base.txt`。只引用本次实际结果。
 
-## 6. 安全变更联动
+## 7. 安全变更联动
 
-认证、CORS、权限、Agent 白名单、数据代际、插件令牌、发布写入或外部网络策略变化时，同步 [`../design/permission-matrix.md`](../design/permission-matrix.md)、[`../design/api-spec.md`](../design/api-spec.md)、本文件、根 `SECURITY.md`、必要 ADR、测试和 `CHANGELOG.md`。
+认证、CORS、权限、Agent 白名单、数据代际、SQL 沙箱、插件令牌、发布写入或外部网络策略变化时，同步 [`../design/permission-matrix.md`](../design/permission-matrix.md)、[`../design/api-spec.md`](../design/api-spec.md)、本文件、根 `SECURITY.md`、必要 ADR、测试和 `CHANGELOG.md`。

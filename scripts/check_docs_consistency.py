@@ -43,11 +43,11 @@ ADR_METADATA = ("状态", "Date", "Owner", "Related")
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\((?P<target>[^)]+)\)")
 SOURCE_DOC_REFERENCE = re.compile(r"(?<![A-Za-z0-9_.-])(docs/[A-Za-z0-9_./-]+\.md)")
 HTTP_METHODS = {"get", "post"}
-EXPECTED_API_PATHS = 86
-EXPECTED_API_OPERATIONS = 94
-EXPECTED_API_GETS = 31
-EXPECTED_API_POSTS = 63
-EXPECTED_TABLE_COUNT = 37
+EXPECTED_API_PATHS = 90
+EXPECTED_API_OPERATIONS = 98
+EXPECTED_API_GETS = 32
+EXPECTED_API_POSTS = 66
+EXPECTED_TABLE_COUNT = 43
 EXPECTED_DOCUMENT_FIELDS = (
     "id",
     "project_id",
@@ -271,10 +271,10 @@ def _check_api_contract() -> list[Issue]:
         if path.startswith("/api/") and path not in spec:
             issues.append(Issue(_display(spec_path), f"缺少当前 API 路径：{path}"))
     for marker in (
-        "86 个唯一路径",
-        "94 个操作",
-        "31 个 GET",
-        "63 个 POST",
+        "90 个唯一路径",
+        "98 个操作",
+        "32 个 GET",
+        "66 个 POST",
         "token",
         "done",
         "answer_error",
@@ -317,7 +317,7 @@ def _check_database_contract() -> list[Issue]:
         issues.append(
             Issue(
                 "backend/storage/knowledge_store.py",
-                f"当前表数量为 {len(tables)}，偏离 37 表文档基线。",
+                f"当前表数量为 {len(tables)}，偏离 43 表文档基线。",
             )
         )
     if fields != EXPECTED_DOCUMENT_FIELDS:
@@ -338,8 +338,8 @@ def _check_database_contract() -> list[Issue]:
     for field in FORBIDDEN_DOCUMENT_FIELDS:
         if re.search(rf"documents[^\n]{{0,400}}`{re.escape(field)}`", spec, flags=re.DOTALL):
             issues.append(Issue(_display(spec_path), f"documents 仍包含错误字段：{field}"))
-    if "37 张当前表" not in spec:
-        issues.append(Issue(_display(spec_path), "缺少 37 张当前表的基线说明。"))
+    if "43 张当前表" not in spec:
+        issues.append(Issue(_display(spec_path), "缺少 43 张当前表的基线说明。"))
     return issues
 
 

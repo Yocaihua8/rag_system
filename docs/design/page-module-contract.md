@@ -2,8 +2,8 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
-> Scope：Knowledge Island v2.0.0 Vue 主壳、教练、学习地图、学习计划、资料弹窗与设置
+> Last Updated：2026-08-01
+> Scope：Knowledge Island v2.0.0 Vue 主壳、教练、学习地图、学习计划、资料弹窗、设置与逐点学习覆盖层
 > Related：`ui-wireframes.md`、`component-api-contract.md`、`frontend-backend-contract-check.md`
 
 本文档冻结当前 Vue 主入口的页面编排、状态切换和文件边界。页面事实以 `frontend/src/App.vue` 及其当前装配的视图为准；接口字段以 `api-spec.md` 为准。
@@ -39,7 +39,7 @@
 
 1. 页面标题。
 2. 首次运行向导 `FirstRunWizard`（仅 `firstRunVisible` 为真时显示）。
-3. 主列：`QuestionComposer` → `ChatThread` → `AnswerPanel`。
+3. 主列：`QuestionComposer`（含评估与逐点学习工具）→ `ChatThread` → `AnswerPanel`。
 4. 右侧依据区 `EvidenceDrawer`。
 5. 依据区高级页签：查来源 / 复盘、工具、模型对比。
 
@@ -52,10 +52,10 @@
 1. 标题与“分析项目 / 刷新”动作。
 2. 错误、加载、未选项目和分析过期提示。
 3. 项目理解摘要与知识点、已验证数、项目覆盖指标。
-4. 双栏内容：项目知识点 → 通用技能辅助映射。
-5. 当前项目最近评估记录。
+4. 双栏内容：项目知识点 → 通用技能辅助映射；节点提供来源、评估和逐点学习动作。
+5. 当前项目最近评估和有效学习 attempt 记录。
 
-进入该视图时 `App.vue` 调用 `loadCoachWorkspace()`。分析过期时仍可回看历史结果，但视图禁止发起新的定向评估。
+进入该视图时 `App.vue` 调用 `loadCoachWorkspace()`。分析过期时仍可回看历史结果，但视图禁止发起新的定向评估或逐点学习。
 
 ### 2.4 学习计划（`currentView = learning-plan`）
 
@@ -66,10 +66,10 @@
 3. 同时存在草稿与已确认计划时显示版本页签。
 4. 无计划空状态，或当前计划摘要。
 5. 草稿模式：任务结构编辑、排序、来源查看和确认。
-6. 已确认模式：任务进度更新和来源查看。
+6. 已确认模式：任务进度更新、来源查看，以及 `learning` 任务的开始/继续学习入口。
 7. 已确认计划的 Obsidian 发布预览入口；无活动连接时转入设置页。
 
-进入该视图时 `App.vue` 并行加载当前学习计划和 Obsidian 连接。视图只依据服务端返回的 `can_edit_structure`、`can_update_progress`、`can_confirm` 等能力字段开放操作。
+进入该视图时 `App.vue` 并行加载当前学习计划和 Obsidian 连接。视图只依据服务端返回的 `can_edit_structure`、`can_update_progress`、`can_confirm` 等能力字段开放操作；学习会话返回计划同步结果后，`App.vue` 重新加载当前计划。
 
 ### 2.5 资料弹窗
 
@@ -103,6 +103,7 @@
 |--------|----------|------------|
 | `CoachSourceDrawer` | 学习地图、学习计划或评估的“查看来源” | 保留当前主视图和项目 |
 | `CoachAssessmentOverlay` | 学习地图定向评估或教练评估入口 | 保留当前主视图和评估状态 |
+| `CoachLearningSessionOverlay` | 教练逐点学习工具、学习地图节点或确认计划任务 | 保留当前主视图、项目和服务端学习会话；关闭不等于放弃 |
 | `ObsidianPublicationDialog` | 学习计划发布预览 | 保留当前学习计划 |
 
 ## 3. 稳定定位标识
@@ -114,9 +115,11 @@
 | 壳层 | `data-shell-action="open-sidebar"`、`data-shell-action="collapse-sidebar"`、`data-workspace-sidebar` |
 | 主导航 | `data-view-key="coach"`、`learning-map`、`learning-plan`、`settings`；`data-nav-action="library"` |
 | 侧边栏 | `data-sidebar-action="open-library"`、`data-sidebar-action="create-chat-session"`、`data-sidebar-workspace` |
-| 学习地图 | `data-learning-map-action="analyze"`、`refresh`、`open-overview-sources`、`assess-knowledge-point`、`open-knowledge-sources`、`assess-skill`、`open-skill-sources`、`open-assessment-sources` |
-| 学习计划 | `data-learning-plan-action="refresh"`、`generate`、`confirm`、`preview-publication`、`open-obsidian-settings`、`move-up`、`move-down`、`open-sources`、`save`、`save-progress`；`data-learning-plan-tab="draft"`、`data-learning-plan-tab="confirmed"` |
+| 教练输入 | `data-composer-action="start-learning"` |
+| 学习地图 | `data-learning-map-action="analyze"`、`refresh`、`open-overview-sources`、`learn-knowledge-point`、`assess-knowledge-point`、`open-knowledge-sources`、`learn-skill`、`assess-skill`、`open-skill-sources`、`open-assessment-sources` |
+| 学习计划 | `data-learning-plan-action="refresh"`、`generate`、`confirm`、`preview-publication`、`open-obsidian-settings`、`move-up`、`move-down`、`open-sources`、`start-learning`、`save`、`save-progress`；`data-learning-plan-tab="draft"`、`data-learning-plan-tab="confirmed"` |
 | 学习计划字段 | `data-learning-plan-field="objective"`、`practice-question`、`completion-criteria`、`estimated-minutes`、`status` |
+| 逐点学习覆盖层 | `data-coach-learning-backdrop`；`data-coach-learning-action="start"`、`close`、`submit`、`begin-learning`、`begin-question`、`retry`、`reveal`、`next`、`abandon`；`data-coach-learning-field="target-type"`、`target-id`、`answer`；`data-coach-learning-source-action="open"` |
 | 设置 | `data-settings-action="back"`、`connection-details`；`data-settings-page="answer"`、`data-settings-page="data"`、`data-settings-page="obsidian"`、`data-settings-page="appearance"`；`data-obsidian-settings`、`data-obsidian-pairing-form`、`data-obsidian-pairing-result` |
 
 不得为了方便自动化测试平行新增另一套同义 `data-*`。确需新增时，先确定稳定业务语义，再同步本文档。
@@ -128,9 +131,10 @@
 | `frontend/src/App.vue` | 集成 Owner | 视图装配、共享状态下发、事件处理、HTTP/SSE 用例编排 | 在展示组件中复制第二套集成状态；新增未经后端契约支持的请求 |
 | `frontend/src/components/AppShell.vue` | 壳层 Owner | 布局、顶栏、默认插槽、侧边栏转发 | 直接调用业务 API；拥有教练或学习计划业务状态 |
 | `frontend/src/components/WorkspaceSidebar.vue` | 导航 Owner | 导航、项目与线程选择事件 | 直接修改父级状态；把资料弹窗改成伪路由 |
-| `frontend/src/views/WorkbenchView.vue` | 教练视图 Owner | 教练页面模块顺序和展示 | 直接发 HTTP/SSE；自行保存项目或聊天状态 |
-| `frontend/src/views/LearningMapView.vue` | 学习地图 Owner | 地图、来源入口、评估入口展示 | 在前端重算服务端覆盖率或评估结论 |
-| `frontend/src/views/LearningPlanView.vue` | 学习计划 Owner | 草稿编辑、确认和进度交互展示 | 绕过服务端能力标志或并发校验字段 |
+| `frontend/src/views/WorkbenchView.vue` | 教练视图 Owner | 教练页面模块顺序、逐点学习恢复入口和展示 | 直接发 HTTP/SSE；自行保存项目、聊天或学习状态 |
+| `frontend/src/views/LearningMapView.vue` | 学习地图 Owner | 地图、来源、评估和逐点学习入口展示 | 在前端重算服务端覆盖率、评估或掌握结论 |
+| `frontend/src/views/LearningPlanView.vue` | 学习计划 Owner | 草稿编辑、确认、进度与任务学习入口展示 | 绕过服务端能力标志、并发字段或自行完成任务 |
+| `frontend/src/components/CoachLearningSessionOverlay.vue` | 逐点学习展示 Owner | 当前步骤、exercise、fixture、attempt、反馈和允许动作展示 | 自行计算重试、评分、证据资格、计划进度或访问数据库 |
 | `frontend/src/views/SettingsView.vue` | 设置视图 Owner | 当前四个设置页签与表单展示 | 将禁用入口伪装为可用；回显明文 Key 或插件令牌 |
 | `frontend/src/api/*.js` | API 边界 Owner | 调用 `api-spec.md` 中已存在的 HTTP/SSE 接口、前端参数规范化 | 新增未在 `api-spec.md` 定义的接口；在组件内散落 `fetch` |
 
@@ -151,10 +155,11 @@
 | 验收项 | 最低通过标准 |
 |--------|--------------|
 | 主导航 | 四个 `data-view-key` 能切换对应内容，资料入口只打开弹窗 |
-| 状态保留 | 打开并关闭资料、来源、评估或发布覆盖层后，当前主视图和当前项目不被重置 |
-| 教练 | 问题提交、SSE 输出、取消、聊天历史和依据区由同一 `App.vue` 状态链驱动 |
-| 学习地图 | 未选项目、加载、错误、stale、空数据和正常数据均有明确展示 |
-| 学习计划 | 草稿与已确认计划权限来自服务端；结构更新与进度更新保持分离 |
+| 状态保留 | 打开并关闭资料、来源、评估、逐点学习或发布覆盖层后，当前主视图和当前项目不被重置 |
+| 教练 | 问题提交、SSE 输出、取消、聊天历史、依据区和逐点学习恢复入口由同一 `App.vue` 状态链驱动 |
+| 学习地图 | 未选项目、加载、错误、stale、空数据和正常数据均有明确展示；stale 时禁用评估和学习 |
+| 逐点学习 | 一次只展示当前步骤/练习；提交防重、来源只读、终态、stale、答案揭示与计划同步均使用服务端结果 |
+| 学习计划 | 草稿与已确认计划权限来自服务端；结构更新与进度更新保持分离，任务学习完成后刷新服务端计划 |
 | 设置 | 回答和 Obsidian 使用真实接口；资料备份/恢复与外观未接入项保持禁用 |
 | 响应式 | 760px 以下侧边栏可折叠和重新打开，主内容不依赖路由刷新 |
 
@@ -163,9 +168,9 @@
 - 不得引入 `vue-router` 或新增主视图键，除非先更新架构与页面契约。
 - 不得把 `App.vue` 的 API 编排复制到视图或展示组件。
 - 不得用 mock 数据替代 `App.vue` 下发的真实状态。
-- 不得在前端推导覆盖率、评估状态、学习计划权限或发布状态。
+- 不得在前端推导覆盖率、评估状态、学习重试/评分/证据资格、学习计划权限或发布状态。
 - 不得新增后端接口、请求字段或响应字段；需求存在缺口时先更新 `api-spec.md` 并完成后端实现。
-- 不得让资料弹窗、来源抽屉、评估覆盖层或发布对话框隐式改变当前项目。
+- 不得让资料弹窗、来源抽屉、评估/逐点学习覆盖层或发布对话框隐式改变当前项目。
 
 ## 8. 提交前检查清单
 

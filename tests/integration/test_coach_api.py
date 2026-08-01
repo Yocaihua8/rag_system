@@ -103,6 +103,10 @@ def test_coach_routes_validate_project_id(tmp_path: Path):
         ("POST", "/api/coach/learning-plans/update", {}, {}),
         ("POST", "/api/coach/learning-plans/confirm", {}, {}),
         ("GET", "/api/coach/learning-plans/current", {}, {}),
+        ("POST", "/api/coach/learning-sessions/start", {}, {}),
+        ("GET", "/api/coach/learning-sessions/current", {}, {}),
+        ("POST", "/api/coach/learning-sessions/transition", {}, {}),
+        ("POST", "/api/coach/learning-sessions/attempts", {}, {}),
     ]
     for method, path, query, payload in requests:
         response = handle_coach_route(store, method, path, query, payload)
@@ -151,6 +155,30 @@ def test_coach_routes_validate_project_id(tmp_path: Path):
             "/api/coach/learning-plans/current",
             {"project_id": ["missing"]},
             {},
+        ),
+        (
+            "POST",
+            "/api/coach/learning-sessions/start",
+            {},
+            {"project_id": "missing"},
+        ),
+        (
+            "GET",
+            "/api/coach/learning-sessions/current",
+            {"project_id": ["missing"]},
+            {},
+        ),
+        (
+            "POST",
+            "/api/coach/learning-sessions/transition",
+            {},
+            {"project_id": "missing"},
+        ),
+        (
+            "POST",
+            "/api/coach/learning-sessions/attempts",
+            {},
+            {"project_id": "missing"},
         ),
     ]
     for method, path, query, payload in unknown_requests:
