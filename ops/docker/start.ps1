@@ -17,7 +17,7 @@ New-Item -ItemType Directory -Path $workspace -Force | Out-Null
 $env:KNOWLEDGE_ISLAND_WORKSPACE = $workspace
 $env:RAG_LLM_PROVIDER = if ($env:RAG_LLM_PROVIDER) { $env:RAG_LLM_PROVIDER } else { "api" }
 
-docker compose --project-directory $repositoryRoot -f $composeFile up --build -d
+docker compose --project-directory $PSScriptRoot -f $composeFile up --build -d
 
 $webPort = if ($env:KI_WEB_PORT) { $env:KI_WEB_PORT } else { "4173" }
 $apiPort = if ($env:KI_API_PORT) { $env:KI_API_PORT } else { "8765" }

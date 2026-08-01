@@ -12,11 +12,12 @@ def test_vue_ollama_api_helper_uses_first_run_contracts():
 
     for marker in [
         'import { apiGet } from "./client.js";',
+        'import { apiUrl } from "./config.js";',
         "export async function getOllamaStatus()",
         'apiGet("/api/ollama/status")',
         "export async function pullOllamaModel({ model, handlers = {}, signal } = {})",
         'throw new Error("请选择要下载的模型")',
-        'fetch("/api/ollama/pull"',
+        'fetch(apiUrl("/api/ollama/pull")',
         'method: "POST"',
         '"Content-Type": "application/json"',
         "JSON.stringify({ model: cleanModel })",

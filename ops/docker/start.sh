@@ -15,7 +15,7 @@ mkdir -p "$WORKSPACE"
 export KNOWLEDGE_ISLAND_WORKSPACE="$WORKSPACE"
 export RAG_LLM_PROVIDER="${RAG_LLM_PROVIDER:-api}"
 
-docker compose --project-directory "$REPOSITORY_ROOT" -f "$COMPOSE_FILE" up --build -d
+docker compose --project-directory "$SCRIPT_DIR" -f "$COMPOSE_FILE" up --build -d
 
 echo "前端已启动：http://127.0.0.1:${KI_WEB_PORT:-4173}"
 echo "后端 API：http://127.0.0.1:${KI_API_PORT:-8765}"

@@ -495,7 +495,8 @@ def test_vue_answer_api_helper_supports_streaming_answer_and_chat_contracts():
 
     for marker in [
         "export function askQuestionStream({",
-        "new EventSource(`/api/answer/stream?${params.toString()}`)",
+        'import { apiUrl } from "./config.js";',
+        "new EventSource(apiUrl(`/api/answer/stream?${params.toString()}`))",
         "source.addEventListener(\"token\"",
         "source.addEventListener(\"done\"",
         "source.addEventListener(\"answer_error\"",

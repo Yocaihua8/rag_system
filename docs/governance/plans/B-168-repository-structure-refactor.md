@@ -78,12 +78,14 @@
 
 - 用户已明确授权删除 `archive/src-desktop-legacy/`、`Git 历史`、`docs/release/`、`docs/previews/`、`docs/superpowers/`、旧 `docs/architecture/`、Archived 设计和 `.docs-template/`，因此本 plan 对相冲突的旧保护规则具有本任务内优先级。
 - 不提供旧启动命令、旧 npm scripts 或根 Docker 路径的兼容壳。
+- Docker 实机验收发现启停脚本的 `--project-directory` 与 Compose 相对构建上下文不一致；已统一为 `ops/docker/` 并补充契约测试。复验完成双镜像构建、双服务健康检查及 4173 页面到 8765 API 的真实浏览器跨域请求，隔离容器、网络和测试卷均已删除。
+- Windows NSIS 安装包已安装到仓库 `.tmp/` 隔离目录并动态验证 sidecar：`/api/health` 返回 200、根路由返回 404；随后成功卸载，安装目录和相关进程均已清理。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-08-01
-- **进度**：已完成 4 / 6 项（见 § 3 勾选状态）
-- **最新 commit**：`c7cdcbc` — `refactor: 分类测试工具并删除旧归档`
-- **代码状态**：`refactor/repository-structure`；前后端运行时、旧归档清理、测试与文档工具分类均已分阶段提交，18 项仓库治理契约通过
-- **下一步**：重构文档目录，回流有效 v2 事实，删除历史体系并新增 ADR-010
+- **进度**：已完成 5 / 6 项（见 § 3 勾选状态）
+- **最新 commit**：`a27650c` — `docs: 重构当前文档体系并清理历史`
+- **代码状态**：`refactor/repository-structure`；代码、运行时、历史清理与文档重构均已分阶段提交；376 项后端/集成测试与 15 项文档契约检查通过
+- **下一步**：运行完整验证矩阵，清理 B-168 活动记录与 plan
 - **续任务须知**：保留 6 个未推送 B-167 提交；本任务不推送、不建 PR、不合并、不发布

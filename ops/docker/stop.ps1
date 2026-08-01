@@ -4,7 +4,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $composeFile = Join-Path $PSScriptRoot "compose.yaml"
 
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
@@ -12,9 +11,9 @@ if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
 }
 
 if ($RemoveVolumes) {
-    docker compose --project-directory $repositoryRoot -f $composeFile down --volumes
+    docker compose --project-directory $PSScriptRoot -f $composeFile down --volumes
 } else {
-    docker compose --project-directory $repositoryRoot -f $composeFile down
+    docker compose --project-directory $PSScriptRoot -f $composeFile down
 }
 
 Write-Host "Knowledge Island 前后端容器已停止。"

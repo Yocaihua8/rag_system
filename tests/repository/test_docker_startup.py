@@ -70,6 +70,11 @@ def test_docker_scripts_and_environment_example_are_ops_local():
         assert "ops/docker" not in script or "compose.yaml" in script
         assert "compose" in script
 
+    assert "--project-directory $PSScriptRoot" in scripts[0]
+    assert "--project-directory $PSScriptRoot" in scripts[1]
+    assert '--project-directory "$SCRIPT_DIR"' in scripts[2]
+    assert '--project-directory "$SCRIPT_DIR"' in scripts[3]
+
 
 def test_root_docker_compatibility_files_are_removed():
     for relative in (

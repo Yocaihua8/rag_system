@@ -2,7 +2,6 @@
 set -eu
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-REPOSITORY_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/compose.yaml"
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -10,4 +9,4 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-docker compose --project-directory "$REPOSITORY_ROOT" -f "$COMPOSE_FILE" down "$@"
+docker compose --project-directory "$SCRIPT_DIR" -f "$COMPOSE_FILE" down "$@"
