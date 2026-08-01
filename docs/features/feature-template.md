@@ -101,7 +101,7 @@
 > Owner：张三
 > Last Updated：2026-04-17
 > Scope：订单中心后台
-> Related：`docs/architecture/backend/api.md`
+> Related：`docs/design/api-spec.md`
 > Related ADR：ADR-005-export-storage-choice.md
 
 ## 1. 功能目标

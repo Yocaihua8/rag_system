@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-05-25
 > Scope：Knowledge Island 本地开发分支与提交约定
-> Related：docs/operations/release.md, CONTRIBUTING.md
+> Related：`release-process.md`、`../../CONTRIBUTING.md`
 
 ## 1. 分支模型
 

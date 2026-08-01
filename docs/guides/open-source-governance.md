@@ -15,7 +15,7 @@
 | 项目使命 | 将本地文档转化为可检索的项目知识，并通过来源约束的检索、问答和学习闭环帮助个人或小团队使用知识 |
 | 治理范围 | 仓库代码、文档、Issue、Pull Request、发布、社区行为和安全协调 |
 | 主要沟通渠道 | GitHub Issue 与 Pull Request；私密安全和行为报告入口均为 TBD |
-| 决策记录位置 | 功能范围写入 `docs/product/features/`，架构决策写入 `docs/architecture/decisions/`，任务与技术债写入 `docs/BACKLOG.md`，执行计划写入 `docs/governance/plans/`，实际合并结论保留在 PR |
+| 决策记录位置 | 功能范围写入 `docs/features/`，架构决策写入 `docs/adr/`，任务与技术债写入 `docs/BACKLOG.md`，执行计划写入 `docs/plans/`，实际合并结论保留在 PR |
 | 当前维护模式 | 单维护者主导；`.github/CODEOWNERS` 当前默认 Owner 为 `@Yocaihua8` |
 
 ## 2. 角色与权限

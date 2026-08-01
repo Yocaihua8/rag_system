@@ -3,33 +3,33 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-08-01
-> Scope：当前已实现功能及明确的兼容/可达边界
+> Scope：当前用户能力、兼容能力与可达边界
 > Related：`../requirements/functional-modules.md`、`../design/api-spec.md`、`../BACKLOG.md`
 
-| 功能 | 规格 |
-|------|------|
-| 项目知识教练、评估与学习计划 | [`project-knowledge-coach.md`](project-knowledge-coach.md) |
-| 项目空间与导入 | [`project-space-ingestion.md`](project-space-ingestion.md) |
-| 资料管理 | [`knowledge-base-management.md`](knowledge-base-management.md) |
-| 首次引导 | [`first-run-wizard.md`](first-run-wizard.md) |
-| 对话分支 | [`chat-branching.md`](chat-branching.md) |
-| 多模型比较 | [`multi-model-comparison.md`](multi-model-comparison.md) |
-| 结果导出 | [`result-export.md`](result-export.md) |
-| 并发索引 | [`concurrent-indexing.md`](concurrent-indexing.md) |
-| Graph-enhanced 检索 | [`graph-enhanced-retrieval.md`](graph-enhanced-retrieval.md) |
-| Qdrant 向量存储 | [`qdrant-vector-store.md`](qdrant-vector-store.md) |
-| 可选认证 | [`authentication.md`](authentication.md) |
-| FastAPI API-only 运行时 | [`fastapi-runtime.md`](fastapi-runtime.md) |
-| Vue 前端工程 | [`frontend-engineering.md`](frontend-engineering.md) |
-| OpenAPI/Swagger | [`openapi-swagger-docs.md`](openapi-swagger-docs.md) |
+本目录按用户可感知能力组织，一份文档只描述一个能力。后端存在接口、源码中保留组件或测试覆盖，并不自动代表当前主界面已经接通。
 
-Desktop、Obsidian 和 GitHub 的用户能力将在本目录对应规格中说明；搭建、运行和排障步骤统一进入 [`../guides/README.md`](../guides/README.md)。
+| 用户能力 | 规格 | 当前入口 |
+|----------|------|----------|
+| 项目资料导入 | [`project-space-ingestion.md`](project-space-ingestion.md) | 资料弹窗；部分高级入口只在未挂载视图中保留 |
+| 资料浏览与分组 | [`knowledge-base-management.md`](knowledge-base-management.md) | 资料弹窗；集合写操作只在未挂载视图中保留 |
+| 检索与有来源问答 | [`retrieval-and-question-answering.md`](retrieval-and-question-answering.md) | 教练工作台 |
+| 对话分支 | [`chat-branching.md`](chat-branching.md) | 教练工作台 |
+| 项目知识教练 | [`project-knowledge-coach.md`](project-knowledge-coach.md) | 教练、学习地图、学习计划 |
+| 首次运行引导 | [`first-run-wizard.md`](first-run-wizard.md) | 教练工作台首次状态 |
+| 多模型比较 | [`multi-model-comparison.md`](multi-model-comparison.md) | 教练工作台高级区域 |
+| 模型配置 | [`model-profile-settings.md`](model-profile-settings.md) | 设置页 |
+| Prompt 预设 | [`prompt-preset-settings.md`](prompt-preset-settings.md) | 设置页 |
+| GitHub 仓库导入 | [`github-integration.md`](github-integration.md) | 资料弹窗 |
+| Obsidian 同步与发布 | [`obsidian-integration.md`](obsidian-integration.md) | 资料、设置、学习计划与桌面插件 |
+| 桌面应用 | [`desktop-app.md`](desktop-app.md) | Tauri 桌面包 |
+| 结果导出 | [`result-export.md`](result-export.md) | 仅 API，主界面无导出按钮 |
+| 可选 API 认证 | [`authentication.md`](authentication.md) | 后端部署配置；当前 Vue/SSE 未接凭证 |
 
-### 可达性原则
+状态用语：
 
-- 后端存在接口不等于当前主导航已提供完整入口。
-- 未挂载的兼容组件不作为用户主流程能力。
-- 可见但未接线的控件以 [`../BACKLOG.md`](../BACKLOG.md) 为准，不得描述为已交付闭环。
-- 完成的新行为更新本索引和对应规格；未完成设想只进入 BACKLOG。
+- **当前可达**：从 `frontend/src/App.vue` 挂载的主入口可以完成。
+- **部分接线**：界面可见但输入、状态或后续动作没有形成完整闭环。
+- **源码保留但不可达**：后端或组件仍存在，但当前主导航没有挂载。
+- **未实现**：不写入功能规格，统一记录在 [`../BACKLOG.md`](../BACKLOG.md)。
 
-新功能文档使用 [`feature-template.md`](feature-template.md)。
+新功能规格使用 [`feature-template.md`](feature-template.md)。

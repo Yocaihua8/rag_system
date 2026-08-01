@@ -1,67 +1,34 @@
-# 认证中间件
+# 可选 API 认证
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
-> Scope：B-140 API Key + JWT 认证中间件
-> Related：docs/architecture/decisions/ADR-005-remote-auth.md, docs/architecture/contracts/permissions.md, docs/architecture/backend/api.md, docs/BACKLOG.md
+> Last Updated：2026-08-01
+> Scope：本地单实例的共享 API Key 与短期 JWT
+> Related：`../design/permission-matrix.md`、`../design/api-spec.md`、`../guides/security.md`
 
-## 1. 功能定位
+## 1. 用户目标
 
-B-140 为 Web MVP 增加可选启用的单用户认证中间件，服务于后续多客户端和远程访问场景。它不是多用户系统，不新增用户表、密码登录、注册页面或 RBAC。
+部署者可为本地 API 启用共享凭证保护。该能力不是用户账户、登录页、多租户或 RBAC。
 
-## 2. 启用方式
+## 2. 启用与凭证
 
-默认认证关闭。设置以下环境变量后启用：
+默认关闭。启用时设置：
 
 ```text
 RAG_AUTH_ENABLED=1
-RAG_AUTH_API_KEY=<用户自定义管理 Key>
-RAG_AUTH_JWT_SECRET=<JWT 签名密钥>
-```
-
-可选：
-
-```text
+RAG_AUTH_API_KEY=<共享管理 Key>
+RAG_AUTH_JWT_SECRET=<HS256 签名密钥>
 RAG_AUTH_JWT_TTL_SECONDS=3600
 ```
 
-## 3. 认证方式
+- 脚本可发送 `X-API-Key`。
+- 客户端可用 `X-API-Key` 调用 `POST /api/auth/token`，再发送 `Authorization: Bearer <jwt>`。
+- `/api/health` 放行；其余 `/api/*` 以及 `/docs`、`/redoc`、`/openapi.json` 受保护。
+- 缺失、错误或过期凭证返回 401，不在响应或日志中泄露密钥。
 
-| 方式 | 适用场景 | 说明 |
-|------|----------|------|
-| `X-API-Key` | 脚本、curl、桌面端、移动端 | 直接使用用户配置的管理 Key |
-| `Authorization: Bearer <jwt>` | 前端或多客户端 | 通过 `POST /api/auth/token` 获取短期 JWT |
+## 3. 当前可达边界
 
-## 4. 路径规则
-
-| 路径 | 认证启用时行为 |
-|------|----------------|
-| `/` | 无业务路由，返回 404 |
-| `/api/health` | 放行 |
-| `/api/auth/token` | 路由内部校验 `X-API-Key` |
-| `/api/*` 其他接口 | 需要认证 |
-| `/docs`、`/redoc`、`/openapi.json` | 需要认证 |
-
-## 5. 错误格式
-
-| 场景 | HTTP 状态 | 响应 |
-|------|-----------|------|
-| 缺少凭证 | 401 | `{"error":"authentication required"}` |
-| 凭证错误或过期 | 401 | `{"error":"invalid credentials"}` |
-
-## 6. 非目标
-
-- 不新增登录页。
-- 不新增用户表或权限表。
-- 不保存 JWT。
-- 不实现 token 服务端撤销列表。
-- 不改变 Agent 工具只读白名单。
-
-## 7. 验收标准
-
-- 认证关闭时，现有本地使用方式完全兼容。
-- 认证启用时，受保护 API 无凭证必须返回 401。
-- 正确 API Key 和正确 JWT 均可访问受保护 API。
-- 错误、过期或伪造 JWT 均被拒绝。
-- API 响应不泄露 `RAG_AUTH_API_KEY` 或 `RAG_AUTH_JWT_SECRET`。
+- 后端认证、API Key 和 JWT 请求路径已实现并有测试。
+- 当前 Vue API helper 没有统一附加认证 header；原生 `EventSource` 也不能设置自定义认证 header。
+- 因此启用认证后的浏览器普通请求和 SSE 问答尚未形成可用闭环，不能把认证描述为当前 Vue 登录能力。
+- CORS 只控制浏览器 Origin，不替代认证；认证也不改变 Agent 只读白名单。

@@ -4,9 +4,9 @@
 > Owner：{{OWNER}}
 > Last Updated：{{CURRENT_DATE}}
 > Scope：{{SCOPE}}
-> Related：`docs/architecture/backend/api.md`、{{RELATED_DOCS}}
+> Related：`docs/design/api-spec.md`、{{RELATED_DOCS}}
 
-本文档用于指导前端、移动端、第三方系统或外部服务完成一次可验证的接口 / 服务接入。接口字段与错误码的权威源仍是 `docs/architecture/backend/api.md`；本文只说明调用方如何落地接入、联调和排错。
+本文档用于指导调用方完成一次可验证的接口或服务接入。接口字段与错误码的权威源仍是 `docs/design/api-spec.md`；本文只说明如何落地接入、联调和排错。
 
 ## 1. 接入目标
 
