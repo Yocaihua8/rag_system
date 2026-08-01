@@ -16,7 +16,7 @@ Knowledge Island 默认是本地单用户应用，没有已确认的生产值班
 | Vue 前端 | Vite 5173；preview/Docker 4173 | 页面加载且能调用 API |
 | SQLite | `runtime/v2/app.db` | 无独立 readiness |
 | Qdrant local | 默认关闭；配置路径后启用 | 实际检索且无回退 warning |
-| 问答导出 | `data/outputs/` | 不属于数据库备份范围 |
+| 问答导出 | `runtime/v2/outputs/` | 不属于 SQLite 备份脚本范围 |
 
 ## 2. 本地启停
 
@@ -67,11 +67,17 @@ bash ops/scripts/backup_db.sh
 - 默认数据库：`runtime/v2/app.db`。
 - 默认备份目录：`runtime/v2/backups/`。
 - 默认保留 7 份，可用 `KI_BACKUP_RETENTION` 覆盖。
-- 有 `sqlite3` 时使用在线 `.backup`；没有时退回文件复制，此时应先停止应用以获得一致副本。
+- 有 `sqlite3` 时使用在线 `.backup`；Git Bash 调用 Windows `sqlite3.exe` 时脚本会用 `cygpath -m` 转换目标路径。没有 `sqlite3` 时退回文件复制，此时应先停止应用以获得一致副本。
 - 使用 Qdrant local mode 时设置 `KI_QDRANT_DIR` 或 `RAG_QDRANT_PATH`，脚本会另外打包该目录。
-- `data/outputs/`、用户导入原始文件和未提交 `.env` 不在此备份内。
+- `runtime/v2/outputs/` 或自定义输出目录、用户导入原始文件和未提交 `.env` 不在 SQLite 备份内。
 
-恢复前必须停止写入，保留现有数据副本，并在隔离目录验证 SQLite/向量兼容性；仓库没有“一键恢复即保证兼容”的脚本。
+仓库测试会在临时项目中实际运行脚本，把备份复制为独立数据库，并验证 `PRAGMA integrity_check=ok`、`app_metadata.data_generation=v2` 和样例数据。可运行：
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/repository/test_ops_scripts.py -q -rs
+```
+
+实际恢复前必须停止写入、保留现有数据副本，并先在隔离目录重复上述完整性、代际和样例数据验证；不得直接覆盖活动 `runtime/v2/app.db`。使用 Qdrant local mode 时还要恢复同一时间点的向量目录。仓库没有“一键恢复即保证兼容”的脚本。
 
 ## 6. 临时文件清理
 

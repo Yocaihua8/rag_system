@@ -72,6 +72,14 @@ docker compose --project-directory ops/docker -f ops/docker/compose.yaml logs --
 - 发布停在 `queued` 表示等待插件执行，不代表写入失败；查看插件连接与待执行领取。
 - `conflict` 时检查目标路径、管理标记、文件身份和外部编辑哈希，不手工绕过覆盖保护。
 
-## 9. 报告
+## 9. 备份脚本找不到数据库或恢复验证失败
+
+- 默认脚本只读取仓库本地 `runtime/v2/app.db`；自定义 `RAG_RUNTIME_DIR` 时必须把对应 `<runtime>/app.db` 显式传给 `KI_DB_PATH`。
+- Windows Git Bash 在线备份依赖 `cygpath -m` 把目标转换为 `sqlite3.exe` 可识别的路径；不要把 `/e/...` 等 POSIX 路径直接传给 SQLite dot-command。
+- 缺少 `sqlite3` 时脚本会退回文件复制，必须先停止应用以避免复制运行中的数据库。
+- SQLite 备份不包含 `runtime/v2/outputs/`、自定义输出目录或未显式声明的 Qdrant local 目录。
+- 只在隔离目录恢复并检查 `PRAGMA integrity_check`、`data_generation=v2` 和样例数据；排障时不得覆盖活动 `app.db`。
+
+## 10. 报告
 
 提供 commit、系统、命令、前后端 URL、脱敏日志、预期/实际结果和已尝试步骤。安全问题按根 `SECURITY.md` 私密上报。

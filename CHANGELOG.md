@@ -13,9 +13,14 @@
 - **前后端运行时分离**：FastAPI 改为 API-only，后端以 `python -m backend` 启动；Vue 独立构建到 `frontend/dist/` 并通过 `VITE_API_BASE_URL` 使用绝对 API/SSE URL。
 - **受限跨域策略**：新增 `KI_CORS_ORIGINS` 精确 allowlist，默认只允许本机 5173/4173 和 Tauri Origin，不使用通配符或 cookie credentials。
 - **工程依赖分区**：根 npm 只编排 frontend/src-tauri workspace；Python 依赖迁入 `backend/requirements/`；Tauri CLI、Vite/Vitest/Playwright 和 Obsidian 插件依赖各归所属工程。
+- **v2 结果输出目录**：问答结果默认写入活动运行时派生的 `<runtime>/outputs/`，本地默认由 `data/outputs/` 调整为 `runtime/v2/outputs/`；`KI_OUTPUT_DIR` 和 `RAG_OUTPUT_DIR` 覆盖顺序保持兼容。
 - **Docker 双服务**：Compose 迁入 `ops/docker/`，前端与后端使用独立镜像、端口和健康检查，前端 Nginx 不反向代理 API。
 - **仓库与测试分类**：运行入口、工具、测试和构建脚本按 backend、frontend、desktop、integration、operations、repository 职责重组。
 - **文档体系**：按 docs-template 1.0.0 的职责重构为扁平 `requirements`、`design`、`features`、`adr`、`guides` 和 `plans`；统一校准当前 API、SQLite、权限、状态、功能可达性和操作命令，文档检查迁入 `scripts/` 并增加源码派生契约。
+
+### Fixed
+
+- **v2 SQLite 在线备份**：保留 `runtime/v2/app.db`、`runtime/v2/backups/` 与 `knowledge-island-v2-*` 主线约定，并修复 Git Bash 调用 Windows `sqlite3.exe` 时 `.backup` 目标路径不可用的问题；真实隔离恢复测试验证 SQLite 完整性、v2 标记和样例数据。
 
 ### Removed
 

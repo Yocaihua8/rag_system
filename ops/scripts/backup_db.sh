@@ -23,7 +23,11 @@ TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 DB_BACKUP_PATH="$BACKUP_DIR/knowledge-island-v2-$TIMESTAMP.sqlite3"
 
 if command -v sqlite3 >/dev/null 2>&1; then
-  sqlite3 "$DB_PATH" ".backup \"$DB_BACKUP_PATH\""
+  SQLITE_BACKUP_PATH="$DB_BACKUP_PATH"
+  if command -v cygpath >/dev/null 2>&1; then
+    SQLITE_BACKUP_PATH="$(cygpath -m "$DB_BACKUP_PATH")"
+  fi
+  sqlite3 "$DB_PATH" ".backup \"$SQLITE_BACKUP_PATH\""
 else
   echo "sqlite3 not found; falling back to file copy. Stop the app first for a fully consistent copy." >&2
   cp "$DB_PATH" "$DB_BACKUP_PATH"

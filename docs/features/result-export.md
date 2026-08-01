@@ -10,7 +10,7 @@
 
 - `POST /api/export/result` 接受 `project_id`、`message_id` 和 `format`。
 - 格式只允许 `markdown` 或 `pdf`；内容包含问题、回答和引用来源。
-- 默认写入 `data/outputs/`，可用 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖。
+- 默认使用活动配置的 `<runtime>/outputs/`，本地为 `runtime/v2/outputs/`；可用 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖，前者优先。
 - 响应返回格式、文件名、本机路径、MIME 类型和字节数，不直接返回文件内容。
 - 消息必须属于当前项目；跨项目消息按不存在处理。
 
@@ -22,4 +22,4 @@
 
 - 当前没有批量导出、导出历史、文件下载端点、删除管理或云端分享。
 - PDF 为同内容的轻量文本 PDF，不依赖大型渲染组件。
-- 结果导出目录与 v2 数据库目录不同；备份 `runtime/v2/` 不自动包含 `data/outputs/`。
+- 结果导出目录与 v2 数据库共享运行时根，但 `backup_db.sh` 只备份 SQLite；需要保留导出文件时必须单独纳入 `runtime/v2/outputs/` 或自定义输出目录。

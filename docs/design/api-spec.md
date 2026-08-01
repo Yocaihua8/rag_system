@@ -262,7 +262,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
 
 项目备份恢复 `/api/export/project/restore` 用于把同版本 `version=1` 备份恢复为新项目空间。恢复项目的 `root_path` 写为 `browser-upload:<项目名>`，不会覆盖原项目，也不会读取或写入原磁盘路径。恢复会写入文档正文、chunk 和 vector，并把聊天来源中的 `document_id` / `chunk_id` 映射到恢复后的新记录 ID；启用 Qdrant 时，恢复写入的 chunk vector 会同步 upsert 到 Qdrant。本接口响应中的 `restored` 返回 `documents`、`chunks`、`vectors`、`chat_sessions` 和 `chat_messages` 数量。恢复接口不恢复 API Key、不恢复 `settings_summary` 为真实配置，也不把 `key_configured` 当成凭证来源。
 
-结果导出 `POST /api/export/result` 用于把当前项目内已生成的单条 `chat_messages` 问答结果写入本地输出目录，默认目录为 `data/outputs/`，可通过 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖。请求中的 `format` 只允许 `markdown` 或 `pdf`；`message_id` 必须存在且属于请求的 `project_id`，跨项目消息按 `404 chat message not found` 处理。Markdown 文件包含标题、项目名、消息 ID、导出时间、问题、回答和来源列表；PDF 文件使用同一内容生成轻量文本 PDF，不新增大型 PDF 渲染依赖。接口只写导出文件，不新增数据库表、不修改聊天记录、不读取磁盘源文件，也不返回文件内容。
+结果导出 `POST /api/export/result` 用于把当前项目内已生成的单条 `chat_messages` 问答结果写入本地输出目录。默认目录由活动 `RAG_RUNTIME_DIR` 派生为 `<runtime>/outputs/`，本地默认是 `runtime/v2/outputs/`；可通过 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖，前者优先。请求中的 `format` 只允许 `markdown` 或 `pdf`；`message_id` 必须存在且属于请求的 `project_id`，跨项目消息按 `404 chat message not found` 处理。Markdown 文件包含标题、项目名、消息 ID、导出时间、问题、回答和来源列表；PDF 文件使用同一内容生成轻量文本 PDF，不新增大型 PDF 渲染依赖。接口只写导出文件，不新增数据库表、不修改聊天记录、不读取磁盘源文件，也不返回文件内容。
 
 成功响应示例：
 
@@ -271,7 +271,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
   "export": {
     "format": "markdown",
     "filename": "result-20260629-120000-abcd1234.md",
-    "path": "data/outputs/result-20260629-120000-abcd1234.md",
+    "path": "runtime/v2/outputs/result-20260629-120000-abcd1234.md",
     "mime_type": "text/markdown; charset=utf-8",
     "bytes": 1024
   }
