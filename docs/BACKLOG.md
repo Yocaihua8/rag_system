@@ -22,6 +22,7 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
+| B-171 | feat | 增加逐知识点交互学习与只读 SQL 练习 | doing | P1 | L | RAG 团队 | `docs/plans/B-171-interactive-knowledge-learning.md`、`docs/adr/ADR-011-interactive-learning-sql-sandbox.md` | 从旧冲突分支语义移植学习会话、有限重试、确定性 SQL 评分和计划进度联动；保留当前 API-only 后端、绝对 API URL、v2 数据边界和现有 Coach 契约，不整支合并旧 B-168 历史。 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题
