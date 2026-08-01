@@ -39,7 +39,12 @@ if __name__ == "__main__":
     db_path.parent.mkdir(parents=True, exist_ok=True)
     port = int(os.environ.get("KI_E2E_PORT", "18765"))
     target_app = create_e2e_app(db_path)
-    config = uvicorn.Config(target_app, host="127.0.0.1", port=port)
+    config = uvicorn.Config(
+        target_app,
+        host="127.0.0.1",
+        port=port,
+        timeout_graceful_shutdown=5,
+    )
     server = uvicorn.Server(config)
     print(f"Knowledge Island E2E Web is running at http://127.0.0.1:{port}")
     raise SystemExit(0 if server.run() is None else 1)

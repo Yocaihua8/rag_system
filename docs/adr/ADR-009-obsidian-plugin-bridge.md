@@ -3,13 +3,14 @@
 > 状态：Accepted
 > Date：2026-07-23
 > Owner：RAG 团队
-> Related：docs/features/notion-obsidian-sync.md, docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/BACKLOG.md
+> Scope：Obsidian 桌面插件配对、增量同步与受控发布协议
+> Related：[Obsidian 功能规格](../features/obsidian-integration.md)、[系统设计总览](../design/system-design-overview.md)、[API 规格](../design/api-spec.md)、[数据库设计](../design/database-design.md)、[状态流与验收](../design/state-flow-and-acceptance.md)、[运行手册](../guides/runbook.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
 1.x 的 `/api/import/obsidian-vault` 是用户显式触发的一次性只读导入。2.0 需要接收 Vault 内 Markdown 的增量变化，并把项目理解、差距、学习计划和评估记录发布回 Obsidian。
 
-由后端直接扫描或写入 Vault 会绕过 Obsidian 的文件事件、Frontmatter 和链接元数据，也难以可靠识别外部编辑与用户笔记。2.0 因此需要一个运行在 Obsidian 桌面端内的受控桥。该 ADR 冻结目标协议，不表示插件或接口已经实现。
+由后端直接扫描或写入 Vault 会绕过 Obsidian 的文件事件、Frontmatter 和链接元数据，也难以可靠识别外部编辑与用户笔记。2.0 因此需要一个运行在 Obsidian 桌面端内的受控桥。该 ADR 在 2026-07-23 冻结协议边界；当前实现和可达流程以源码、测试、[API 规格](../design/api-spec.md)与[状态流](../design/state-flow-and-acceptance.md)为准，不以 ADR 本身作为完成度证明。
 
 ## 2. 决策结论
 

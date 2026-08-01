@@ -2,322 +2,126 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30（B-166 Windows v2 原生包与正式发布验收）
+> Last Updated：2026-08-01
+> Scope：独立后端、前端、桌面、插件和 Docker 的环境搭建
+> Related：`../../README.md`、`../design/system-design-overview.md`、`testing.md`、`troubleshooting.md`
 
-## 1. 环境要求
+## 1. 前置要求
 
-- Python 3.10+（仓库默认以 3.11 为主）
-- Node.js 20+ / npm 10+（B-141 起用于 Vue 3 + Vite 前端构建；B-166 本机验证为 Node 24 + npm 11，并以 Node 20.19.5 复跑 Vue 单测）
-- Rust stable + Cargo + rustup（仅 Tauri 原生桌面打包需要；Web MVP 浏览器模式不需要）
-- Windows WebView2 + MSVC Build Tools（仅 Windows Tauri 桌面打包需要）
-- macOS / Linux Tauri 平台依赖（仅 macOS `.dmg` / Linux `.AppImage` 原生桌面打包需要）
-- Web MVP 不强依赖 Ollama 或 API Key；配置 Ollama 或 DeepSeek Key 后可启用真实 LLM 回答
-- 可选：Ollama 本地服务（B-146 起可作为 Web MVP 本地 LLM provider）
-- 可选：API Key（DeepSeek/OpenAI/兼容端点）
-- 可选：`pymupdf`（Web MVP PDF 正文抽取；未安装时 PDF 会明确跳过）
-- 可选能力：`qdrant-client`（当前随 `requirements.txt` 安装；依赖缺失或未启用时回退 SQLite 向量）
-- 可选：`sentence-transformers`（B-125 起用于本地 Cross-Encoder Reranker；未安装时自动跳过）
+- Python 3.10+
+- Node.js 20+ 与 npm
+- Git
+- 桌面构建额外需要 Rust/Cargo 和目标平台原生工具链
+- Docker 运行额外需要 Docker Desktop 或兼容 Compose 环境
+- Ollama 仅在使用本地模型时需要
 
-## 2. 最小启动步骤
+## 2. 安装基础环境
 
-```bash
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-npm install
-npm run build
-cp .env.example .env
-cp .env .env.local # 按需
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r backend/requirements/dev.txt
+npm ci
+Copy-Item backend/.env.example backend/.env
 ```
 
-若要运行测试、安全审计或桌面打包辅助脚本，同时安装开发依赖：
+`backend/requirements/dev.txt` 包含 `base.txt`，并增加 pytest、PyInstaller 和 pip-audit。根 npm workspace 只安装 `frontend` 与 `src-tauri`；Obsidian 插件独立安装：
 
 ```powershell
-pip install -r requirements-dev.txt
+npm --prefix integrations/obsidian-plugin ci
 ```
 
-启动默认 Web MVP：
+## 3. 依赖状态
 
-```bash
-.venv\Scripts\python.exe app.py
-```
+| 包 | 安装状态 | 当前用途 |
+|----|----------|----------|
+| `qdrant-client` | `base.txt` 必装 | 只有配置 `RAG_VECTOR_STORE_PROVIDER=qdrant` 时启用 local mode，默认仍走 SQLite |
+| `jieba` | `base.txt` 必装 | 当前源码尚未调用，不能据此宣称已启用中文分词 |
+| `pinia` | `frontend/package.json` 已声明 | 当前前端状态使用 reactive singleton，源码尚未创建 Pinia store |
+| `pymupdf` | 未列入 requirements | PDF 抽取的可选依赖，按需执行 `python -m pip install pymupdf` |
+| `sentence-transformers` | 未列入 requirements | Cross-Encoder reranker 的可选依赖，未安装时跳过 rerank |
 
-浏览器打开：
+可选包体积和平台依赖较大，应只在确实需要对应能力时安装。
 
-```text
-http://127.0.0.1:8765
-```
+## 4. 本地运行
 
-当前默认入口使用 FastAPI + Uvicorn、SQLite、可选 Qdrant local mode 和 Vue/Vite 生产前端；`pip install -r requirements.txt` 会安装必需 Web 运行时和 Qdrant Python client。B-161 起默认数据根为 `runtime/v2/`，SQLite 为 `runtime/v2/app.db`，SQLite 向量、日志、输出和未显式配置的 Qdrant local 目录也派生到该代际。旧 `runtime/app.db`、`runtime/webapp/knowledge_island.db`、旧向量和输出不会自动迁移或删除，用户需要在 v2 中重新导入项目。生产入口若指向一个没有 `data_generation=v2` 标记的非空数据库，会在任何建表、回填或向量初始化前拒绝启动。
-
-测试或受控部署仍可通过 `KI_DB_PATH` 指定 SQLite 文件，通过 `RAG_RUNTIME_DIR` 指定完整运行数据根；目标目录必须是空目录或已带 v2 代际标记的数据库，不能用该配置绕过旧库保护。Web 端 DeepSeek / OpenAI 兼容调用仍使用 Python 标准库 `urllib`，不依赖 `openai` SDK。PDF 正文抽取是可选能力，需要额外执行 `pip install pymupdf`；未安装时 PDF 会返回 `pdf extraction requires optional parser` 并继续处理其他文件。旧 PySide6 桌面端代码已归档到 `archive/src-desktop-legacy/`，不再参与 Web/Tauri 启动链路。
-
-B-141A 起仓库包含 Vue 3 + Vite 前端工程骨架。生产构建命令：
+后端终端：
 
 ```powershell
-npm run build
+.\.venv\Scripts\python.exe -m backend
 ```
 
-构建产物输出到 `backend/static_dist/`，该目录不入库。`python app.py` 只服务 `backend/static_dist/`；未构建或构建产物缺失时会在启动阶段提示先执行 `npm run build`，不再回退到 legacy 静态目录。
+默认地址为 `http://127.0.0.1:8765`；`GET /api/health`、`/docs`、`/redoc` 和 `/openapi.json` 可用，`GET /` 返回 404 是正常设计。
 
-Docker 镜像构建会在独立 Node 阶段执行 `npm ci && npm run build`，并把生成的 `backend/static_dist/` 复制到最终 Python 镜像中。运行阶段只安装 `requirements-docker.txt` 中的 Web 运行依赖，并以非 root `appuser` 启动。因此 Docker 启动不需要宿主机提前执行 `npm run build`，但重新拉取或修改前端源码后仍需重新 `docker compose --project-directory . -f compose.yaml up --build -d`。
-
-### 2.1 依赖审计与可选依赖矩阵
-
-B-154 起，本地发布前建议执行与 CI 等价的依赖安全审计：
+前端终端：
 
 ```powershell
-npm audit --audit-level=high
-$env:PYTHONUTF8 = "1"
-.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt --progress-spinner off
+npm run frontend:dev
 ```
 
-`PYTHONUTF8=1` 用于避免 Windows 默认 GBK 编码读取含中文注释的 requirements 文件失败；GitHub Actions 已在 CI 全局环境中设置该变量。
-
-可选依赖或外部服务缺失时的预期降级路径如下：
-
-| 能力 | 依赖 / 服务 | 缺失时行为 | 验证入口 |
-|------|-------------|------------|----------|
-| PDF 正文抽取 | `pymupdf` | PDF 文件跳过，返回 `pdf extraction requires optional parser`，不阻断其他文件导入 | `tests/test_backend/test_optional_dependency_matrix.py` |
-| Qdrant local 向量索引 | `qdrant-client` + `RAG_VECTOR_STORE_PROVIDER=qdrant` | 输出 `WARNING`，禁用 Qdrant provider，继续使用 SQLite `chunk_vectors` | `tests/test_backend/test_optional_dependency_matrix.py` |
-| Cross-Encoder Reranker | `sentence-transformers` + `RAG_RERANKER_ENABLED=true` | 输出 `WARNING`，跳过精排，检索和问答继续按原召回排序运行 | `tests/test_backend/test_optional_dependency_matrix.py` |
-| Ollama 本地真实回答 | Ollama 服务与模型 | 输出 `WARNING`，真实模型不可用时回退到本地片段回答 | `tests/test_backend/test_optional_dependency_matrix.py` |
-
-## 3. Tauri 桌面打包验证（B-145 / B-24）
-
-Tauri 桌面壳复用同一份 Vue/Vite 生产构建产物和 FastAPI API。打包前需要额外安装开发依赖：
+浏览器访问 `http://127.0.0.1:5173`。默认 API base 为 `http://127.0.0.1:8765`；覆盖时在启动或构建前设置：
 
 ```powershell
-pip install -r requirements-dev.txt
-npm install --include=optional
+$env:VITE_API_BASE_URL = 'http://127.0.0.1:18765'
+npm run frontend:dev
 ```
 
-`npm install --include=optional` 用于确保 `@tauri-apps/cli` 的 Windows native binding（例如 `@tauri-apps/cli-win32-x64-msvc`）被安装；如果 `npx tauri --version` 提示缺少 native binding，先重跑该命令。
+该值进入公开前端产物，不得包含凭证。
 
-完整 Windows Tauri 构建还需要 Rust stable MSVC 工具链。可用以下命令检查：
+## 5. 构建与预览
 
 ```powershell
-cargo --version
-rustc --version
-rustup --version
+npm run frontend:build
+npm --workspace frontend run preview
 ```
 
-如果新终端找不到 `cargo`，确认 `%USERPROFILE%\.cargo\bin` 已加入当前 PowerShell 的 `Path`。
+构建输出为 `frontend/dist/`，preview 默认监听 `127.0.0.1:4173`。FastAPI 不托管该目录。
 
-单独构建 Windows FastAPI sidecar：
+## 6. 常用后端配置
+
+| 变量 | 默认或行为 |
+|------|------------|
+| `RAG_RUNTIME_DIR` | 默认仓库内 `runtime/v2/` |
+| `RAG_AUTH_ENABLED` | 默认关闭 |
+| `RAG_AUTH_API_KEY` / `RAG_AUTH_JWT_SECRET` | 启用认证时必填，不得提交 |
+| `KI_CORS_ORIGINS` | 精确 Origin 列表；默认本机 5173/4173 和 Tauri Origin |
+| `RAG_LLM_PROVIDER` | 本地降级、OpenAI-compatible API 或 Ollama |
+| `RAG_EMBED_PROVIDER` | 默认本地 hashing；`api` 使用 OpenAI-compatible embeddings |
+| `RAG_VECTOR_STORE_PROVIDER` | 默认 SQLite；`qdrant` 启用 local mode |
+
+CORS 不接受 `*`，不启用 cookie credentials。其他主机名的页面必须把完整 Origin 加入允许列表。
+
+## 7. 桌面应用
 
 ```powershell
-.\scripts\build-backend-sidecar.ps1
+npm run frontend:build
+npm run desktop:dev
+cargo check --manifest-path src-tauri/Cargo.toml
+npm run desktop:build:windows
 ```
 
-该脚本会先执行 `npm run build`，再用 PyInstaller 打包 `app.py`，并生成：
+Tauri 打包 `frontend/dist/` 并启动 `127.0.0.1:8765` sidecar。bundle 成功后仍需在安装应用中验证 sidecar、REST、SSE 和核心用户流程；macOS/Linux 必须在目标平台单独构建。
 
-```text
-src-tauri/binaries/knowledge-island-backend-x86_64-pc-windows-msvc.exe
-```
-
-完整 Windows Tauri 打包命令：
+## 8. Obsidian 插件
 
 ```powershell
-npm run tauri:build:windows
+npm --prefix integrations/obsidian-plugin test
+npm --prefix integrations/obsidian-plugin run typecheck
+npm --prefix integrations/obsidian-plugin run build
 ```
 
-该命令会先运行 `scripts/build-backend-sidecar.ps1`，再执行 `tauri build`。本机必须能运行 `cargo`；未安装 Rust 工具链时，`npx tauri info` 会显示 `rustc` / `Cargo` 缺失，需先安装 rustup。
+插件仅支持桌面 Obsidian。测试、类型检查和构建应串行执行；浏览器不持有插件 Bearer token。
 
-首次 Windows installer 打包会下载并缓存 Tauri 管理的 NSIS 工具包；如果下载超时，先确认网络/代理后重试。成功后会生成：
-
-```text
-src-tauri/target/release/bundle/nsis/Knowledge Island_<version>_x64-setup.exe
-```
-
-macOS `.dmg` 和 Linux `.AppImage` 需要在对应原生系统执行，不在 Windows 上交叉生成。先安装该平台的 Tauri 依赖、Python 依赖和 `requirements-dev.txt`，再运行：
-
-```bash
-bash scripts/build-backend-sidecar.sh
-npm run tauri:build:macos  # macOS only
-npm run tauri:build:linux  # Linux only
-```
-
-Unix sidecar 脚本会从 `rustc -vV` 读取 target triple，并生成 `src-tauri/binaries/knowledge-island-backend-<target-triple>`；需要覆盖时可设置 `KI_TAURI_TARGET_TRIPLE`。
-
-B-152 起 `src-tauri/tauri.conf.json` 显式声明桌面 bundle 图标，仓库需保留以下文件：
-
-```text
-src-tauri/icons/32x32.png
-src-tauri/icons/128x128.png
-src-tauri/icons/128x128@2x.png
-src-tauri/icons/icon.icns
-src-tauri/icons/icon.ico
-```
-
-其中 `icon.icns` 用于 macOS bundle，PNG 图标用于 Linux / 通用桌面资源，`icon.ico` 用于 Windows resource 生成。当前仓库仍不在 Windows 上交叉生成 macOS `.dmg` 或 Linux `.AppImage`；只有在目标原生系统完成上述 `npm run tauri:build:*` 命令并产生产物后，才视为对应平台原生验证完成。
-
-B-165 在 2026-07-24 的本机预检中确认 Rust/Cargo、WebView2 和 PyInstaller 可用，但当时缺少含 MSVC 与 Windows SDK 的 Visual Studio Build Tools，`cargo check` 报 `link.exe not found`。B-166 已于 2026-07-30 安装并核实 Build Tools 2022 `17.14.37`、MSVC `14.44.35207` 与 Windows 11 SDK `10.0.26100.0`，随后 `cargo check` 和 `npm run tauri:build:windows` 均通过，生成未签名的 `Knowledge Island_2.0.0_x64-setup.exe`；产物哈希和正式发布边界见 v2 readiness。
-
-如果没有可用的本地 macOS / Linux 机器，可在 GitHub Actions 手动触发 `Tauri Packaging` workflow（`.github/workflows/tauri-packaging.yml`）。该 workflow 使用 `macos-latest` 和 `ubuntu-latest` runner 执行同一组 npm 打包命令，并上传 `.dmg` / `.AppImage` 作为验证产物。
-
-启用 API Key + JWT 认证（可选）：
+## 9. Docker 双服务
 
 ```powershell
-$env:RAG_AUTH_ENABLED = "1"
-$env:RAG_AUTH_API_KEY = "replace-with-your-local-admin-key"
-$env:RAG_AUTH_JWT_SECRET = "replace-with-a-long-random-secret"
-$env:RAG_AUTH_JWT_TTL_SECONDS = "3600" # 可选，最小 60 秒
-.venv\Scripts\python.exe app.py
+Copy-Item ops/docker/.env.example ops/docker/.env
+docker compose --project-directory ops/docker -f ops/docker/compose.yaml config
+ops\docker\start.ps1 -NoOpen
 ```
 
-默认不设置 `RAG_AUTH_ENABLED` 时认证关闭。认证启用后，`/api/health` 和静态首页仍可无凭证访问，其他 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 需要 `X-API-Key` 或 Bearer JWT。第一版没有登录页；脚本或后续客户端可先用 `POST /api/auth/token` 携带 `X-API-Key` 换取短期 JWT。
+- 前端：`http://127.0.0.1:4173`
+- 后端健康：`http://127.0.0.1:8765/api/health`
+- API 文档：`http://127.0.0.1:8765/docs`
 
-## 4. Docker 一键启动
-
-非技术用户优先使用根目录双击入口：
-
-```text
-Start-KnowledgeIsland-Docker.bat
-Stop-KnowledgeIsland-Docker.bat
-README-Docker-Quickstart.txt
-```
-
-双击启动后访问：
-
-```text
-http://127.0.0.1:8765
-```
-
-Windows PowerShell：
-
-```powershell
-.\scripts\docker_up.ps1
-```
-
-脚本会：
-
-- 创建 `docker-workspace/` 作为 Docker 模式默认导入目录。
-- 使用 `ki-runtime` named volume 作为容器 `/app/runtime` 持久化目录。
-- 从 Windows User 环境读取 `DEEPSEEK_API_KEY` 并注入给 Compose（不打印 Key）。
-- 从 Windows User 环境读取 `RAG_EMBED_API_KEY` 并注入给 Compose（不打印 Key）。
-- 执行 `docker compose --project-directory . -f compose.yaml up --build -d`，镜像构建阶段会生成并内置 Vue/Vite 生产前端。
-- 打开 `http://127.0.0.1:8765`。
-
-Docker 模式下推荐优先使用 Web 侧栏的“选择本机文件夹导入”。浏览器会读取用户选择的本地项目文件夹，并把允许的文本文件、DOCX 和 PDF 二进制内容上传给本地服务入库；这种方式可以直接选择 `E:\Code\your-project`，不需要填写 Windows 路径。PDF 正文抽取需要镜像或运行环境安装可选 `pymupdf`，未安装时会在导入结果中显示跳过原因。
-
-如果继续使用挂载目录导入，Web 页面创建项目空间时目录填写：
-
-```text
-/workspace
-```
-
-该路径对应宿主机的 `docker-workspace/`。如果要导入其他宿主机目录，可设置：
-
-```powershell
-$env:KNOWLEDGE_ISLAND_WORKSPACE="E:\Code\your-project"
-.\scripts\docker_up.ps1
-```
-
-也可以直接使用 Compose：
-
-```powershell
-docker compose --project-directory . -f compose.yaml up --build -d
-docker compose --project-directory . -f compose.yaml logs -f web
-docker compose --project-directory . -f compose.yaml down
-```
-
-启用 DeepSeek 真实回答（可选）：
-
-推荐方式是在 Web 页面打开 **设置 → 模型设置**，填写 API 地址、模型名和 API Key，然后点击“测试连接”。页面不会回显 API Key 明文。
-
-同一个设置页也提供 **模型 Profile**。可保存多个 provider / API 地址 / 模型名组合，并选择一个默认 Profile 供问答优先使用。Profile 只保存 `api_key_ref`，例如 `env:RAG_LLM_API_KEY`、`env:DEEPSEEK_API_KEY` 或 `saved:RAG_LLM_API_KEY`，不会保存 API Key 明文；没有默认 Profile 时继续使用模型设置页的单配置行为。
-
-同一个设置页也提供 **Prompt 预设**。可为当前项目空间保存“项目问答 / 代码解释 / 学习复盘”等本地预设，并选择一个默认预设影响真实 LLM 的回答风格和结构；该功能不需要新增依赖，不保存 API Key，也不会改变检索参数。
-
-也可以使用 Windows User 环境变量：
-
-```powershell
-[System.Environment]::SetEnvironmentVariable("DEEPSEEK_API_KEY", "sk-xxx", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_LLM_PROVIDER", "api", "User")
-```
-
-重启终端后再运行 `app.py`。未配置 API Key 时，Web 端自动使用本地片段回答。
-
-Windows 上应用会读取 User/Machine 级持久环境变量；如果当前终端没有继承新设置的 `DEEPSEEK_API_KEY`，`load_settings()` 仍会尝试从 Windows 持久环境中读取。
-
-启用 Ollama 本地真实回答（可选）：
-
-Tauri/Web 首次运行时，工作台顶部的 **首次运行向导** 会调用 `/api/ollama/status` 检测本机 Ollama，并可通过 `/api/ollama/pull` 拉取 `qwen2.5:3b`、`qwen2.5:7b` 或 `deepseek-r1:8b`。该向导不自动安装或启动 Ollama；如果服务不可达，需要先手动安装并启动 Ollama。
-
-1. 安装并启动 Ollama。
-2. 拉取默认模型：
-
-```powershell
-ollama pull qwen2.5:7b
-```
-
-3. 在 Web 页面打开 **设置 → 模型设置**，选择 provider 为 `ollama`，API 地址填写 `http://localhost:11434`，模型名填写 `qwen2.5:7b`，API Key 留空。
-
-也可以使用环境变量：
-
-```powershell
-[System.Environment]::SetEnvironmentVariable("RAG_LLM_PROVIDER", "ollama", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_OLLAMA_HOST", "http://localhost:11434", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_OLLAMA_MODEL", "qwen2.5:7b", "User")
-```
-
-Ollama 不可达时，`OllamaLLM.is_available()` 会输出 `WARNING`，不会阻断 Web MVP 启动；问答会继续回退到本地片段回答。
-
-启用真实 Embedding（可选）：
-
-```powershell
-[System.Environment]::SetEnvironmentVariable("RAG_EMBED_PROVIDER", "api", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_EMBED_API_BASE", "https://api.openai.com/v1", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_EMBED_API_MODEL", "text-embedding-3-small", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_EMBED_API_KEY", "sk-xxx", "User")
-```
-
-Embedding 服务必须支持 OpenAI-compatible `/embeddings`。未配置或请求失败时，Web MVP 会回退到本地 hashing 向量，导入不中断。
-
-启用 Qdrant 向量索引（可选）：
-
-```powershell
-[System.Environment]::SetEnvironmentVariable("RAG_VECTOR_STORE_PROVIDER", "qdrant", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_QDRANT_PATH", "$env:APPDATA\KnowledgeIsland\qdrant", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_QDRANT_COLLECTION", "knowledge_island_chunks", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_QDRANT_VECTOR_SIZE", "96", "User")
-```
-
-Qdrant 以 local mode 运行，不需要独立服务。未启用、依赖缺失或查询失败时，Web MVP 会打印 `WARNING` 并回退 SQLite `chunk_vectors`。
-
-启用 Cross-Encoder Reranker 精排（可选）：
-
-```powershell
-pip install sentence-transformers
-[System.Environment]::SetEnvironmentVariable("RAG_RERANKER_ENABLED", "true", "User")
-[System.Environment]::SetEnvironmentVariable("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2", "User")
-```
-
-Reranker 默认关闭。启用后，Web MVP 会在 BM25 + 向量混合召回后，对候选 chunk 做本地 Cross-Encoder 精排，并在命中来源中写入 `rerank_score`。`sentence-transformers` 未安装时会输出 `WARNING` 并跳过精排，检索和问答继续按原排序运行。
-
-## 5. 常见校验
-
-- 检查 `http://127.0.0.1:8765/api/health` 是否返回 `{"status": "ok"}`。
-- FastAPI 自动接口文档可访问 `http://127.0.0.1:8765/docs`，但正式契约以 `docs/design/api-spec.md` 为准。
-- 如果启用了 `RAG_AUTH_ENABLED=1`，访问 `/api/projects` 无凭证应返回 `401 {"error":"authentication required"}`；携带正确 `X-API-Key` 或 `Authorization: Bearer <jwt>` 应返回 200。
-- 创建项目空间时，本地目录必须对当前后端进程真实存在；Docker 模式下 Windows 路径不会直接存在于容器内，推荐改用“选择本机文件夹导入”。
-- Web MVP 无 Ollama、无 API Key 时仍可导入文本与 DOCX 正文并进行关键词问答。
-- Web MVP 配置 Ollama 后，`/api/answer` 可优先请求本地 Ollama `/api/chat`；服务不可达或请求失败时回退到本地片段回答。
-- Web MVP 配置 DeepSeek Key 后，`/api/answer` 会优先请求 OpenAI-compatible Chat Completions；请求失败时回退到本地片段回答。
-- Web MVP 设置默认模型 Profile 后，`/api/answer` 会优先使用该 Profile 的 provider、API 地址、模型名、温度、最大 tokens 和 Key 引用；Ollama Profile 不需要 API Key；没有默认 Profile 时继续使用现有单配置。
-- Web MVP 每次提问后会在 SQLite 中保存当前项目的聊天记录；刷新页面或切换项目后，工作台会通过 `/api/chat/messages` 重新加载最近对话。真实 LLM 回答会带入同项目最近 3 轮历史作为上下文。
-- Web MVP 工作台的 Agent 工具当前只开放只读 `project_overview` 和 `search_sources`，会写入 `agent_tool_runs` 审计记录；不开放 shell、任意命令执行或任意文件写入。
-- Web MVP 工作台会通过 `/api/agent/tools/runs` 展示当前项目工具运行历史，用于查看工具名、状态、查询参数和错误原因。
-- Web MVP 问答没有可用来源时，回答区显示建议工具 `search_sources` 和查询词，并提供按钮让用户手动运行；不会自动执行工具。
-- Web MVP 用户运行 `search_sources` 后，下一轮问答会显式携带该 `tool_run_id`，把工具命中的来源片段合并进回答上下文；跨项目或非成功工具记录会被拒绝。
-- Web MVP 工作台提供检索调试区域，可用当前查询词临时调整 `top_k`、最低分、关键词/向量开关，并查看命中 chunk、分数、来源质量和上下文预览；这些参数不持久化。
-- Web MVP 设置 `RAG_VECTOR_STORE_PROVIDER=qdrant` 后，导入/更新/删除会同步 Qdrant local collection，搜索的向量候选由 Qdrant 返回；未启用或失败时仍可用 SQLite `chunk_vectors` fallback。
-- Web MVP 设置 `RAG_RERANKER_ENABLED=true` 且安装 `sentence-transformers` 后，搜索和问答来源可返回 `rerank_score`；未安装依赖或未启用时 `rerank_score` 为 `null`。
-- B-145 Tauri Windows 打包前可运行 `npx tauri info` 检查 WebView2、MSVC、Rust、Cargo 和 `frontendDist`；完整打包命令为 `npm run tauri:build:windows`。
-- Web MVP 工作台可将一次检索诊断保存为检索复盘记录，记录查询词、参数、命中来源、来源质量和人工备注，便于后续补资料或调参。
-- Web MVP 配置 `RAG_EMBED_PROVIDER=api` 和 `RAG_EMBED_API_KEY` 后，导入 chunk 时会优先请求 OpenAI-compatible Embeddings；请求失败时回退本地向量。
-- Web MVP 资料库页可直接导入文本笔记；笔记会作为当前项目空间的 `note:` 虚拟来源参与检索和问答，不依赖磁盘文件是否存在。
-- Web MVP 资料库页可创建文档集合，并把文档加入或移出集合；集合只影响资料库列表过滤，删除集合不会删除文档。
-- 模型设置页可通过 `GET/POST /api/settings/llm` 读取或保存 API Base、模型名和 API Key 状态，并通过 `/api/settings/llm/test` 做连接测试。
-- 模型 Profile 可通过 `GET/POST /api/model-profiles` 等接口管理，测试指定 Profile 不会覆盖 `.env` 或自动切换默认 Profile。
+Compose 分别构建前端和后端镜像。Nginx 只服务静态文件，不反向代理 API；`KI_PUBLIC_API_URL` 必须是浏览器可达地址，`KI_CORS_ORIGINS` 必须包含页面 Origin。

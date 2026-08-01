@@ -45,7 +45,7 @@ describe("application-side Obsidian api helpers", () => {
 
     await expect(listObsidianConnections(" project / 1 ")).resolves.toEqual([{ id: "connection1" }]);
     expect(fetch.mock.calls[1][0]).toBe(
-      "/api/obsidian/connections?project_id=project+%2F+1",
+      "http://127.0.0.1:8765/api/obsidian/connections?project_id=project+%2F+1",
     );
 
     await revokeObsidianConnection({

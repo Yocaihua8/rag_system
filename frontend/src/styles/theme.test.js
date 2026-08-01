@@ -15,7 +15,6 @@ describe("phase 2 neutral visual theme", () => {
       readRepoFile("frontend/src/styles.css"),
       readRepoFile("frontend/src/styles/tokens.css"),
       readRepoFile("frontend/src/components/LibraryModal.vue"),
-      readRepoFile("docs/previews/phase2-frontend-preview/index.html"),
     ].join("\n");
 
     expect(inspectedStyles).not.toMatch(

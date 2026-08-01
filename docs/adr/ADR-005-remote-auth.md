@@ -3,7 +3,8 @@
 > 状态：Accepted
 > Date：2026-05-26
 > Owner：RAG 团队
-> Related：docs/design/permission-matrix.md, docs/design/api-spec.md, docs/features/authentication.md, docs/BACKLOG.md
+> Scope：可选单用户 API 认证、凭证类型与受保护路由
+> Related：[权限矩阵](../design/permission-matrix.md)、[API 规格](../design/api-spec.md)、[认证功能](../features/authentication.md)、[安全指南](../guides/security.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
@@ -30,7 +31,7 @@ Knowledge Island 当前是本地单用户应用，默认只监听 `127.0.0.1:876
 
 | 路径 | 认证启用时行为 |
 |------|----------------|
-| `/` 与静态资源 | 放行，保证页面可加载 |
+| `/` | 无业务路由，返回 404 |
 | `/api/health` | 放行，用于健康检查 |
 | `/api/auth/token` | 放行到路由内部校验 API Key |
 | `/api/*` 其他接口 | 必须携带有效 API Key 或 Bearer JWT |
@@ -64,9 +65,9 @@ Knowledge Island 当前是本地单用户应用，默认只监听 `127.0.0.1:876
 |------|------|
 | `backend/api/auth.py` | 新增认证配置、API Key 校验、JWT 签发与验证 |
 | `backend/api/server.py` | 新增 FastAPI 中间件和 `/api/auth/token` 路由 |
-| `docs/design/permission-matrix.md` | 从“无认证”更新为“默认关闭、可选启用” |
-| `docs/design/api-spec.md` | 新增认证配置、错误格式和 token 接口说明 |
-| `docs/guides/setup.md` | 增加环境变量启用方式 |
+| [`docs/design/permission-matrix.md`](../design/permission-matrix.md) | 从“无认证”更新为“默认关闭、可选启用” |
+| [`docs/design/api-spec.md`](../design/api-spec.md) | 记录认证配置、错误格式和 token 接口 |
+| [`docs/guides/setup.md`](../guides/setup.md) | 记录环境变量启用方式 |
 
 ## 6. 安全约束
 
@@ -84,7 +85,7 @@ Knowledge Island 当前是本地单用户应用，默认只监听 `127.0.0.1:876
 
 ## 8. 验证方式
 
-- 认证关闭时，现有 `tests/test_webapp` 必须继续通过。
+- 认证关闭时，现有 `tests/integration` 必须继续通过。
 - 认证启用时：
   - `/api/health` 无凭证返回 200。
   - `/api/projects` 无凭证返回 401。

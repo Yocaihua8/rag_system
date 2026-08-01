@@ -1,154 +1,86 @@
-# 文档总览
+# Knowledge Island 文档总览
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
-> Related：CONTRIBUTING.md, CHANGELOG.md, AGENTS.md
+> Last Updated：2026-08-01
+> Scope：当前需求、设计、功能、决策、操作指南和临时执行计划
+> Related：`../README.md`、`BACKLOG.md`、`../CHANGELOG.md`
 
-本仓库的文档按"项目约束 → 架构设计 → 开发流程"分层组织，遵循 `docs/style-guide.md` 写作规范。新的文档目录降低历史冗余，并保持与现有 `docs/architecture`、`docs/release` 历史文档的兼容。
-
----
-
-## 0. 产品代际边界
-
-- **当前源码**：B-160～B-166 已把产品主线切换为本地项目知识教练，并完成依赖安全、本地/远端 CI、Windows 原生包和 v2.0.0 正式发布；Vue 一级入口为 `教练 / 学习地图 / 学习计划 / 资料 / 设置`，评估使用覆盖层，Obsidian 一次性只读导入与插件连接、受控发布使用不同流程和状态。
-- **兼容边界**：原有导入、聊天和 `/api/assessment/*` 契约继续保留；旧 `AssessmentView` 与旧评估 API 只用于兼容，不再承载 2.0 主闭环。
-- **发布边界**：B-166 已完成在线依赖审计、完整本地 CI 等价矩阵、PR #4 两项 GitHub Actions 检查、`main` 合并、`v2.0.0` Tag、GitHub Release 和 Windows 未签名 NSIS 资产，证据见 `release/V2_0_0_READINESS_2026-07-24.md`。macOS / Linux v2 原生产物本轮未运行，不以历史产物替代。
-- **状态解释**：设计文档的 `Active` 表示设计决策有效。当前接口和行为以源码、测试及 `design/api-spec.md` 为准；本地验收、目标平台原生产物和正式远端发布必须分别记录，不能互相替代。
-- **停止方向**：B-157“全局资料库 / 跨工作区共享资料”不再作为 2.0 前置能力。
+本文档树只保存当前有效的产品和工程事实。已完成变更进入 `CHANGELOG.md` 与 Git 历史；未完成事项进入 `BACKLOG.md`。仓库不再维护 DevLog、readiness 快照、已验收 preview 或工具生成的历史 plan。
 
 ## 1. 阅读顺序
 
-**先读（理解项目是什么）：**
+1. [`../README.md`](../README.md)：产品定位、快速开始与仓库结构
+2. [`requirements/README.md`](requirements/README.md)：产品范围、用户用例和版本边界
+3. [`features/README.md`](features/README.md)：用户能力与当前可达性
+4. [`design/README.md`](design/README.md)：系统、API、数据、状态和界面契约
+5. [`adr/README.md`](adr/README.md)：Accepted 架构决策
+6. [`guides/setup.md`](guides/setup.md) 与 [`guides/testing.md`](guides/testing.md)：搭建和验证
+7. [`guides/runbook.md`](guides/runbook.md)：启停、健康检查、备份与恢复
+8. [`BACKLOG.md`](BACKLOG.md)：未完成事项和已知问题
 
-1. `requirements/project-background-and-scope.md` — 项目背景、目标用户、范围与约束
-2. `requirements/functional-modules.md` — 各功能模块边界与优先级
-3. `features/project-knowledge-coach.md` — Knowledge Island 2.0 教练闭环、评价口径与兼容边界
-4. `design/system-design-overview.md` — 系统级设计、核心流程、非功能约束
-5. `design/architecture-overview.md` — 架构结论、技术栈、分层职责、备选方案
-6. `design/database-design.md` — SQLite 表结构、实体关系、迁移规范
-7. `design/api-spec.md` — HTTP API 接口清单与契约说明
-8. `design/model-profiles-design.md` — 模型 Profile 多配置设计（B-111/B-112 已落地，接口以 api-spec 为准）
-9. `design/document-collections-design.md` — 文档集合分组设计（B-113/B-114 已落地）
-10. `design/import-batches-design.md` — 导入批次历史设计（B-115/B-116 已落地）
-11. `design/api-route-split-blueprint.md` — API 兼容分发按领域拆分蓝图（B-131/B-138，B-155 后路径位于 `backend/`）
+## 2. 目录
 
-**再读（参与开发）：**
-
-12. `../CONTRIBUTING.md` — 贡献流程、代码规范、测试要求、文档要求
-13. `guides/setup.md` — 环境搭建与启动步骤
-14. `guides/branch-conventions.md` — 分支命名与提交规范
-15. `guides/testing.md` — 测试分层与回归清单
-16. `guides/release-process.md` — 发布检查与打包步骤
-
-**按需读：**
-
-17. `release/V2_0_0_READINESS_2026-07-24.md` — v2.0.0 本地/远端验收、Windows 资产与正式发布证据
-18. `BACKLOG.md` — 未完成项、技术债与优先级（含预估工时）
-19. `adr/` — 重大架构决策记录
-20. `devlog/` — 开发过程日志（日报/周报）
-21. `plans/` — AI 任务计划（关心"当前任务进度"时）
-22. `../CHANGELOG.md` — 对外发布变更记录
-23. `design/permission-matrix.md` — 权限边界说明
-24. `design/ui-wireframes.md` — 当前 Vue 项目知识教练页面事实、兼容页面与页面布局
-25. `design/codex-workspace-chat-import-design.md` — 项目知识教练工作流、资料导入与 Obsidian 受控发布边界
-26. `design/codex-ui-visual-system.md` — Codex 中性视觉令牌、组件状态、动效与无障碍规范
-27. `design/state-flow-and-acceptance.md` — 状态流转与验收标准
-28. `design/risk-register.md` — 风险清单
-29. `design/api-changes.md` — API 变更分级与迁移指南
-30. `style-guide.md` — 文档写作规范
-31. `design/legacy-conversation-sessions-design.md` — legacy 多轮对话设计与 B-20 实现边界
-32. `features/agent-tooling-mcp-research.md` — B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
-33. `features/team-workspace-research.md` — B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
-34. `features/web-crawling-research.md` — B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
-35. `release/WEB_MVP_READINESS_2026-05-20.md` — Web MVP 收口快照（历史）
-
----
-
-## 2. 目录说明
-
-| 路径 | 用途 | 是否必需 |
+| 路径 | 内容 | 事实边界 |
 |------|------|----------|
-| `requirements/` | 项目背景、功能模块、用户范围 | 是 |
-| `design/` | 架构、接口、数据库、权限、状态流转、风险 | 是 |
-| `guides/` | 启动、分支、测试、发布等开发指引 | 是 |
-| `adr/` | 重大架构决策记录 | 按需 |
-| `devlog/` | 开发过程日志（日报/周报）| 是 |
-| `plans/` | AI 任务计划（与 BACKLOG 联动，执行完删除） | 按需 |
-| `features/` | 功能级规格文档 | 按需 |
-| `BACKLOG.md` | 待办、技术债与优先级 | 是 |
-| `style-guide.md` | 文档写作规范 | 是 |
-| `release/` | 发布说明与历史快照 | 按需 |
-| `architecture/` | Legacy 企业基线架构文档（历史参考，非当前默认）| 否 |
+| [`requirements/`](requirements/) | 产品背景、模块、用例和版本范围 | 为什么做、为谁做、当前包含什么 |
+| [`design/`](design/) | 完整系统、API、数据、权限、状态和 UI 契约 | 如何组成、边界和不变量 |
+| [`features/`](features/) | 逐项用户能力规格 | 当前可达行为和明确限制 |
+| [`adr/`](adr/) | Accepted ADR 与模板 | 重要技术决策和取舍 |
+| [`guides/`](guides/) | 搭建、测试、运行、发布、安全和协作 | 可执行操作 |
+| [`plans/`](plans/) | 当前 Active/Interrupted AI plan 与模板 | 完成后删除活动 plan |
+| [`style-guide.md`](style-guide.md) | 写作、元数据和链接规范 | 文档维护规则 |
+| [`glossary.md`](glossary.md) | 项目术语 | 统一含义和缩写 |
+| [`BACKLOG.md`](BACKLOG.md) | `todo/doing/blocked/wontfix` 事项与开放问题 | 不保存已完成历史 |
 
-仓库根目录保留 `template-mapping.md`，定义历史文档与新结构的归类关系。
+目录内部保持扁平。前端、后端、Desktop、Obsidian、Docker 和 GitHub 只作为统一系统的组成写入对应设计、功能或指南，不建立专题子目录。
 
----
+## 3. 事实优先级
 
-## 3. 维护规则
+发生冲突时按以下顺序判断：
 
-| 变更场景 | 需更新的文档 |
-|----------|-------------|
-| 新增需求 / 调整范围 | `requirements/project-background-and-scope.md` |
-| 新增模块 / 改动功能 | `requirements/functional-modules.md` |
-| API 接口变更 | `design/api-spec.md` |
-| API 破坏性变更 | `design/api-spec.md` + `design/api-changes.md` |
-| 数据库 Schema 变更 | `design/database-design.md` + ADR（必要时）|
-| 架构模式 / 分层边界变化 | `design/architecture-overview.md` + ADR（必要时）|
-| 产品定位 / 一级入口变化 | `requirements/project-background-and-scope.md` + `design/ui-wireframes.md` + `design/codex-workspace-chat-import-design.md` |
-| 页面结构 / 交互变更 | `design/ui-wireframes.md` |
-| 视觉令牌 / 组件状态 / 动效变更 | `design/codex-ui-visual-system.md` |
-| 重大架构决策 | `adr/ADR-XXX.md` |
-| 已知问题 / 技术债 | `BACKLOG.md` |
-| 版本发布 | `../CHANGELOG.md` |
+1. 当前源码、配置、Schema 和测试；
+2. Accepted ADR；
+3. `design/` 与 `features/` 当前规格；
+4. `guides/` 可执行说明；
+5. `BACKLOG.md` 中的计划性内容。
 
-`docs/README.md` 的目录说明必须与实际文件保持一致。
+无法从源码确认的内容标记为 `TBD`、`N/A` 或“待确认”，不得把设想写成已实现事实。
 
----
+## 4. 更新规则
 
-## 4. 何时应新建 ADR
+| 变更 | 必须同步 |
+|------|----------|
+| 产品范围、角色或版本边界 | `requirements/` |
+| 功能行为 | `features/<name>.md` |
+| HTTP 路径、参数或响应 | `design/api-spec.md`；破坏性变化同步 `design/api-changes.md` 与必要 ADR |
+| SQLite 表、字段、索引或迁移 | `design/database-design.md` |
+| 页面、组件或交互流程 | `design/ui-wireframes.md`、页面/组件契约和对应功能规格 |
+| 跨模块架构边界 | `design/system-design-overview.md`、`design/architecture-overview.md` 与必要 ADR |
+| Desktop、Obsidian、GitHub | 对应功能规格以及 `guides/` 中按操作目的归类的文档 |
+| 命令、依赖、Docker、发布或安全 | `guides/` |
+| 未完成事项 | `BACKLOG.md` |
+| 已完成且对使用者/维护者有意义 | `CHANGELOG.md` |
 
-**强制新建 ADR**：
+新 ADR 使用 [`adr/ADR-000-template.md`](adr/ADR-000-template.md)，并追加到 [`adr/README.md`](adr/README.md)。新功能、RFC 和 plan 分别使用 [`features/feature-template.md`](features/feature-template.md)、[`design/rfc-template.md`](design/rfc-template.md) 和 [`plans/plan-template.md`](plans/plan-template.md)。
 
-- 技术选型存在多个可行方案，影响 ≥ 2 个模块（如：向量库迁移 Qdrant、引入 FastAPI）
-- 存储模型 / 权限模型 / 认证方式发生变化
-- 跨模块数据契约的破坏性变更
-- 用新方案**替代**现有方案（需保留历史理由）
-- 依赖变更带来新的安全、合规或成本风险
+## 5. 计划生命周期
 
-**非强制（写 devlog 即可）**：
+- 涉及代码或跨文件行为变更时，先在 `BACKLOG.md` 建立 `B-xxx`，状态设为 `doing`。
+- 冲突扫描后，在 `plans/{B-ID}-{slug}.md` 创建执行 plan，并把路径回写 BACKLOG。
+- 执行中按任务勾选、提交和更新状态快照；中断时保留 plan。
+- 完成后回流对应文档和 `CHANGELOG.md`，从 BACKLOG 移除完成条目并删除 plan。
 
-- 可逆的局部重构
-- 不影响对外契约的实现细节调整
-- 个人偏好或风格微调
+完整规则见 [`plans/README.md`](plans/README.md) 和根 [`AGENTS.md`](../AGENTS.md)。
 
-ADR 模板见 `adr/ADR-000-template.md`。
+## 6. 文档门禁
 
----
+从仓库根目录执行：
 
-## 5. 文档状态约定
+```powershell
+pwsh -NoProfile -File scripts/check-placeholders.ps1
+pwsh -NoProfile -File scripts/check-doc-links.ps1
+.\.venv\Scripts\python.exe scripts/check_docs_consistency.py
+```
 
-建议统一使用以下状态：
-
-- `Draft`：草稿
-- `In Review`：评审中
-- `Active`：当前有效
-- `Deprecated`：已废弃（需在文档头部注明 `Deprecated since` 与 `Replaced by`）
-- `Archived`：已归档
-
-状态只描述文档本身是否有效。同一份 `Active` 设计文档包含当前实现、兼容边界和发布结果时，必须逐节明确标注，不能把本地候选验收写成 Git Tag、远端发布或未生成的原生产物已经完成。
-
----
-
-## 6. 历史文档兼容说明
-
-以下旧文档保持可读，但作为历史参考归档，不作为第一默认阅读页：
-
-- `architecture/ARCHITECTURE_ENTERPRISE_BASELINE.md`
-- `architecture/STRUCTURE_BASELINE.md`
-- `architecture/SYSTEM_ARCHITECTURE.md`
-- `architecture/RAG_PIPELINE.md`
-- `architecture/DATA_MODEL.md`
-- `architecture/LLM_PROVIDER_DESIGN.md`
-
-当它们与 `AGENTS.md`、`requirements/`、`design/`、`guides/` 冲突时，以 `AGENTS.md` 与当前 `requirements/`、`design/` 为准。当前默认入口以本地 Web MVP（`app.py`）为准，历史架构文档不定义当前默认启动方式。
+门禁检查活动目录索引、元数据、内部链接、占位符和已删除路径引用；历史文件不再作为例外输入。

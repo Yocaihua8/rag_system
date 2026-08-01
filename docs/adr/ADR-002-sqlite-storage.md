@@ -3,7 +3,8 @@
 > 状态：Accepted
 > Date：2026-05-21
 > Owner：RAG 团队
-> Related：`../design/database-design.md`、`../design/architecture-overview.md`、`ADR-007-qdrant-vector-store.md`
+> Scope：关系数据持久化、Schema 兼容迁移与向量兼容副本
+> Related：[数据库设计](../design/database-design.md)、[架构总览](../design/architecture-overview.md)、[ADR-007](ADR-007-qdrant-vector-store.md)
 
 ## 1. 背景
 
@@ -14,13 +15,13 @@ Web MVP（v0.7.0，2026-05-21）需要一个持久化层来存储以下数据：
 - 配置数据：LLM 设置、模型 Profile、Prompt 预设
 
 核心设计约束：
-1. **本地优先**：无需用户安装和管理任何额外服务，`python app.py` 即可启动
+1. **本地优先**：无需用户安装和管理任何额外服务，`python -m backend` 即可启动
 2. **单用户**：当前无多租户 / 多用户需求（B-118 研究结论：不进入当前实现）
 3. **零部署依赖**：Docker 容器和本地直接运行应当无差异，不引入 PostgreSQL / MySQL 等需要持久化服务进程的依赖
 
 ## 2. 决策结论
 
-使用 **Python 标准库 `sqlite3`**，以单文件 SQLite 数据库（默认路径 `runtime/app.db`）承担**全部持久化**职责，包括关系数据与向量索引副本。
+使用 **Python 标准库 `sqlite3`**，以单文件 SQLite 数据库（v2 默认路径 `runtime/v2/app.db`）承担**全部关系持久化**职责，并保存向量兼容副本。
 
 具体配置：
 - `PRAGMA foreign_keys = ON`：启用外键约束
@@ -33,10 +34,10 @@ Schema 迁移通过兼容 `ALTER TABLE ... ADD COLUMN` 实现原地升级，无�
 
 ## 3. 决策原因
 
-1. **零运行时依赖**：`sqlite3` 是 Python 标准库，无需 `pip install`；单文件数据库，备份 = 复制一个文件
+1. **零运行时依赖**：`sqlite3` 是 Python 标准库，无需额外数据库服务；备份必须在一致性条件下保存数据库，并按实际配置考虑向量目录
 2. **单用户场景足够**：SQLite 的并发写入限制（单写者）对本地单用户不构成瓶颈；B-08 的进程内项目锁已实现跨项目并发、同项目串行
 3. **最小变更量**：`backend/storage/knowledge_store.py`（`KnowledgeStore` 类）封装全部 CRUD，业务层不感知存储实现细节
-4. **向量副本保证可用性**：`chunk_vectors` 表与 Qdrant 保持双写同步；Qdrant 不可用时（未安装 `qdrant-client` 或服务异常）透明降级，不阻断任何功能
+4. **向量副本保证可用性**：`chunk_vectors` 表与 Qdrant 保持双写同步；Qdrant 不可用时透明降级，不阻断核心功能。当前 `qdrant-client` 已列入 `backend/requirements/base.txt`，但 provider 仍需配置启用，SQLite 仍是默认回退
 5. **迁移路径清晰**：未来若需多用户，`KnowledgeStore` 接口不变，只替换底层驱动即可（见 §5 备选方案对比）
 
 ## 4. 备选方案
@@ -63,10 +64,10 @@ Schema 迁移通过兼容 `ALTER TABLE ... ADD COLUMN` 实现原地升级，无�
 
 ### 5.1 正面影响
 
-- 本地启动零配置：`python app.py` 自动在 `runtime/` 下初始化数据库
-- 备份简单：一次 `cp runtime/app.db backup/` 即完整备份
+- 本地启动零配置：`python -m backend` 默认在 `runtime/v2/` 下初始化数据库
+- 数据可移植，但运行中复制文件不等同于已验证一致备份；恢复前需验证数据库和向量边界
 - 测试隔离：测试通过 `KI_DB_PATH` 环境变量指向临时路径，与生产库完全隔离
-- Qdrant 可选：`qdrant-client` 未安装时打印 `WARNING` 并继续工作，不阻断 CI
+- Qdrant provider 可选：基础依赖当前包含 `qdrant-client`，但未启用、初始化失败或查询失败时仍降级 SQLite
 
 ### 5.2 负面影响
 
@@ -79,7 +80,7 @@ Schema 迁移通过兼容 `ALTER TABLE ... ADD COLUMN` 实现原地升级，无�
 | 模块 | 内容 |
 |------|------|
 | `backend/storage/knowledge_store.py` | `KnowledgeStore.__init__` 初始化 SQLite 连接，执行 `CREATE TABLE IF NOT EXISTS` 与兼容迁移 |
-| `runtime/app.db` | 默认数据库文件路径；Docker 通过 volume `ki-runtime` 持久化 |
+| `runtime/v2/app.db` | v2 默认数据库文件路径；Docker 通过运行 volume 持久化 |
 | `backend/providers/vector_store/` | Qdrant provider 与 SQLite `chunk_vectors` 双写同步；搜索时优先 Qdrant，降级 SQLite |
 
 ## 6. 后续动作

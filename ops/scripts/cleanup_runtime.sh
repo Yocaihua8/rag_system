@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-RUNTIME_DIR="${KI_RUNTIME_DIR:-$PROJECT_ROOT/runtime}"
-BACKUP_DIR="${KI_BACKUP_DIR:-$PROJECT_ROOT/runtime/backups}"
+RUNTIME_DIR="${KI_RUNTIME_DIR:-$PROJECT_ROOT/runtime/v2}"
+BACKUP_DIR="${KI_BACKUP_DIR:-$PROJECT_ROOT/runtime/v2/backups}"
 QDRANT_DIR="${KI_QDRANT_DIR:-${RAG_QDRANT_PATH:-}}"
 
 if [[ ! -d "$RUNTIME_DIR" ]]; then
@@ -19,7 +19,7 @@ if [[ -z "$PROJECT_RUNTIME_ROOT" || "$RUNTIME_REALPATH" != "$PROJECT_RUNTIME_ROO
 fi
 
 echo "Cleaning transient files under $RUNTIME_DIR"
-echo "Persistent data is preserved, including SQLite databases such as knowledge_island.db, runtime/backups, and Qdrant data."
+echo "Persistent data is preserved, including app.db, runtime/v2/backups, and vector data."
 
 prune_args=()
 if [[ -n "$BACKUP_DIR" ]]; then

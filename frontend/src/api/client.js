@@ -1,8 +1,10 @@
+import { apiUrl } from "./config.js";
+
 const SERVICE_UNAVAILABLE_MESSAGE = "本地服务暂时不可用。请确认应用已启动后刷新页面。";
 
 export async function apiGet(path) {
   try {
-    const response = await fetch(path);
+    const response = await fetch(apiUrl(path));
     return readJson(response);
   } catch (error) {
     throw normalizeFetchError(error);
@@ -11,7 +13,7 @@ export async function apiGet(path) {
 
 export async function apiPost(path, payload, options = {}) {
   try {
-    const response = await fetch(path, {
+    const response = await fetch(apiUrl(path), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

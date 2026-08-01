@@ -1,0 +1,6 @@
+-r base.txt
+
+# Development, test, packaging, and dependency-audit tools.
+pytest>=7.0.0
+pyinstaller>=6.0.0
+pip-audit>=2.10.1

@@ -1,90 +1,44 @@
-# Plans — AI 任务计划
+# AI 任务计划
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-05-26
+> Last Updated：2026-08-01
+> Scope：`docs/plans/` 中 Active/Interrupted plan 的生命周期
+> Related：`../BACKLOG.md`、`plan-template.md`、`../../AGENTS.md`
 
-本目录存放 AI 编码助手在执行 BACKLOG 任务时生成的**任务计划文件**。
+Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入 `CHANGELOG.md` 与 Git；任务完成后删除 plan。
 
-## 1. 定位与边界
+## 创建
 
-| 文档 | 面向 | 内容 | 生命周期 |
-|------|------|------|----------|
-| `../BACKLOG.md` | 团队 | 要做什么、优先级、规模 | 长期维护 |
-| `../adr/*.md` | 团队 | 为什么这样设计 | 永久保留 |
-| `../devlog/*.md` | 开发者 | 做了什么、卡在哪 | 按里程碑归档 |
-| `./*.md`（本目录） | AI + 执行者 | 怎么做、任务拆解、完成标准 | **任务完成后删除** |
+1. 在 [`../BACKLOG.md`](../BACKLOG.md) 找到或新建 `B-xxx`，状态设为 `doing`。
+2. 扫描本目录所有 `Active` / `Interrupted` plan 的影响范围。
+3. 有重叠时让用户选择等待、合并、覆盖或分区；把结论写入新 plan。
+4. 复制 [`plan-template.md`](plan-template.md) 为 `{B-ID}-{slug}.md`。
+5. 填写关联 BACKLOG、功能/设计文档、影响范围、回流清单和状态快照。
+6. 把 plan 相对路径写回 BACKLOG。
 
-**一句话区分**：BACKLOG 是"要做什么"，ADR 是"为什么这么定"，DevLog 是"做到哪了"，**Plan 是"这次怎么做"**。
+## 执行
 
-## 2. 文件命名规范
+每完成一个任务：
 
-**主动创建**（推荐，B-ID 作为前缀，关联关系从文件名即可看出）：
+1. 勾选任务；
+2. 创建聚焦该阶段的 Git commit；
+3. 在状态快照记录 commit、工作区、进度和下一步。
 
-```text
-{B-ID}-{slug}.md
-```
+出现偏差或关键决策写入执行记录；重大、长期且跨模块的决策另建 ADR。
 
-示例：`B-038-eval-question-model.md`、`B-125-reranker-integration.md`
+## 中断与恢复
 
-**工具自动生成**（Claude Code、superpowers 等工具产生，接受日期命名）：
+- 主动中断：状态设为 `Interrupted`，更新最后 commit、下一步和续任务须知；BACKLOG 保持 `doing` 或按真实外部阻塞设 `blocked`。
+- 被动中断：下次从最后已提交快照继续，不重做已完成阶段。
+- 恢复前核对 plan、Git log 和工作区；一致后状态改回 `Active`。
 
-```text
-{YYYY-MM-DD}-{slug}.md
-```
+## 完成
 
-示例：`2026-05-07-student-dashboard.md`（归入 `docs/superpowers/plans/`）
+1. 完成回流清单和必要 ADR/索引；
+2. 新问题写入 BACKLOG；
+3. 对使用者/维护者有意义的完成事实写入 CHANGELOG；
+4. 从 BACKLOG 移除完成条目；
+5. 删除 plan。
 
-> 命名格式不同，但**BACKLOG 同步要求完全相同**。工具生成后必须补做 `AGENTS.md § 9.3` 的同步操作。
-
-## 3. 生命周期
-
-**主动创建路径**：
-
-```
-BACKLOG 条目 todo
-      │
-      ▼  AI 主动创建 plan，同步更新 BACKLOG 状态和说明列
-BACKLOG doing，plan Active
-      │
-      ▼  执行完成，回流清单全部勾选
-代码合并，文档同步
-      │
-      ▼  plan 删除，BACKLOG 置 done
-```
-
-**工具自动生成路径**（superpowers / Claude Code 等）：
-
-```
-工具落地 plan 文件（docs/superpowers/plans/ 或其他目录）
-      │
-      ▼  AI 在同一对话中立即检索 BACKLOG
-      │   ├── 有匹配条目 → 状态改 doing，说明列填 plan 路径
-      │   └── 无匹配条目 → 新建条目，填路径
-      ▼
-BACKLOG doing，plan 与 BACKLOG 双向关联
-      │
-      ▼  执行完成，回流清单全部勾选
-代码合并，文档同步
-      │
-      ▼  plan 删除，BACKLOG 置 done
-```
-
-**关键原则**：不管 plan 怎么产生，完成即删除；定稿内容必须在删除前回流到正式文档。
-
-## 4. 何时必须回流
-
-删除 plan 文件前，检查以下事项：
-
-| 内容 | 回流目标 |
-|------|----------|
-| 功能行为变更 | `../features/<name>.md` |
-| 接口变更 | `../design/api-spec.md` |
-| 数据库结构变更 | `../design/database-design.md` |
-| 重大技术决策 | `../adr/<ADR-ID>.md` + `../adr/README.md` 索引 |
-| 遇到的问题与规避 | `../BACKLOG.md § 6`（已知问题）或 `../devlog/` |
-
-## 5. 模板
-
-新建计划时复制 `plan-template.md`，按模板字段填写。
-完整执行规则见 `../../AGENTS.md § 9`。
+不把完成 plan 迁入其他历史目录，不建立 DevLog 或 readiness 快照。

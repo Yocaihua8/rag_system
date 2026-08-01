@@ -20,12 +20,12 @@ jobs:
         include:
           - name: macOS dmg
             os: macos-latest
-            command: npm run tauri:build:macos
+            command: npm --workspace src-tauri run build:macos
             artifact_name: knowledge-island-macos-dmg
             artifact_path: src-tauri/target/release/bundle/dmg/*.dmg
           - name: Linux AppImage
             os: ubuntu-latest
-            command: npm run tauri:build:linux
+            command: npm --workspace src-tauri run build:linux
             artifact_name: knowledge-island-linux-appimage
             artifact_path: src-tauri/target/release/bundle/appimage/*.AppImage
 
@@ -78,7 +78,7 @@ jobs:
         run: |
           python -m venv .venv
           .venv/bin/pip install --upgrade pip
-          .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+          .venv/bin/pip install -r backend/requirements/dev.txt
 
       - name: Build native Tauri bundle
         shell: bash

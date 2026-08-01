@@ -3,7 +3,8 @@
 > 状态：Accepted
 > Date：2026-05-26
 > Owner：RAG 团队
-> Related：`../design/architecture-overview.md`、`../design/api-spec.md`、`../../BACKLOG.md`
+> Scope：HTTP 服务框架、路由适配与 OpenAPI/SSE 基础设施
+> Related：[架构总览](../design/architecture-overview.md)、[API 规格](../design/api-spec.md)、[ADR-010](ADR-010-runtime-separation.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
@@ -30,8 +31,8 @@ v0.9.0 完成了 API 领域路由拆分（B-138），路由层与业务层边界
 
 - `backend/storage/knowledge_store.py` 保持 SQLite 唯一入口
 - `backend/domain/search.py`、`backend/domain/answers.py`、`backend/domain/ingestion.py` 等业务层保持不变
-- 仅替换路由层（B-155 后为 `backend/routes/*.py`）与服务器启动逻辑（B-155 后为 `backend/api/server.py`、`app.py`）
-- 前后端分离完成前，legacy static 临时通过 `StaticFiles` 挂载继续服务；B-143 后已删除 fallback，B-155 后生产构建产物位于 `backend/static_dist/`
+- 仅替换路由层（B-155 后为 `backend/routes/*.py`）与服务器启动逻辑（B-155 后为 `backend/api/server.py`、`backend/__main__.py`）
+- 前后端分离完成前曾临时通过 `StaticFiles` 挂载前端；B-168 后 FastAPI 为 API-only，静态托管部分由 ADR-010 取代
 
 ## 3. 决策原因
 
@@ -74,7 +75,7 @@ v0.9.0 完成了 API 领域路由拆分（B-138），路由层与业务层边界
 ### 5.2 负面影响
 
 - 新增两个运行时依赖：`fastapi`、`uvicorn[standard]`（总约 10MB，无重型传递依赖）
-- 现有 `app.py` 入口与 HTTP server 模块需重写（B-155 后模块为 `backend/api/server.py`）
+- 现有 `backend/__main__.py` 入口与 HTTP server 模块需重写（B-155 后模块为 `backend/api/server.py`）
 - Docker 镜像需重新验证构建与启动
 
 ### 5.3 对现有系统的改动点
@@ -84,9 +85,9 @@ v0.9.0 完成了 API 领域路由拆分（B-138），路由层与业务层边界
 | `backend/api/server.py` | FastAPI `app` 实例 + Uvicorn 启动逻辑 |
 | `backend/api/dispatch.py` | 保留兼容 `dispatch()` 与 `answer_stream_events()` 入口；FastAPI 外壳使用 `StreamingResponse` |
 | `backend/routes/*.py` | 领域路由分发函数，保持 HTTP 契约 |
-| `app.py` | 入口调用 `backend.api.server.run_server()` |
-| `requirements.txt` | 新增 `fastapi`、`uvicorn[standard]` |
-| `backend/static_dist/` | Vue/Vite 生产构建产物，由 FastAPI 静态服务托管 |
+| `backend/__main__.py` | 入口调用 `backend.api.server.run_server()` |
+| `backend/requirements/base.txt` | 新增 `fastapi`、`uvicorn[standard]` |
+| `frontend/dist/` | Vue/Vite 独立生产构建产物，不由 FastAPI 托管（ADR-010） |
 
 ## 6. 后续动作
 
@@ -104,20 +105,20 @@ v0.9.0 完成了 API 领域路由拆分（B-138），路由层与业务层边界
 
 | 项目 | 内容 |
 |------|------|
-| 回滚触发条件 | 迁移后 `tests/test_webapp` 回归失败率 > 5%，或 `/api/answer` SSE 流式输出中断 |
-| 回滚步骤 | `git revert` 迁移相关 commits；恢复 `backend/api/server.py` 与 `app.py` 原实现；回退 `requirements.txt` |
+| 回滚触发条件 | 迁移后 `tests/integration` 回归失败率 > 5%，或 `/api/answer` SSE 流式输出中断 |
+| 回滚步骤 | `git revert` 迁移相关 commits；恢复 `backend/api/server.py` 与 `backend/__main__.py` 原实现；回退 `backend/requirements/base.txt` |
 | 数据回滚说明 | N/A（`backend/storage/knowledge_store.py` 不变，无数据迁移） |
 | 回滚责任人 | RAG 团队 |
 | 不可回滚的点 | 若迁移中同步修改了 `storage.py`，该部分需单独评估 |
 
 ### 6.3 验证方式
 
-- **验证指标**：`tests/test_webapp` 全量通过率、`/api/answer` SSE 流式输出可用性、`/docs` OpenAPI 页面可访问
+- **验证指标**：`tests/integration` 与 `tests/repository` 全量通过率、`/api/answer` SSE 流式输出可用性、`/docs` OpenAPI 页面可访问
 - **观察窗口**：迁移完成后首次完整测试运行通过
 - **验收标准**：全部现有测试通过；`/docs` 正常访问；SSE 流输出行为与迁移前一致；现有前端页面功能无回归
 
 ### 6.4 待办项
 
-- [ ] B-139：FastAPI 替代 stdlib HTTP（本 ADR 的代码实施）
-- [ ] B-140：认证中间件实现（ADR-005 前置，与 B-139 串行）
+- [x] B-139：FastAPI 替代 stdlib HTTP（本 ADR 的代码实施）
+- [x] B-140：认证中间件实现
 - [x] B-141：Vue 3 + Vite 前端工程化（前后端分离的另一半，在 B-139 完成后开始）

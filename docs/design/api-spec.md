@@ -2,16 +2,23 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
-> Scope：本地 Web / Coach HTTP API + legacy 进程内接口
+> Last Updated：2026-08-01
+> Scope：当前 HTTP/SSE API、认证、字段与兼容边界
+> Related：`architecture-overview.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`
 
-## 1. 本地 Web MVP HTTP API
+## 1. 当前 HTTP API
 
-当前默认入口为本地 Web MVP：`app.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，仅用于本机浏览器访问，不作为远程多用户 API 承诺。FastAPI 自动文档可在本地 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但正式契约仍以本文档为准。
+当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。
 
-B-140 起支持可选认证层。默认认证关闭，现有本地访问方式不变；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token`、`/` 与静态资源外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。
+默认认证关闭；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token` 和使用独立插件令牌校验的 Obsidian 路由外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效应用凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。FastAPI 不托管静态资源，`GET /` 返回 404。
 
-B-136 起，`/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 Web MVP API operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 保留 FastAPI 默认 UI，只读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载，字段级正式契约仍以本文档各小节为准。新增、删除或修改 API 时，需要同时更新 `backend/api/openapi_schema.py` 和本文档端点速览。
+当前 Vue `fetch` 不附加上述凭证，问答原生 `EventSource` 也没有自定义认证 Header；因此浏览器主路径只承诺默认关闭认证的本地模式。后端认证能力不能被解释为已完成的前端登录/SSE 凭证链。
+
+前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许本机 5173/4173 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`X-API-Key`。CORS 不改变任何下述方法、字段或响应契约。
+
+`/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载；新增、删除或修改 API 时，需要同时更新 operation 列表、路由/dispatch 测试和本文档端点速览。
+
+当前源码契约共 **86 个唯一路径**、**94 个操作**，其中 **31 个 GET**、**63 个 POST**。`GET /api/answer/stream` 与 `POST /api/ollama/pull` 是 FastAPI 单独注册的两个 SSE 入口；其余操作通过通用 dispatch 路由进入对应 handler。问答 SSE 事件为 `token`、`done`、`answer_error`；Ollama 拉取 SSE 事件为 `progress`、`done`、`error`。
 
 端点速览：
 
@@ -304,19 +311,19 @@ data: {"status":"done","model":"qwen2.5:3b"}
 
 `/api/import/note` 用于导入资料库页手写文本笔记。后端按 `title` 生成稳定虚拟来源 `note:<project_id>/<hash>`，文档相对路径写为 `notes/<safe-title>-<hash>.txt`；`safe-title` 会清洗特殊字符并截断长度。同一项目空间内相同标题会更新原笔记，不创建重复文档。目录同步和浏览器文件夹导入只清理真实文件来源，不会删除 `note:` 或 `url:` 虚拟来源；如果真实文件或上传文件撞到已存在笔记的相对路径，会跳过该真实文件并返回 `reserved note path`。
 
-`/api/import/url` 用于保存 URL 摘录占位来源。第一版只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。B-119 研究结论不改变该契约；B-132 已使用独立预览/确认入口和新的 `web:` 来源语义，避免把手动摘录误解释为服务端抓取。
+`/api/import/url` 用于保存 URL 摘录占位来源。它只保存用户提交的 `url/title/content`，不会自动抓取网页、不会联网，也不会解析远端页面。后端把 URL 和标题写入文档正文，来源路径标记为 `url:` 虚拟来源，文档相对路径写为 `urls/<url-hash>.txt`；同一 URL 再次导入会更新原记录。目录同步和浏览器文件夹导入会保留 `url:` 虚拟来源，不会把它当成缺失的真实文件删除。真实网页抓取使用独立预览/确认入口和 `web:` 来源语义，避免把手工摘录误解释为服务端抓取。
 
-`/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit` 用于 B-132 单 URL 网页抓取。`preview` 是唯一会访问外部网络的入口：仅接受 `http/https`，拒绝凭据、非标准端口、localhost、回环、私网、链路本地、保留地址和重定向后的非公网目标；抓取前读取并遵守 `robots.txt`；设置超时、最大响应大小、最大重定向次数和 content-type allowlist；HTML 正文会移除 script/style/form/noscript/template/svg/canvas 后转成纯文本。预览成功只返回 `preview`，不写 `documents`、不生成 chunk/vector、不创建导入批次。`commit` 只接收预览结果并校验 `content_hash`、`content_length` 和 `robots_allowed`，不重新联网；确认后写入 `web:` 虚拟来源，文档相对路径为 `web/<url-hash>.txt`，正文包含来源 URL、最终 URL、抓取时间、内容类型、`content_hash` 和抽取器版本；批次 `source_type` 为 `web_fetch`。手工 `/api/import/url` 仍保持不联网的 URL 摘录语义。
+`/api/import/web-fetch/preview` 和 `/api/import/web-fetch/commit` 用于单 URL 网页抓取。`preview` 是唯一会访问外部网络的入口：仅接受 `http/https`，拒绝凭据、非标准端口、localhost、回环、私网、链路本地、保留地址和重定向后的非公网目标；抓取前读取并遵守 `robots.txt`；设置超时、最大响应大小、最大重定向次数和 content-type allowlist；HTML 正文会移除 script/style/form/noscript/template/svg/canvas 后转成纯文本。预览成功只返回 `preview`，不写 `documents`、不生成 chunk/vector、不创建导入批次。`commit` 只接收预览结果并校验 `content_hash`、`content_length` 和 `robots_allowed`，不重新联网；确认后写入 `web:` 虚拟来源，文档相对路径为 `web/<url-hash>.txt`，正文包含来源 URL、最终 URL、抓取时间、内容类型、`content_hash` 和抽取器版本；批次 `source_type` 为 `web_fetch`。手工 `/api/import/url` 仍保持不联网的 URL 摘录语义。
 
 `/api/import/notion-zip` 用于导入 Notion 导出的 Markdown zip 包。后端只读取 zip 内 Markdown / 文本类文件，跳过附件、图片、二进制、不支持后缀、过大文件和非法相对路径；入库文档 `relative_path` 统一加 `notion/` 前缀，`source_path` 标记为 `notion-zip:<filename>#<relative_path>` 虚拟来源。该接口不调用 Notion API、不联网、不保存第三方 token，也不会做删除清理。
 
 `/api/import/obsidian-vault` 用于导入本机 Obsidian vault 目录。后端递归读取 Markdown / 文本类文件，跳过 `.obsidian`、`.trash` 以及通用忽略目录；入库文档 `relative_path` 统一加 `obsidian/` 前缀，`source_path` 标记为 `obsidian-vault:<vault-root>#<relative_path>` 虚拟来源。第一版不会解析 wikilink/backlink，也不会做删除清理。
 
-`/api/import/github-repo` 用于通过本机 `git clone --depth 1` 导入 GitHub 仓库。后端只接受 `https://github.com/<owner>/<repo>`、`https://github.com/<owner>/<repo>.git` 和 `git@github.com:<owner>/<repo>.git` 形式的 GitHub 仓库 URL；请求中不允许携带用户名、密码或 token。clone 目录位于 Web MVP 受控运行时目录 `runtime/webapp/github-repos/` 下，接口会创建新的项目空间并复用目录导入规则读取 Markdown、代码和其他已支持文件类型，自动跳过 `.git`、`node_modules`、`.venv`、`dist` 等忽略目录。第一版不接入 GitHub API、不保存凭据、不提供增量同步或定时拉取；私有仓库只在本机 git 已具备访问权限时可由底层 clone 命令处理。
+`/api/import/github-repo` 用于通过本机 `git clone --depth 1` 导入 GitHub 仓库。后端只接受 `https://github.com/<owner>/<repo>`、`https://github.com/<owner>/<repo>.git` 和 `git@github.com:<owner>/<repo>.git` 形式的 GitHub 仓库 URL；请求中不允许携带用户名、密码或 token。clone 目录位于当前运行时根的 `github-repos/` 子目录；默认即 `runtime/v2/github-repos/`，显式设置 `RAG_RUNTIME_DIR` 时随运行根变化。接口会创建新的项目空间并复用目录导入规则读取 Markdown、代码和其他已支持文件类型，自动跳过 `.git`、`node_modules`、`.venv`、`dist` 等忽略目录。第一版不接入 GitHub API、不保存凭据、不提供增量同步或定时拉取；私有仓库只在本机 git 已具备访问权限时可由底层 clone 命令处理。
 
 导入批次历史由 `import_batches` 和 `import_batch_items` 保存。`source_type` 支持 `directory_sync / browser_folder_upload / file_upload / text_note / url_excerpt / web_fetch / notion_zip / obsidian_vault / github_repo`；`status` 支持 `success / partial / failed`。当前第一片在成功完成的导入响应中追加 `batch` 摘要，并支持按项目读取最近批次、按 `batch_id` 读取详情。批次字段包含 `id/project_id/source_type/status/started_at/finished_at/summary/message/created_at`；批次 `summary` 包含 `imported/created/updated/unchanged/deleted/skipped/errors` 计数，详情 `items` 展示 `kind/relative_path/document_id/reason`，前端只展示跳过和读取失败明细。导入批次历史不会保存文档正文、上传原始内容、chunk/vector、API Key 或模型配置；第一片不做回滚、不删除批次、不重试历史批次。`/api/import/preview` 和 `/api/import/web-fetch/preview` 是只读预检，不创建导入批次。
 
-B-08 后，`/api/import*` 响应契约保持同步兼容，不新增 job 状态接口或持久化队列表。FastAPI `/api/*` 兼容分发在线程池中执行同步业务逻辑；写入型导入入口在进程内按 `project_id` 串行，同一项目的并发导入请求会等待前一个导入完成，不同项目可重叠执行。
+`/api/import*` 当前保持同步响应，不提供 job 状态接口或持久化队列表。FastAPI `/api/*` 兼容分发在线程池中执行同步业务逻辑；写入型导入入口在进程内按 `project_id` 串行，同一项目的并发导入请求会等待前一个导入完成，不同项目可重叠执行。
 
 Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf` 后可抽取 PDF 正文；没有可选解析器时返回跳过原因 `pdf extraction requires optional parser`，不会阻断其他文件入库。PDF 未提取到文本时返回 `no extractable text`，常见于扫描件或图片型 PDF。
 
@@ -359,13 +366,13 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 | POST | `/api/chat/messages/delete` | `message_id` | `{"deleted":true,"messages":[...]}` | `400 message_id is required`、`404 chat message not found` |
 | POST | `/api/chat/messages/clear` | `project_id` | `{"deleted":数量,"messages":[]}` | `400 project_id is required`、`404 project not found` |
 
-当前 Web MVP 导入时会把文档拆成 SQLite `document_chunks`，并为每个 chunk 写入 `chunk_vectors`。配置 `RAG_EMBED_PROVIDER=api` 且存在 `RAG_EMBED_API_KEY` 时，向 OpenAI-compatible `/embeddings` 写入真实 embedding；未配置、请求失败或服务不支持时回退本地 hashing 向量。配置 `RAG_VECTOR_STORE_PROVIDER=qdrant` 且 `qdrant-client` 可用时，导入、更新、删除和备份恢复会把 chunk vector 同步到 Qdrant local collection；检索时 vector 候选由 Qdrant 返回，避免查询时全量遍历 SQLite `chunk_vectors`。未启用 Qdrant、Qdrant 依赖缺失或查询失败时，搜索回退到 SQLite `chunk_vectors` + cosine similarity。检索按 chunk 片段做 BM25 keyword + vector 混合召回，不再把整篇文档作为最小召回单位；`keyword_score` 表示内置 BM25 关键词分数，不再是 regex 词频累加。B-126 起，如果当前数据库已存在 legacy `graph_nodes` / `graph_edges` 表，检索会从已有 keyword 命中或向量候选对应的 graph node 出发，读取一跳相邻节点并把可映射的 `source_ref` chunk 并入候选池；表不存在、没有 seed 节点或无法映射来源时保持原有检索结果。`hits` / `sources` 中每条结果包含 `path`、`document_id`、`snippet`、`score`、`retrieval`、`keyword_score`、`vector_score`、`vector_provider`、`vector_model`、`rerank_score`、`graph_score`、`graph_depth`，命中 chunk 时还包含 `chunk_id`、`chunk_index`。`vector_provider` / `vector_model` 表示 embedding 来源，不表示 Qdrant 本身。`graph_score` 当前取 graph edge `confidence`，非图谱候选为 `0.0`；`graph_depth` 当前只支持一跳，图谱候选为 `1`，非图谱候选为 `null`。`retrieval` 为 `graph` 表示该来源仅由图谱扩展召回；同一 chunk 同时有 keyword/vector 和图谱分数时会追加 `+graph`。`rerank_score` 仅在设置 `RAG_RERANKER_ENABLED=true` 且本地 `sentence-transformers` 可用时写入 Cross-Encoder 精排分；默认关闭或依赖缺失时为 `null`，并保持原 BM25 + 向量排序；启用 reranker 时会接收 graph 扩展后的候选池。`/api/search/debug` 用于本地调试检索质量，可临时调整 `top_k`、`min_score`、`use_keyword` 和 `use_vector`，并返回文档数、分块数、向量可用状态、来源质量和上下文预览；这些参数不持久化。问答在配置 `RAG_LLM_PROVIDER=ollama` 且本地 Ollama 可达时，优先请求 Ollama `/api/chat`；配置 `RAG_LLM_PROVIDER=api` 且存在 `RAG_LLM_API_KEY` / DeepSeek Key 别名时，优先请求 OpenAI-compatible Chat Completions；`/api/answer/stream` 会使用上游流式响应并以 `text/event-stream` 推送 `token` 事件，完成时发送 `done` 事件和完整回答负载。未配置流式能力、未配置模型、Ollama 不可达或请求失败时仍会回退到本地命中片段组合回答，并通过同一 SSE 通道分段渲染。无命中时不伪造来源，并返回可选 `tool_suggestion`，建议用户手动运行只读 `search_sources` 扩大来源检索；该建议不自动执行工具，只有用户点击前端按钮后才会通过 `/api/agent/tools/run` 写入 `agent_tool_runs`。每次 `/api/answer` 或 `/api/answer/stream` 成功完成时，会把本轮 `question/answer/mode/provider/warning/sources/session_id/parent_message_id/branch_index` 写入 `chat_messages`；Vue B-142 工作台通过 `/api/chat/messages` 加载当前会话消息，通过 `/api/chat/sessions*` 管理当前项目会话。真实 LLM 请求会把当前聊天会话最近 3 轮 `question/answer` 作为“最近对话”写入 prompt；没有 `session_id` 时使用默认会话，也就是旧的 `session_id IS NULL` 消息。如果当前项目配置了默认 Prompt 预设，真实 LLM prompt 会在固定来源约束之后追加该预设的 `system_prompt`，并把 `answer_format` 作为回答格式要求；未选择预设时保持原有 prompt 行为。这是局部上下文增强，不是完整 Agent 记忆，也不会绕过来源片段约束。
+当前 Web MVP 导入时会把文档拆成 SQLite `document_chunks`，并为每个 chunk 写入 `chunk_vectors`。配置 `RAG_EMBED_PROVIDER=api` 且存在 `RAG_EMBED_API_KEY` 时，向 OpenAI-compatible `/embeddings` 写入真实 embedding；未配置、请求失败或服务不支持时回退本地 hashing 向量。配置 `RAG_VECTOR_STORE_PROVIDER=qdrant` 且 `qdrant-client` 可用时，导入、更新、删除和备份恢复会把 chunk vector 同步到 Qdrant local collection；检索时 vector 候选由 Qdrant 返回，避免查询时全量遍历 SQLite `chunk_vectors`。未启用 Qdrant、Qdrant 依赖缺失或查询失败时，搜索回退到 SQLite `chunk_vectors` + cosine similarity。检索按 chunk 片段做 BM25 keyword + vector 混合召回，不再把整篇文档作为最小召回单位；`keyword_score` 表示内置 BM25 关键词分数，不再是 regex 词频累加。如果当前数据库已存在 legacy `graph_nodes` / `graph_edges` 表，检索会从已有 keyword 命中或向量候选对应的 graph node 出发，读取一跳相邻节点并把可映射的 `source_ref` chunk 并入候选池；表不存在、没有 seed 节点或无法映射来源时保持原有检索结果。`hits` / `sources` 中每条结果包含 `path`、`document_id`、`snippet`、`score`、`retrieval`、`keyword_score`、`vector_score`、`vector_provider`、`vector_model`、`rerank_score`、`graph_score`、`graph_depth`，命中 chunk 时还包含 `chunk_id`、`chunk_index`。`vector_provider` / `vector_model` 表示 embedding 来源，不表示 Qdrant 本身。`graph_score` 当前取 graph edge `confidence`，非图谱候选为 `0.0`；`graph_depth` 当前只支持一跳，图谱候选为 `1`，非图谱候选为 `null`。`retrieval` 为 `graph` 表示该来源仅由图谱扩展召回；同一 chunk 同时有 keyword/vector 和图谱分数时会追加 `+graph`。`rerank_score` 仅在设置 `RAG_RERANKER_ENABLED=true` 且本地 `sentence-transformers` 可用时写入 Cross-Encoder 精排分；默认关闭或依赖缺失时为 `null`，并保持原 BM25 + 向量排序；启用 reranker 时会接收 graph 扩展后的候选池。`/api/search/debug` 用于本地调试检索质量，可临时调整 `top_k`、`min_score`、`use_keyword` 和 `use_vector`，并返回文档数、分块数、向量可用状态、来源质量和上下文预览；这些参数不持久化。问答在配置 `RAG_LLM_PROVIDER=ollama` 且本地 Ollama 可达时，优先请求 Ollama `/api/chat`；配置 `RAG_LLM_PROVIDER=api` 且存在 `RAG_LLM_API_KEY` / DeepSeek Key 别名时，优先请求 OpenAI-compatible Chat Completions；`/api/answer/stream` 会使用上游流式响应并以 `text/event-stream` 推送 `token` 事件，完成时发送 `done` 事件和完整回答负载。未配置流式能力、未配置模型、Ollama 不可达或请求失败时仍会回退到本地命中片段组合回答，并通过同一 SSE 通道分段渲染。无命中时不伪造来源，并返回可选 `tool_suggestion`，建议用户手动运行只读 `search_sources` 扩大来源检索；该建议不自动执行工具，只有用户点击前端按钮后才会通过 `/api/agent/tools/run` 写入 `agent_tool_runs`。每次 `/api/answer` 或 `/api/answer/stream` 成功完成时，会把本轮 `question/answer/mode/provider/warning/sources/session_id/parent_message_id/branch_index` 写入 `chat_messages`；当前 Vue 工作台通过 `/api/chat/messages` 加载当前会话消息，通过 `/api/chat/sessions*` 管理当前项目会话。真实 LLM 请求会把当前聊天会话最近 3 轮 `question/answer` 作为“最近对话”写入 prompt；没有 `session_id` 时使用默认会话，也就是旧的 `session_id IS NULL` 消息。如果当前项目配置了默认 Prompt 预设，真实 LLM prompt 会在固定来源约束之后追加该预设的 `system_prompt`，并把 `answer_format` 作为回答格式要求；未选择预设时保持原有 prompt 行为。这是局部上下文增强，不是完整 Agent 记忆，也不会绕过来源片段约束。
 
 `/api/answer/compare` 用于在同一问题、同一检索结果、同一 Prompt 预设和同一工具来源上下文下，对 2 个不同 Model Profile 生成并排回答。`profile_ids` 必须是两个不同且已存在的 Profile ID；响应 `results` 数组保留请求顺序，每项包含 `profile_id`、`profile_name`、`profile_provider`、`model`、`answer`、`mode`、`provider`，模型失败回退时包含 `warning`。该接口不写入 `chat_messages`，不返回 `message` 字段，也不触发回答反馈；它只用于临时比较模型回答质量。`sources`、`source_quality`、`pipeline_trace` 和 `observability.retrieval` 是两次回答共用的同一份检索上下文；`observability.model_comparison` 返回 `profile_count`、`profile_ids` 和 `models`。接口不会回显 API Key、掩码 Key 或可解析 Key 来源。
 
 `chat_sessions` 用于当前项目内的多会话聊天。没有 `session_id` 的旧消息继续归入“默认会话”。`GET /api/chat/messages` 不传 `session_id` 时读取默认会话消息；传入 `session_id` 时会校验会话必须属于当前项目，否则返回 `404 chat session not found`。删除会话会删除该会话下的聊天消息，并通过 `message_id` 外键清理对应回答反馈；不会删除文档、检索复盘、工具运行或项目级检索设置。
 
-`parent_message_id` 用于 B-128 历史消息编辑重发。客户端传入该字段时，服务端会校验父消息必须属于同一 `project_id` 和同一 `session_id`；不存在、跨项目或跨会话时返回 `404 parent chat message not found`，且不写入新消息。校验通过后，新消息的 `parent_message_id` 指向被编辑消息，`branch_index` 为同一父消息下的递增序号；未传 `parent_message_id` 的普通问答保持 `parent_message_id=""`、`branch_index=0`。`message.to_dict()` 响应会返回 `parent_message_id` 和 `branch_index`。
+`parent_message_id` 用于历史消息编辑重发。客户端传入该字段时，服务端会校验父消息必须属于同一 `project_id` 和同一 `session_id`；不存在、跨项目或跨会话时返回 `404 parent chat message not found`，且不写入新消息。校验通过后，新消息的 `parent_message_id` 指向被编辑消息，`branch_index` 为同一父消息下的递增序号；未传 `parent_message_id` 的普通问答保持 `parent_message_id=""`、`branch_index=0`。`message.to_dict()` 响应会返回 `parent_message_id` 和 `branch_index`。
 
 `observability` 用于展示本轮问答的可观察性元数据，不持久化为新的数据库表。当前 `/api/answer` 使用项目级检索默认值，未保存时默认为 `top_k=5`、`min_score=0.0`、`use_keyword=true`、`use_vector=true`。响应结构包含 `retrieval.top_k`、`retrieval.min_score`、`retrieval.use_keyword`、`retrieval.use_vector`、`retrieval.hit_count`、`model.mode`、`model.provider` 和 `elapsed_ms`。`retrieval.hit_count` 统计本轮回答最终可用来源数量，包含显式 `tool_run_id` 带入且通过校验的来源片段；前端 `sources` 仍只展示前 5 条。`model.mode` 与顶层 `mode` 一致，`model.provider` 与顶层 `provider` 一致。`elapsed_ms` 覆盖本轮问答处理耗时，用于本地调试，不是性能 SLA。
 
@@ -450,7 +457,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 | `project_overview` | 只读 | 返回当前项目名称、根目录、文档数、分块数、向量数和聊天记录数 |
 | `search_sources` | 只读 | 使用现有 RAG 检索返回当前项目来源片段，参数为 `{"query":"..."}`，最多返回 5 条命中 |
 
-`GET /api/agent/tools` 返回只读工具白名单元数据。为兼容既有前端，工具对象继续保留 `name`、`description`、`title`、`read_only` 和旧版 `arguments` 字段；B-96 起新增以下字段，不新增数据库表：
+`GET /api/agent/tools` 返回只读工具白名单元数据。为兼容既有前端，工具对象继续保留 `name`、`description`、`title`、`read_only` 和旧版 `arguments` 字段，并提供以下结构化字段；这不会新增数据库表：
 
 | 字段 | 说明 |
 |------|------|
@@ -486,7 +493,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 | POST | `/api/settings/llm` | `provider`、`api_base`、`model`、`api_key`（可空） | 同 GET | N/A |
 | POST | `/api/settings/llm/test` | N/A | `{"ok":true,"provider":"deepseek","message":"..."}` | `400 LLM provider is not configured` 或连接错误 |
 
-模型设置接口不回显 API Key 明文。`api_key` 留空时不会覆盖既有环境变量或已保存配置；保存位置沿用配置层的 appdata `.env`。
+模型设置读取接口不回显 API Key 明文。`api_key` 留空时不会覆盖既有环境变量或已保存配置；提交非空 `api_key` 时，兼容设置 handler 会把值以明文写入当前平台用户应用数据目录的 `KnowledgeIsland/.env`。这与 `model_profiles.api_key_ref` 只保存引用的行为不同，备份、权限和故障排查不得混淆两者。
 
 ### 1.7 1.x 兼容掌握评估
 
@@ -500,7 +507,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 `GET /api/assessment/library` 是资料库管理概览使用的只读题库接口。它按当前项目返回题库数量、评估结果数量、题型分布、掌握状态分布、最近题目快照和最近评估结果；不生成新题、不评分、不修改评估会话，也不新增数据库表。
 
-### 1.8 项目知识教练接口（B-161 / B-162）
+### 1.8 项目知识教练接口
 
 | 方法 | 路径 | 请求 | 成功响应 | 错误 |
 |------|------|------|----------|------|
@@ -572,7 +579,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 客户端可携带 `expected_revision / expected_items_hash` 保护结构更新、进度更新或确认；进度更新还可携带 `expected_progress_hash`。不匹配时分别返回 `learning_plan_revision_conflict / learning_plan_items_conflict / learning_plan_progress_conflict`。重复确认已是 `confirmed` 的同一版本会先按幂等语义返回 `replayed=true`，不再校验 `expected_*`。分析过期会阻止生成、草稿结构更新和确认，但不会阻止已确认计划继续更新进度。历史计划的来源按各自 `based_on_run_id` 解析，不自动换成新运行来源。确认学习计划不会触发 Obsidian 发布。
 
-### 1.9 Obsidian 插件桥接口（B-163）
+### 1.9 Obsidian 插件桥接口
 
 以下九个接口服务于 Obsidian 桌面插件桥；它们不改变现有 `POST /api/import/obsidian-vault` 的一次性只读导入语义。后端不直接读取或写入 Vault，Markdown 事件采集和文件写入均由插件使用 Obsidian Vault API 执行。
 
@@ -596,27 +603,10 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 默认当前发布包含项目理解、知识覆盖、已确认学习计划和已有评估记录；调用方可用 `artifact_types` 缩小范围。设置 `source_publication_id` 时，以历史发布正文创建新的 `draft` 修订并返回 `source_mode=rollback`，不修改历史发布或修订。发布 revision 和 artifact 内容不可变；插件成功回传的 `actual_hash` 成为同一稳定 artifact 下一次预览的覆盖基线。插件离线时发布保持 `queued`，生成文件被用户删除后不会自动重建。
 
-## 2. legacy 内部接口边界（应用层）
+## 2. 兼容与变更规则
 
-## 2.1 摄入与标准化
-
-- `IngestWorkspaceUseCase.execute(...)`
-  - 输入：workspace/project、路径、强制重建标志、是否增量。
-  - 输出：分块数、索引状态、错误统计。
-  - 行为约束：单文件解析失败不应阻断整批入库。
-
-## 2.2 问答与检索
-
-- `QueryKnowledgeBaseUseCase.execute(...)`
-  - 输入：问题文本、workspace/project、检索参数。
-  - 输出：`answer / sources / scores / model`。
-  - 约束：无有效命中应返回可追溯提示，不应伪造答案。
-
-## 2.3 配置与存储
-
-- `load_settings`、`save_llm_provider`、`save_embed_provider` 等配置用例。
-- `DocumentStore` / `ChunkStore` / `TagStore` / `SourceStore` 提供标准 CRUD。
-
-## 3. 兼容说明
-
-- 现阶段保留 `Workspace` 兼容层及其字段，跨模块迁移时需同步更新此文件与 `requirements`。
+- `/api/assessment/*` 是当前仍存在的兼容 HTTP 契约；Coach 主闭环使用 `/api/coach/*`，两套状态和表不能混用。
+- `/api/import/obsidian-vault` 是一次性只读导入；插件配对、事件和发布使用 `/api/obsidian/*` 的独立流程。
+- 内部 Python 类、函数和存储方法不是对外 HTTP API，不在本文冻结其调用签名。
+- HTTP 方法、路径、请求字段、响应字段或错误语义发生破坏性变化时，同步更新 [`api-changes.md`](api-changes.md)、OpenAPI operation 列表、契约测试和调用方。
+- 仅增加文档说明不代表运行时兼容性变化；当前端点统计必须由源码和测试重新派生，不能手工沿用旧快照。

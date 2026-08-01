@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DB_PATH="${KI_DB_PATH:-$PROJECT_ROOT/runtime/webapp/knowledge_island.db}"
-BACKUP_DIR="${KI_BACKUP_DIR:-$PROJECT_ROOT/runtime/backups}"
+DB_PATH="${KI_DB_PATH:-$PROJECT_ROOT/runtime/v2/app.db}"
+BACKUP_DIR="${KI_BACKUP_DIR:-$PROJECT_ROOT/runtime/v2/backups}"
 BACKUP_RETENTION="${KI_BACKUP_RETENTION:-7}"
 QDRANT_DIR="${KI_QDRANT_DIR:-${RAG_QDRANT_PATH:-}}"
 
@@ -20,7 +20,7 @@ fi
 mkdir -p "$BACKUP_DIR"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
-DB_BACKUP_PATH="$BACKUP_DIR/knowledge_island-db-$TIMESTAMP.sqlite3"
+DB_BACKUP_PATH="$BACKUP_DIR/knowledge-island-v2-$TIMESTAMP.sqlite3"
 
 if command -v sqlite3 >/dev/null 2>&1; then
   sqlite3 "$DB_PATH" ".backup \"$DB_BACKUP_PATH\""
@@ -45,5 +45,5 @@ prune_old_backups() {
   fi
 }
 
-prune_old_backups "knowledge_island-db-*.sqlite3"
+prune_old_backups "knowledge-island-v2-*.sqlite3"
 prune_old_backups "qdrant-*.tar.gz"

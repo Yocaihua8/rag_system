@@ -1,58 +1,35 @@
-# 功能文档说明
+# 功能规格索引
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-06-30
+> Last Updated：2026-08-01
+> Scope：当前用户能力、兼容能力与可达边界
+> Related：`../requirements/functional-modules.md`、`../design/api-spec.md`、`../BACKLOG.md`
 
-本目录用于存放各个功能模块的详细说明。每个功能应尽量独立成文，避免把多个模块混写在一个文件里。
+本目录按用户可感知能力组织，一份文档只描述一个能力。后端存在接口、源码中保留组件或测试覆盖，并不自动代表当前主界面已经接通。
 
-## 1. 适用场景
+| 用户能力 | 规格 | 当前入口 |
+|----------|------|----------|
+| 项目资料导入 | [`project-space-ingestion.md`](project-space-ingestion.md) | 资料弹窗；部分高级入口只在未挂载视图中保留 |
+| 资料浏览与分组 | [`knowledge-base-management.md`](knowledge-base-management.md) | 资料弹窗；集合写操作只在未挂载视图中保留 |
+| 检索与有来源问答 | [`retrieval-and-question-answering.md`](retrieval-and-question-answering.md) | 教练工作台 |
+| 对话分支 | [`chat-branching.md`](chat-branching.md) | 教练工作台 |
+| 项目知识教练 | [`project-knowledge-coach.md`](project-knowledge-coach.md) | 教练、学习地图、学习计划 |
+| 首次运行引导 | [`first-run-wizard.md`](first-run-wizard.md) | 教练工作台首次状态 |
+| 多模型比较 | [`multi-model-comparison.md`](multi-model-comparison.md) | 教练工作台高级区域 |
+| 模型配置 | [`model-profile-settings.md`](model-profile-settings.md) | 设置页 |
+| Prompt 预设 | [`prompt-preset-settings.md`](prompt-preset-settings.md) | 设置页 |
+| GitHub 仓库导入 | [`github-integration.md`](github-integration.md) | 资料弹窗 |
+| Obsidian 同步与发布 | [`obsidian-integration.md`](obsidian-integration.md) | 资料、设置、学习计划与桌面插件 |
+| 桌面应用 | [`desktop-app.md`](desktop-app.md) | Tauri 桌面包 |
+| 结果导出 | [`result-export.md`](result-export.md) | 仅 API，主界面无导出按钮 |
+| 可选 API 认证 | [`authentication.md`](authentication.md) | 后端部署配置；当前 Vue/SSE 未接凭证 |
 
-适合写入这里的内容：
+状态用语：
 
-- 单个功能模块的行为规则
-- 页面与接口之间的联动逻辑
-- 状态变更规则
-- 边界条件与异常处理
+- **当前可达**：从 `frontend/src/App.vue` 挂载的主入口可以完成。
+- **部分接线**：界面可见但输入、状态或后续动作没有形成完整闭环。
+- **源码保留但不可达**：后端或组件仍存在，但当前主导航没有挂载。
+- **未实现**：不写入功能规格，统一记录在 [`../BACKLOG.md`](../BACKLOG.md)。
 
-不适合写入这里的内容：
-
-- 长期规划
-- 项目背景
-- 全局架构决策
-- 发布记录
-
-## 2. 建议命名
-
-- `project-space-ingestion.md`
-- `rag-retrieval.md`
-- `chat-sessions.md`
-- `agent-tools.md`
-- `document-collections.md`
-- `model-profiles.md`
-
-## 3. 推荐做法
-
-新增功能文档时，优先复制 `feature-template.md`。
-
-若功能涉及**三层架构**中的层职责变化（如业务规则下沉至 `storage.py`、接口职责外溢），或**六边形架构**中的端口 / 适配器变化（如 `src/` 新增适配器），**必须**填写 `feature-template.md § 7 "架构落点"`，并按需关联 `../design/architecture-overview.md` 与对应 ADR。
-
-## 现有功能文档
-
-- `authentication.md`：B-140 API Key + JWT 认证中间件
-- `agent-tooling-mcp-research.md`：B-117 MCP / 插件能力研究结论（不代表已实现 MCP 接入）
-- `concurrent-indexing.md`：B-08 多工作区并发索引
-- `fastapi-runtime.md`：B-139 FastAPI + Uvicorn 运行时迁移边界
-- `frontend-engineering.md`：B-141 Vue 3 + Vite 前端工程化迁移边界
-- `github-repo-import.md`：B-133 GitHub 仓库整体导入
-- `graph-enhanced-retrieval.md`：B-126 知识图谱候选扩展接入检索流程
-- `knowledge-base-management.md`：B-42 知识库辅助管理页
-- `multi-model-comparison.md`：B-135 多模型并排对比
-- `notion-obsidian-sync.md`：B-137 Notion / Obsidian 本地导出同步
-- `openapi-swagger-docs.md`：B-136 OpenAPI / Swagger 接口文档
-- `ops-maintenance.md`：B-06 本地维护脚本与索引重建管理入口
-- `project-space-ingestion.md`：项目空间与摄入流程（扫描、增量、删除清理）
-- `qdrant-vector-store.md`：B-134 Qdrant 本地向量存储替换 SQLite 全扫描
-- `result-export.md`：B-07 生成结果导出为 Markdown / PDF
-- `team-workspace-research.md`：B-118 多用户 / 团队空间研究结论（不代表已实现多用户或团队空间）
-- `web-crawling-research.md`：B-119 网页自动抓取研究结论（不代表已实现网页自动抓取）
+新功能规格使用 [`feature-template.md`](feature-template.md)。

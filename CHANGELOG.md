@@ -2,13 +2,27 @@
 
 所有版本变更记录遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 结构，版本号遵循语义化版本（[Semantic Versioning](https://semver.org/lang/zh-CN/)）。
 
-开发过程细节（每个 B-xxx 变更文件、临时决策、卡点）见 `docs/devlog/`。
+开发过程细节由 Git 提交和 Pull Request 保存；本文件只记录对使用者或维护者有意义的完成变更。
 
 ---
 
 ## [Unreleased]
 
-> 暂无未发布变更。
+### Changed
+
+- **前后端运行时分离**：FastAPI 改为 API-only，后端以 `python -m backend` 启动；Vue 独立构建到 `frontend/dist/` 并通过 `VITE_API_BASE_URL` 使用绝对 API/SSE URL。
+- **受限跨域策略**：新增 `KI_CORS_ORIGINS` 精确 allowlist，默认只允许本机 5173/4173 和 Tauri Origin，不使用通配符或 cookie credentials。
+- **工程依赖分区**：根 npm 只编排 frontend/src-tauri workspace；Python 依赖迁入 `backend/requirements/`；Tauri CLI、Vite/Vitest/Playwright 和 Obsidian 插件依赖各归所属工程。
+- **Docker 双服务**：Compose 迁入 `ops/docker/`，前端与后端使用独立镜像、端口和健康检查，前端 Nginx 不反向代理 API。
+- **仓库与测试分类**：运行入口、工具、测试和构建脚本按 backend、frontend、desktop、integration、operations、repository 职责重组。
+- **文档体系**：按 docs-template 1.0.0 的职责重构为扁平 `requirements`、`design`、`features`、`adr`、`guides` 和 `plans`；统一校准当前 API、SQLite、权限、状态、功能可达性和操作命令，文档检查迁入 `scripts/` 并增加源码派生契约。
+
+### Removed
+
+- 删除旧 PySide6/六边形桌面代码、旧历史文档、发布/readiness 快照、DevLog、已验收原型和旧工具 plan；历史仍可从 Git 恢复。
+- 删除根旧启动/构建/Docker 兼容入口、无引用 1.x 工具和可再生成的构建测试产物。
+- 删除 `product`、`architecture`、`integrations`、`operations`、`governance` 旧文档目录及 `tools/docs/` 路径；有效事实已归入新文档且不提供旧路径别名。
+- BACKLOG 不再保存完成记录；完成事实只进入本文件和 Git 历史。
 
 ---
 
@@ -46,7 +60,7 @@
 ## [v1.0.0] - 2026-07-01
 
 ### Added
-- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链，生产构建输出到 `backend/static_dist/`
+- **Vue/Vite 前端工程骨架**：新增 `frontend/`、根 `package.json` 和 Vite 构建链；当时构建到后端托管目录，该耦合已由 B-168 移除
 - **Vue 基础应用壳**：新增 Vue API client、共享状态模型、`AppShell` 和工作台 / 资料库 / 评估 / 设置四个基础视图壳
 - **Vue 项目空间薄片**：资料库视图新增项目空间列表、选择、最近项目恢复和新建项目空间表单，复用既有 `/api/projects` 契约
 - **Vue 项目空间改名/删除薄片**：资料库视图新增当前项目改名和删除入口，复用既有 `/api/projects/rename` 与 `/api/projects/delete` 契约；删除前提示项目内文档记录也会被删除
@@ -76,7 +90,7 @@
 - **Vue 工作台工具来源上下文薄片**：工作台回答区新增工具建议展示、建议 `search_sources` 手动运行、工具结果标记为下一问上下文和 `tool_context` 展示，复用既有 `/api/answer` 与 `/api/agent/tools/run` 契约
 - **B-141 Vue 前端工程化收口**：B-141A-Z 页面级迁移薄片已完成并通过收口验证；Workbench SSE/会话迁移拆为后续 B-142，legacy 静态前端继续作为 fallback
 - **可选认证中间件**：Web MVP 支持通过 `RAG_AUTH_ENABLED=1` 启用 API Key + Bearer JWT 认证，保护 `/api/*`、`/docs`、`/redoc` 和 `/openapi.json`
-- **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留 `python app.py` 启动方式，并新增本地 `/docs` 自动接口文档入口
+- **FastAPI 运行时**：Web MVP HTTP 服务层迁移到 FastAPI + Uvicorn，保留当时的根启动入口，并新增本地 `/docs` 自动接口文档入口；根入口已由 B-168 移除
 - **深色模式**：Web 页面跟随系统深色偏好，并提供侧栏按钮手动切换浅色 / 深色主题；手动选择保存到浏览器 `localStorage`
 - **评估题模型与存储**：Web MVP 新增 `assessment_questions`、`assessment_answers`、`assessment_results`，开始评估会保存题目，提交回答会保存回答和评估结果
 - **自动出题用例**：Web MVP `/api/assessment/start` 可规则化生成概念理解、流程说明、代码定位三类题，并为每题保存轻量知识点标签和来源
@@ -87,10 +101,10 @@
 - **流式问答输出**：新增 `/api/answer/stream` SSE 通道，前端通过 EventSource 边收边渲染回答，完成后刷新来源、观察性和聊天记录
 
 ### Changed
-- **后端源码目录重组**：B-155 将原 `webapp/` 生产代码按职责迁移到 `backend/api`、`backend/routes`、`backend/domain`、`backend/storage`，删除受控 `webapp/` 源码目录；HTTP API 契约和 SQLite schema 保持不变，Vue/Vite 构建产物改为输出到 `backend/static_dist/`。
+- **后端源码目录重组**：B-155 将原 `webapp/` 生产代码按职责迁移到 `backend/api`、`backend/routes`、`backend/domain`、`backend/storage`，删除受控 `webapp/` 源码目录；HTTP API 契约和 SQLite schema 保持不变，当时 Vue/Vite 仍输出到后端托管目录。
 - **BACKLOG 完成项归档**：B-149 CI 持续集成流水线已完成并从 `docs/BACKLOG.md §5` 移除；对应能力见 Added 中 GitHub Actions CI 流水线条目。
 - **BACKLOG 完成项归档**：按 BACKLOG 流转规则从 `docs/BACKLOG.md §5` 移除 27 个已完成项，并保留在本变更记录中追溯：B-06、B-07、B-08、B-24、B-25、B-42、B-117、B-118、B-119、B-125、B-126、B-128、B-133、B-134、B-135、B-136、B-137、B-139、B-140、B-141、B-142、B-143、B-144、B-145、B-146、B-147、B-148；未完成项、`doing` 项和 `wontfix` legacy 项继续留在 BACKLOG。
-- **静态前端托管策略**：FastAPI 只服务 Vite 构建产物；构建产物缺失时明确失败，不再回退 legacy static
+- **静态前端托管策略**：当时 FastAPI 只服务 Vite 构建产物；构建产物缺失时明确失败，不再回退 legacy static。该托管方案已由 B-168 取代
 - **SSE 服务端外壳**：`/api/answer/stream` 改由 FastAPI `StreamingResponse` 输出，继续保持 `token/done/answer_error` 事件协议
 - **测试覆盖补充**：新增增量导入无变更统计、中文关键词召回、`list_by_ids` 批量加载和 Markdown 代码块分块专项测试
 - **问答取消机制**：前端问答从 `fetch AbortController` 调整为关闭当前 EventSource 流，保留取消按钮和取消状态提示
@@ -100,7 +114,7 @@
 - **API 路由拆分实施**：新增领域 route registry，完成 health、projects、settings、documents、imports、search、chat、answers、agent、assessment、export 全组迁移；B-155 后兼容入口位于 `backend/api/dispatch.py`
 
 ### Fixed
-- **Docker 前端构建产物**：Docker 镜像构建阶段会生成并内置 `backend/static_dist/`，避免宿主机未预构建或旧产物导致容器缺少前端。
+- **Docker 前端构建产物**：当时的单镜像 Docker 构建会生成并内置 Vue 产物，避免宿主机未预构建；该单镜像方案已由 B-168 的双服务取代。
 - **大项目向量检索线性变慢**：B-134 提供 Qdrant HNSW 候选检索路径，解决大型项目查询时 SQLite 向量全扫描的性能瓶颈。
 - **桌面壳启动即崩溃**：`start_backend_sidecar` 使用了错误的 sidecar 名称（多余的 `binaries/` 前缀），导致 Windows/macOS/Linux 桌面壳安装后打开即崩溃；已修正为与运行时实际路径一致的名称，本机验证裸编译产物和 NSIS 安装后均可正常启动。v1.0.0 发布的三平台安装包已替换为修复后的构建。
 
@@ -173,14 +187,14 @@
 - **Docker 双击入口**：`Start-KnowledgeIsland-Docker.bat` / `Stop-KnowledgeIsland-Docker.bat`，面向非技术用户
 
 ### Changed
-- 默认入口从 PySide6 桌面端切换为本地 Web MVP（`app.py` → `webapp.server.run_server()`）；旧桌面端保留为 legacy
+- 默认入口从 PySide6 桌面端切换为本地 Web MVP（`backend/__main__.py` → `webapp.server.run_server()`）；旧桌面端保留为 legacy
 
 ---
 
 ## 编写规则
 
 1. 一次发布写一个版本块；未发布内容统一写到 `[Unreleased]`
-2. 只记录对使用者 / 维护者有意义的变更，开发过程细节写 `docs/devlog/`
+2. 只记录对使用者 / 维护者有意义的变更，开发过程细节由 Git 历史保存
 3. 每条尽量写"结果"，不写"做了什么"（✅ 新增文档集合分组 / ❌ 增加了 document_collections 表）
 4. 破坏性变更在条目开头标 **BREAKING**；弃用项注明替代方案
 

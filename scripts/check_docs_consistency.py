@@ -1,20 +1,13 @@
-"""
-check_docs_consistency.py — 轻量文档一致性检查。
-
-当前检查项：
-1. docs/DEVLOG.md 为**可选**聚合索引：文件存在时才校验其 devlog/日期 链接；
-   缺失时跳过（仓库以 docs/devlog/ 目录直接管理日志，见 BACKLOG ISSUE-003 处理结论）。
-2. docs/DEVLOG.md 存在时，校验 docs/devlog/*.md 是否都出现在该索引中。
-3. docs/README.md 存在时，校验其目录说明与实际路径是否一致。
-
-退出码：
-    0  - 通过
-    2  - 发现不一致
-"""
+"""Validate the current Knowledge Island documentation against repository facts."""
 
 from __future__ import annotations
 
+import gc
+import json
 import re
+import sqlite3
+import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -22,140 +15,427 @@ from typing import Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DOCS_ROOT = PROJECT_ROOT / "docs"
-DEVLOG_AGG = DOCS_ROOT / "DEVLOG.md"
-DEVLOG_DIR = DOCS_ROOT / "devlog"
 DOCS_README = DOCS_ROOT / "README.md"
+BACKLOG = DOCS_ROOT / "BACKLOG.md"
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+CANONICAL_DIRECTORIES = (
+    "requirements",
+    "design",
+    "features",
+    "adr",
+    "guides",
+    "plans",
+)
+OBSOLETE_PATHS = (
+    "docs/product",
+    "docs/architecture",
+    "docs/integrations",
+    "docs/operations",
+    "docs/governance",
+    "tools/docs",
+)
+ACTIVE_DOCUMENT_DIRECTORIES = tuple(DOCS_ROOT / name for name in CANONICAL_DIRECTORIES[:-1])
+STANDARD_METADATA = ("状态", "Owner", "Last Updated", "Scope", "Related")
+ADR_METADATA = ("状态", "Date", "Owner", "Related")
+MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\((?P<target>[^)]+)\)")
+SOURCE_DOC_REFERENCE = re.compile(r"(?<![A-Za-z0-9_.-])(docs/[A-Za-z0-9_./-]+\.md)")
+HTTP_METHODS = {"get", "post"}
+EXPECTED_API_PATHS = 86
+EXPECTED_API_OPERATIONS = 94
+EXPECTED_API_GETS = 31
+EXPECTED_API_POSTS = 63
+EXPECTED_TABLE_COUNT = 37
+EXPECTED_DOCUMENT_FIELDS = (
+    "id",
+    "project_id",
+    "source_path",
+    "relative_path",
+    "content",
+    "checksum",
+    "updated_at",
+)
+FORBIDDEN_DOCUMENT_FIELDS = (
+    "workspace_id",
+    "source_type",
+    "raw_content",
+    "normalized_markdown",
+    "plain_text",
+    "rendered_html",
+)
+DISALLOWED_ACTIVE_REFERENCES = (
+    "docs/product/",
+    "docs/architecture/",
+    "docs/integrations/",
+    "docs/operations/",
+    "docs/governance/",
+    "docs/devlog/",
+    "docs/release/",
+    "docs/previews/",
+    "docs/superpowers/",
+    "tools/docs/",
+    ".docs-template/",
+    "template-mapping.md",
+    "archive/src-desktop-legacy/",
+    "backend/static_dist/",
+    "python app.py",
+)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Issue:
-    """文档一致性问题。"""
-
     location: str
     message: str
 
 
-def _iter_daily_devlog_files() -> list[Path]:
-    if not DEVLOG_DIR.exists():
-        return []
-    return sorted(
-        p
-        for p in DEVLOG_DIR.glob("*.md")
-        if p.name != "README.md" and p.is_file()
-    )
+def _display(path: Path) -> str:
+    try:
+        return path.relative_to(PROJECT_ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 
-def _extract_devlog_links(lines: Iterable[str]) -> list[tuple[str, str, int]]:
-    pattern = re.compile(r"\[(\d{4}-\d{2}-\d{2})\]\(([^)]+)\)")
-    links: list[tuple[str, str, int]] = []
-    for idx, line in enumerate(lines, start=1):
-        for match in pattern.finditer(line):
-            date, rel_path = match.group(1), match.group(2)
-            links.append((date, rel_path, idx))
-    return links
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
 
-def _check_devlog_links() -> list[Issue]:
+def _is_template(path: Path) -> bool:
+    lower_name = path.name.lower()
+    return "-template" in lower_name or path.name == "ADR-000-template.md"
+
+
+def _linked_local_paths(index_path: Path) -> set[Path]:
+    if not index_path.exists():
+        return set()
+    linked: set[Path] = set()
+    for match in MARKDOWN_LINK.finditer(_read(index_path)):
+        target = match.group("target").strip().strip("<>").split("#", 1)[0]
+        if not target or target.startswith(("http://", "https://", "mailto:")):
+            continue
+        linked.add((index_path.parent / target).resolve())
+    return linked
+
+
+def _iter_active_documents() -> Iterable[Path]:
+    yield DOCS_README
+    for directory in ACTIVE_DOCUMENT_DIRECTORIES:
+        for path in sorted(directory.glob("*.md")):
+            if not _is_template(path):
+                yield path
+
+
+def _check_structure() -> list[Issue]:
     issues: list[Issue] = []
-    if not DEVLOG_AGG.exists():
-        # docs/DEVLOG.md 聚合索引为可选项：仓库以 docs/devlog/ 目录直接管理日志，
-        # 不强制维护聚合索引（BACKLOG ISSUE-003 已据此结论处理）。索引缺失时跳过该项检查。
-        return []
+    readme_text = _read(DOCS_README) if DOCS_README.exists() else ""
+    for relative in CANONICAL_DIRECTORIES:
+        target = DOCS_ROOT / relative
+        if not target.is_dir():
+            issues.append(Issue(_display(target), "缺少标准文档目录。"))
+            continue
+        if f"{relative}/" not in readme_text:
+            issues.append(Issue(_display(DOCS_README), f"总索引未包含目录：{relative}/"))
+        nested = [path for path in target.iterdir() if path.is_dir()]
+        for path in nested:
+            issues.append(Issue(_display(path), "标准文档目录必须保持扁平。"))
 
-    lines = DEVLOG_AGG.read_text(encoding="utf-8").splitlines()
-    links = _extract_devlog_links(lines)
-    if not links:
-        issues.append(Issue("docs/DEVLOG.md", "未检测到 devlog 日志链接。"))
-
-    linked_files = set[str]()
-    for date, rel_path, line_no in links:
-        target = (DOCS_ROOT / rel_path).resolve()
-        rel_name = f"devlog/{Path(rel_path).name}"
-        if not target.exists():
-            issues.append(
-                Issue(
-                    f"docs/DEVLOG.md:{line_no}",
-                    f"日期文件缺失：{rel_name}（{target}）",
-                )
-            )
-        else:
-            linked_files.add(Path(rel_path).name)
-        if date not in rel_path:
-            issues.append(
-                Issue(
-                    f"docs/DEVLOG.md:{line_no}",
-                    f"链接名称与日期不一致：{date} -> {rel_path}",
-                )
-            )
-
-    # 校验 devlog 目录中每个日期文件都有索引条目
-    for p in _iter_daily_devlog_files():
-        if p.name not in linked_files:
-            issues.append(
-                Issue(
-                    str(p.relative_to(PROJECT_ROOT)),
-                    f"未在 DEVLOG 索引中链接：{p.relative_to(PROJECT_ROOT)}",
-                )
-            )
-
+    for relative in OBSOLETE_PATHS:
+        target = PROJECT_ROOT / relative
+        if target.exists():
+            issues.append(Issue(_display(target), "旧文档或工具路径仍然存在。"))
     return issues
 
 
-def _extract_docs_readme_refs(lines: Iterable[str]) -> list[str]:
-    in_table = False
-    paths: list[str] = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("## 2. 目录说明"):
-            in_table = True
-            continue
-        if in_table:
-            if stripped.startswith("|"):
-                parts = [item.strip() for item in stripped.split("|")]
-                if len(parts) < 3:
-                    continue
-                raw_path = parts[1].strip()
-                if raw_path in {"路径", "--", ""}:
-                    continue
-                if raw_path.startswith("`") and raw_path.endswith("`"):
-                    raw_path = raw_path.strip("`")
-                if raw_path == "../README.md":
-                    paths.append("README.md")
-                    continue
-                paths.append(raw_path)
-            elif stripped == "":
-                in_table = False
-    return paths
-
-
-def _check_docs_readme_paths() -> list[Issue]:
-    if not DOCS_README.exists():
-        return []
-
-    lines = DOCS_README.read_text(encoding="utf-8").splitlines()
+def _check_nearest_indexes() -> list[Issue]:
     issues: list[Issue] = []
-    for rel in _extract_docs_readme_refs(lines):
-        target = (DOCS_ROOT / rel).resolve()
-        if not target.exists():
-            issues.append(Issue("docs/README.md", f"目录说明引用了不存在路径：{rel}"))
+    for directory in (DOCS_ROOT / name for name in CANONICAL_DIRECTORIES):
+        index = directory / "README.md"
+        if not index.exists():
+            issues.append(Issue(_display(index), "缺少最近一级索引。"))
+            continue
+        linked = _linked_local_paths(index)
+        expected = {
+            path.resolve()
+            for path in directory.glob("*.md")
+            if path.name != "README.md" and not _is_template(path)
+        }
+        for path in sorted(expected - linked):
+            issues.append(Issue(_display(path), f"未被最近一级索引 {_display(index)} 引用。"))
+    return issues
+
+
+def _check_metadata() -> list[Issue]:
+    issues: list[Issue] = []
+    for path in _iter_active_documents():
+        if path.name == "README.md" and path.parent == DOCS_ROOT / "adr":
+            required = STANDARD_METADATA
+        elif path.parent == DOCS_ROOT / "adr" and path.name.startswith("ADR-"):
+            required = ADR_METADATA
+        else:
+            required = STANDARD_METADATA
+        head = "\n".join(_read(path).splitlines()[:16])
+        for field in required:
+            if not re.search(rf"^>\s*{re.escape(field)}[：:]", head, flags=re.MULTILINE):
+                issues.append(Issue(_display(path), f"缺少元数据字段：{field}"))
+    return issues
+
+
+def _active_reference_files() -> list[Path]:
+    paths = [
+        PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "AGENTS.md",
+        PROJECT_ROOT / "CONTRIBUTING.md",
+        BACKLOG,
+        *[path for path in DOCS_ROOT.rglob("*.md") if path.parent != DOCS_ROOT / "plans"],
+    ]
+    return [path for path in paths if path.exists()]
+
+
+def _check_active_references() -> list[Issue]:
+    issues: list[Issue] = []
+    for path in _active_reference_files():
+        text = _read(path)
+        for stale in DISALLOWED_ACTIVE_REFERENCES:
+            if stale in text:
+                issues.append(Issue(_display(path), f"仍引用已删除路径或命令：{stale}"))
+
+        if path.parent in {
+            DOCS_ROOT / "requirements",
+            DOCS_ROOT / "design",
+            DOCS_ROOT / "features",
+            DOCS_ROOT / "guides",
+        } and not _is_template(path):
+            if re.search(r"\bB-\d{3,}\b", text):
+                issues.append(Issue(_display(path), "活动文档混入 B-ID 实施历史；应改写为当前事实。"))
+    return issues
+
+
+def _check_backlog_is_active_only() -> list[Issue]:
+    if not BACKLOG.exists():
+        return [Issue(_display(BACKLOG), "缺少活动事项清单。")]
+    issues: list[Issue] = []
+    for line_number, line in enumerate(_read(BACKLOG).splitlines(), start=1):
+        if re.match(r"^\|\s*B-\d+\s*\|", line) and re.search(
+            r"\|\s*(?:done|wontfix)\s*\|", line, flags=re.IGNORECASE
+        ):
+            issues.append(Issue(f"{_display(BACKLOG)}:{line_number}", "BACKLOG 只能保留未完成事项。"))
+    return issues
+
+
+def _openapi_snapshot(database_path: Path) -> tuple[set[str], int, int]:
+    from backend.api.server import create_app
+
+    app = create_app(db_path=database_path)
+    openapi = app.openapi()
+    paths = set(openapi["paths"])
+    gets = sum("get" in operations for operations in openapi["paths"].values())
+    posts = sum("post" in operations for operations in openapi["paths"].values())
+    unexpected = {
+        method
+        for operations in openapi["paths"].values()
+        for method in operations
+        if method.lower() in {"put", "patch", "delete"}
+    }
+    if unexpected:
+        raise AssertionError(f"unexpected HTTP methods: {sorted(unexpected)}")
+    del app
+    gc.collect()
+    return paths, gets, posts
+
+
+def _check_api_contract() -> list[Issue]:
+    spec_path = DOCS_ROOT / "design" / "api-spec.md"
+    if not spec_path.exists():
+        return [Issue(_display(spec_path), "缺少 API 契约。")]
+    issues: list[Issue] = []
+    with tempfile.TemporaryDirectory(prefix="ki-docs-api-") as temp_dir:
+        paths, gets, posts = _openapi_snapshot(Path(temp_dir) / "app.db")
+    operations = gets + posts
+    if (len(paths), operations, gets, posts) != (
+        EXPECTED_API_PATHS,
+        EXPECTED_API_OPERATIONS,
+        EXPECTED_API_GETS,
+        EXPECTED_API_POSTS,
+    ):
+        issues.append(
+            Issue(
+                "backend/api/openapi_schema.py",
+                "当前 OpenAPI 数量偏离已校准基线："
+                f"{len(paths)} paths / {operations} operations / {gets} GET / {posts} POST。",
+            )
+        )
+
+    spec = _read(spec_path)
+    for path in sorted(paths):
+        if path.startswith("/api/") and path not in spec:
+            issues.append(Issue(_display(spec_path), f"缺少当前 API 路径：{path}"))
+    for marker in (
+        "86 个唯一路径",
+        "94 个操作",
+        "31 个 GET",
+        "63 个 POST",
+        "token",
+        "done",
+        "answer_error",
+    ):
+        if marker not in spec:
+            issues.append(Issue(_display(spec_path), f"缺少 API 基线标记：{marker}"))
+    return issues
+
+
+def _sqlite_snapshot(database_path: Path) -> tuple[set[str], tuple[str, ...]]:
+    from backend.api.server import create_app
+
+    app = create_app(db_path=database_path)
+    connection = sqlite3.connect(database_path)
+    try:
+        tables = {
+            row[0]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+            )
+        }
+        document_fields = tuple(
+            row[1] for row in connection.execute("PRAGMA table_info(documents)")
+        )
+    finally:
+        connection.close()
+    del app
+    gc.collect()
+    return tables, document_fields
+
+
+def _check_database_contract() -> list[Issue]:
+    spec_path = DOCS_ROOT / "design" / "database-design.md"
+    if not spec_path.exists():
+        return [Issue(_display(spec_path), "缺少数据库契约。")]
+    issues: list[Issue] = []
+    with tempfile.TemporaryDirectory(prefix="ki-docs-db-") as temp_dir:
+        tables, fields = _sqlite_snapshot(Path(temp_dir) / "app.db")
+    if len(tables) != EXPECTED_TABLE_COUNT:
+        issues.append(
+            Issue(
+                "backend/storage/knowledge_store.py",
+                f"当前表数量为 {len(tables)}，偏离 37 表文档基线。",
+            )
+        )
+    if fields != EXPECTED_DOCUMENT_FIELDS:
+        issues.append(
+            Issue(
+                "backend/storage/knowledge_store.py",
+                f"documents 字段偏离文档基线：{fields}",
+            )
+        )
+
+    spec = _read(spec_path)
+    for table in sorted(tables):
+        if f"`{table}`" not in spec:
+            issues.append(Issue(_display(spec_path), f"缺少当前 SQLite 表：{table}"))
+    for field in fields:
+        if f"`{field}`" not in spec:
+            issues.append(Issue(_display(spec_path), f"缺少 documents 字段：{field}"))
+    for field in FORBIDDEN_DOCUMENT_FIELDS:
+        if re.search(rf"documents[^\n]{{0,400}}`{re.escape(field)}`", spec, flags=re.DOTALL):
+            issues.append(Issue(_display(spec_path), f"documents 仍包含错误字段：{field}"))
+    if "37 张当前表" not in spec:
+        issues.append(Issue(_display(spec_path), "缺少 37 张当前表的基线说明。"))
+    return issues
+
+
+def _check_package_and_command_facts() -> list[Issue]:
+    issues: list[Issue] = []
+    base_requirements = _read(PROJECT_ROOT / "backend" / "requirements" / "base.txt").lower()
+    frontend_package = json.loads(_read(PROJECT_ROOT / "frontend" / "package.json"))
+    plugin_package = json.loads(
+        _read(PROJECT_ROOT / "integrations" / "obsidian-plugin" / "package.json")
+    )
+    setup = _read(DOCS_ROOT / "guides" / "setup.md")
+    testing = _read(DOCS_ROOT / "guides" / "testing.md")
+    combined = f"{setup}\n{testing}"
+
+    for dependency in ("qdrant-client", "jieba"):
+        if dependency not in base_requirements:
+            issues.append(Issue("backend/requirements/base.txt", f"缺少约定依赖：{dependency}"))
+        if dependency.lower() not in combined.lower():
+            issues.append(Issue("docs/guides/", f"未说明依赖状态：{dependency}"))
+    if "pinia" not in frontend_package.get("dependencies", {}):
+        issues.append(Issue("frontend/package.json", "Pinia 声明状态发生变化，需同步文档。"))
+    for dependency in ("Pinia", "pymupdf", "sentence-transformers"):
+        if dependency.lower() not in combined.lower():
+            issues.append(Issue("docs/guides/", f"未说明依赖状态：{dependency}"))
+
+    expected_plugin_scripts = {"test", "typecheck", "build"}
+    missing_scripts = expected_plugin_scripts - set(plugin_package.get("scripts", {}))
+    if missing_scripts:
+        issues.append(
+            Issue(
+                "integrations/obsidian-plugin/package.json",
+                f"插件缺少文档要求的脚本：{sorted(missing_scripts)}",
+            )
+        )
+    for command in ("npm test", "npm run typecheck", "npm run build"):
+        if command not in testing:
+            issues.append(Issue(_display(DOCS_ROOT / "guides" / "testing.md"), f"缺少插件命令：{command}"))
+    return issues
+
+
+def _check_source_doc_references() -> list[Issue]:
+    issues: list[Issue] = []
+    source_roots = (
+        PROJECT_ROOT / "backend",
+        PROJECT_ROOT / "frontend",
+        PROJECT_ROOT / "src-tauri",
+        PROJECT_ROOT / "integrations",
+        PROJECT_ROOT / "ops",
+    )
+    allowed_suffixes = {".py", ".js", ".mjs", ".ts", ".vue", ".rs", ".toml", ".json", ".yml", ".yaml", ".ps1", ".sh"}
+    excluded_parts = {"node_modules", "dist", "build", "target", "__pycache__"}
+    for root in source_roots:
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            if not path.is_file() or path.suffix.lower() not in allowed_suffixes:
+                continue
+            if excluded_parts.intersection(path.parts):
+                continue
+            try:
+                text = _read(path)
+            except UnicodeDecodeError:
+                continue
+            for reference in SOURCE_DOC_REFERENCE.findall(text):
+                if not (PROJECT_ROOT / reference).is_file():
+                    issues.append(Issue(_display(path), f"源码引用的文档不存在：{reference}"))
     return issues
 
 
 def run_checks() -> tuple[int, list[Issue]]:
-    """执行文档一致性检查，返回 (exit_code, issues)。"""
-    devlog_issues = _check_devlog_links()
-    docs_readme_issues = _check_docs_readme_paths()
-    all_issues = [*devlog_issues, *docs_readme_issues]
-    return (2 if all_issues else 0), all_issues
+    checks = (
+        _check_structure,
+        _check_nearest_indexes,
+        _check_metadata,
+        _check_active_references,
+        _check_backlog_is_active_only,
+        _check_api_contract,
+        _check_database_contract,
+        _check_package_and_command_facts,
+        _check_source_doc_references,
+    )
+    issues: list[Issue] = []
+    for check in checks:
+        try:
+            issues.extend(check())
+        except Exception as exc:  # pragma: no cover - keeps CLI diagnostics actionable
+            issues.append(Issue(check.__name__, f"检查执行失败：{exc}"))
+    return (2 if issues else 0), issues
 
 
 def main() -> int:
     code, issues = run_checks()
     if not issues:
-        print("[PASS] docs consistency checks passed.")
+        print("[PASS] docs consistency and source-derived contract checks passed.")
         return 0
-
-    print(f"[FAIL] docs consistency checks failed: {len(issues)} issue(s).")
+    print(f"[FAIL] docs checks failed: {len(issues)} issue(s).")
     for issue in issues:
         print(f"  - {issue.location}: {issue.message}")
     return code

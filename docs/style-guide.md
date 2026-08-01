@@ -2,78 +2,48 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-23
+> Last Updated：2026-08-01
+> Scope：`docs/` 当前文档和模板
+> Related：`../README.md`、`README.md`、`features/feature-template.md`、`adr/ADR-000-template.md`、`design/rfc-template.md`、`plans/plan-template.md`
 
-本文档定义本仓库文档的统一写作规则。目标是避免“已实现内容”和“规划内容”混写，以及不同文档使用不同语气导致的维护成本。
+## 原则
 
-## 1. 基本原则
+- 先写当前结论，再写必要背景；避免按提交时间堆叠正文。
+- 当前实现、未来规划和历史事实分开。未来只进 BACKLOG，完成历史只进 CHANGELOG/Git。
+- 以源码、配置、Schema 和测试校准事实；无法确认时写 `TBD`、`N/A` 或“待确认”。
+- 不引用已删除目录、临时产物、个人绝对路径或本机凭证。
+- 命令必须从仓库根可执行，并与当前依赖/目录一致。
 
-- 文档先结论：先写“当前结论/边界”，再写细节实现。
-- 一文一主题：一篇文档只承担一个职责。
-- 已落地与目标分离：功能规格默认只写已落地行为；设计文档确需同时表达迁移基线和已确认目标时，必须逐节标注“当前 1.x”或“2.0 目标”，未实施任务仍写入 `BACKLOG.md`，重大决策写入 `ADR`。
-- 标题与术语统一：同一语义必须说明所处语境；当前用户界面使用“工作区”，后端/API/数据库继续使用 `project` / `project_id`，历史文档中的“项目空间”视为同一概念。
+## 元数据
 
-`Active` 表示文档决策有效，不表示文档中的“2.0 目标”已经实现。不得用“现已支持”“用户可以”等完成态措辞描述尚未落地的目标能力。
-
-## 2. 文档头部模板（除 `CHANGELOG.md` 外）
+活动 Markdown 文档在标题后包含：
 
 ```text
-# 标题
-
-> 状态：Draft / In Review / Active / Deprecated / Archived
+> 状态：Active
 > Owner：RAG 团队
 > Last Updated：YYYY-MM-DD
-> Scope：可选，按文档粒度填写
-> Related：可选，相关文档路径
+> Scope：...
+> Related：...
 ```
 
-## 3. 章节结构
+ADR 使用 Accepted/Proposed 等决策状态；模板可保留 `{{PLACEHOLDER}}`，普通活动文档不得残留占位符。
 
-推荐顺序：
+## 链接与路径
 
-1. 目的 / 背景
-2. 范围 / 边界
-3. 结论 / 规则
-4. 行为细节
-5. 示例 / 附录（如有）
+- Markdown 链接优先使用相对当前文件的路径；代码/配置引用使用仓库根相对路径。
+- 移动文件时同批更新索引、Related、正文引用和文档检查规则。
+- 文档目录只使用扁平的 `requirements`、`design`、`features`、`adr`、`guides`、`plans` 和根 BACKLOG/README；目录内不再按前端、后端、集成或运维建立专题子目录。
 
-## 4. 命名与样式
+## 模板
 
-- 文件名使用小写 `kebab-case`。
-- 同一文档中优先使用短句，避免重复否定。
-- 中文文档使用全角中文标点，代码、命令、变量名保留半角。
-- 状态词汇统一使用：
-  - **必须**：不允许偏离
-  - **应该**：建议执行，可在文内说明例外
-  - **可选**：按场景实施
-  - **禁止**：明确不应出现
+模板按职责放在 [`features/feature-template.md`](features/feature-template.md)、[`adr/ADR-000-template.md`](adr/ADR-000-template.md)、[`design/rfc-template.md`](design/rfc-template.md)、[`plans/plan-template.md`](plans/plan-template.md) 以及 `guides/` 下的贡献/集成模板。使用模板后替换全部占位符，并删除不适用章节；不得把模板本身当作项目事实。
 
-### 4.1 前端术语
+## 验证
 
-| 语境 | 推荐用词 | 说明 |
-|------|----------|------|
-| 普通用户界面 | 工作区、添加资料、回答依据、回答引擎、工具 | 避免直接暴露内部实现术语 |
-| 后端、API、数据库 | `project`、`project_id`、`session_id` | 代码与契约不因界面文案变化而重命名 |
-| 历史文档 | 项目空间 | 表示与“工作区”相同的用户概念；新设计文档应优先使用“工作区” |
-| 现有聊天文案 | 线程 | 当前 B-156 实现事实；若统一改为“会话”，必须另行同步前端代码、功能文档和测试 |
-| 2.0 一级入口 | 教练、学习地图、学习计划、资料、设置 | 这是目标信息架构；前端落地前不得写成当前导航 |
-| 2.0 评估 | 开始评估、评估结果、评估记录 | 评估是覆盖层或抽屉，不作为一级入口；结论必须限定为“当前项目中的评估结果” |
-| Obsidian（当前 1.x） | 导入 Obsidian Vault | 表示一次性只读导入，不使用“已连接”“持续同步”“已发布” |
-| Obsidian（2.0 目标） | 连接 Obsidian、预览发布、确认发布、同步冲突 | 不得暗示自动覆盖用户笔记 |
+```powershell
+pwsh -NoProfile -File scripts/check-placeholders.ps1
+pwsh -NoProfile -File scripts/check-doc-links.ps1
+.\.venv\Scripts\python.exe scripts/check_docs_consistency.py
+```
 
-## 5. 链接与图示
-
-- 文档内交叉链接优先使用相对路径（如 `design/architecture-overview.md`）。
-- 外部链接带完整协议，尽量附来源日期。
-- 页面结构和架构关系尽量用文本图 + 表格，复杂关系可用 Mermaid。
-
-## 6. 文档维护
-
-- 文档行为改动必须同步：
-  - `requirements/*`（已落地边界）
-  - `design/*`（架构与数据）
-  - `guides/testing.md`（验证方式）
-  - `BACKLOG.md`（未完事项）
-  - `CHANGELOG.md`（对外变更）
-- `docs/README.md` 的目录说明与实际文件必须保持一致。
-- 产品代际发生变化时，入口 README、需求、设计、ADR、BACKLOG 和发布说明必须使用同一组“当前 / 目标 / 历史”边界。
+文档门禁不读取历史例外目录，因为历史文档已从活动树删除。

@@ -1,4 +1,5 @@
 import { apiGet } from "./client.js";
+import { apiUrl } from "./config.js";
 
 const SERVICE_UNAVAILABLE_MESSAGE = "本地服务暂时不可用。请确认应用已启动后刷新页面。";
 
@@ -14,7 +15,7 @@ export async function pullOllamaModel({ model, handlers = {}, signal } = {}) {
 
   let response = null;
   try {
-    response = await fetch("/api/ollama/pull", {
+    response = await fetch(apiUrl("/api/ollama/pull"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model: cleanModel }),

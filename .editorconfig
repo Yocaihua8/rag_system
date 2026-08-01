@@ -1,0 +1,24 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+# Markdown 允许行尾两空格做换行，不强制 trim
+trim_trailing_whitespace = false
+# 与 style-guide § 4 一致：不硬性限制行宽
+max_line_length = off
+
+[Makefile]
+indent_style = tab
+
+[*.{sh,bash}]
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_size = 2

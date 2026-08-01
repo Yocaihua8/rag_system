@@ -9,6 +9,8 @@ import time
 from dataclasses import dataclass
 from typing import Mapping, Any
 
+from backend.config.settings import load_backend_env
+
 
 DEFAULT_JWT_TTL_SECONDS = 3600
 MIN_JWT_TTL_SECONDS = 60
@@ -23,7 +25,10 @@ class AuthSettings:
 
 
 def load_auth_settings(env: Mapping[str, str] | None = None) -> AuthSettings:
-    values = os.environ if env is None else env
+    if env is None:
+        values: Mapping[str, str] = {**load_backend_env(), **os.environ}
+    else:
+        values = env
     enabled = _truthy(values.get("RAG_AUTH_ENABLED", ""))
     api_key = str(values.get("RAG_AUTH_API_KEY", "")).strip()
     jwt_secret = str(values.get("RAG_AUTH_JWT_SECRET", "")).strip()

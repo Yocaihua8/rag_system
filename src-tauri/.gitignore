@@ -1,5 +1,5 @@
 target/
 gen/
+build/
 binaries/*.exe
 binaries/knowledge-island-backend-*
-

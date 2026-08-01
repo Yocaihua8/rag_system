@@ -51,6 +51,10 @@ def _project_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
+def _backend_root() -> Path:
+    return _project_root() / "backend"
+
+
 def _parse_env_file(path: Path) -> dict[str, str]:
     result: dict[str, str] = {}
     if not path.exists():
@@ -62,6 +66,11 @@ def _parse_env_file(path: Path) -> dict[str, str]:
         key, _, value = line.partition("=")
         result[key.strip()] = value.strip().strip('"').strip("'")
     return result
+
+
+def load_backend_env() -> dict[str, str]:
+    """Load non-secret defaults from the backend-local environment file."""
+    return _parse_env_file(_backend_root() / ".env")
 
 
 def _resolve(env: dict[str, str], key: str, fallback: str) -> str:
@@ -149,7 +158,7 @@ def load_settings(override_env: dict[str, str] | None = None) -> AppSettings:
     project_root = _project_root()
 
     env: dict[str, str] = {}
-    env.update(_parse_env_file(project_root / ".env"))
+    env.update(load_backend_env())
     env.update(_parse_env_file(app_data / ".env"))
 
     persistent_env = _persistent_env()
@@ -254,6 +263,7 @@ __all__ = [
     "API_KEY_ENV_NAMES",
     "AppSettings",
     "get_api_key_env_name",
+    "load_backend_env",
     "load_settings",
     "save_setting",
 ]

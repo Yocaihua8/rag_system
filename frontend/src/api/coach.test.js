@@ -50,10 +50,10 @@ describe("coach api helpers", () => {
     await expect(getCoachSkills(" project / 1 ")).resolves.toEqual({ items: [] });
     await expect(getCoachCoverage(" project / 1 ")).resolves.toEqual({ summary: {} });
     expect(fetch.mock.calls.slice(1).map(([path]) => path)).toEqual([
-      "/api/coach/overview?project_id=project+%2F+1",
-      "/api/coach/knowledge-points?project_id=project+%2F+1",
-      "/api/coach/skills?project_id=project+%2F+1",
-      "/api/coach/coverage?project_id=project+%2F+1",
+      "http://127.0.0.1:8765/api/coach/overview?project_id=project+%2F+1",
+      "http://127.0.0.1:8765/api/coach/knowledge-points?project_id=project+%2F+1",
+      "http://127.0.0.1:8765/api/coach/skills?project_id=project+%2F+1",
+      "http://127.0.0.1:8765/api/coach/coverage?project_id=project+%2F+1",
     ]);
   });
 
@@ -110,7 +110,7 @@ describe("coach api helpers", () => {
     expect(postBodyAt(0)).toEqual({ project_id: "p1", max_items: 6 });
 
     await expect(getCurrentLearningPlan(" p1 ")).resolves.toEqual({ draft: { id: "plan1" } });
-    expect(fetch.mock.calls[1][0]).toBe("/api/coach/learning-plans/current?project_id=p1");
+    expect(fetch.mock.calls[1][0]).toBe("http://127.0.0.1:8765/api/coach/learning-plans/current?project_id=p1");
 
     await updateLearningPlan({
       projectId: "p1",

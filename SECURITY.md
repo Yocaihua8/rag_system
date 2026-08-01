@@ -1,71 +1,67 @@
-# Security Policy
+# Knowledge Island 安全政策
+> Last Updated：2026-07-30
+> Related：`docs/guides/security.md`、`docs/guides/support-policy.md`
 
-## 支持版本
+## 支持范围
 
-| 版本 | 是否支持安全修复 |
-|------|----------------|
-| latest（main 分支）| ✅ 是 |
-| 历史 tag | ❌ 否（请升级至最新版本）|
+| 版本 | 安全维护状态 |
+|------|--------------|
+| `v2.0.x` | 当前维护线，按风险和维护能力提供修复 |
+| `main` | 开发分支，不保证始终可发布 |
+| `v1.x` 及更早 tag | 不提供常规安全修复；建议升级并重新导入数据 |
 
-## 漏洞上报渠道
+本项目以本地单用户使用为默认边界。默认 HTTP 服务绑定 `127.0.0.1:8765`，但 Docker 端口映射、远程访问、反向代理或用户自行修改绑定地址会扩大攻击面。
 
-Knowledge Island 是一个**本地单机应用**，HTTP 服务仅监听 `127.0.0.1:8765`，不对外网暴露。但如发现安全问题，请通过以下方式上报：
+## 漏洞上报
 
-- **GitHub Issues**（公开问题）：适用于一般性安全建议或配置风险，优先使用
-- **私信 / Email**：如涉及可利用的高危漏洞，请在 Issue 中简述风险级别，再通过私信提供细节
+请不要在公开 Issue、日志或截图中提交可直接利用的漏洞细节、Token、API Key、真实项目内容或个人数据。
 
-请**不要**在公开 Issue 中直接贴出完整漏洞利用代码。
+1. 若仓库 GitHub **Security** 页面提供 “Report a vulnerability”，优先使用该私密入口。
+2. 若没有可用私密入口，可创建不含利用细节的安全咨询 Issue，请维护者确认后续私密渠道。
+3. 当前独立安全邮箱和固定响应人尚未公开核验，状态为 `TBD`。
 
-## 响应承诺
+上报建议包含受影响版本、攻击前提、影响范围、最小复现、建议缓解和是否已公开。维护者按实际可用时间尽力处理，不承诺固定 SLA；高风险问题在确认前不公开完整细节。
 
-| 阶段 | 时效目标 |
+## 已落地安全边界
+
+| 边界 | 当前实现 |
 |------|----------|
-| 确认收到上报 | 3 个工作日内 |
-| 初步评估与回复 | 7 个工作日内 |
-| 修复发布（高危）| 30 天内 |
+| 本地监听 | 默认仅 `127.0.0.1:8765` |
+| 可选认证 | `RAG_AUTH_ENABLED` 同时配合共享 API Key 与 HS256 JWT；默认关闭 |
+| API Key | 模型 Profile 只保存 `env:*` / `saved:*` 引用，接口只返回配置状态和来源 |
+| Agent 工具 | 白名单只有 `project_overview`、`search_sources`；无 shell、任意文件写入或业务写操作 |
+| 项目隔离 | 资源读写校验 `project_id`；当前没有用户、团队、租户和 RBAC 表 |
+| 网页抓取 | 只允许公网 HTTP/HTTPS 标准端口，限制重定向/响应大小并检查私网解析和 robots.txt |
+| GitHub 导入 | 只接受 `github.com` HTTPS/SSH URL，拒绝 URL 内嵌凭据，使用浅克隆 |
+| 文件导入 | 单文件默认上限 1 MB，跳过 `.git`、`.venv`、`node_modules` 和构建目录 |
+| Obsidian | 只允许 loopback 服务；连接令牌放 Bearer header；发布执行路径、托管标记、revision 和 hash 校验 |
+| v2 数据代际 | 正式 Web 启动拒绝把未标记为 v2 的非空旧库当作 v2 写入 |
 
-本项目为个人兼职维护，以上为尽力承诺，不作法律保证。
+## 已知限制
 
-## 已知安全边界
+- 认证默认关闭；能访问本机账户或被暴露端口的主体可能读取本地项目数据。
+- `/api/health` 仅说明进程响应，不验证 SQLite、模型、Embedding 或 Qdrant。
+- Windows `v2.0.0` 安装包未做 Authenticode 签名。
+- Tauri 打包配置/静态测试不替代安装包内 WebView 到 sidecar 的动态连通性和安全验证。
+- 本项目没有声明适用的隐私、数据保留或行业合规承诺；处理敏感项目资料前由使用者自行评估。
+- 第三方 LLM、Embedding、GitHub、Ollama、Obsidian 等组件的数据处理和漏洞响应受其各自政策约束。
 
-以下是本项目**设计层面的安全约束**，属于有意为之：
-
-| 约束 | 说明 |
-|------|------|
-| API Key 不明文持久化 | Profile 只保存引用（`env:*` / `saved:*`），任何 API 响应不含明文 Key |
-| Agent 工具只读限制 | 白名单硬编码，不开放 shell 执行或任意文件写入 |
-| 本机访问限制 | HTTP 服务绑定 `127.0.0.1`，不监听外网接口 |
-| Markdown 渲染 XSS 防护 | HTML 渲染层禁止 `<script>` 注入，raw HTML 经过清洗 |
-| 跨项目数据隔离 | API 层强制校验 `project_id`，拒绝跨项目资源访问 |
-
-## 依赖安全审计基线
-
-B-154 起，v1.0.0 发布前和 B-149 CI 必须执行以下依赖审计：
+## 依赖审计
 
 ```powershell
 npm audit --audit-level=high
 $env:PYTHONUTF8 = "1"
-.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt --progress-spinner off
+.\.venv\Scripts\pip-audit.exe -r backend/requirements/dev.txt --progress-spinner off
 ```
 
-CI 上使用 Linux venv 路径：
+插件依赖在 `integrations/obsidian-plugin/` 单独执行 `npm audit`。审计项目声明依赖，不使用本机环境中无关的历史包替代项目基线。CI 配置了依赖审计，但每次报告只能引用当次实际执行结果。
 
-```bash
-.venv/bin/pip-audit -r requirements.txt -r requirements-dev.txt
-```
+## 安全变更要求
 
-审计口径：
+认证、权限、Agent 白名单、数据代际、插件令牌、发布写入边界或外部网络访问策略发生变化时，必须同步：
 
-- `npm audit --audit-level=high` 将高危及以上前端依赖漏洞作为阻断项。
-- `pip-audit` 只审计项目声明依赖文件：`requirements.txt` 与 `requirements-dev.txt`。
-- Windows 本机 requirements 文件含中文注释时需设置 `PYTHONUTF8=1`，CI 已统一设置。
-- 不使用 `pip-audit --local` 作为项目基线，避免把本机 venv 中与项目声明无关的历史包计入发布门禁。
-- `requirements-docker.txt` 当前是 Web 运行时子集；若后续出现 Docker-only 依赖，应在发布前补充单独审计命令。
-
-## 不在安全范围内
-
-以下不属于本项目的安全保证范围：
-
-- **本机物理访问安全**：任何能访问本机的用户均可访问 `127.0.0.1:8765`，本项目不提供本机用户间的认证隔离
-- **Docker 网络配置**：Docker 部署时如用户自行修改端口映射导致服务暴露，责任在用户
-- **第三方 LLM API 安全**：DeepSeek / OpenAI 等外部服务的数据处理政策由各服务商负责
+- `docs/guides/security.md`
+- `docs/design/permission-matrix.md`
+- 相关 API/数据库/功能文档
+- 必要 ADR
+- 安全测试和 `CHANGELOG.md`

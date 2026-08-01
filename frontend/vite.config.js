@@ -1,6 +1,5 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
 import vue from "@vitejs/plugin-vue";
 import { defineConfig } from "vitest/config";
 
@@ -13,19 +12,13 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: 5173,
-    proxy: {
-      "/api": {
-        target: "http://127.0.0.1:8765",
-        changeOrigin: true,
-      },
-    },
   },
   preview: {
     host: "127.0.0.1",
     port: 4173,
   },
   build: {
-    outDir: path.resolve(__dirname, "../backend/static_dist"),
+    outDir: path.resolve(__dirname, "dist"),
     emptyOutDir: true,
   },
   test: {

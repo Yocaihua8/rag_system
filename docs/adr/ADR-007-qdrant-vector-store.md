@@ -3,11 +3,12 @@
 > 状态：Accepted
 > Date：2026-06-28
 > Owner：RAG 团队
-> Related：docs/features/qdrant-vector-store.md, docs/design/architecture-overview.md, docs/design/database-design.md, docs/design/api-spec.md, docs/BACKLOG.md
+> Scope：可选 Qdrant local mode 向量索引与 SQLite 降级边界
+> Related：[架构总览](../design/architecture-overview.md)、[数据库设计](../design/database-design.md)、[API 规格](../design/api-spec.md)、[测试指南](../guides/testing.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
-Web MVP 原先把 chunk 向量存入 SQLite `chunk_vectors`，搜索时读取项目内全部向量并在 Python 中计算 cosine similarity。该方案依赖少、易备份，但在大型项目（> 5000 chunks）下查询耗时随 chunk 数线性增长，见 `docs/BACKLOG.md` 中的 ISSUE-002。
+Web MVP 原先把 chunk 向量存入 SQLite `chunk_vectors`，搜索时读取项目内全部向量并在 Python 中计算 cosine similarity。该方案依赖少、易备份，但在大型项目（> 5000 chunks）下查询耗时随 chunk 数线性增长，见 [`BACKLOG.md`](../BACKLOG.md) 中的 ISSUE-002。
 
 B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的前提下，替换查询时的 SQLite 向量全扫描。
 
@@ -50,7 +51,7 @@ B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的
 | `backend/config/vector_store.py` | 新增 Qdrant 启用配置、软依赖检查和默认 provider 缓存 |
 | `backend/storage/knowledge_store.py` | 文档入库、更新、删除、备份恢复同步 Qdrant；SQLite 写入仍为主兼容路径 |
 | `backend/domain/search.py` | 启用 Qdrant 时使用 provider 候选；失败时回退 SQLite 向量扫描 |
-| `requirements.txt` | 新增 `qdrant-client` |
+| `backend/requirements/base.txt` | 新增 `qdrant-client` |
 | API | 不新增接口、不改请求参数、不改命中字段 |
 | 数据库 | 不修改 SQLite schema |
 
@@ -70,8 +71,8 @@ B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的
 
 ## 7. 验证方式
 
-- `tests/test_backend/test_qdrant_vector_store.py`
-- `tests/test_webapp/test_vector_store_sync.py`
-- `tests/test_webapp/test_search.py`
-- `tests/test_webapp/test_api.py`
-- `tests/test_webapp/test_docs_contract.py`
+- `tests/backend/test_qdrant_vector_store.py`
+- `tests/integration/test_vector_store_sync.py`
+- `tests/integration/test_search.py`
+- `tests/integration/test_api.py`
+- `tests/repository/test_docs_contract.py`
