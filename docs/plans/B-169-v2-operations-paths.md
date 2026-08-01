@@ -24,7 +24,7 @@
 
 - [x] 补齐 Windows SQLite 在线备份路径转换，并增加真实脚本执行、隔离恢复和数据完整性测试。
 - [x] 让结果导出默认使用配置层 `outputs_dir`，保留显式环境变量覆盖优先级并补回归测试。
-- [ ] 按当前扁平文档体系回流运行、API、风险和 ISSUE 边界，不恢复已删除历史文档。
+- [x] 按当前扁平文档体系回流运行、API、风险和 ISSUE 边界，不恢复已删除历史文档。
 - [ ] 运行专项、完整、依赖与文档门禁，完成 PR CI 后回流验收结果。
 
 ## 4. 影响范围
@@ -62,9 +62,9 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| v2 默认备份路径、Windows 兼容与恢复边界 | `docs/guides/runbook.md`、`ops/README.md` | [ ] |
-| v2 结果输出目录与覆盖变量 | `docs/features/result-export.md`、`docs/design/api-spec.md` | [ ] |
-| 路径风险关闭与剩余配置问题拆分 | `docs/BACKLOG.md`、`docs/design/risk-register.md`、`docs/guides/troubleshooting.md`、`CHANGELOG.md` | [ ] |
+| v2 默认备份路径、Windows 兼容与恢复边界 | `docs/guides/runbook.md`、`ops/README.md` | [x] |
+| v2 结果输出目录与覆盖变量 | `docs/features/result-export.md`、`docs/design/api-spec.md` | [x] |
+| 路径风险关闭与剩余配置问题拆分 | `docs/BACKLOG.md`、`docs/design/risk-register.md`、`docs/guides/troubleshooting.md`、`CHANGELOG.md` | [x] |
 
 本任务不新增重大技术决策，不新增 ADR。
 
@@ -75,12 +75,13 @@
 - 2026-08-01：冲突扫描确认没有其他 Active/Interrupted plan，B-171 交互学习按独立后续 PR 分区处理。
 - 2026-08-01：Windows Git Bash 备份目标经 `cygpath -m` 转换；真实脚本测试在隔离临时项目中恢复备份并验证完整性、v2 标记和样例数据，结果为 5 passed。
 - 2026-08-01：结果导出默认改用 `load_settings().outputs_dir`，显式覆盖顺序不变；配置/领域单测 8 passed，导出集成测试 9 passed、112 deselected。
+- 2026-08-01：按当前文档体系同步 API、数据、功能、运行、安全、风险和排障事实；ISSUE-006 路径部分关闭，剩余配置接线拆为 ISSUE-009。占位符、链接、源码一致性与文档契约测试均通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-01 14:47（Asia/Shanghai）
-- **进度**：已完成 2 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`9af3612` — fix: 对齐 v2 结果导出目录
-- **代码状态**：`agent/b-169-v2-paths`；备份和结果导出两项代码修复均已提交，工作区仅包含本快照更新
-- **下一步**：按当前扁平文档体系回流路径行为与剩余配置边界
+- **最后更新**：2026-08-01 14:53（Asia/Shanghai）
+- **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
+- **最新 commit**：`3759d7e` — docs: 回流 ISSUE-006 v2 路径修复
+- **代码状态**：`agent/b-169-v2-paths`；代码、测试与文档回流均已提交，工作区仅包含本快照更新
+- **下一步**：运行完整本地门禁、推送 PR 并等待当前提交 CI
 - **续任务须知**：测试必须使用临时项目和隔离数据库；不得读取或覆盖正式 `runtime/v2/app.db`。
