@@ -1,6 +1,6 @@
 # B-169 v2 数据库备份与结果导出路径修复
 
-> 状态：Done（待生命周期清理）
+> 状态：Done
 > 创建时间：2026-08-01
 > 创建方：Codex
 > 关联 BACKLOG：B-169
@@ -56,7 +56,7 @@
 - [x] 真实测试恢复隔离 SQLite 备份并验证 `PRAGMA integrity_check`、`data_generation=v2` 和样例数据。
 - [x] 结果导出无显式覆盖时使用活动 `runtime/v2/outputs/`，覆盖变量优先级保持兼容。
 - [x] 相关专项、完整测试、依赖审计和文档门禁通过。
-- [ ] 相关文档已同步，BACKLOG 条目 B-169 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史。
+- [x] 相关文档已同步，BACKLOG 条目 B-169 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史。
 
 ## 7. 回流清单
 
@@ -78,12 +78,13 @@
 - 2026-08-01：按当前文档体系同步 API、数据、功能、运行、安全、风险和排障事实；ISSUE-006 路径部分关闭，剩余配置接线拆为 ISSUE-009。占位符、链接、源码一致性与文档契约测试均通过。
 - 2026-08-01：本地最终门禁通过：`npm ci`；npm audit 0 vulnerabilities；pip-audit 无已知漏洞；Python 完整套件 521 passed；Vue 22 files / 92 tests；生产构建 53 modules；Playwright 1 passed；三项文档门禁和 `git diff --check` 通过。当前仍需等待 PR 最终 SHA 的远端 CI，不能提前标记第 4 项完成。
 - 2026-08-01：PR #6 首轮远端门禁在 `f2c486c6d70dc9134a689640be0f23631c2ccb77` 全部通过：CI/python-tests、CI/frontend-e2e 和 Docs Checks 均为 success，合并状态为 CLEAN。该证据完成第 4 项；生命周期清理提交会产生新的最终 SHA，仍须重新等待该 SHA 的远端门禁。
+- 2026-08-01：完成事实已回流 `CHANGELOG.md` 与 Git 历史，B-169 已从 BACKLOG 和活动计划索引移除；本 plan 将在下一独立提交删除。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-08-01 15:06（Asia/Shanghai）
-- **进度**：已完成 4 / 4 项（见 § 3 勾选状态）；仅剩 plan 生命周期清理
-- **最新 commit**：`f2c486c` — docs: 记录 B-169 本地验收结果
-- **代码状态**：`agent/b-169-v2-paths`；代码、文档、本地门禁和 PR #6 首轮远端门禁均已完成
-- **下一步**：移除 B-169 BACKLOG 行、更新 plan 索引并删除本 plan，再重新等待最终 SHA 的 GitHub Actions
+- **进度**：已完成 4 / 4 项（见 § 3 勾选状态）；完成标准和回流清单均已满足
+- **最新 commit**：`9a6a783` — docs: 完成 B-169 v2 路径修复验收
+- **代码状态**：`agent/b-169-v2-paths`；B-169 已完成并从 BACKLOG 与活动计划索引移除
+- **下一步**：删除本 plan，推送最终 SHA 并重新等待 GitHub Actions
 - **续任务须知**：测试必须使用临时项目和隔离数据库；不得读取或覆盖正式 `runtime/v2/app.db`。
