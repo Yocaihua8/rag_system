@@ -54,7 +54,8 @@
 
 ## 4. 合并规则
 
-- 个人项目允许直接推送 `main`，重大功能建议走 PR 留记录
-- 合并前应确认：`python -m pytest tests/integration tests/repository -q` 通过
+- 禁止直接推送 `main`；所有变更均从短期分支通过 PR 合并，保留审查与 CI 证据
+- 合并前按 [`testing.md`](testing.md) 完成受影响验证矩阵与 `git diff --check`，至少运行后端、集成和仓库完整测试
+- 仅在 PR 最新提交无冲突且自动 CI 全部成功后合并；历史测试结果不能替代当前提交证据
 - 合并方式：Squash（功能分支，保持 main 历史整洁）或 Merge（需要保留提交历史时）
 - 推送前检查 `CHANGELOG.md` 是否已更新

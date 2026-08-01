@@ -66,7 +66,7 @@
 - [ ] 功能行为符合 `{{FEATURE_DOC}}` 的业务规则
 - [ ] 测试通过（参照 `docs/guides/testing.md` 最低要求）
 - [ ] 相关文档已同步（见下方"回流清单"）
-- [ ] BACKLOG 条目 `{{B_ID}}` 状态已更新为 `done`
+- [ ] BACKLOG 条目 `{{B_ID}}` 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史
 
 ## 7. 回流清单
 
