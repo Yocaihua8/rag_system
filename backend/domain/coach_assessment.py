@@ -278,13 +278,72 @@ def build_coach_coverage(
     sessions = store.list_coach_assessment_sessions(project_id, limit=500)
     sessions_by_id = {session.id: session for session in sessions}
     results = store.list_coach_assessment_results(project_id, limit=1000)
+    learning_sessions = store.list_coach_learning_sessions(
+        project_id,
+        limit=500,
+    )
 
-    latest_by_point: dict[str, CoachAssessmentResult] = {}
+    evidence_by_point: dict[str, list[dict[str, Any]]] = {}
     for result in results:
         session = sessions_by_id.get(result.session_id)
         if not session or session.analysis_run_id != run.id:
             continue
-        latest_by_point.setdefault(result.knowledge_point_id, result)
+        evidence_by_point.setdefault(result.knowledge_point_id, []).append(
+            {
+                "id": result.id,
+                "evidence_type": "assessment_result",
+                "session_id": result.session_id,
+                "score": result.score,
+                "confidence": result.confidence,
+                "status": result.status,
+                "evaluator": result.evaluator,
+                "created_at": result.created_at,
+            }
+        )
+    recent_learning_attempts: list[dict[str, Any]] = []
+    for session in learning_sessions:
+        current_run = session.analysis_run_id == run.id
+        for step in session.steps:
+            for attempt in step.attempts:
+                if (
+                    attempt.status != "evaluated"
+                    or not attempt.counts_for_mastery
+                    or attempt.score is None
+                ):
+                    continue
+                evidence = {
+                    "id": attempt.id,
+                    "evidence_type": "learning_attempt",
+                    "session_id": session.id,
+                    "score": float(attempt.score),
+                    "confidence": float(attempt.confidence or 0.0),
+                    "status": assessment_status(float(attempt.score)),
+                    "evaluator": attempt.evaluator,
+                    "created_at": attempt.created_at,
+                    "knowledge_point_id": step.knowledge_point_id,
+                    "analysis_run_id": session.analysis_run_id,
+                    "target_type": session.target_type,
+                    "target_id": session.target_id,
+                    "valid_for_current_sources": bool(
+                        current_run and not stale
+                    ),
+                }
+                recent_learning_attempts.append(evidence)
+                if current_run:
+                    evidence_by_point.setdefault(
+                        step.knowledge_point_id,
+                        [],
+                    ).append(evidence)
+    latest_by_point = {
+        point_id: max(
+            evidence,
+            key=lambda item: (
+                str(item["created_at"]),
+                str(item["id"]),
+            ),
+        )
+        for point_id, evidence in evidence_by_point.items()
+    }
 
     sources = _source_index(points)
     point_views: list[dict[str, Any]] = []
@@ -299,7 +358,7 @@ def build_coach_coverage(
     for point in points:
         result = latest_by_point.get(point.id)
         valid = bool(result and not stale)
-        status = result.status if valid and result else "unassessed"
+        status = str(result["status"]) if valid and result else "unassessed"
         if valid:
             assessed_count += 1
         status_counts[status] += 1
@@ -313,18 +372,28 @@ def build_coach_coverage(
             "status": status,
             "assessment_state": "verified" if valid else "unverified",
             "valid_for_current_sources": valid,
-            "score": result.score if result else None,
-            "confidence": result.confidence if result else None,
+            "score": result["score"] if result else None,
+            "confidence": result["confidence"] if result else None,
             "low_confidence": (
-                result.confidence < LOW_CONFIDENCE_THRESHOLD
+                float(result["confidence"]) < LOW_CONFIDENCE_THRESHOLD
                 if result
                 else False
             ),
-            "evaluator": result.evaluator if result else "",
-            "assessed_at": result.created_at if result else "",
-            "session_id": result.session_id if result else "",
-            "result_id": result.id if result else "",
-            "historical_status": result.status if result and not valid else "",
+            "evaluator": str(result["evaluator"]) if result else "",
+            "assessed_at": str(result["created_at"]) if result else "",
+            "session_id": str(result["session_id"]) if result else "",
+            "result_id": (
+                str(result["id"])
+                if result and result["evidence_type"] == "assessment_result"
+                else ""
+            ),
+            "evidence_id": str(result["id"]) if result else "",
+            "evidence_type": (
+                str(result["evidence_type"]) if result else ""
+            ),
+            "historical_status": (
+                str(result["status"]) if result and not valid else ""
+            ),
             "source_ids": source_ids,
         }
         point_views.append(view)
@@ -351,6 +420,13 @@ def build_coach_coverage(
         )
 
     total = len(points)
+    recent_learning_attempts.sort(
+        key=lambda item: (
+            str(item["created_at"]),
+            str(item["id"]),
+        ),
+        reverse=True,
+    )
     return {
         "project_id": project_id,
         "analysis": run.to_dict(),
@@ -366,6 +442,7 @@ def build_coach_coverage(
         "knowledge_points": point_views,
         "skills": skill_views,
         "recent_assessments": recent,
+        "recent_learning_attempts": recent_learning_attempts[:20],
         "sources": sources,
         "scope_notice": SCOPE_NOTICE,
     }
