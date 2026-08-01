@@ -9,7 +9,7 @@ body:
     attributes:
       label: Documentation location
       description: Link or path to the affected documentation.
-      placeholder: "docs/guides/setup.md"
+      placeholder: "docs/operations/setup.md"
     validations:
       required: true
   - type: textarea

@@ -1,306 +1,134 @@
 # AGENTS.md
 
-> 本文件为 AI 编码助手（Claude Code、Cursor、Copilot 等）提供项目操作上下文。
-> 代码结构或团队约定发生实质性变化时同步更新。不替代 `CONTRIBUTING.md`，后者为人工贡献规范。
+> 本文件为 AI 编码助手提供项目级操作上下文；人工贡献规范见 `CONTRIBUTING.md`。
 
 ## 1. 项目概述
 
-Knowledge Island 是面向个人开发学习的本地项目知识教练。它把项目代码、文档和笔记转化为可检索资料，通过有来源的问答、项目知识分析、覆盖评估、学习计划和受控 Obsidian 发布帮助用户理解当前项目；1.x 的导入、聊天和基础评估能力继续作为兼容基线。
+Knowledge Island 是面向个人开发学习的本地项目知识教练。当前正式版本为 `v2.0.0`，进入维护与增量迭代。
 
-| 项 | 值 |
-|----|----|
-| 项目类型 | Web 全栈（FastAPI + Uvicorn 后端 + Vue 3/Vite 前端 + Tauri 桌面壳） |
-| 当前阶段 | v2.0.0 已发布，进入维护与增量迭代 |
-| 主要用户 | 本地个人用户、小团队知识沉淀场景 |
+| 项 | 当前值 |
+|----|--------|
+| 类型 | Web 全栈：FastAPI 后端 + Vue 3/Vite 前端 + Tauri 2 桌面壳 |
+| 后端入口 | `python -m backend`，默认 `127.0.0.1:8765` |
+| 前端入口 | `npm run frontend:dev`，默认 `127.0.0.1:5173` |
+| 数据 | SQLite；默认 `runtime/v2/app.db` |
 | 文档入口 | `docs/README.md` |
 
-## 2. 技术栈
+## 2. 工作前检查
 
-| 类型 | 名称 | 版本 | 说明 |
-|------|------|------|------|
-| 语言 | Python | 3.10+ | 后端运行时 |
-| HTTP 框架 | FastAPI + Uvicorn | FastAPI 0.115+ / Uvicorn 0.30+ | B-139 迁移，ADR-001 |
-| 数据库 | SQLite | 随 Python | 全量存储，含向量（ADR-002） |
-| 向量存储 | SQLite 兼容副本 + 可选 Qdrant local mode | qdrant-client 1.10+ | Qdrant 不可用时回退 SQLite |
-| 前端 | Vue 3 + Vite | Vue 3.5+ / Vite 7+ | B-141/B-142 已完成主要 Web UI 迁移；B-143 已移除 legacy static fallback；B-155 后构建输出到 `backend/static_dist/` |
-| 桌面壳 | Tauri 2 | Tauri CLI 2.11+ | B-145 Windows 打包验证链路 |
-| 测试框架 | pytest | 7+ | — |
-| 包管理器 | pip + venv | — | 依赖文件 `requirements.txt` |
+开始任务前必须读取与任务相关的规则、文档、源码、测试和 Git 状态。若更深目录存在 `AGENTS.md` 或 `AGENTS.override.md`，以更具体规则为准。发现文档冲突时先指出，不擅自采用方便的一方。
 
-## 3. 目录速查
+不要把其他项目的业务、命名、目录、测试命令或发布假设带入本仓库。
 
-| 路径 | 用途 |
+除非用户明确要求直接执行，默认先给出：已读规则、任务理解、影响范围、最小方案、风险和待确认问题；确认后再修改。
+
+## 3. 目录与职责
+
+| 路径 | 职责 |
 |------|------|
-| `frontend/` | Vue 3 + Vite 前端工程源码（B-141 起） |
-| `backend/` | Web/Tauri 共享后端源码根目录（API、routes、domain、storage、config、provider） |
-| `src-tauri/` | Tauri 2 桌面壳、sidecar 与 bundle 配置 |
-| `integrations/obsidian-plugin/` | 独立 desktop-only Obsidian Bridge 插件 |
-| `archive/src-desktop-legacy/` | 已归档 PySide6 / 六边形 legacy 代码，仅历史参考 |
-| `tests/` | 测试代码根目录 |
-| `docs/requirements/` | 需求背景、功能范围、MVP 定义 |
-| `docs/design/` | 架构、接口、数据库、权限、状态流 |
-| `docs/features/` | 各功能模块规格（每个功能一份） |
-| `docs/adr/` | 架构决策记录 |
-| `docs/plans/` | AI 任务计划（与 BACKLOG 联动，执行完删除） |
-| `docs/BACKLOG.md` | 待办、已知问题、技术债 |
-| `CHANGELOG.md` | 对外发布变更 |
+| `backend/` | Python 入口、依赖、API、routes、domain、storage、config、providers、后端镜像 |
+| `frontend/` | Vue/Vite/Vitest/Playwright、`dist/`、Nginx、前端镜像 |
+| `src-tauri/` | Tauri npm 工具、Rust 壳、sidecar 构建脚本 |
+| `integrations/obsidian-plugin/` | 独立 desktop-only Obsidian 插件 |
+| `ops/docker/` | Compose、环境样例、启停脚本 |
+| `tools/docs/` | 文档链接、占位符和一致性检查 |
+| `tests/backend/` | 后端/provider 单元测试 |
+| `tests/integration/` | API、SSE 与跨层集成测试 |
+| `tests/repository/` | 仓库结构、构建、Docker、Tauri 与文档契约 |
+| `tests/e2e/` | Playwright 浏览器流程与测试服务 |
+| `docs/` | 当前产品、架构、集成、运维和治理文档 |
 
-> 完整目录结构见 `docs/README.md § 2`。
+## 4. 架构不变量
 
-## 4. 开发环境与常用命令
+- FastAPI 只提供 API、SSE 和接口文档；不托管 `frontend/dist/`，`GET /` 返回 404。
+- Vue 统一通过 `VITE_API_BASE_URL` 构造绝对 `fetch` / `EventSource` URL；不在前端实现业务规则。
+- CORS 使用精确 Origin allowlist；禁止通配符和 cookie credentials。
+- `backend/api/` 与 `backend/routes/` 只做 HTTP 适配、校验和用例编排，不直接操作 SQLite。
+- `backend/storage/` 是 SQLite 唯一读写入口，不承载页面规则或 HTTP 对象。
+- Agent 工具只允许 `backend/domain/agent_tools.py` 中的只读白名单；禁止 shell 和写操作。
+- API Key 只保存 `env:*` / `saved:*` 引用，任何接口不得返回明文 Key。
+- Tauri 不复制业务逻辑；Obsidian 插件不能绕过用户确认或冲突校验。
+- 默认 v2 数据根为 `runtime/v2/`；不得自动覆盖或迁移旧代际数据。
 
-### 4.1 启动本地环境
+HTTP 方法、字段、响应结构、SQLite Schema 或 Agent 权限发生变化时，必须把兼容性和迁移边界写清；未获任务授权不得修改。
 
-```bash
+## 5. 开发命令
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate                    # Windows
-pip install -r requirements.txt
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r backend/requirements/dev.txt
 npm ci
-npm run build
-cp .env.example .env                      # 配置 API Key 等环境变量
-.venv\Scripts\python.exe app.py           # 启动本地 Web 应用（默认 http://127.0.0.1:8765）
+Copy-Item backend/.env.example backend/.env
+
+.\.venv\Scripts\python.exe -m backend
+npm run frontend:dev
 ```
 
-可选依赖（按需安装）：
+根 npm workspace 只包含 `frontend` 和 `src-tauri`；Obsidian 插件独立安装和验证。
 
-```bash
-pip install pymupdf    # PDF 正文抽取
-```
+## 6. 测试与验证
 
-### 4.2 测试与验证
-
-```bash
-# Python 后端与 Web 契约
-.venv\Scripts\python.exe -m pytest tests/test_backend tests/test_webapp -q
-
-# Vue 单测与构建
-npm run test:unit
-npm run build
-
-# Tauri/桌面打包静态回归（按需）
-.venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q
-```
-
-> 详细搭建步骤见 `docs/guides/setup.md`。
-
-## 5. 架构概要
-
-本项目默认业务入口为本地 Web 应用，采用**三层后端 + Vue 表现层**；Tauri 复用同一 Vue 构建产物并启动后端 sidecar，Obsidian Bridge 作为独立插件通过受限 HTTP API 交互。旧 PySide6 / 六边形桌面端已在 B-147 归档到 `archive/src-desktop-legacy/`，不再作为当前开发入口。
-
-**当前运行职责**：
-
-- 表现层：`frontend/`（Vue 3 + Vite 工程源码）、`backend/static_dist/`（生产构建产物）、`backend/api/server.py`（FastAPI app、静态文件、SSE）、`backend/api/dispatch.py`（兼容分发、参数校验）
-- 业务层：`backend/domain/answers.py`（回答生成）、`backend/domain/search.py`（检索）、`backend/domain/ingestion.py`（导入管线）、`backend/domain/agent_tools.py`（Agent 工具）
-- 数据层：`backend/storage/knowledge_store.py`（SQLite 唯一读写入口）
-- 桌面承载：`src-tauri/`（窗口、托盘、sidecar 生命周期；不复制业务逻辑）
-- Obsidian 集成：`integrations/obsidian-plugin/`（增量 Markdown 事件与经确认发布执行）
-
-**关键边界**：
-
-- `backend/api/` 与 `backend/routes/` 只做 HTTP 适配、参数校验和用例编排，不直接操作 SQLite
-- `backend/storage/` 是 SQLite 唯一入口，不承载页面或业务编排规则
-- Agent 工具只允许只读操作，白名单硬编码在 `backend/domain/agent_tools.py`（ADR-003）
-- API Key 只保存引用（`env:*` / `saved:*`），任何接口响应不得包含明文 Key（ADR-004）
-- 默认 v2 数据根为 `runtime/v2/`；正式 Web 启动必须执行数据代际校验
-
-> 完整说明见 `docs/design/architecture-overview.md`。接口契约见 `docs/design/api-spec.md`。
-
-## 6. 代码约定（速查）
-
-### 6.1 命名
-
-- Python：函数 / 变量 snake_case，类 PascalCase，数据库字段 snake_case
-- 前端 JS：函数 camelCase，文件名 kebab-case
-
-### 6.2 文件组织
-
-- `backend/` 按职责拆分为 `api/`、`routes/`、`domain/`、`storage/`、`config/`、`providers/`；每个模块文件只承载一个清晰职责
-- 可选依赖（如 `pymupdf`、Cross-Encoder 运行依赖）必须用 `try/except ImportError` 引入，失败时提供明确降级
-- Vue 前端源码放在 `frontend/src/`，生产构建输出到 `backend/static_dist/`，不得提交 `node_modules/` 或构建产物
-
-### 6.3 明确禁用的模式
-
-- 禁止 `backend/api/` 与 `backend/routes/` 直接操作 SQLite（必须经 `backend/storage/`）
-- 禁止在前端 JS 中写业务规则（只负责展示和 API 调用）
-- 禁止在 Agent 工具中执行写操作或 shell 命令（只读白名单）
-- 禁止硬编码 API Key、Token 或密码
-
-> 完整规范见 `CONTRIBUTING.md § 4`。
-
-## 7. 测试约定
-
-| 类型 | 路径模式 | 运行命令 |
-|------|----------|----------|
-| 后端/provider 单元 | `tests/test_backend/` | `.venv\Scripts\python.exe -m pytest tests/test_backend -q` |
-| Web/API 单元/集成 | `tests/test_webapp/` | `.venv\Scripts\python.exe -m pytest tests/test_webapp -q` |
-| Vue 单元 | `frontend/src/**/*.test.js` | `npm run test:unit` |
-| 浏览器 E2E | `e2e/` | `npm run test:e2e` |
-| Obsidian 插件 | `integrations/obsidian-plugin/` | 在插件目录运行 `npm test && npm run typecheck && npm run build` |
-| Tauri 打包静态回归 | `tests/test_webapp/test_tauri_packaging.py` | `.venv\Scripts\python.exe -m pytest tests/test_webapp/test_tauri_packaging.py -q` |
-
-测试优先级：API 契约 > 核心业务规则（检索 / 回答 / 导入） > 数据层集成 > 前端静态文件。
-
-> 测试策略与最低覆盖要求见 `docs/guides/testing.md`。
-
-## 8. 文档联动规则
-
-AI 修改代码后**必须**同步更新对应文档，否则视为未完成：
-
-| 代码变更 | 需同步更新的文档 |
-|----------|----------------|
-| 新增 / 修改功能行为 | `docs/features/<name>.md` |
-| 接口签名变更 | `docs/design/api-spec.md` |
-| 破坏性 API 变更 | `docs/design/api-spec.md` + `docs/design/api-changes.md` |
-| 数据库表结构变更 | `docs/design/database-design.md` |
-| 架构模式 / 模块边界变更 | `docs/design/architecture-overview.md` + `docs/adr/`（若触发 ADR 条件） |
-| 新增 ADR | `docs/adr/README.md` 索引表追加一行 |
-| 版本发布 | `CHANGELOG.md` |
-
-已知问题或技术债直接写入 `docs/BACKLOG.md`，不写在代码注释里。
-
-> ADR 触发条件见 `docs/README.md § 4`。
-
-## 9. Plan 文件使用规则
-
-### 9.1 两种 plan 产生方式
-
-| 方式 | 典型场景 | plan 位置 | 命名格式 |
-|------|----------|-----------|---------|
-| **主动创建**（推荐） | AI 接到明确任务，按流程先建 plan 再动手 | `docs/plans/` | `{B-ID}-{slug}.md` |
-| **工具自动生成** | Claude Code、superpowers 等工具自行生成 | 工具指定目录（如 `docs/superpowers/plans/`） | `{YYYY-MM-DD}-{slug}.md` |
-
-**两种方式都必须触发 BACKLOG 同步**，区别只是同步的时机：主动创建时在动手前完成，工具自动生成时在文件落地后立即补做。
-
-### 9.2 主动创建流程（任务启动四步）
-
-凡涉及**代码改动**的任务，无论用户是否提供 BACKLOG ID，均先走以下四步再动手。
-纯问答、只读查阅、单行拼写修复可免。
-
-**Step 1 — 锁定 BACKLOG 条目**
-
-打开 `docs/BACKLOG.md` § 5，按以下逻辑处理：
-
-| 情况 | 操作 |
+| 类型 | 命令 |
 |------|------|
-| 找到匹配的 `B-xxx` 条目 | 记录 ID，状态改为 `doing` |
-| 无匹配条目 | 末尾新增一行，分配下一个 ID，状态置 `doing`，优先级与规模由 AI 估算填入 |
+| 后端/集成/仓库 | `.\.venv\Scripts\python.exe -m pytest tests/backend tests/integration tests/repository -q` |
+| Vue 单测 | `npm run frontend:test` |
+| Vue 构建 | `npm run frontend:build` |
+| 浏览器 E2E | `npm run frontend:e2e` |
+| Tauri Rust | `cargo check --manifest-path src-tauri/Cargo.toml` |
+| Windows bundle | `npm run desktop:build:windows` |
+| Obsidian 插件 | 在插件目录串行执行 `npm test`、`npm run typecheck`、`npm run frontend:build` |
+| 文档 | 见 `docs/README.md § 6` |
 
-**Step 2 — 冲突扫描（创建 plan 前）**
+代码行为变化时新增或更新相关测试。无法运行时必须说明计划命令、实际原因、关键报错和本地验证方式；未运行不得声称通过。
 
-扫描所有状态为 `Active` 或 `Interrupted` 的 plan 文件（`docs/plans/` 和 `docs/superpowers/plans/`），对比其 § 4 影响范围与本次任务的预期改动范围：
+## 7. 文档联动
 
-| 扫描结果 | 处理方式 |
-|---------|---------|
-| 无重叠 | 继续 Step 3 |
-| 有重叠，冲突 plan 尚未完成 | 告知用户，选择下方四种解决策略之一，确认后再继续 |
-| 有重叠，冲突 plan 已完成但未删除 | 视为无冲突，提醒清理残留 plan 文件 |
+| 变化 | 同步文档 |
+|------|----------|
+| 功能行为 | `docs/product/features/` |
+| API | `docs/architecture/backend/api.md` |
+| 数据库 | `docs/architecture/backend/data.md` |
+| 页面/组件 | `docs/architecture/frontend/` |
+| 跨模块边界 | `docs/architecture/overview.md`；必要时新增 ADR |
+| 桌面/插件/GitHub | `docs/integrations/` |
+| 启动、测试、Docker、发布、安全 | `docs/operations/` |
+| 未完成事项 | `docs/BACKLOG.md` |
+| 已完成变更 | `CHANGELOG.md` 与 Git 历史 |
 
-**四种解决策略**：
+不再创建 DevLog、readiness 快照或已验收 preview。没有依据的事实写 `TBD`、`N/A` 或“待确认”。
 
-- **等待**：本任务暂缓，等冲突 plan 完成后再开始
-- **合并**：将两个任务合并为一个 plan，统一执行
-- **本 plan 覆盖**：本 plan 设计优先，冲突 plan 对应部分作废（在两个 plan 的 § 5.2 中互相注明）
-- **分区**：明确划定各自负责的文件/模块边界，互不干涉
+## 8. Plan 与 BACKLOG
 
-将扫描结果填入新 plan 的 § 5.2。
+凡涉及代码或跨文件行为变更，先执行：
 
-**Step 3 — 创建 plan 文件并完成文档关联**
+1. 在 `docs/BACKLOG.md` 查找匹配 `B-xxx`；没有则分配下一个 ID，状态设为 `doing`。
+2. 扫描 `docs/governance/plans/` 中状态为 `Active` 或 `Interrupted` 的 plan，比较影响范围；冲突时告知用户并确认等待、合并、覆盖或分区策略。
+3. 以 `docs/governance/templates/plan-template.md` 创建 `docs/governance/plans/{B-ID}-{slug}.md`，填写关联文档、影响范围、冲突结论和回流清单。
+4. 把 plan 路径写回 BACKLOG。
 
-在 `docs/plans/` 新建 `{B-ID}-{slug}.md`，**同一步骤内**完成：
+每完成 plan 中一项：勾选任务、提交该阶段、更新状态快照。中断时保留 plan 并记录下一步。完成时确认文档回流、记录 CHANGELOG、移除完成的 BACKLOG 行并删除 plan。
 
-1. 头部"关联 BACKLOG"填入 Step 1 的 B-ID
-2. 头部"关联功能文档"：去 `docs/features/` 找对应文档；无则新建占位文件
-3. 头部"关联设计文档"：按改动类型填（接口变更 → `design/api-spec.md`；DB 变更 → `design/database-design.md`；架构变更 → `design/architecture-overview.md`）
-4. § 4"影响范围"填写将被修改的代码路径和文档路径
-5. § 5.2 填入 Step 2 的冲突扫描结果
-6. § 7"回流清单"逐行列出"改了什么 → 更新哪个文档"
+`docs/BACKLOG.md` 只保存未完成事项；完成历史只查 CHANGELOG 和 Git。
 
-**Step 4 — plan 路径写回 BACKLOG**
+## 9. 修改边界
 
-在该条目"说明"列追加 plan 文件的相对路径。
+- 只修改任务直接相关文件，保持现有命名和风格，不做无关重构。
+- 不用 mock 或假数据替代真实功能；不把后端业务逻辑写死在前端。
+- 不引入大型依赖、不改变数据库 Schema、不删除或重命名公共 API，除非任务明确授权。
+- 不提交 Key、密码、Token、用户 `.env` 或真实项目数据。
+- 修改前检查工作区；发现不明的已有改动时不得覆盖。
+- 删除历史/归档、生产数据、公共接口或其他难恢复内容前，必须取得用户对准确范围的明确授权并验证目标路径。
+- 禁止向主分支直接推送；外部发布、合并和发布动作必须在授权范围内。
 
-### 9.3 工具自动生成后的补同步（superpowers / Claude Code 等）
+## 10. 完成输出
 
-工具在 `docs/superpowers/plans/`（或其他目录）落地 plan 文件后，**在同一次对话中立即执行**：
+执行类任务最终说明：
 
-1. **读取 plan 文件**，提取任务主题
-2. **检索 `docs/BACKLOG.md` § 5**：
-   - 找到语义匹配的条目 → 状态改 `doing`，说明列追加 plan 路径（相对于项目根目录）
-   - 未找到 → 新建条目，填写标题/类型/优先级/规模，状态置 `doing`，说明列填入 plan 路径
-3. **识别影响范围**，在 plan 文件中补写（若工具生成的内容缺失）
-4. **将以上关联信息写入 plan 文件头部**（若工具生成时未填）
+1. 修改内容；
+2. 修改文件（可按目录分组）；
+3. 实际运行的验证和结果；
+4. 文档同步情况；
+5. 与本次任务直接相关的风险和后续建议。
 
-> 若当前对话无法确定语义匹配的 BACKLOG 条目，**禁止跳过**，应新建条目后再关联。
-
-### 9.4 执行节奏（每个子任务的固定动作）
-
-每完成 § 3 中的**一个任务**后，立即按顺序执行以下三步，不可跳过：
-
-1. **勾选 § 3 对应条目**
-2. **`git commit`**，message 简述本次完成的内容
-3. **更新 plan § 9 状态快照**：填写最后更新时间、最新 commit hash、下一步任务
-
-> 这三步的目的：在任意时刻被打断，损失的进度最多只有"当前子任务"。
-
-遇到偏差或关键决策时，记入 plan § 8 执行记录。
-
-### 9.5 任务中断处理
-
-**主动中断**（有时间收尾）：
-
-1. 将 plan 头部状态改为 `Interrupted`
-2. 确认 § 9 状态快照已更新到最新
-3. 补充 § 9 的"续任务须知"字段
-4. 更新 BACKLOG：有外部阻塞 → `blocked`；仅未完成 → 保持 `doing`
-
-**被动中断**（额度耗尽 / 强制停止，无收尾机会）：
-
-- 无需任何操作——§ 9 快照已在上一个子任务完成时更新
-- 恢复时：读 § 9 快照，检查 git log，从"下一步"字段指向的任务继续
-
-**禁止在中断时删除 plan 文件**。
-
-### 9.6 恢复未完成的 plan
-
-新 session 开始时，若发现 `docs/plans/`（或 `docs/superpowers/plans/`）下存在 `状态：Interrupted` 的 plan 文件：
-
-1. 读取 plan § 9 中断记录，了解当前状态和剩余任务
-2. 读取 plan § 3，确认哪些任务已勾选、哪些待做
-3. 检查代码状态（§ 9 中记录的分支/改动）是否与实际一致
-4. 将 plan 头部状态改回 `Active`，继续执行剩余任务
-
-### 9.7 完成流程
-
-1. 确认回流清单全部勾选（每项已写入对应文档）
-2. 重大技术决策 → 新建 ADR，更新 `docs/adr/README.md` 索引
-3. 新发现的问题 → 写入 `docs/BACKLOG.md § 6`
-4. BACKLOG 条目状态改为 `done`
-5. **删除 plan 文件**（工具自动生成的文件同样需要删除）
-
-> Plan 文件格式见 `docs/plans/plan-template.md`，生命周期规则见 `docs/plans/README.md`。
-
-## 10. AI 操作边界
-
-**可以自主执行**：
-
-- 修改 `backend/` 下的业务代码与测试
-- 按上方"文档联动规则"同步文档
-- 在 `docs/BACKLOG.md` 追加待办或已知问题条目
-- 创建、更新、删除 `docs/plans/` 下的 plan 文件
-
-**需先确认再执行**：
-
-- 删除或重命名已有公共 API 接口
-- 修改数据库 Schema（`backend/storage/knowledge_store.py` 中的 `CREATE TABLE` / `ALTER TABLE`）
-- 变更 Agent 工具权限逻辑（白名单内容）
-- 新增 ADR（需和用户确认决策内容）
-- 恢复或修改 `archive/src-desktop-legacy/` 中的 legacy 代码并重新接入当前链路
-- 向主分支直接推送
-
-**禁止**：
-
-- 硬编码 API Key、Token 或数据库密码
-- 在 Agent 工具中执行写操作或 shell 命令
-- 在接口响应中包含明文 API Key
-- 在正式文档中混写当前已实现内容与未来规划（规划放 `BACKLOG.md`）
-- 批量删除 `archive/src-desktop-legacy/` 或 `docs/architecture/` 等历史目录
+只报告实际完成和实际验证的内容。

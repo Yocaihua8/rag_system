@@ -1,6 +1,6 @@
 # Knowledge Island 安全政策
 > Last Updated：2026-07-30
-> Related：`docs/guides/security.md`、`docs/guides/support-policy.md`
+> Related：`docs/operations/security.md`、`docs/operations/support.md`
 
 ## 支持范围
 
@@ -51,7 +51,7 @@
 ```powershell
 npm audit --audit-level=high
 $env:PYTHONUTF8 = "1"
-.\.venv\Scripts\pip-audit.exe -r requirements.txt -r requirements-dev.txt --progress-spinner off
+.\.venv\Scripts\pip-audit.exe -r backend/requirements/dev.txt --progress-spinner off
 ```
 
 插件依赖在 `integrations/obsidian-plugin/` 单独执行 `npm audit`。审计项目声明依赖，不使用本机环境中无关的历史包替代项目基线。CI 配置了依赖审计，但每次报告只能引用当次实际执行结果。
@@ -60,8 +60,8 @@ $env:PYTHONUTF8 = "1"
 
 认证、权限、Agent 白名单、数据代际、插件令牌、发布写入边界或外部网络访问策略发生变化时，必须同步：
 
-- `docs/guides/security.md`
-- `docs/design/permission-matrix.md`
+- `docs/operations/security.md`
+- `docs/architecture/contracts/permissions.md`
 - 相关 API/数据库/功能文档
 - 必要 ADR
 - 安全测试和 `CHANGELOG.md`
