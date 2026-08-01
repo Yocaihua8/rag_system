@@ -16,7 +16,7 @@ npm run frontend:e2e
 git diff --check
 ```
 
-E2E 使用 4173 前端和隔离的 18765 后端，覆盖真实跨域导入、问答/SSE、学习计划和 Obsidian 用户侧流程。
+E2E 用例位于 `tests/e2e/`，使用 4173 前端和隔离的 18765 后端，覆盖真实跨域导入、问答/SSE、学习计划和 Obsidian 用户侧流程。
 
 ## 2. 关键契约
 

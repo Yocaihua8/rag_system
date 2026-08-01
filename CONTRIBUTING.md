@@ -95,7 +95,7 @@ npm --prefix integrations/obsidian-plugin run build
 
 ```powershell
 npm audit --audit-level=high
-.\.venv\Scripts\pip-audit.exe -r backend/requirements/dev.txt --progress-spinner off
+.\.venv\Scripts\pip-audit.exe -r backend/requirements/base.txt --progress-spinner off
 ```
 
 测试未运行或失败时，在 PR 中保留命令、原因和关键错误，不得写成通过。
@@ -104,17 +104,16 @@ npm audit --audit-level=high
 
 行为变化必须同步当前文档：
 
-- 功能：`docs/product/features/`
-- API/数据：`docs/architecture/backend/`
-- 前端：`docs/architecture/frontend/`
-- 跨模块契约：`docs/architecture/contracts/`
-- 重大决策：`docs/architecture/decisions/`
-- 桌面/外部集成：`docs/integrations/`
-- 启动、测试、Docker、发布、安全：`docs/operations/`
+- 产品背景、用例和版本边界：`docs/requirements/`
+- 功能：`docs/features/`
+- API、数据、权限、状态和 UI 契约：`docs/design/`
+- 重大决策：`docs/adr/`
+- 桌面/外部集成：对应功能规格及按操作目的归类的 `docs/guides/`
+- 启动、测试、Docker、发布、安全：`docs/guides/`
 - 未完成事项：`docs/BACKLOG.md`
 - 已完成变更：`CHANGELOG.md`
 
-不要创建 DevLog、readiness 快照或已验收 preview。文档元数据和写作规则见 `docs/governance/style-guide.md`。
+不要创建 DevLog、readiness 快照或已验收 preview。文档元数据和写作规则见 `docs/style-guide.md`。
 
 ## 6. Pull Request
 
@@ -130,4 +129,4 @@ PR 至少说明：
 
 ## 7. ADR
 
-以下变化通常需要 ADR：跨模块技术选型、存储/认证/权限策略、状态机、破坏性契约、替代既有架构。使用 `docs/governance/templates/adr-template.md`，在 `docs/architecture/decisions/README.md` 登记，并保持历史 ADR 不被静默改写。
+以下变化通常需要 ADR：跨模块技术选型、存储/认证/权限策略、状态机、破坏性契约、替代既有架构。使用 `docs/adr/ADR-000-template.md`，在 `docs/adr/README.md` 登记，并保持历史 ADR 不被静默改写。

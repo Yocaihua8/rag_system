@@ -7,7 +7,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
 $targetPath = if ([IO.Path]::IsPathRooted($Target)) { $Target } else { Join-Path $repositoryRoot $Target }
 
 if (-not (Test-Path -LiteralPath $targetPath)) {
@@ -36,7 +36,7 @@ $found = 0
 foreach ($file in $files) {
     $relative = [IO.Path]::GetRelativePath($repositoryRoot, $file.FullName).Replace('\', '/')
     $templateAllowed = $file.Name -match '(?:-template|ADR-000-template)\.md$' -or
-        $relative -eq 'docs/governance/style-guide.md' -or
+        $relative -eq 'docs/style-guide.md' -or
         $Mode -eq 'TemplateRepository'
     $lineNumber = 0
     foreach ($line in Get-Content -LiteralPath $file.FullName -Encoding UTF8) {

@@ -1,6 +1,6 @@
 # Knowledge Island 安全政策
 > Last Updated：2026-07-30
-> Related：`docs/operations/security.md`、`docs/operations/support.md`
+> Related：`docs/guides/security.md`、`docs/guides/support-policy.md`
 
 ## 支持范围
 
@@ -60,8 +60,8 @@ $env:PYTHONUTF8 = "1"
 
 认证、权限、Agent 白名单、数据代际、插件令牌、发布写入边界或外部网络访问策略发生变化时，必须同步：
 
-- `docs/operations/security.md`
-- `docs/architecture/contracts/permissions.md`
+- `docs/guides/security.md`
+- `docs/design/permission-matrix.md`
 - 相关 API/数据库/功能文档
 - 必要 ADR
 - 安全测试和 `CHANGELOG.md`

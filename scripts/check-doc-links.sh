@@ -3,9 +3,9 @@
 # Validate local links in downstream project Markdown documents.
 #
 # Usage:
-#   bash tools/docs/check-doc-links.sh
-#   bash tools/docs/check-doc-links.sh docs
-#   bash tools/docs/check-doc-links.sh --target /path/to/project
+#   bash scripts/check-doc-links.sh
+#   bash scripts/check-doc-links.sh docs
+#   bash scripts/check-doc-links.sh --target /path/to/project
 #
 # Exit codes:
 #   0 = all local links are valid

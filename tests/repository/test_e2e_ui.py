@@ -75,7 +75,7 @@ def test_backend_config_allows_isolated_e2e_database_override():
 
 
 def test_testing_guide_documents_new_e2e_command_and_ports():
-    testing = _read("docs/operations/testing.md")
+    testing = _read("docs/guides/testing.md")
 
     for marker in ("npm run frontend:e2e", "Playwright", "tests/e2e/", "18765", "4173"):
         assert marker in testing

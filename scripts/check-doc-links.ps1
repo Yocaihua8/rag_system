@@ -3,9 +3,9 @@
 # Validate local links in downstream project Markdown documents.
 #
 # Usage:
-#   pwsh tools/docs/check-doc-links.ps1
-#   pwsh tools/docs/check-doc-links.ps1 -Target docs
-#   pwsh tools/docs/check-doc-links.ps1 C:\path\to\project
+#   pwsh scripts/check-doc-links.ps1
+#   pwsh scripts/check-doc-links.ps1 -Target docs
+#   pwsh scripts/check-doc-links.ps1 C:\path\to\project
 #
 # Exit codes:
 #   0 = all local links are valid
@@ -22,7 +22,7 @@ $ErrorActionPreference = "Stop"
 $linkPattern = [regex]::new('(?<image>!)?\[[^\]\r\n]*\]\(\s*(?<destination><[^>\r\n]+>|[^)\s\r\n]+)')
 $referencePattern = [regex]::new('^\s*\[[^\]\r\n]+\]:\s*(?<destination><[^>\r\n]+>|\S+)')
 $script:anchorCache = @{}
-$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repoRoot = Split-Path -Parent $PSScriptRoot
 
 function Test-IsExcludedScanPath {
     param([string]$FullName)

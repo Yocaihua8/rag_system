@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：`docs/` 当前文档和模板
-> Related：`../../README.md`、`../README.md`、`templates/`
+> Related：`../README.md`、`README.md`、`features/feature-template.md`、`adr/ADR-000-template.md`、`design/rfc-template.md`、`plans/plan-template.md`
 
 ## 原则
 
@@ -32,18 +32,18 @@ ADR 使用 Accepted/Proposed 等决策状态；模板可保留 `{{PLACEHOLDER}}`
 
 - Markdown 链接优先使用相对当前文件的路径；代码/配置引用使用仓库根相对路径。
 - 移动文件时同批更新索引、Related、正文引用和文档检查规则。
-- 文档目录只使用 `product`、`architecture`、`integrations`、`operations`、`governance` 和根 BACKLOG/README。
+- 文档目录只使用扁平的 `requirements`、`design`、`features`、`adr`、`guides`、`plans` 和根 BACKLOG/README；目录内不再按前端、后端、集成或运维建立专题子目录。
 
 ## 模板
 
-模板集中在 [`templates/`](templates/)。使用模板后替换全部占位符，并删除不适用章节；不得把模板本身当作项目事实。
+模板按职责放在 [`features/feature-template.md`](features/feature-template.md)、[`adr/ADR-000-template.md`](adr/ADR-000-template.md)、[`design/rfc-template.md`](design/rfc-template.md)、[`plans/plan-template.md`](plans/plan-template.md) 以及 `guides/` 下的贡献/集成模板。使用模板后替换全部占位符，并删除不适用章节；不得把模板本身当作项目事实。
 
 ## 验证
 
 ```powershell
-pwsh -NoProfile -File tools/docs/check-placeholders.ps1
-pwsh -NoProfile -File tools/docs/check-doc-links.ps1
-.\.venv\Scripts\python.exe tools/docs/check_docs_consistency.py
+pwsh -NoProfile -File scripts/check-placeholders.ps1
+pwsh -NoProfile -File scripts/check-doc-links.ps1
+.\.venv\Scripts\python.exe scripts/check_docs_consistency.py
 ```
 
 文档门禁不读取历史例外目录，因为历史文档已从活动树删除。

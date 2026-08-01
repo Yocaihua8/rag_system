@@ -15,12 +15,13 @@
 - **工程依赖分区**：根 npm 只编排 frontend/src-tauri workspace；Python 依赖迁入 `backend/requirements/`；Tauri CLI、Vite/Vitest/Playwright 和 Obsidian 插件依赖各归所属工程。
 - **Docker 双服务**：Compose 迁入 `ops/docker/`，前端与后端使用独立镜像、端口和健康检查，前端 Nginx 不反向代理 API。
 - **仓库与测试分类**：运行入口、工具、测试和构建脚本按 backend、frontend、desktop、integration、operations、repository 职责重组。
-- **文档体系**：当前文档统一归入 product、architecture、integrations、operations 和 governance；新增 ADR-010 记录前后端分离、CORS、端口和 Tauri 边界。
+- **文档体系**：按 docs-template 1.0.0 的职责重构为扁平 `requirements`、`design`、`features`、`adr`、`guides` 和 `plans`；统一校准当前 API、SQLite、权限、状态、功能可达性和操作命令，文档检查迁入 `scripts/` 并增加源码派生契约。
 
 ### Removed
 
 - 删除旧 PySide6/六边形桌面代码、旧历史文档、发布/readiness 快照、DevLog、已验收原型和旧工具 plan；历史仍可从 Git 恢复。
 - 删除根旧启动/构建/Docker 兼容入口、无引用 1.x 工具和可再生成的构建测试产物。
+- 删除 `product`、`architecture`、`integrations`、`operations`、`governance` 旧文档目录及 `tools/docs/` 路径；有效事实已归入新文档且不提供旧路径别名。
 - BACKLOG 不再保存完成记录；完成事实只进入本文件和 Git 历史。
 
 ---
@@ -199,7 +200,7 @@
 
 ## 预发布检查清单
 
-**发布前整体检查**以 `docs/operations/release.md § 1` 为权威源；本节只列与 CHANGELOG 相关的补充项：
+**发布前整体检查**以 `docs/guides/release-process.md § 1` 为权威源；本节只列与 CHANGELOG 相关的补充项：
 
 - [ ] `[Unreleased]` 段至少有一个条目（否则不应发版）
 - [ ] 每条属于正确分类：Added / Changed / Fixed / Removed / Security

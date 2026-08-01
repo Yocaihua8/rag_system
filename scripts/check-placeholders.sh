@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-REPOSITORY_ROOT="$(cd "$(dirname "$0")/../.." && pwd -P)"
+REPOSITORY_ROOT="$(cd "$(dirname "$0")/.." && pwd -P)"
 TARGET="."
 MODE="consumer"
 
@@ -31,7 +31,7 @@ while IFS= read -r -d '' file; do
   relative="${file#./}"
   template_allowed=0
   case "$relative" in
-    *-template.md|*ADR-000-template.md|docs/governance/style-guide.md) template_allowed=1 ;;
+    *-template.md|*ADR-000-template.md|docs/style-guide.md) template_allowed=1 ;;
   esac
   [ "$MODE" = "template" ] && template_allowed=1
 

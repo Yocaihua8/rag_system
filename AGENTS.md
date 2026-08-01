@@ -31,12 +31,17 @@ Knowledge Island 是面向个人开发学习的本地项目知识教练。当前
 | `src-tauri/` | Tauri npm 工具、Rust 壳、sidecar 构建脚本 |
 | `integrations/obsidian-plugin/` | 独立 desktop-only Obsidian 插件 |
 | `ops/docker/` | Compose、环境样例、启停脚本 |
-| `tools/docs/` | 文档链接、占位符和一致性检查 |
+| `scripts/` | 文档链接、占位符、一致性和源码事实检查 |
 | `tests/backend/` | 后端/provider 单元测试 |
 | `tests/integration/` | API、SSE 与跨层集成测试 |
 | `tests/repository/` | 仓库结构、构建、Docker、Tauri 与文档契约 |
 | `tests/e2e/` | Playwright 浏览器流程与测试服务 |
-| `docs/` | 当前产品、架构、集成、运维和治理文档 |
+| `docs/requirements/` | 产品背景、边界、用例和维护版本范围 |
+| `docs/design/` | 完整系统、API、数据、权限、状态和 UI 契约 |
+| `docs/features/` | 逐项用户能力规格 |
+| `docs/adr/` | Accepted 架构决策与模板 |
+| `docs/guides/` | 搭建、测试、运行、发布、安全和协作操作 |
+| `docs/plans/` | Active/Interrupted plan 与模板；活动 plan 完成即删除 |
 
 ## 4. 架构不变量
 
@@ -46,7 +51,7 @@ Knowledge Island 是面向个人开发学习的本地项目知识教练。当前
 - `backend/api/` 与 `backend/routes/` 只做 HTTP 适配、校验和用例编排，不直接操作 SQLite。
 - `backend/storage/` 是 SQLite 唯一读写入口，不承载页面规则或 HTTP 对象。
 - Agent 工具只允许 `backend/domain/agent_tools.py` 中的只读白名单；禁止 shell 和写操作。
-- API Key 只保存 `env:*` / `saved:*` 引用，任何接口不得返回明文 Key。
+- Model Profile/SQLite 只保存 `env:*` / `saved:*` Key 引用，接口不得返回明文 Key；兼容全局 LLM 设置会把用户输入 Key 写入用户 appdata `.env`，修改该边界必须同步安全文档。
 - Tauri 不复制业务逻辑；Obsidian 插件不能绕过用户确认或冲突校验。
 - 默认 v2 数据根为 `runtime/v2/`；不得自动覆盖或迁移旧代际数据。
 
@@ -77,7 +82,7 @@ npm run frontend:dev
 | 浏览器 E2E | `npm run frontend:e2e` |
 | Tauri Rust | `cargo check --manifest-path src-tauri/Cargo.toml` |
 | Windows bundle | `npm run desktop:build:windows` |
-| Obsidian 插件 | 在插件目录串行执行 `npm test`、`npm run typecheck`、`npm run frontend:build` |
+| Obsidian 插件 | 在插件目录串行执行 `npm test`、`npm run typecheck`、`npm run build` |
 | 文档 | 见 `docs/README.md § 6` |
 
 代码行为变化时新增或更新相关测试。无法运行时必须说明计划命令、实际原因、关键报错和本地验证方式；未运行不得声称通过。
@@ -86,13 +91,13 @@ npm run frontend:dev
 
 | 变化 | 同步文档 |
 |------|----------|
-| 功能行为 | `docs/product/features/` |
-| API | `docs/architecture/backend/api.md` |
-| 数据库 | `docs/architecture/backend/data.md` |
-| 页面/组件 | `docs/architecture/frontend/` |
-| 跨模块边界 | `docs/architecture/overview.md`；必要时新增 ADR |
-| 桌面/插件/GitHub | `docs/integrations/` |
-| 启动、测试、Docker、发布、安全 | `docs/operations/` |
+| 产品范围、角色、版本边界 | `docs/requirements/` |
+| 功能行为 | `docs/features/` |
+| API | `docs/design/api-spec.md`；破坏性变化同步 `docs/design/api-changes.md` |
+| 数据库 | `docs/design/database-design.md` |
+| 页面/组件/跨模块边界 | `docs/design/`；必要时新增 ADR |
+| 桌面/插件/GitHub | 对应功能规格及按操作目的归类的 `docs/guides/` |
+| 启动、测试、Docker、发布、安全 | `docs/guides/` |
 | 未完成事项 | `docs/BACKLOG.md` |
 | 已完成变更 | `CHANGELOG.md` 与 Git 历史 |
 
@@ -103,8 +108,8 @@ npm run frontend:dev
 凡涉及代码或跨文件行为变更，先执行：
 
 1. 在 `docs/BACKLOG.md` 查找匹配 `B-xxx`；没有则分配下一个 ID，状态设为 `doing`。
-2. 扫描 `docs/governance/plans/` 中状态为 `Active` 或 `Interrupted` 的 plan，比较影响范围；冲突时告知用户并确认等待、合并、覆盖或分区策略。
-3. 以 `docs/governance/templates/plan-template.md` 创建 `docs/governance/plans/{B-ID}-{slug}.md`，填写关联文档、影响范围、冲突结论和回流清单。
+2. 扫描 `docs/plans/` 中状态为 `Active` 或 `Interrupted` 的 plan，比较影响范围；冲突时告知用户并确认等待、合并、覆盖或分区策略。
+3. 以 `docs/plans/plan-template.md` 创建 `docs/plans/{B-ID}-{slug}.md`，填写关联文档、影响范围、冲突结论和回流清单。
 4. 把 plan 路径写回 BACKLOG。
 
 每完成 plan 中一项：勾选任务、提交该阶段、更新状态快照。中断时保留 plan 并记录下一步。完成时确认文档回流、记录 CHANGELOG、移除完成的 BACKLOG 行并删除 plan。

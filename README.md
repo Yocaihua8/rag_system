@@ -28,7 +28,7 @@ Knowledge Island 是面向个人开发学习的本地项目知识教练。它把
 - Obsidian 配对、增量事件、离线重放、发布预览、用户确认、冲突阻断和结果回报。
 - 可选共享 API Key + HS256 JWT；默认关闭，当前不是多用户、团队、租户或 RBAC 系统。
 
-主界面仍有少量未接线控件；正式边界和后续事项见 [`docs/product/features/`](docs/product/features/) 与 [`docs/BACKLOG.md`](docs/BACKLOG.md)。
+主界面仍有少量未接线控件；正式边界和后续事项见 [`docs/features/`](docs/features/) 与 [`docs/BACKLOG.md`](docs/BACKLOG.md)。
 
 ## 快速开始
 
@@ -90,7 +90,7 @@ npm --prefix integrations/obsidian-plugin run typecheck
 npm --prefix integrations/obsidian-plugin run build
 ```
 
-完整搭建、测试和 Docker 说明见 [`docs/operations/`](docs/operations/)。
+完整搭建、测试和 Docker 说明见 [`docs/guides/`](docs/guides/)。
 
 ## 仓库结构
 
@@ -101,14 +101,15 @@ npm --prefix integrations/obsidian-plugin run build
 ├── src-tauri/               # Tauri npm 工具、Rust 壳与 sidecar 脚本
 ├── integrations/            # 独立 Obsidian 插件
 ├── ops/docker/              # Compose、环境样例与启停脚本
-├── tools/docs/              # 文档检查工具
+├── scripts/                 # 文档链接、占位符和源码事实检查
 ├── tests/                   # backend、integration、repository、e2e
 └── docs/
-    ├── product/
-    ├── architecture/
-    ├── integrations/
-    ├── operations/
-    └── governance/
+    ├── requirements/        # 背景、用例和版本范围
+    ├── design/              # 统一系统设计与契约
+    ├── features/            # 逐项用户功能规格
+    ├── adr/                 # Accepted 架构决策
+    ├── guides/              # 搭建、测试、运行、发布和协作
+    └── plans/               # 执行中 plan 与模板
 ```
 
 根 npm 清单只编排 `frontend` 与 `src-tauri` 两个 workspace。运行数据、用户 `.env`、虚拟环境、依赖目录和临时目录不属于源码。
@@ -116,11 +117,12 @@ npm --prefix integrations/obsidian-plugin run build
 ## 文档入口
 
 - [`docs/README.md`](docs/README.md)：文档地图与事实优先级
-- [`docs/product/`](docs/product/)：产品范围、用例与功能规格
-- [`docs/architecture/`](docs/architecture/)：后端、前端、契约和 Accepted ADR
-- [`docs/integrations/`](docs/integrations/)：桌面、Obsidian、GitHub 集成
-- [`docs/operations/`](docs/operations/)：搭建、测试、Docker、发布、安全和排障
-- [`docs/governance/`](docs/governance/)：计划、模板、风险和协作规范
+- [`docs/requirements/`](docs/requirements/)：产品背景、目标用户、用例和维护版本范围
+- [`docs/design/`](docs/design/)：完整系统、API、数据、权限、状态与 UI 契约
+- [`docs/features/`](docs/features/)：逐项用户能力和当前可达性
+- [`docs/adr/`](docs/adr/)：Accepted 架构决策
+- [`docs/guides/`](docs/guides/)：搭建、测试、运行、发布、安全和协作
+- [`docs/plans/`](docs/plans/)：执行中 plan 与模板，任务完成后删除活动 plan
 - [`docs/BACKLOG.md`](docs/BACKLOG.md)：仅保存未完成事项
 
 已完成事实进入 [`CHANGELOG.md`](CHANGELOG.md) 和 Git 历史，不再建立 DevLog、readiness 快照或已验收 preview。

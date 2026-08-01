@@ -1,7 +1,7 @@
 # Knowledge Island 术语表
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-07-30
+> Last Updated：2026-08-01
 > Scope：当前 UI、HTTP API、SQLite、教练评估、Tauri 与 Obsidian 桥的统一词汇
 > Related：`requirements/project-background-and-scope.md`、`design/api-spec.md`、`design/database-design.md`
 

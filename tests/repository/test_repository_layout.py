@@ -35,38 +35,46 @@ def test_runtime_source_and_docs_are_classified_by_responsibility():
         "src-tauri",
         "integrations",
         "ops/docker",
-        "tools/docs",
+        "scripts",
         "tests/backend",
         "tests/integration",
         "tests/repository",
         "tests/e2e",
-        "docs/product",
-        "docs/architecture/backend",
-        "docs/architecture/frontend",
-        "docs/architecture/contracts",
-        "docs/architecture/decisions",
-        "docs/integrations",
-        "docs/operations",
-        "docs/governance/plans",
-        "docs/governance/templates",
+        "docs/requirements",
+        "docs/design",
+        "docs/features",
+        "docs/adr",
+        "docs/guides",
+        "docs/plans",
     ):
         assert (ROOT / relative).is_dir(), f"missing classified directory: {relative}"
+
+    for relative in (
+        "docs/requirements",
+        "docs/design",
+        "docs/features",
+        "docs/adr",
+        "docs/guides",
+        "docs/plans",
+    ):
+        nested = [path for path in (ROOT / relative).iterdir() if path.is_dir()]
+        assert not nested, f"canonical docs directory must stay flat: {relative}"
 
 
 def test_legacy_archive_history_and_mixed_script_roots_are_removed():
     for relative in (
         "archive",
         "legacy",
-        "scripts",
+        "tools",
         ".docs-template",
         "docs/devlog",
         "docs/release",
         "docs/previews",
         "docs/superpowers",
-        "docs/design",
-        "docs/features",
-        "docs/guides",
-        "docs/adr",
-        "docs/requirements",
+        "docs/product",
+        "docs/architecture",
+        "docs/integrations",
+        "docs/operations",
+        "docs/governance",
     ):
         assert not (ROOT / relative).exists(), f"obsolete path remains: {relative}"

@@ -19,13 +19,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Check placeholders
         shell: pwsh
-        run: pwsh -NoProfile -File tools/docs/check-placeholders.ps1
+        run: pwsh -NoProfile -File scripts/check-placeholders.ps1
 
       - name: Check local Markdown links
         shell: pwsh
-        run: pwsh -NoProfile -File tools/docs/check-doc-links.ps1
+        run: pwsh -NoProfile -File scripts/check-doc-links.ps1
 
-      - name: Check documentation indexes and metadata
-        run: python3 tools/docs/check_docs_consistency.py
+      - name: Install runtime dependencies for source-derived contracts
+        run: python3 -m pip install -r backend/requirements/base.txt
+
+      - name: Check documentation indexes, metadata, API and schema facts
+        run: python3 scripts/check_docs_consistency.py

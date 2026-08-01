@@ -7,6 +7,12 @@ def _workflow() -> str:
     return path.read_text(encoding="utf-8")
 
 
+def _docs_workflow() -> str:
+    path = Path(".github/workflows/docs-checks.yml")
+    assert path.exists()
+    return path.read_text(encoding="utf-8")
+
+
 def test_ci_workflow_triggers_on_main_push_and_pull_request():
     workflow = _workflow()
 
@@ -23,7 +29,7 @@ def test_ci_workflow_runs_backend_docs_build_and_e2e_commands():
 
     for marker in [
         ".venv/bin/python -m pytest tests/backend tests/integration tests/repository -q",
-        ".venv/bin/python tools/docs/check_docs_consistency.py",
+        ".venv/bin/python scripts/check_docs_consistency.py",
         ".venv/bin/pip-audit -r backend/requirements/base.txt",
         "npm audit --audit-level=high",
         "npm ci",
@@ -74,3 +80,15 @@ def test_ci_workflow_installs_security_audit_tooling_before_python_audit():
         ".venv/bin/pip-audit -r backend/requirements/base.txt"
     )
     assert python_job.index("npm ci") < python_job.index("npm audit --audit-level=high")
+
+
+def test_docs_workflow_runs_flat_path_and_source_derived_checks():
+    workflow = _docs_workflow()
+
+    for marker in (
+        "scripts/check-placeholders.ps1",
+        "scripts/check-doc-links.ps1",
+        "python3 -m pip install -r backend/requirements/base.txt",
+        "python3 scripts/check_docs_consistency.py",
+    ):
+        assert marker in workflow

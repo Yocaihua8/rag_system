@@ -6,8 +6,8 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-PLACEHOLDER_SCRIPT = PROJECT_ROOT / "tools" / "docs" / "check-placeholders.ps1"
-LINK_SCRIPT = PROJECT_ROOT / "tools" / "docs" / "check-doc-links.ps1"
+PLACEHOLDER_SCRIPT = PROJECT_ROOT / "scripts" / "check-placeholders.ps1"
+LINK_SCRIPT = PROJECT_ROOT / "scripts" / "check-doc-links.ps1"
 
 
 def _run_pwsh(script: Path, target: Path) -> subprocess.CompletedProcess[str]:

@@ -64,7 +64,7 @@ jobs:
         run: .venv/bin/python -m pytest tests/backend tests/integration tests/repository -q
 
       - name: Docs consistency check
-        run: .venv/bin/python tools/docs/check_docs_consistency.py
+        run: .venv/bin/python scripts/check_docs_consistency.py
 
   frontend-e2e:
     runs-on: ubuntu-latest
