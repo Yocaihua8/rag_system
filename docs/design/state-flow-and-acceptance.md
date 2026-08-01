@@ -67,7 +67,7 @@ stale --重新分析--> 新 analysis run
 ```
 
 - 知识点稳定身份跨分析运行保留，但来源与映射绑定具体 run。
-- `stale` 结果可只读追溯，不得作为当前结果发起新的定向评估或学习计划生成。
+- `stale` 结果可只读追溯，不得作为当前结果发起新的定向评估、逐点学习或学习计划生成。
 - 学习地图必须把 `unassessed` 与低分 `needs_work` 分开展示。
 
 ## 4. Coach 评估
@@ -82,7 +82,27 @@ active -> completed
 - 结果 evaluator 为 `rule` 或 `model`；模型不可用时允许带 warning 回退规则评估。
 - 结果状态：`unassessed`、`needs_work`（`<0.50`）、`developing`（`0.50 <= score < 0.75`）、`mastered`（`>=0.75`）。
 
-## 5. 学习计划
+## 5. Coach 逐知识点学习
+
+```text
+ready --begin_learning--> learning --begin_question--> awaiting_answer
+awaiting_answer --submit--> evaluated
+evaluated --retry--> retrying --submit--> evaluated
+evaluated --next--> learning | completed
+任意可写非终态 --abandon--> abandoned
+```
+
+- 同项目、同分析运行至多一个 `ready / learning / awaiting_answer / evaluated / retrying` 会话；同目标重复启动恢复原会话，不同目标不能覆盖活动会话。
+- 知识点目标生成一个步骤，技能目标最多三个步骤。服务端一次只公开当前步骤和当前 exercise；未来步骤、巩固题、参考答案及评分依据不得提前返回。
+- 每一步阈值为 `0.75`、最多三次 attempt。首答和第一次重试使用主问题；第二次仍未达标后公开巩固题；三次未达标仍可 `next`，步骤结果为 `needs_work`。
+- 每次作答以 `(session_id,idempotency_key)` 幂等，并使用请求 hash 防止同 key 不同 payload；会话 `version` CAS 冲突返回最新会话快照，不允许旧客户端静默覆盖。
+- `reveal` 后同一 exercise 的新 attempt 仍可练习，但 `counts_for_mastery=false`。只有未揭示答案且达标的有效 attempt 参与当前掌握证据。
+- 来源指纹变化后历史会话只读；终态 `completed / abandoned` 也只读，但不能把正常终态误报为 stale。
+- 从确认计划任务启动时，首个完成评分的 attempt 可单调推进该任务到 `in_progress`，全部步骤有效达标后推进到 `done`；打开、放弃或来源过期不会把任务标为完成。
+
+SQL 练习状态仍使用上述会话机。提交只允许一条 `SELECT` 或非递归 `WITH ... SELECT`；每次 attempt 在结构化 fixture 创建的独立临时 SQLite 数据库中评分，正式应用数据库不参与执行。安全、语法、结果或必要语义不匹配均返回确定反馈，不能伪装为已掌握。
+
+## 6. 学习计划
 
 ```text
 generate -> draft -> confirmed -> archived
@@ -96,7 +116,7 @@ generate -> draft -> confirmed -> archived
 - 结构更新、进度更新和确认使用 revision/items hash/progress hash 防止并发静默覆盖。
 - `learning` 任务必须引用同项目、同运行的真实来源；无来源只能生成 `source_gap`。
 
-## 6. Obsidian 连接与同步
+## 7. Obsidian 连接与同步
 
 连接：
 
@@ -119,7 +139,7 @@ received -> applied
 - 重命名保留来源身份；删除清理索引并使依赖分析过期。
 - 输出根中的受管文件不反向摄入，避免同步反馈循环。
 
-## 7. Obsidian 发布
+## 8. Obsidian 发布
 
 ```text
 preview -> draft
@@ -133,7 +153,7 @@ preview -> draft
 - 每个 artifact 只有一个终态结果；发布聚合在全部回传后汇总终态。
 - 冲突只回报，不自动合并或覆盖；回滚通过旧内容的新发布执行，不修改历史修订。
 
-## 8. Tauri sidecar
+## 9. Tauri sidecar
 
 ```text
 Tauri setup
@@ -145,13 +165,14 @@ Tauri setup
 
 当前实现没有在显示 WebView 前轮询 `/api/health`、没有端口占用恢复、也不会在 sidecar 异常退出后自动重启。打包成功或 sidecar 成功 spawn 不能替代安装后 API 主流程验证。
 
-## 9. 最低验收矩阵
+## 10. 最低验收矩阵
 
 | 流程 | 最低通过标准 |
 |------|--------------|
 | 导入 | 真实写入文档/chunk/vector；批次成功、部分失败和跳过可区分 |
 | 问答 | SSE 顺序可解析；`done` 有真实来源或明确无来源；取消不伪装完成 |
-| Coach | stale 传播正确；评估证据与状态阈值一致 |
+| Coach | stale 传播正确；评估与有效学习 attempt 的证据投影、状态阈值一致 |
+| 逐点学习 | 七态迁移、三次 attempt、幂等/CAS、答案揭示资格、来源只读、计划单调联动正确；SQL 评分不访问正式数据库 |
 | 学习计划 | 草稿可改、确认版结构不可改、并发冲突不被吞掉 |
 | Obsidian | 配对/事件幂等；queued 与 applied 区分；路径/hash 冲突不覆盖 |
 | Tauri | 安装后 WebView 能连接实际 sidecar API，退出时 sidecar 被终止 |

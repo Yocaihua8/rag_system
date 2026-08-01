@@ -4,17 +4,17 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：当前 SQLite Schema、关键约束、数据代际与可选向量边界
-> Related：`architecture-overview.md`、`api-spec.md`、`permission-matrix.md`、`../adr/ADR-002-sqlite-storage.md`
+> Related：`architecture-overview.md`、`api-spec.md`、`permission-matrix.md`、`../adr/ADR-002-sqlite-storage.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
 
 ## 1. 权威边界
 
-当前正式入口通过 `KnowledgeStore` 组合四个存储模块，共初始化 **37 张当前表**。API 和领域代码不得绕过 `backend/storage/` 直接操作 SQLite。
+v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 **37 张当前表**。当前 Unreleased 源码在 `coach_progress_store.py` 增量增加六张逐点学习表，因此初始化 **43 张当前表**；该增量不能解释为已经进入 v2.0.0 Tag 或安装包。API 和领域代码不得绕过 `backend/storage/` 直接操作 SQLite。
 
 | 分组 | 模块 | 表数 |
 |------|------|------|
 | 知识库、问答与兼容评估 | `backend/storage/knowledge_store.py` | 19 |
 | Coach 分析与技能映射 | `backend/storage/coach_store.py` | 6 |
-| Coach 评估与学习计划 | `backend/storage/coach_progress_store.py` | 6 |
+| Coach 评估、学习计划与交互学习 | `backend/storage/coach_progress_store.py` | 12 |
 | Obsidian Bridge | `backend/storage/obsidian_store.py` | 6 |
 
 默认数据库为 `runtime/v2/app.db`。正式启动要求 `app_metadata.data_generation=v2`，不会自动把旧代际数据库原地升级为 v2。
@@ -73,7 +73,22 @@
 
 评估结果状态为 `unassessed / needs_work / developing / mastered`。计划状态为 `draft / confirmed / archived`；任务类型为 `learning / source_gap`，任务状态为 `todo / in_progress / done / skipped`。`source_ids_json` 和多态 `target_id` 的项目归属由领域层校验，不由数据库外键表达。
 
-### 2.4 Obsidian Bridge（6）
+### 2.4 Coach 逐知识点交互学习（6）
+
+| 表 | 当前字段 | 核心约束 / 职责 |
+|----|----------|-----------------|
+| `coach_learning_sessions` | `id`, `project_id`, `analysis_run_id`, `target_type`, `target_id`, `origin_type`, `plan_id`, `plan_item_id`, `status`, `current_step_id`, `version`, `outcome`, `created_at`, `updated_at`, `completed_at`, `abandoned_at` | 目标为 `knowledge_point/skill`；入口为 `coach/learning_map/learning_plan`；七态会话；同项目、同分析运行至多一个非终态会话 |
+| `coach_learning_steps` | `id`, `session_id`, `knowledge_point_id`, `title`, `explanation`, `completion_threshold`, `max_attempts`, `status`, `outcome`, `sort_order`, `created_at`, `completed_at` | session 内排序唯一；阈值在 `[0,1]`；最多三次 attempt；知识点删除受限制 |
+| `coach_learning_step_sources` | `step_id`, `source_id`, `sort_order` | `(step_id,source_id)` 主键且排序唯一；来源是会话创建时的真实项目来源快照 |
+| `coach_learning_exercises` | `id`, `step_id`, `variant`, `question_type`, `prompt`, `expected_points_json`, `reference_answer`, `sort_order`, `revealed_at`, `created_at` | 每步骤 `primary/reinforcement` 各至多一题；题型为 `concept/flow/code_location/sql_query`；评分依据不提前公开 |
+| `coach_sql_exercise_fixtures` | `exercise_id`, `schema_json`, `seed_rows_json`, `expected_columns_json`, `expected_rows_json`, `order_sensitive`, `required_semantics_json`, `limits_json`, `fixture_hash`, `created_at` | 与 SQL exercise 一对一；保存结构化 fixture、预期结果、必要语义、资源限制和完整性 hash |
+| `coach_learning_attempts` | `id`, `session_id`, `step_id`, `exercise_id`, `attempt_no`, `idempotency_key`, `request_hash`, `answer`, `status`, `evaluator`, `score`, `confidence`, `feedback`, `error_code`, `error_message`, `result_preview_json`, `scoring_details_json`, `counts_for_mastery`, `created_at`, `evaluated_at` | step 内 attempt_no 唯一、会话内幂等键唯一；状态为 `grading/evaluated/failed`；评分与置信度限制在 `[0,1]`；证据资格独立保存 |
+
+会话状态为 `ready / learning / awaiting_answer / evaluated / retrying / completed / abandoned`，结果为 `mastered / needs_work / assisted` 或空值。新表由现有初始化器增量创建，不 ALTER、回填或改写旧 Coach 评估与学习计划记录；旧代码回滚后新表保留为未使用数据，不自动 DROP。
+
+`coach_learning_attempts` 先以 `grading` 保存幂等请求，再在独立评分阶段写回终态。会话 `version` 用作 CAS；写回 attempt、步骤、会话和绑定计划任务在同一事务内完成。SQL fixture 只用于创建每次评分的临时数据库，不能保存或推导正式 `runtime/v2/app.db` 路径。
+
+### 2.5 Obsidian Bridge（6）
 
 | 表 | 当前字段 | 核心约束 / 职责 |
 |----|----------|-----------------|
@@ -88,7 +103,7 @@
 
 `graph_nodes`、`graph_edges` 不由当前初始化器创建、补列或迁移。只有既有数据库已经包含兼容表时，检索链路才会条件式只读一跳关系；表不存在、字段不兼容或来源无法映射时保持原 BM25/向量结果。
 
-以下历史名称也不是当前 37 张表的一部分：`chunks`、`workspaces`、`tasks`、`conversations`、`tags`、`document_tags`、`sources`、`skill_areas`、`knowledge_points`、`evidences`、`mastery_records`。文档、测试或旧数据库出现这些名称不能推导当前应用会创建它们。
+以下历史名称也不是当前 43 张表的一部分：`chunks`、`workspaces`、`tasks`、`conversations`、`tags`、`document_tags`、`sources`、`skill_areas`、`knowledge_points`、`evidences`、`mastery_records`。文档、测试或旧数据库出现这些名称不能推导当前应用会创建它们。
 
 ## 4. 分块、向量与可选存储
 
@@ -106,6 +121,8 @@
 - 导入批次只保存摘要和明细，不保存上传正文副本，也不提供回滚。
 - 聊天和检索复盘保存当时来源/命中快照，避免后续文档更新让历史记录失去上下文。
 - 学习计划和发布使用修订、hash 与状态约束阻止静默覆盖；跨项目、多态 ID 和 JSON 内 ID 由领域层校验。
+- 学习会话使用 `version`、幂等键和请求 hash 阻止并发或重放覆盖；attempt 历史不可原地替换，答案揭示后的证据资格显式保存。
+- 当前知识覆盖动态合并旧 Coach 评估结果和有效学习 attempt，不新增汇总 mastery 表；来源过期只使证据失效，不删除历史记录。
 - Obsidian 配对码与服务端连接令牌只保存哈希；插件自己的 Vault 数据文件会保存可恢复令牌，属于独立客户端安全边界。
 
 ## 6. 路径与备份边界

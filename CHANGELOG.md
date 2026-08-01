@@ -8,6 +8,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- **逐知识点交互学习**：可从教练、学习地图或已确认学习计划任务启动和恢复学习会话，一次展示一个知识点与一道练习；每次作答独立保存，支持有限重试、具体反馈、答案揭示和当前来源版本下的掌握证据更新。
+- **只读 SQL 项目练习**：仅在当前项目存在可解析 SQLite Schema 证据时生成结构化合成 fixture；学习者查询在独立临时 SQLite 数据库中按只读、安全和资源限制确定性评分，不连接正式应用数据库。
+
 ### Changed
 
 - **前后端运行时分离**：FastAPI 改为 API-only，后端以 `python -m backend` 启动；Vue 独立构建到 `frontend/dist/` 并通过 `VITE_API_BASE_URL` 使用绝对 API/SSE URL。
@@ -17,10 +22,15 @@
 - **Docker 双服务**：Compose 迁入 `ops/docker/`，前端与后端使用独立镜像、端口和健康检查，前端 Nginx 不反向代理 API。
 - **仓库与测试分类**：运行入口、工具、测试和构建脚本按 backend、frontend、desktop、integration、operations、repository 职责重组。
 - **文档体系**：按 docs-template 1.0.0 的职责重构为扁平 `requirements`、`design`、`features`、`adr`、`guides` 和 `plans`；统一校准当前 API、SQLite、权限、状态、功能可达性和操作命令，文档检查迁入 `scripts/` 并增加源码派生契约。
+- **学习证据与计划联动**：当前覆盖投影同时读取 Coach 评估结果和有效学习 attempt；从确认计划任务启动的会话在首次持久化作答后将该任务推进为 `in_progress`，仅在全部步骤取得未揭示答案的有效达标证据后推进为 `done`。
 
 ### Fixed
 
 - **v2 SQLite 在线备份**：保留 `runtime/v2/app.db`、`runtime/v2/backups/` 与 `knowledge-island-v2-*` 主线约定，并修复 Git Bash 调用 Windows `sqlite3.exe` 时 `.backup` 目标路径不可用的问题；真实隔离恢复测试验证 SQLite 完整性、v2 标记和样例数据。
+
+### Security
+
+- **SQL 练习隔离**：来源 DDL 只解析为受支持的结构化 fixture，不直接执行；评分数据库以只读模式重开，并通过 authorizer、语句与函数限制、超时、VM 指令、结果行列和字节上限阻断写操作、Schema 访问及资源滥用。
 
 ### Removed
 

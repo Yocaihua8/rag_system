@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：认证、CORS、数据隔离、密钥、Agent 与 Obsidian 权限
-> Related：`architecture-overview.md`、`api-spec.md`、`database-design.md`、`../guides/security.md`
+> Related：`architecture-overview.md`、`api-spec.md`、`database-design.md`、`../guides/security.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
 
 ## 1. 身份模型
 
@@ -62,10 +62,12 @@ CORS 中间件包裹认证中间件，使合法浏览器预检在业务认证前
 
 | 对象 / 操作 | 当前限制 | 执行位置 |
 |-------------|----------|----------|
-| 项目数据 | 文档、集合、批次、会话、评估、Coach、发布按 `project_id` 校验 | routes、domain、storage |
+| 项目数据 | 文档、集合、批次、会话、评估、Coach 学习、发布按 `project_id` 校验 | routes、domain、storage |
 | 文档集合 | 集合与文档必须属于同一项目 | `backend/routes/documents.py` |
 | 工具上下文 | `tool_run_id` 必须属于当前项目 | `backend/domain/answers.py` |
 | 学习计划 | 结构更新、进度更新和确认分别校验修订/hash | Coach domain/store |
+| 逐点学习 | 会话绑定项目和分析运行；attempt 校验会话版本、幂等键、exercise 与当前步骤；stale 或终态只读 | Coach learning domain/store |
+| SQL 练习 | 只接受结构化 fixture 和学习者 SQL；不接受应用数据库路径或连接；临时数据库只读执行 | `backend/domain/sql_learning.py` |
 | Obsidian 路径 | 规范化后必须位于连接的 `output_root`，仅处理 Markdown | Obsidian domain/plugin |
 | 发布覆盖 | 必须是受管文件且 expected hash 匹配 | Obsidian domain/plugin |
 | 网络抓取 | 只允许 http/https 公网目标，重定向后再次校验；限制 robots、大小、类型和超时 | web fetch domain |
@@ -108,5 +110,6 @@ Agent 工具白名单硬编码在 `backend/domain/agent_tools.py`，当前只有
 - 用户账户、团队成员、角色权限、租户隔离或 SSO；
 - 浏览器登录页、凭证持久化、刷新 Token 或已认证 EventSource；
 - Agent 文件写入、shell、任意网络工具或动态权限扩张；
+- SQL 练习连接正式应用数据库、执行来源 DDL、写操作、Schema 探测、扩展加载或任意 SQLite 函数；
 - 服务端保存 Obsidian 令牌明文；
 - cookie 会话、跨站 credentials 或通配符 CORS。

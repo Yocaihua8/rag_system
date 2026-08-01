@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-01
 > Scope：当前 HTTP/SSE API、认证、字段与兼容边界
-> Related：`architecture-overview.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`
+> Related：`architecture-overview.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
 
 ## 1. 当前 HTTP API
 
@@ -18,7 +18,7 @@
 
 `/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载；新增、删除或修改 API 时，需要同时更新 operation 列表、路由/dispatch 测试和本文档端点速览。
 
-当前源码契约共 **86 个唯一路径**、**94 个操作**，其中 **31 个 GET**、**63 个 POST**。`GET /api/answer/stream` 与 `POST /api/ollama/pull` 是 FastAPI 单独注册的两个 SSE 入口；其余操作通过通用 dispatch 路由进入对应 handler。问答 SSE 事件为 `token`、`done`、`answer_error`；Ollama 拉取 SSE 事件为 `progress`、`done`、`error`。
+v2.0.0 发布基线为 **86 个唯一路径**、**94 个操作**，其中 **31 个 GET**、**63 个 POST**。当前 Unreleased 源码增量新增四个逐点学习操作，共 **90 个唯一路径**、**98 个操作**，其中 **32 个 GET**、**66 个 POST**；该增量不能解释为已经进入 v2.0.0 Tag 或安装包。`GET /api/answer/stream` 与 `POST /api/ollama/pull` 是 FastAPI 单独注册的两个 SSE 入口；其余操作通过通用 dispatch 路由进入对应 handler。问答 SSE 事件为 `token`、`done`、`answer_error`；Ollama 拉取 SSE 事件为 `progress`、`done`、`error`。
 
 端点速览：
 
@@ -97,6 +97,10 @@
 - `GET /api/coach/learning-plans/current`
 - `POST /api/coach/learning-plans/update`
 - `POST /api/coach/learning-plans/confirm`
+- `POST /api/coach/learning-sessions/start`
+- `GET /api/coach/learning-sessions/current`
+- `POST /api/coach/learning-sessions/transition`
+- `POST /api/coach/learning-sessions/attempts`
 - `POST /api/obsidian/pairing/start`
 - `POST /api/obsidian/pairing/complete`
 - `GET /api/obsidian/connections`
@@ -553,7 +557,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 - `score >= 0.75` → `mastered`
 - 没有当前来源版本下的有效结果 → `unassessed`
 
-覆盖率只统计当前项目、当前分析运行的有效结果，`coverage_ratio = assessed_count / knowledge_point_count`；分析 stale 时旧结果只作为历史记录展示，当前覆盖计数归零。技能节点从其自身及后代节点映射的知识点聚合，`assessment_state=no_project_evidence|unverified|partially_verified|verified` 表示项目证据和验证覆盖完整度；评估强弱另由 `status=needs_work|developing|mastered` 表示，不产生跨项目或职业能力分数。
+覆盖率只统计当前项目、当前分析运行的有效证据，`coverage_ratio = assessed_count / knowledge_point_count`。证据来源包括 Coach 评估结果，以及 `status=evaluated / counts_for_mastery=true / score 非空` 的学习 attempt；同一知识点按 `(created_at,id)` 选择最新证据。分析 stale 时旧结果和 attempt 只作为历史记录展示，当前覆盖计数归零。技能节点从其自身及后代节点映射的知识点聚合，`assessment_state=no_project_evidence|unverified|partially_verified|verified` 表示项目证据和验证覆盖完整度；评估强弱另由 `status=needs_work|developing|mastered` 表示，不产生跨项目或职业能力分数。
 
 #### 1.8.2 学习计划
 
@@ -578,6 +582,49 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 草稿结构更新的 `items` 是完整且非空的任务数组，最多 50 项；数组顺序是唯一排序依据，服务端重新编号 `sort_order=0..N-1` 并把状态固定为 `todo`。只有项目最高 revision 计划仍为 `draft` 时，该草稿可编辑和确认；更早草稿只读保留。`current.draft` 也只在项目最高 revision 仍为 `draft` 时返回，否则为 `null`。确认后结构、顺序、关联和来源冻结，只能通过 `item_statuses` 将当前确认版任务更新为 `todo / in_progress / done / skipped`；`item_statuses` 的键可以是任务 `id` 或 `stable_key`。新确认版会归档旧确认版；生成新草稿不会覆盖当前确认版。
 
 客户端可携带 `expected_revision / expected_items_hash` 保护结构更新、进度更新或确认；进度更新还可携带 `expected_progress_hash`。不匹配时分别返回 `learning_plan_revision_conflict / learning_plan_items_conflict / learning_plan_progress_conflict`。重复确认已是 `confirmed` 的同一版本会先按幂等语义返回 `replayed=true`，不再校验 `expected_*`。分析过期会阻止生成、草稿结构更新和确认，但不会阻止已确认计划继续更新进度。历史计划的来源按各自 `based_on_run_id` 解析，不自动换成新运行来源。确认学习计划不会触发 Obsidian 发布。
+
+从当前确认计划的 `learning` 任务启动逐点学习时，会话记录 `plan_id / plan_item_id`。第一个成功持久化并完成评分的 attempt 可将目标任务从 `todo` 单调推进到 `in_progress`；只有所有步骤都取得未揭示答案的有效达标证据时才推进到 `done`。自动联动不修改计划 revision、结构或其他任务，不降级 `done / skipped`；计划已归档、被新确认版替换、来源过期或任务不再匹配时返回 detached 语义并停止更新。
+
+#### 1.8.3 逐知识点学习会话（Unreleased）
+
+以下四个接口复用现有 Coach 分析、覆盖和已确认计划，不修改定向评估或 legacy `/api/assessment/*` 契约。
+
+| 方法 | 路径 | 请求 | 成功响应 | 主要错误 |
+|------|------|------|----------|----------|
+| POST | `/api/coach/learning-sessions/start` | `project_id`；直接入口传 `target_type=knowledge_point|skill`、`target_id`，可选 `origin_type=coach|learning_map`；计划入口改传 `plan_id`、`plan_item_id` | `{"session":<LearningSessionView>}`；同分析运行、同目标活动会话返回 `resumed=true` | `400` 必填字段、目标或入口组合非法；`404 project/coach analysis/learning plan not found`；`409 analysis_stale|learning_session_active_conflict|learning_plan_not_confirmed|learning_plan_item_not_learnable|learning_target_not_assessable` |
+| GET | `/api/coach/learning-sessions/current?project_id=...&session_id=...` | query `project_id` 必填；`session_id` 可选 | `{"session":<LearningSessionView>|null}`；未传 `session_id` 时只查当前分析运行的活动会话，传入时可读取指定历史会话 | `400 project_id is required`；`404 project/coach analysis/coach learning session not found` |
+| POST | `/api/coach/learning-sessions/transition` | `project_id`、`session_id`、`expected_version`、`action`；action 为 `begin_learning / begin_question / retry / next / reveal / abandon` | `{"session":<LearningSessionView>}` | `400` 必填字段、version 或 action 非法；`404 project/session not found`；`409 analysis_stale|learning_session_read_only|learning_session_version_conflict|learning_transition_not_allowed|learning_step_not_complete|learning_attempt_limit_reached` 等状态冲突 |
+| POST | `/api/coach/learning-sessions/attempts` | `project_id`、`session_id`、`exercise_id`、原样 `answer`、`expected_version`、`idempotency_key` | `{"attempt":<AttemptView>,"session":<LearningSessionView>,"replayed":false,"pending":false,"plan_sync":<PlanSyncView>}` | `400` 必填字段、空答案、答案超过 20000 字符或 version 非法；`404 project/session not found`；`409 analysis_stale|learning_session_read_only|learning_session_version_conflict|idempotency_payload_conflict|learning_session_not_awaiting_answer|learning_exercise_not_current|learning_attempt_limit_reached` |
+
+`LearningSessionView` 公开：
+
+- `id / project_id / analysis_run_id / target_type / target_id / origin_type`
+- `plan_id / plan_item_id / status / version / outcome`
+- `read_only / resumed / created_at / updated_at / completed_at / abandoned_at`
+- `progress={current,completed,total}`
+- `current_step / current_exercise / attempts / allowed_actions / recommended_action / sources / plan_sync`
+
+`current_step` 只包含当前知识点的 `id / knowledge_point_id / title / explanation / completion_threshold / max_attempts / status / outcome / sort_order / source_ids / attempt_count / current_exercise`，不返回未来步骤。`sources` 是当前步骤按顺序解析的来源数组。`current_exercise` 只在需要作答或展示本题结果时出现，包含 `id / step_id / variant / variant_no / question_type / prompt / sort_order / revealed_at`；SQL 题作答前的 `sql_fixture` 只含结构化 `schema / seed_rows`。明确执行 `reveal` 前不返回 `expected_points`、`reference_answer`、期望结果、必要语义、限制策略或 fixture hash。
+
+`AttemptView` 公开 `id / session_id / step_id / exercise_id / attempt_no / answer / status / evaluator / score / confidence / feedback / error_code / error_message / result_preview / scoring_details / counts_for_mastery / created_at / evaluated_at`，不返回 `idempotency_key` 或 `request_hash`。SQL 的 `result_preview` 是受限的列、行、行数和截断信息；`scoring_details` 只说明本次语义差异及实际使用的表、列或函数，不返回参考 SQL。
+
+会话状态机固定为：
+
+```text
+ready --begin_learning--> learning --begin_question--> awaiting_answer
+awaiting_answer --submit--> evaluated
+evaluated --retry--> retrying --submit--> evaluated
+evaluated --next--> learning | completed
+任意可写非终态 --abandon--> abandoned
+```
+
+知识点目标生成一个步骤；技能目标最多选择三个当前项目映射知识点。每步骤阈值为 `0.75`、最多三次 attempt：首答和第一次重试使用主问题，第二次仍未达标后再公开预生成巩固题。达到阈值且未查看答案时结果可计入当前分析运行的掌握证据；已揭示 exercise 的后续 attempt 仍可练习，但 `counts_for_mastery=false`。三次均未达标时步骤为 `needs_work`，仍允许 `next` 结束会话。
+
+attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CAS 占用版本；确定性评分在正式应用数据库事务外执行，再以新版本 CAS 写回 attempt、步骤、会话和绑定计划任务。`UNIQUE(session_id,idempotency_key)` 是接口幂等边界：同 key 且请求 hash 相同返回既有结果和 `replayed=true`，同 key 不同 payload 返回 `409 idempotency_payload_conflict`。新鲜 `grading` 重放返回 `pending=true`；超过 30 秒且请求 hash 相同时允许确定性接管重算。CAS 冲突可同时返回最新 `session` 快照，客户端不得静默覆盖。
+
+`PlanSyncView` 字段为 `linked / status / item_status / progress_hash`。只有从已确认计划目标任务启动的会话返回 `linked=true`；教练和学习地图入口不自动匹配计划任务。
+
+非 SQL 题使用服务端确定性规则评分。`sql_query` 只在当前知识点真实来源中存在可解析 SQLite `CREATE TABLE` 证据时生成；普通 `sqlite` 或 ORM 关键词不会单独触发。评分在每次 attempt 的独立临时 SQLite 文件中完成，沙箱不接收数据库路径或 `KnowledgeStore` 连接。只允许一条 `SELECT` 或非递归 `WITH ... SELECT`，结果值和必要语义必须同时满足；模型反馈不能推翻确定性结论。
 
 ### 1.9 Obsidian 插件桥接口
 
