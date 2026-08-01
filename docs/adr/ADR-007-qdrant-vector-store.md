@@ -3,11 +3,12 @@
 > 状态：Accepted
 > Date：2026-06-28
 > Owner：RAG 团队
-> Related：docs/product/features/qdrant-vector-store.md, docs/architecture/overview.md, docs/architecture/backend/data.md, docs/architecture/backend/api.md, docs/BACKLOG.md
+> Scope：可选 Qdrant local mode 向量索引与 SQLite 降级边界
+> Related：[架构总览](../design/architecture-overview.md)、[数据库设计](../design/database-design.md)、[API 规格](../design/api-spec.md)、[测试指南](../guides/testing.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
-Web MVP 原先把 chunk 向量存入 SQLite `chunk_vectors`，搜索时读取项目内全部向量并在 Python 中计算 cosine similarity。该方案依赖少、易备份，但在大型项目（> 5000 chunks）下查询耗时随 chunk 数线性增长，见 `docs/BACKLOG.md` 中的 ISSUE-002。
+Web MVP 原先把 chunk 向量存入 SQLite `chunk_vectors`，搜索时读取项目内全部向量并在 Python 中计算 cosine similarity。该方案依赖少、易备份，但在大型项目（> 5000 chunks）下查询耗时随 chunk 数线性增长，见 [`BACKLOG.md`](../BACKLOG.md) 中的 ISSUE-002。
 
 B-134 需要在保持本地优先、无独立服务依赖和现有 API 兼容的前提下，替换查询时的 SQLite 向量全扫描。
 

@@ -3,7 +3,8 @@
 > 状态：Accepted
 > Date：2026-05-26
 > Owner：RAG 团队
-> Related：`../overview.md`、`../backend/api.md`、`ADR-010-runtime-separation.md`、`../../BACKLOG.md`
+> Scope：HTTP 服务框架、路由适配与 OpenAPI/SSE 基础设施
+> Related：[架构总览](../design/architecture-overview.md)、[API 规格](../design/api-spec.md)、[ADR-010](ADR-010-runtime-separation.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 

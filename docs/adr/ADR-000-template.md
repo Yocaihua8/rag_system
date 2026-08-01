@@ -3,6 +3,7 @@
 > 状态：Proposed / Accepted / Deprecated / Superseded / Rejected
 > Date：{{CURRENT_DATE}}
 > Owner：{{OWNER}}
+> Scope：{{DECISION_SCOPE}}
 > Related：{{RELATED_DOCS}}
 
 <!--
@@ -112,7 +113,8 @@ ADR 状态生命周期：
 > 状态：Accepted
 > Date：2026-04-17
 > Owner：张三
-> Related：`docs/product/features/order-export.md`、`docs/architecture/overview.md`
+> Scope：导出产物存储与下载边界
+> Related：`../features/order-export.md`、`../design/architecture-overview.md`
 
 ## 1. 背景
 
@@ -173,7 +175,8 @@ ADR 状态生命周期：
 > 状态：Accepted
 > Date：2026-04-18
 > Owner：张三
-> Related：`docs/architecture/overview.md`
+> Scope：用户中心内部职责边界
+> Related：`../design/system-design-overview.md`、`../design/architecture-overview.md`
 
 ## 1. 背景
 

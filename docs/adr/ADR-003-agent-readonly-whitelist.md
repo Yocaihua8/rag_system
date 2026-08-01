@@ -3,7 +3,8 @@
 > 状态：Accepted
 > Date：2026-05-26
 > Owner：RAG 团队
-> Related：`../overview.md §5`、`../contracts/permissions.md`、`../backend/api.md`
+> Scope：Agent 工具准入、只读权限与调用审计
+> Related：[系统设计总览](../design/system-design-overview.md)、[权限矩阵](../design/permission-matrix.md)、[API 规格](../design/api-spec.md)
 
 ## 1. 背景
 

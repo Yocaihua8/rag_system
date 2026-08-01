@@ -89,7 +89,7 @@ RFC 用于在实现前讨论影响较大的设计提案。小范围修复不必�
 | 运维 / 部署 | {{OPS_IMPACT}} | {{OPS_MIGRATION}} |
 | 数据 | {{DATA_IMPACT}} | {{DATA_MIGRATION}} |
 
-若需要面向使用方提供版本迁移步骤，基于 `docs/governance/templates/migration-guide-template.md` 创建实际迁移文档。
+若需要面向使用方提供版本迁移步骤，在本 RFC 中写清升级、回滚和兼容窗口，并同步 `api-changes.md` 与发布指南；仓库不维护独立迁移模板副本。
 
 ## 9. 发布与回滚
 

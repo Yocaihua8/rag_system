@@ -3,13 +3,14 @@
 > 状态：Accepted
 > Date：2026-07-23
 > Owner：RAG 团队
-> Related：docs/product/features/project-knowledge-coach.md, docs/architecture/overview.md, docs/architecture/backend/data.md, docs/BACKLOG.md
+> Scope：项目知识教练产品主线、Coach 领域模型与 v2 数据代际
+> Related：[项目知识教练](../features/project-knowledge-coach.md)、[系统设计总览](../design/system-design-overview.md)、[数据库设计](../design/database-design.md)、[状态流与验收](../design/state-flow-and-acceptance.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
 Knowledge Island 1.x 已形成以本地资料导入、RAG 检索问答和轻量评估为主的 Web MVP，但产品主线仍是“知识库工具”，没有把项目理解、知识覆盖、技能差距和学习计划组织成一个可持续闭环。
 
-2.0 需要把产品定位收束为面向个人开发学习的本地项目知识教练，同时避免在 1.x SQLite、向量索引和输出目录上原地演进造成数据污染。该决策冻结目标架构，不表示 B-161～B-165 已实现。
+2.0 需要把产品定位收束为面向个人开发学习的本地项目知识教练，同时避免在 1.x SQLite、向量索引和输出目录上原地演进造成数据污染。该决策在 2026-07-23 冻结目标架构；当时不代表 B-161～B-165 已实现，当前可达范围以[项目知识教练功能规格](../features/project-knowledge-coach.md)和源码测试为准。
 
 ## 2. 决策结论
 
@@ -22,10 +23,12 @@ Knowledge Island 1.x 已形成以本地资料导入、RAG 检索问答和轻量�
 
 ### 2.2 独立 v2 数据代际
 
-- 2.0 默认数据根为 `runtime/v2/`，SQLite 为 `runtime/v2/app.db`；向量索引、日志和输出均使用同一代际下的独立位置。
+- 2.0 默认数据根为 `runtime/v2/`，SQLite 为 `runtime/v2/app.db`；向量索引和日志使用同一代际下的独立位置。
 - 1.x 的 `runtime/app.db`、向量/Qdrant 数据和输出文件不迁移、不删除、不覆盖，也不自动导入 2.0。
 - 2.0 首次启动创建新库，用户重新导入项目。若目标路径被识别为 1.x schema 或旧向量目录，必须停止写入并报告配置错误。
 - 旧数据只用于原版本回退或人工归档；未来若需要迁移，必须另立 ADR 和显式迁移工具。
+
+当前实现偏差：问答结果导出仍默认写入 `data/outputs/`，可由 `KI_OUTPUT_DIR` 或 `RAG_OUTPUT_DIR` 覆盖，并未纳入 `runtime/v2/`。该偏差记录在 [`BACKLOG.md`](../BACKLOG.md)，不能把本 ADR 的“独立代际”目标误报为已对所有输出路径完成。
 
 ### 2.3 Coach 领域模型
 
@@ -38,7 +41,7 @@ Knowledge Island 1.x 已形成以本地资料导入、RAG 检索问答和轻量�
 ### 2.4 兼容边界
 
 - 现有导入、聊天和 `/api/assessment/*` 契约继续保留，2.0 前端通过新增 Coach API 使用新领域模型。
-- 1.x 当前实现继续由现有文档章节描述；2.0 目标只在明确标注“Accepted / 尚未实现”的章节和 ADR 中出现。
+- 当前实现状态由功能规格、统一设计文档和测试描述；本 ADR 记录 Accepted 决策边界，不作为完成度证明。
 - 不恢复旧 PySide6 桌面实现，不引入多用户、团队空间、云同步或 Agent 写代码。
 
 ## 3. 备选方案

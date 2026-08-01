@@ -3,7 +3,8 @@
 > 状态：Accepted
 > Date：2026-05-26
 > Owner：RAG 团队
-> Related：docs/architecture/contracts/permissions.md, docs/architecture/backend/api.md, docs/product/features/authentication.md, docs/BACKLOG.md
+> Scope：可选单用户 API 认证、凭证类型与受保护路由
+> Related：[权限矩阵](../design/permission-matrix.md)、[API 规格](../design/api-spec.md)、[认证功能](../features/authentication.md)、[安全指南](../guides/security.md)、[BACKLOG](../BACKLOG.md)
 
 ## 1. 背景
 
@@ -64,9 +65,9 @@ Knowledge Island 当前是本地单用户应用，默认只监听 `127.0.0.1:876
 |------|------|
 | `backend/api/auth.py` | 新增认证配置、API Key 校验、JWT 签发与验证 |
 | `backend/api/server.py` | 新增 FastAPI 中间件和 `/api/auth/token` 路由 |
-| `docs/architecture/contracts/permissions.md` | 从“无认证”更新为“默认关闭、可选启用” |
-| `docs/architecture/backend/api.md` | 新增认证配置、错误格式和 token 接口说明 |
-| `docs/operations/setup.md` | 增加环境变量启用方式 |
+| [`docs/design/permission-matrix.md`](../design/permission-matrix.md) | 从“无认证”更新为“默认关闭、可选启用” |
+| [`docs/design/api-spec.md`](../design/api-spec.md) | 记录认证配置、错误格式和 token 接口 |
+| [`docs/guides/setup.md`](../guides/setup.md) | 记录环境变量启用方式 |
 
 ## 6. 安全约束
 
