@@ -76,12 +76,13 @@
 - 2026-08-01：Windows Git Bash 备份目标经 `cygpath -m` 转换；真实脚本测试在隔离临时项目中恢复备份并验证完整性、v2 标记和样例数据，结果为 5 passed。
 - 2026-08-01：结果导出默认改用 `load_settings().outputs_dir`，显式覆盖顺序不变；配置/领域单测 8 passed，导出集成测试 9 passed、112 deselected。
 - 2026-08-01：按当前文档体系同步 API、数据、功能、运行、安全、风险和排障事实；ISSUE-006 路径部分关闭，剩余配置接线拆为 ISSUE-009。占位符、链接、源码一致性与文档契约测试均通过。
+- 2026-08-01：本地最终门禁通过：`npm ci`；npm audit 0 vulnerabilities；pip-audit 无已知漏洞；Python 完整套件 521 passed；Vue 22 files / 92 tests；生产构建 53 modules；Playwright 1 passed；三项文档门禁和 `git diff --check` 通过。当前仍需等待 PR 最终 SHA 的远端 CI，不能提前标记第 4 项完成。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-01 14:53（Asia/Shanghai）
+- **最后更新**：2026-08-01 15:02（Asia/Shanghai）
 - **进度**：已完成 3 / 4 项（见 § 3 勾选状态）
-- **最新 commit**：`3759d7e` — docs: 回流 ISSUE-006 v2 路径修复
-- **代码状态**：`agent/b-169-v2-paths`；代码、测试与文档回流均已提交，工作区仅包含本快照更新
-- **下一步**：运行完整本地门禁、推送 PR 并等待当前提交 CI
+- **最新 commit**：`d47e573` — docs: 更新 B-169 文档回流快照
+- **代码状态**：`agent/b-169-v2-paths`；代码、文档和本地完整门禁均已完成，工作区仅包含本快照更新
+- **下一步**：推送 ready PR，等待最终 SHA 的 GitHub Actions 全绿后完成回流
 - **续任务须知**：测试必须使用临时项目和隔离数据库；不得读取或覆盖正式 `runtime/v2/app.db`。
