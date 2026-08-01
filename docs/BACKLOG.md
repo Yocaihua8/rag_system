@@ -22,7 +22,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
-| B-170 | 文档 | 按 docs-template 扁平化重构文档体系 | doing | P1 | L | Codex | `features/README.md`、`design/architecture-overview.md` | 执行 plan：`plans/B-170-docs-template-flat-restructure.md`；仅迁移和校准文档职责，不改变 API、Schema 或运行时行为。 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题
