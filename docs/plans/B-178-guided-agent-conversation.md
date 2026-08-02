@@ -9,7 +9,7 @@
 
 ## 1. 目标
 
-替换未通过评审的 P1 横屏原型，建立面向首次使用者的引导式首页、单一当前状态、分段回答与风险分级确认；同时补齐 v3 任务首消息、运行输入快照、可重放 Agent 消息事件和固定工作流回答节点。完成后仍不创建 React 生产前端、不修改现有 Vue 页面。
+替换未通过评审的 P1 横屏原型，建立面向首次使用者的引导式首页、单一当前状态、分段回答与风险分级确认；同时补齐 v3 任务首消息、运行输入快照、可重放 Agent 消息事件和固定工作流回答节点。追加评审中恢复“工作流”标准名称，并把应用设置、项目绑定与当前任务选项的作用域分开。完成后仍不创建 React 生产前端、不修改现有 Vue 页面。
 
 ## 2. 前置条件
 
@@ -23,7 +23,7 @@
 
 - [x] 建立 B-178 BACKLOG、plan 和当日 DevLog 恢复点。
 - [x] 以测试驱动补齐任务首消息、运行输入快照、Agent 消息事件、步骤/审批事件和 `agent.respond` 执行闭环。
-- [x] 创建并验证 P1 Revision 2 引导式横屏交互原型，不覆盖旧附件。
+- [x] 创建并验证 P1 Revision 2；根据追加反馈新建 Revision 3，恢复“工作流”命名并重构设置页，不覆盖旧附件。
 - [x] 新增 ADR-016，并回流 UI、任务、runtime、API、API changes；CHANGELOG 与最终 DevLog 在关闭任务时回流。
 - [ ] 运行完整后端/集成/仓库/文档门禁，发布 Sites 生产版本并关闭 B-178。
 
@@ -33,7 +33,7 @@
 |------|------------|---------|
 | 后端 | `backend/api/v3/`、`backend/application/`、`backend/runtime/`、`backend/storage/v3/`、`backend/domain/` | 修改任务响应、运行输入和持久事件；新增安全回答节点 |
 | 测试 | `tests/backend/`、`tests/integration/`、`tests/repository/` | 新增/更新 v3 契约、执行、恢复和 OpenAPI 覆盖 |
-| 原型 | 线程可视化目录与 Sites 独立源码 | 新增 P1 Revision 2；不进入 `frontend/` 或 `frontend-v3/` |
+| 原型 | 线程可视化目录与 Sites 独立源码 | 保留 P1 Revision 2 并新增 Revision 3；不进入 `frontend/` 或 `frontend-v3/` |
 | 文档 | `docs/adr/`、`docs/design/`、`docs/features/`、`CHANGELOG.md`、`docs/devlog/` | 新增 ADR 并回流当前 alpha 事实和 P1 门禁 |
 
 ## 5. 依赖与冲突
@@ -52,10 +52,10 @@
 
 ## 6. 完成标准
 
-- [ ] 后端行为符合 `../features/agent-tasks-and-runs.md` 的任务、消息、事件和恢复规则。
-- [ ] P1 Revision 2 覆盖发送、分段回答、暂停、审批、失败、离线、恢复、取消和完成，且在 1440px、736px、320px 与 560px 高度下可用。
-- [ ] v3 定向测试、后端/集成/仓库全量测试和三项文档门禁通过。
-- [ ] ADR、API、runtime、UI、CHANGELOG 与 DevLog 已同步；P1 明确保持“等待用户确认”。
+- [x] 后端行为符合 `../features/agent-tasks-and-runs.md` 的任务、消息、事件和恢复规则。
+- [x] P1 Revision 3 覆盖发送、分段回答、暂停、审批、失败、离线、恢复、取消和完成，区分设置/任务作用域，并在 1440px、736px、320px 与 560px 高度下可用。
+- [x] v3 定向测试、后端/集成/仓库全量测试和三项文档门禁通过。
+- [x] ADR、API、runtime、UI 与 DevLog 已同步；CHANGELOG 留待关闭任务时回流，P1 明确保持“等待用户确认”。
 - [ ] Sites 生产部署成功并返回 URL。
 - [ ] BACKLOG 条目 B-178 已移除，完成事实已写入 `CHANGELOG.md` 与 Git 历史。
 
@@ -74,12 +74,13 @@
 - 2026-08-02：用户明确否决当前 P1 的对话流、信息密度和防呆表现，并批准后端合同与 P1 一并调整。
 - 当前 Vue 与 `/api/v2` 不在本任务修改范围；通用自然语言澄清仍是 P1 演示合同，不冒充 alpha 后端已实现能力。
 - 2026-08-02：Sites `list_sites` 多次在返回项目列表前发生传输错误；浏览器兜底没有可用登录态。为避免重复创建站点，未调用 `create_site`、未猜测 project ID、未声称已有生产 URL。已准备的站点源码与最终沙盒页面 SHA-256 一致，等待连接恢复后继续查询、复用、保存版本和部署。
+- 2026-08-02：用户指出 Revision 2 的设置页不符合常规使用逻辑，并要求“常用做法”恢复为“工作流”。审计确认旧页把全局设置、当前任务参数、模型连接和高风险存储操作混在同层；Revision 3 改为五分区设置、独立“任务选项”和三步存储迁移确认。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-02 16:59:27 +08:00
+- **最后更新**：2026-08-02 17:59:15 +08:00
 - **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`e583803`（v3 Agent 消息流与新手交互合同）
-- **代码状态**：`refactor/agent-v3`；后端、P1、合同文档和全部门禁已完成；Sites staging 已指向 Revision 2 且源码 hash 与验收页面一致，但尚无可信 project ID 或生产部署结果
-- **下一步**：Sites 连接恢复后先调用 `list_sites` 查询旧请求结果；存在则复用，不存在才创建一次。随后持久化真实 project ID、构建校验、推送同一 commit、保存版本并部署；成功后回流 CHANGELOG/DevLog、删除 B-178 BACKLOG/plan 并恢复 B-174
-- **续任务须知**：P1/P2 门禁继续生效；旧 P1 附件只读保留；Sites 发布前先查询是否存在旧创建结果
+- **最新已记录基线 commit**：`36e3161`（B-178 Sites 发布阻塞）
+- **代码状态**：`refactor/agent-v3`；后端合同保持已验证，P1 Revision 3 与设置/作用域文档已完成本地验收；Sites staging 已指向 Revision 3 且源码 hash 与验收页面一致，但尚无可信 project ID 或生产部署结果
+- **下一步**：等待用户确认 P1 Revision 3 的信息架构；Sites 连接恢复后先调用 `list_sites` 查询旧请求结果，存在则复用，不存在才创建一次。随后持久化真实 project ID、构建校验、推送同一 commit、保存版本并部署；成功后回流 CHANGELOG/DevLog、删除 B-178 BACKLOG/plan 并恢复 B-174
+- **续任务须知**：P1/P2 门禁继续生效；Revision 2 与更早附件只读保留；Sites 发布前先查询是否存在旧创建结果

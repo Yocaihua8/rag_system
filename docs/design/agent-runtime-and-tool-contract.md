@@ -74,7 +74,7 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 
 当前实现还补齐 `step.waiting_approval / step.failed / step.cancelled / step.recovery_required` 与 `approval.expired`。审批过期由独立周期任务检查，不依赖空闲执行槽。`artifact.created.payload.status=ready` 继续表达当前内部产物就绪；导出执行尚未实现时不得发出虚构的导出完成事件。
 
-任务消息保存长期会话事实，事件保存实时生成与运行事实，未来 React 前端 reducer 只负责去重和界面投影。完整决策见 [`ADR-016`](../adr/ADR-016-agent-message-stream.md)。P1 Revision 2 只用演示事件验证交互，不是后端联调证明。
+任务消息保存长期会话事实，事件保存实时生成与运行事实，未来 React 前端 reducer 只负责去重和界面投影。完整决策见 [`ADR-016`](../adr/ADR-016-agent-message-stream.md)。P1 Revision 3 沿用确定性演示事件验证交互，不是后端联调证明。
 
 ## 5. 工作流版本与当前开放边界
 
