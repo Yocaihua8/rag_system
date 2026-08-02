@@ -51,6 +51,7 @@ class TaskMessageRequest(StrictModel):
 class RunCreateRequest(StrictModel):
     workflow_key: Literal["project.inspect.v1"] = "project.inspect.v1"
     depth: Depth = "standard"
+    input_message_id: str = Field(min_length=1, max_length=64)
 
 
 class RunControlRequest(StrictModel):
@@ -174,11 +175,6 @@ class TaskResource(StrictModel):
     updated_at: str
 
 
-class TaskMutationData(StrictModel):
-    task: TaskResource
-    replayed: bool
-
-
 class TaskData(StrictModel):
     task: TaskResource
 
@@ -196,6 +192,12 @@ class TaskMessageResource(StrictModel):
     content: str
     metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: str
+
+
+class TaskMutationData(StrictModel):
+    task: TaskResource
+    initial_message: TaskMessageResource
+    replayed: bool
 
 
 class TaskMessageMutationData(StrictModel):
@@ -471,6 +473,10 @@ class StepLifecycleEvent(AgentEventBase):
         "step.succeeded",
         "step.queued",
         "step.retry_scheduled",
+        "step.waiting_approval",
+        "step.failed",
+        "step.cancelled",
+        "step.recovery_required",
     ]
 
 
@@ -479,6 +485,7 @@ class ApprovalLifecycleEvent(AgentEventBase):
         "approval.requested",
         "approval.approved",
         "approval.rejected",
+        "approval.expired",
     ]
 
 
@@ -490,11 +497,60 @@ class ToolLifecycleEvent(AgentEventBase):
     event_type: Literal["tool.output"]
 
 
+class AssistantMessageStartedPayload(StrictModel):
+    message_id: str
+    message_type: str
+    format: Literal["markdown", "text"]
+
+
+class AssistantMessageDeltaPayload(StrictModel):
+    message_id: str
+    chunk_index: int = Field(ge=0)
+    text: str = Field(min_length=1)
+
+
+class AssistantMessageCompletedPayload(StrictModel):
+    message_id: str
+    chunk_count: int = Field(ge=0)
+    char_count: int = Field(ge=0)
+    content_hash: str = Field(min_length=64, max_length=128)
+
+
+class AssistantMessageInterruptedPayload(StrictModel):
+    message_id: str
+    reason: str
+    recoverable: bool
+
+
+class AssistantMessageStartedEvent(AgentEventBase):
+    event_type: Literal["assistant.message.started"]
+    payload: AssistantMessageStartedPayload
+
+
+class AssistantMessageDeltaEvent(AgentEventBase):
+    event_type: Literal["assistant.message.delta"]
+    payload: AssistantMessageDeltaPayload
+
+
+class AssistantMessageCompletedEvent(AgentEventBase):
+    event_type: Literal["assistant.message.completed"]
+    payload: AssistantMessageCompletedPayload
+
+
+class AssistantMessageInterruptedEvent(AgentEventBase):
+    event_type: Literal["assistant.message.interrupted"]
+    payload: AssistantMessageInterruptedPayload
+
+
 AgentEvent = Annotated[
     RunLifecycleEvent
     | StepLifecycleEvent
     | ApprovalLifecycleEvent
     | ArtifactLifecycleEvent
-    | ToolLifecycleEvent,
+    | ToolLifecycleEvent
+    | AssistantMessageStartedEvent
+    | AssistantMessageDeltaEvent
+    | AssistantMessageCompletedEvent
+    | AssistantMessageInterruptedEvent,
     Field(discriminator="event_type"),
 ]

@@ -689,7 +689,22 @@ class AgentStore:
                 "updated_at": now,
             }
             connection.execute(insert(agent_tasks).values(**task))
-            response = {"task": task, "replayed": False}
+            initial_message = {
+                "id": _identifier(),
+                "task_id": task["id"],
+                "run_id": None,
+                "role": "user",
+                "message_type": "message",
+                "content": clean_prompt,
+                "metadata_json": "{}",
+                "created_at": now,
+            }
+            connection.execute(insert(agent_task_messages).values(**initial_message))
+            response = {
+                "task": task,
+                "initial_message": _public_row(initial_message),
+                "replayed": False,
+            }
             _record_idempotency(
                 connection,
                 scope=scope,
@@ -766,6 +781,15 @@ class AgentStore:
             ).mappings()
             return [_public_row(row) for row in rows]
 
+    def get_task_message(self, message_id: str) -> dict[str, Any] | None:
+        with self._database.read_connection() as connection:
+            row = connection.execute(
+                select(agent_task_messages).where(
+                    agent_task_messages.c.id == str(message_id)
+                )
+            ).mappings().first()
+            return _public_row(row) if row else None
+
     def list_tasks(
         self,
         *,
@@ -801,6 +825,7 @@ class AgentStore:
         self,
         *,
         task_id: str,
+        input_message_id: str,
         workflow_key: str,
         workflow_version: int,
         workflow_checksum: str,
@@ -813,6 +838,7 @@ class AgentStore:
         run_id: str | None = None,
     ) -> dict[str, Any]:
         clean_task_id = _required(task_id, "task_id")
+        clean_message_id = _required(input_message_id, "input_message_id")
         clean_workflow_key = _required(workflow_key, "workflow_key")
         clean_checksum = _required(workflow_checksum, "workflow_checksum")
         clean_depth = _enum(depth, "depth", set(DEPTH_VALUES))
@@ -827,6 +853,17 @@ class AgentStore:
             if replay is not None:
                 return replay
             task = _require_row(connection, agent_tasks, clean_task_id, "task")
+            input_message = _require_row(
+                connection, agent_task_messages, clean_message_id, "task message"
+            )
+            if str(input_message["task_id"]) != clean_task_id:
+                raise StateConflictError("input message does not belong to task")
+            if str(input_message["role"]) != "user":
+                raise StateConflictError("input message must have the user role")
+            frozen_message = {
+                "input_message_id": clean_message_id,
+                "input_message_hash": _sha256(str(input_message["content"])),
+            }
             if workflow_version_id:
                 _require_row(
                     connection,
@@ -862,7 +899,10 @@ class AgentStore:
             }
             connection.execute(insert(agent_runs).values(**run))
             step_rows: list[dict[str, Any]] = []
-            for item in normalized_steps:
+            for step_index, item in enumerate(normalized_steps):
+                step_input = dict(item["input"])
+                if step_index == 0:
+                    step_input.update(frozen_message)
                 step = {
                     "id": _identifier(item.get("id")),
                     "run_id": run["id"],
@@ -871,7 +911,7 @@ class AgentStore:
                     "effect_kind": item["effect_kind"],
                     "ordinal": item["ordinal"],
                     "status": item["status"],
-                    "input_json": _dump_json(item["input"]),
+                    "input_json": _dump_json(step_input),
                     "output_json": "{}",
                     "error_json": "{}",
                     "attempt_count": 0,
@@ -898,6 +938,8 @@ class AgentStore:
                     "status": "queued",
                     "workflow_key": clean_workflow_key,
                     "workflow_version": clean_version,
+                    "input_message_id": clean_message_id,
+                    "input_message_hash": frozen_message["input_message_hash"],
                 },
                 now=now,
             )
@@ -1490,6 +1532,33 @@ class AgentStore:
                     updated_at=now_value,
                 )
             )
+            events: list[dict[str, Any]] = []
+            if step is not None:
+                events.extend(
+                    _interrupt_open_assistant_messages(
+                        connection,
+                        task_id=str(run["task_id"]),
+                        run_id=clean_run_id,
+                        step_id=str(step["id"]),
+                        reason=clean_error_code,
+                        recoverable=bool(retryable),
+                        now=now_value,
+                    )
+                )
+                events.append(
+                    _append_event(
+                        connection,
+                        run_id=clean_run_id,
+                        step_id=str(step["id"]),
+                        event_type="step.failed",
+                        payload={
+                            "step_key": step["step_key"],
+                            "error_code": clean_error_code,
+                            "error_message": str(error_message),
+                        },
+                        now=now_value,
+                    )
+                )
             event = _append_event(
                 connection,
                 run_id=clean_run_id,
@@ -1502,10 +1571,12 @@ class AgentStore:
                 },
                 now=now_value,
             )
+            events.append(event)
             current = _require_row(connection, agent_runs, clean_run_id, "run")
             return {
                 "run": _public_row(current),
                 "event": event,
+                "events": events,
                 "retry_scheduled": False,
             }
 
@@ -1529,6 +1600,7 @@ class AgentStore:
                 ).mappings()
             )
             for run in rows:
+                events: list[dict[str, Any]] = []
                 step = connection.execute(
                     select(agent_steps)
                     .where(
@@ -1602,6 +1674,24 @@ class AgentStore:
                         updated_at=now_value,
                     )
                 )
+                if step is not None:
+                    events.append(
+                        _append_event(
+                            connection,
+                            run_id=str(run["id"]),
+                            step_id=str(step["id"]),
+                            event_type=(
+                                "step.recovery_required"
+                                if write_effect
+                                else "step.queued"
+                            ),
+                            payload={
+                                "step_key": step["step_key"],
+                                "reason": "lease_expired",
+                            },
+                            now=now_value,
+                        )
+                    )
                 event = _append_event(
                     connection,
                     run_id=str(run["id"]),
@@ -1613,6 +1703,7 @@ class AgentStore:
                     },
                     now=now_value,
                 )
+                events.append(event)
                 recovered.append(
                     {
                         "run_id": str(run["id"]),
@@ -1620,6 +1711,7 @@ class AgentStore:
                         "status": run_status,
                         "step_status": step_status if step else None,
                         "event": event,
+                        "events": events,
                     }
                 )
         return recovered
@@ -1815,6 +1907,7 @@ class AgentStore:
                 return replay
             run = _require_row(connection, agent_runs, clean_run_id, "run")
             _require_version(run, expected_version, "run")
+            transition_events: list[dict[str, Any]] = []
             if action == "pause":
                 if run["status"] not in {"queued", "running"}:
                     raise StateConflictError("only queued or running runs can be paused")
@@ -1841,6 +1934,27 @@ class AgentStore:
                             status=new_step_status,
                             version=agent_steps.c.version + 1,
                             updated_at=now,
+                        )
+                    )
+                    transition_events.append(
+                        _append_event(
+                            connection,
+                            run_id=clean_run_id,
+                            step_id=str(active_step["id"]),
+                            event_type=(
+                                "step.recovery_required"
+                                if write_effect
+                                else "step.queued"
+                            ),
+                            payload={
+                                "step_key": active_step["step_key"],
+                                "reason": (
+                                    "pause_requested_during_write"
+                                    if write_effect
+                                    else "run_paused"
+                                ),
+                            },
+                            now=now,
                         )
                     )
                 event_type = "run.recovery_required" if write_effect else "run.paused"
@@ -1879,6 +1993,38 @@ class AgentStore:
                     "version": agent_runs.c.version + 1,
                     "updated_at": now,
                 }
+                cancelled_steps = list(
+                    connection.execute(
+                        select(agent_steps)
+                        .where(
+                            agent_steps.c.run_id == clean_run_id,
+                            agent_steps.c.status.not_in(TERMINAL_STEP_STATUSES),
+                        )
+                        .order_by(agent_steps.c.ordinal, agent_steps.c.id)
+                    ).mappings()
+                )
+                pending_approvals = list(
+                    connection.execute(
+                        select(agent_approvals)
+                        .where(
+                            agent_approvals.c.run_id == clean_run_id,
+                            agent_approvals.c.status == "pending",
+                        )
+                        .order_by(agent_approvals.c.created_at, agent_approvals.c.id)
+                    ).mappings()
+                )
+                for cancelled_step in cancelled_steps:
+                    transition_events.extend(
+                        _interrupt_open_assistant_messages(
+                            connection,
+                            task_id=str(run["task_id"]),
+                            run_id=clean_run_id,
+                            step_id=str(cancelled_step["id"]),
+                            reason="run_cancelled",
+                            recoverable=False,
+                            now=now,
+                        )
+                    )
                 connection.execute(
                     update(agent_steps)
                     .where(
@@ -1906,6 +2052,35 @@ class AgentStore:
                         version=agent_approvals.c.version + 1,
                     )
                 )
+                for cancelled_step in cancelled_steps:
+                    transition_events.append(
+                        _append_event(
+                            connection,
+                            run_id=clean_run_id,
+                            step_id=str(cancelled_step["id"]),
+                            event_type="step.cancelled",
+                            payload={
+                                "step_key": cancelled_step["step_key"],
+                                "reason": "run_cancelled",
+                            },
+                            now=now,
+                        )
+                    )
+                for approval in pending_approvals:
+                    transition_events.append(
+                        _append_event(
+                            connection,
+                            run_id=clean_run_id,
+                            step_id=str(approval["step_id"]),
+                            event_type="approval.rejected",
+                            payload={
+                                "approval_id": approval["id"],
+                                "decided_by": "system",
+                                "reason": "run_cancelled",
+                            },
+                            now=now,
+                        )
+                    )
             else:
                 raise ValueError(f"unsupported run action: {action}")
             connection.execute(
@@ -1943,8 +2118,14 @@ class AgentStore:
                 payload={"action": action, "previous_status": run["status"]},
                 now=now,
             )
+            transition_events.append(event)
             current = _require_row(connection, agent_runs, clean_run_id, "run")
-            response = {"run": _public_row(current), "event": event, "replayed": False}
+            response = {
+                "run": _public_row(current),
+                "event": event,
+                "events": transition_events,
+                "replayed": False,
+            }
             _record_idempotency(
                 connection,
                 scope=scope,
@@ -1980,6 +2161,280 @@ class AgentStore:
                 payload=payload or {},
                 now=now,
             )
+
+    def append_assistant_message_event(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        message_id: str,
+        event_type: str,
+        payload: Mapping[str, Any],
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        """Persist one replayable assistant started/delta event idempotently."""
+
+        clean_task_id = _required(task_id, "task_id")
+        clean_run_id = _required(run_id, "run_id")
+        clean_step_id = _required(step_id, "step_id")
+        clean_message_id = _required(message_id, "message_id")
+        clean_event_type = _enum(
+            event_type,
+            "event_type",
+            {"assistant.message.started", "assistant.message.delta"},
+        )
+        clean_payload = dict(payload)
+        if str(clean_payload.get("message_id", "")) != clean_message_id:
+            raise StateConflictError("assistant event message id changed")
+        scope = f"assistant.message.event:{clean_run_id}:{clean_message_id}"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(
+                connection, scope, idempotency_key, request_hash
+            )
+            if replay is not None:
+                return replay
+            run, step = _require_message_context(
+                connection,
+                task_id=clean_task_id,
+                run_id=clean_run_id,
+                step_id=clean_step_id,
+            )
+            if run["status"] != "running" or step["status"] != "running":
+                raise StateConflictError("assistant message step is not running")
+            event = _append_event(
+                connection,
+                run_id=clean_run_id,
+                step_id=clean_step_id,
+                event_type=clean_event_type,
+                payload=clean_payload,
+                now=now,
+            )
+            response = {"event": event, "replayed": False}
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="assistant_message_event",
+                response_id=event["id"],
+                response=response,
+                now=now,
+            )
+            return response
+
+    def finalize_assistant_message(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        message_id: str,
+        content: str,
+        chunk_count: int,
+        idempotency_key: str,
+        request_hash: str,
+        message_type: str = "answer",
+        format: str = "markdown",
+        interrupted_reason: str | None = None,
+        recoverable: bool = False,
+        worker_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Atomically save the canonical message and its terminal lifecycle event."""
+
+        clean_task_id = _required(task_id, "task_id")
+        clean_run_id = _required(run_id, "run_id")
+        clean_step_id = _required(step_id, "step_id")
+        clean_message_id = _required(message_id, "message_id")
+        clean_type = _required(message_type, "message_type")
+        clean_format = _enum(format, "format", {"markdown", "text"})
+        clean_chunk_count = max(0, int(chunk_count))
+        clean_content = str(content)
+        content_hash = _sha256(clean_content)
+        interrupted = interrupted_reason is not None
+        scope = f"assistant.message.finalize:{clean_run_id}:{clean_message_id}"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(
+                connection, scope, idempotency_key, request_hash
+            )
+            if replay is not None:
+                return replay
+            run, step = _require_message_context(
+                connection,
+                task_id=clean_task_id,
+                run_id=clean_run_id,
+                step_id=clean_step_id,
+            )
+            if run["status"] != "running" or step["status"] != "running":
+                raise StateConflictError("assistant message step is not running")
+            if worker_id is not None:
+                run = _require_worker_lease(
+                    connection, clean_run_id, _required(worker_id, "worker_id"), now
+                )
+            existing = connection.execute(
+                select(agent_task_messages).where(
+                    agent_task_messages.c.id == clean_message_id
+                )
+            ).mappings().first()
+            if existing is not None:
+                raise StateConflictError("assistant message already exists")
+            metadata = {
+                "format": clean_format,
+                "chunk_count": clean_chunk_count,
+                "content_hash": content_hash,
+                "complete": not interrupted,
+            }
+            message = {
+                "id": clean_message_id,
+                "task_id": clean_task_id,
+                "run_id": clean_run_id,
+                "role": "agent",
+                "message_type": clean_type,
+                "content": clean_content,
+                "metadata_json": _dump_json(metadata),
+                "created_at": now,
+            }
+            connection.execute(insert(agent_task_messages).values(**message))
+            if interrupted:
+                event_type = "assistant.message.interrupted"
+                event_payload = {
+                    "message_id": clean_message_id,
+                    "reason": str(interrupted_reason),
+                    "recoverable": bool(recoverable),
+                }
+            else:
+                event_type = "assistant.message.completed"
+                event_payload = {
+                    "message_id": clean_message_id,
+                    "chunk_count": clean_chunk_count,
+                    "char_count": len(clean_content),
+                    "content_hash": content_hash,
+                }
+            event = _append_event(
+                connection,
+                run_id=clean_run_id,
+                step_id=clean_step_id,
+                event_type=event_type,
+                payload=event_payload,
+                now=now,
+            )
+            events = [event]
+            step_completed = False
+            if worker_id is not None and not interrupted:
+                next_step = connection.execute(
+                    select(agent_steps.c.id)
+                    .where(
+                        agent_steps.c.run_id == clean_run_id,
+                        agent_steps.c.id != clean_step_id,
+                        agent_steps.c.status.in_(("pending", "queued", "running")),
+                    )
+                    .limit(1)
+                ).scalar_one_or_none()
+                if next_step is not None:
+                    raise StateConflictError(
+                        "assistant response must be the terminal workflow step"
+                    )
+                output = {
+                    "message_id": clean_message_id,
+                    "chunk_count": clean_chunk_count,
+                    "content_hash": content_hash,
+                }
+                output_json = _dump_json(output)
+                connection.execute(
+                    update(agent_steps)
+                    .where(
+                        agent_steps.c.id == clean_step_id,
+                        agent_steps.c.version == step["version"],
+                    )
+                    .values(
+                        status="succeeded",
+                        output_json=output_json,
+                        error_json="{}",
+                        finished_at=now,
+                        version=agent_steps.c.version + 1,
+                        updated_at=now,
+                    )
+                )
+                connection.execute(
+                    update(agent_step_attempts)
+                    .where(
+                        agent_step_attempts.c.step_id == clean_step_id,
+                        agent_step_attempts.c.attempt_no == step["attempt_count"],
+                        agent_step_attempts.c.status == "running",
+                    )
+                    .values(
+                        status="succeeded",
+                        output_json=output_json,
+                        lease_expires_at=None,
+                        finished_at=now,
+                    )
+                )
+                connection.execute(
+                    update(agent_runs)
+                    .where(
+                        agent_runs.c.id == clean_run_id,
+                        agent_runs.c.version == run["version"],
+                    )
+                    .values(
+                        status="completed",
+                        result_json=output_json,
+                        finished_at=now,
+                        lease_owner="",
+                        lease_expires_at=None,
+                        version=agent_runs.c.version + 1,
+                        updated_at=now,
+                    )
+                )
+                connection.execute(
+                    update(agent_tasks)
+                    .where(agent_tasks.c.id == clean_task_id)
+                    .values(
+                        status="completed",
+                        version=agent_tasks.c.version + 1,
+                        updated_at=now,
+                    )
+                )
+                events.append(
+                    _append_event(
+                        connection,
+                        run_id=clean_run_id,
+                        step_id=clean_step_id,
+                        event_type="step.succeeded",
+                        payload={"step_key": step["step_key"], "output": output},
+                        now=now,
+                    )
+                )
+                events.append(
+                    _append_event(
+                        connection,
+                        run_id=clean_run_id,
+                        event_type="run.completed",
+                        payload={"result": output},
+                        now=now,
+                    )
+                )
+                step_completed = True
+            response = {
+                "message": _public_row(message),
+                "event": event,
+                "events": events,
+                "step_completed": step_completed,
+                "replayed": False,
+            }
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="task_message",
+                response_id=clean_message_id,
+                response=response,
+                now=now,
+            )
+            return response
 
     def list_events(
         self,
@@ -2099,6 +2554,17 @@ class AgentStore:
                     finished_at=now,
                 )
             )
+            step_event = _append_event(
+                connection,
+                run_id=clean_run_id,
+                step_id=clean_step_id,
+                event_type="step.waiting_approval",
+                payload={
+                    "step_key": step["step_key"],
+                    "approval_id": approval["id"],
+                },
+                now=now,
+            )
             event = _append_event(
                 connection,
                 run_id=clean_run_id,
@@ -2115,6 +2581,7 @@ class AgentStore:
             response = {
                 "approval": _public_row(approval),
                 "event": event,
+                "events": [step_event, event],
                 "replayed": False,
             }
             _record_idempotency(
@@ -2129,6 +2596,130 @@ class AgentStore:
             )
             return response
 
+    def expire_pending_approvals(
+        self, *, now: datetime | str | None = None
+    ) -> list[dict[str, Any]]:
+        """Expire due approvals and fail closed without leaving waiting work behind."""
+
+        now_value = _timestamp(now)
+        expired_items: list[dict[str, Any]] = []
+        with self._database.transaction() as connection:
+            approvals = list(
+                connection.execute(
+                    select(agent_approvals)
+                    .where(
+                        agent_approvals.c.status == "pending",
+                        agent_approvals.c.expires_at.is_not(None),
+                        agent_approvals.c.expires_at <= now_value,
+                    )
+                    .order_by(agent_approvals.c.expires_at, agent_approvals.c.id)
+                ).mappings()
+            )
+            for approval in approvals:
+                step = _require_row(
+                    connection, agent_steps, approval["step_id"], "step"
+                )
+                run = _require_row(connection, agent_runs, approval["run_id"], "run")
+                step_changed = step["status"] == "waiting_approval"
+                run_changed = run["status"] == "waiting_approval"
+                connection.execute(
+                    update(agent_approvals)
+                    .where(
+                        agent_approvals.c.id == approval["id"],
+                        agent_approvals.c.version == approval["version"],
+                    )
+                    .values(
+                        status="expired",
+                        decided_by="system",
+                        decision_note="approval expired",
+                        resolved_at=now_value,
+                        version=agent_approvals.c.version + 1,
+                    )
+                )
+                if step_changed:
+                    connection.execute(
+                        update(agent_steps)
+                        .where(agent_steps.c.id == step["id"])
+                        .values(
+                            status="cancelled",
+                            finished_at=now_value,
+                            version=agent_steps.c.version + 1,
+                            updated_at=now_value,
+                        )
+                    )
+                if run_changed:
+                    connection.execute(
+                        update(agent_runs)
+                        .where(agent_runs.c.id == run["id"])
+                        .values(
+                            status="cancelled",
+                            finished_at=now_value,
+                            error_code="approval_expired",
+                            error_message="approval request expired",
+                            version=agent_runs.c.version + 1,
+                            updated_at=now_value,
+                        )
+                    )
+                    connection.execute(
+                        update(agent_tasks)
+                        .where(
+                            agent_tasks.c.id == approval["task_id"],
+                            agent_tasks.c.status == "waiting_approval",
+                        )
+                        .values(
+                            status="cancelled",
+                            version=agent_tasks.c.version + 1,
+                            updated_at=now_value,
+                        )
+                    )
+                events: list[dict[str, Any]] = []
+                if step_changed:
+                    events.append(
+                        _append_event(
+                            connection,
+                            run_id=str(approval["run_id"]),
+                            step_id=str(approval["step_id"]),
+                            event_type="step.cancelled",
+                            payload={
+                                "step_key": step["step_key"],
+                                "reason": "approval_expired",
+                            },
+                            now=now_value,
+                        )
+                    )
+                approval_event = _append_event(
+                    connection,
+                    run_id=str(approval["run_id"]),
+                    step_id=str(approval["step_id"]),
+                    event_type="approval.expired",
+                    payload={
+                        "approval_id": approval["id"],
+                        "reason": "deadline_reached",
+                    },
+                    now=now_value,
+                )
+                events.append(approval_event)
+                if run_changed:
+                    events.append(
+                        _append_event(
+                            connection,
+                            run_id=str(approval["run_id"]),
+                            event_type="run.cancelled",
+                            payload={
+                                "action": "approval_expired",
+                                "previous_status": run["status"],
+                            },
+                            now=now_value,
+                        )
+                    )
+                current = _require_row(
+                    connection, agent_approvals, approval["id"], "approval"
+                )
+                expired_items.append(
+                    {"approval": _public_row(current), "events": events}
+                )
+        return expired_items
+
     def resolve_approval(
         self,
         *,
@@ -2141,6 +2732,7 @@ class AgentStore:
         expected_version: int | None = None,
         decision_note: str = "",
     ) -> dict[str, Any]:
+        self.expire_pending_approvals()
         clean_approval_id = _required(approval_id, "approval_id")
         clean_decision = _enum(decision, "decision", {"approved", "rejected"})
         scope = f"approval.resolve:{clean_approval_id}"
@@ -2154,6 +2746,7 @@ class AgentStore:
             approval = _require_row(
                 connection, agent_approvals, clean_approval_id, "approval"
             )
+            step = _require_row(connection, agent_steps, approval["step_id"], "step")
             _require_version(approval, expected_version, "approval")
             if approval["status"] != "pending":
                 raise StateConflictError("approval is already resolved")
@@ -2213,6 +2806,21 @@ class AgentStore:
                     updated_at=now,
                 )
             )
+            events: list[dict[str, Any]] = []
+            if not approved:
+                events.append(
+                    _append_event(
+                        connection,
+                        run_id=str(approval["run_id"]),
+                        step_id=str(approval["step_id"]),
+                        event_type="step.cancelled",
+                        payload={
+                            "step_key": step["step_key"],
+                            "reason": "approval_rejected",
+                        },
+                        now=now,
+                    )
+                )
             event = _append_event(
                 connection,
                 run_id=str(approval["run_id"]),
@@ -2221,12 +2829,41 @@ class AgentStore:
                 payload={"approval_id": clean_approval_id, "decided_by": decided_by},
                 now=now,
             )
+            events.append(event)
+            if approved:
+                events.append(
+                    _append_event(
+                        connection,
+                        run_id=str(approval["run_id"]),
+                        step_id=str(approval["step_id"]),
+                        event_type="step.queued",
+                        payload={
+                            "step_key": step["step_key"],
+                            "reason": "approval_approved",
+                        },
+                        now=now,
+                    )
+                )
+            else:
+                events.append(
+                    _append_event(
+                        connection,
+                        run_id=str(approval["run_id"]),
+                        event_type="run.cancelled",
+                        payload={
+                            "action": "approval_rejected",
+                            "previous_status": "waiting_approval",
+                        },
+                        now=now,
+                    )
+                )
             current = _require_row(
                 connection, agent_approvals, clean_approval_id, "approval"
             )
             response = {
                 "approval": _public_row(current),
                 "event": event,
+                "events": events,
                 "replayed": False,
             }
             _record_idempotency(
@@ -2498,6 +3135,22 @@ def _require_row(
     return row
 
 
+def _require_message_context(
+    connection: Connection,
+    *,
+    task_id: str,
+    run_id: str,
+    step_id: str,
+) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+    run = _require_row(connection, agent_runs, run_id, "run")
+    step = _require_row(connection, agent_steps, step_id, "step")
+    if str(run["task_id"]) != str(task_id):
+        raise StateConflictError("run does not belong to task")
+    if str(step["run_id"]) != str(run_id):
+        raise StateConflictError("step does not belong to run")
+    return run, step
+
+
 def _require_version(
     row: Mapping[str, Any], expected_version: int | None, label: str
 ) -> None:
@@ -2653,6 +3306,100 @@ def _append_event(
     }
     connection.execute(insert(agent_events).values(**event_row))
     return _public_row(event_row)
+
+
+def _interrupt_open_assistant_messages(
+    connection: Connection,
+    *,
+    task_id: str,
+    run_id: str,
+    step_id: str,
+    reason: str,
+    recoverable: bool,
+    now: str,
+) -> list[dict[str, Any]]:
+    rows = [
+        _public_row(row)
+        for row in connection.execute(
+            select(agent_events)
+            .where(
+                agent_events.c.run_id == str(run_id),
+                agent_events.c.step_id == str(step_id),
+                agent_events.c.event_type.like("assistant.message.%"),
+            )
+            .order_by(agent_events.c.sequence)
+        ).mappings()
+    ]
+    started: dict[str, dict[str, Any]] = {}
+    chunks: dict[str, dict[int, str]] = {}
+    terminal: set[str] = set()
+    for event in rows:
+        payload = dict(event.get("payload") or {})
+        message_id = str(payload.get("message_id", ""))
+        if not message_id:
+            continue
+        if event["event_type"] == "assistant.message.started":
+            started[message_id] = payload
+        elif event["event_type"] == "assistant.message.delta":
+            chunks.setdefault(message_id, {})[int(payload.get("chunk_index", 0))] = str(
+                payload.get("text", "")
+            )
+        elif event["event_type"] in {
+            "assistant.message.completed",
+            "assistant.message.interrupted",
+        }:
+            terminal.add(message_id)
+
+    interrupted_events: list[dict[str, Any]] = []
+    for message_id, start_payload in started.items():
+        if message_id in terminal:
+            continue
+        ordered_chunks = [
+            text
+            for _, text in sorted(chunks.get(message_id, {}).items())
+            if text
+        ]
+        content = "\n\n".join(ordered_chunks)
+        content_hash = _sha256(content)
+        existing = connection.execute(
+            select(agent_task_messages.c.id).where(
+                agent_task_messages.c.id == message_id
+            )
+        ).scalar_one_or_none()
+        if existing is None:
+            message = {
+                "id": message_id,
+                "task_id": str(task_id),
+                "run_id": str(run_id),
+                "role": "agent",
+                "message_type": str(start_payload.get("message_type") or "answer"),
+                "content": content,
+                "metadata_json": _dump_json(
+                    {
+                        "format": str(start_payload.get("format") or "markdown"),
+                        "chunk_count": len(ordered_chunks),
+                        "content_hash": content_hash,
+                        "complete": False,
+                    }
+                ),
+                "created_at": now,
+            }
+            connection.execute(insert(agent_task_messages).values(**message))
+        interrupted_events.append(
+            _append_event(
+                connection,
+                run_id=str(run_id),
+                step_id=str(step_id),
+                event_type="assistant.message.interrupted",
+                payload={
+                    "message_id": message_id,
+                    "reason": str(reason),
+                    "recoverable": bool(recoverable),
+                },
+                now=now,
+            )
+        )
+    return interrupted_events
 
 
 def _require_worker_lease(

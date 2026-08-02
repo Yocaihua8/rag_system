@@ -277,6 +277,17 @@ _SAFE_NODE_DEFINITIONS = (
         ),
     ),
     NodeDefinition(
+        type_id="agent.respond",
+        label="Agent response",
+        effect=EffectKind.ANALYSIS,
+        input_ports=(_port("in", PortDataType.ARTIFACT),),
+        output_ports=(_port("out", PortDataType.RESULT),),
+        config_fields=(
+            _config("format", choices=("markdown", "text")),
+            _config("message_type"),
+        ),
+    ),
+    NodeDefinition(
         type_id="approval.request",
         label="Approval request",
         effect=EffectKind.NONE,

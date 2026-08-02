@@ -26,7 +26,7 @@ class FakeStore:
 
     def create_task(self, **kwargs: Any) -> dict[str, Any]:
         self.calls.append(("create_task", kwargs))
-        return {"task": kwargs, "replayed": False}
+        return {"task": kwargs, "initial_message": kwargs, "replayed": False}
 
     def add_task_message(self, **kwargs: Any) -> dict[str, Any]:
         self.calls.append(("add_task_message", kwargs))
@@ -158,12 +158,14 @@ def test_project_inspect_run_uses_fixed_version_checksum_and_steps():
 
     application.create_run(
         task_id="task-1",
+        input_message_id="message-1",
         workflow_key=PROJECT_INSPECT_WORKFLOW_KEY,
         depth="standard",
         idempotency_key="run-command-1",
     )
     application.create_run(
         task_id="task-1",
+        input_message_id="message-1",
         workflow_key=PROJECT_INSPECT_WORKFLOW_KEY,
         depth="standard",
         idempotency_key="run-command-2",
@@ -175,22 +177,25 @@ def test_project_inspect_run_uses_fixed_version_checksum_and_steps():
     assert len(calls) == 2
     first = calls[0]
     assert first["workflow_key"] == "project.inspect.v1"
-    assert first["workflow_version"] == PROJECT_INSPECT_WORKFLOW_VERSION == 1
+    assert first["workflow_version"] == PROJECT_INSPECT_WORKFLOW_VERSION == 2
     assert first["workflow_checksum"] == PROJECT_INSPECT_WORKFLOW_CHECKSUM
     assert first["steps"] == list(PROJECT_INSPECT_STEPS)
     assert [step["step_key"] for step in first["steps"]] == [
         "trigger",
         "inspect",
         "artifact",
+        "respond",
     ]
     assert [step["status"] for step in first["steps"]] == [
         "queued",
+        "pending",
         "pending",
         "pending",
     ]
     assert first["request_hash"] == calls[1]["request_hash"]
     expected_payload = {
         "task_id": "task-1",
+        "input_message_id": "message-1",
         "workflow_key": PROJECT_INSPECT_WORKFLOW_KEY,
         "workflow_version": PROJECT_INSPECT_WORKFLOW_VERSION,
         "workflow_checksum": PROJECT_INSPECT_WORKFLOW_CHECKSUM,
@@ -210,6 +215,7 @@ def test_create_run_rejects_non_executable_workflow_before_store_call():
     ):
         application.create_run(
             task_id="task-1",
+            input_message_id="message-1",
             workflow_key="custom.workflow.v1",
             depth="standard",
             idempotency_key="run-command",

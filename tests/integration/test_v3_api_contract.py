@@ -44,8 +44,7 @@ class FakeStore:
             raise IdempotencyConflictError(
                 "idempotency key was already used with a different request hash"
             )
-        return {
-            "task": {
+        task = {
                 "id": "task-1",
                 "project_id": kwargs["project_id"],
                 "title": kwargs["title"],
@@ -55,6 +54,18 @@ class FakeStore:
                 "version": 1,
                 "created_at": NOW,
                 "updated_at": NOW,
+            }
+        return {
+            "task": task,
+            "initial_message": {
+                "id": "message-1",
+                "task_id": "task-1",
+                "run_id": None,
+                "role": "user",
+                "message_type": "message",
+                "content": kwargs["prompt"],
+                "metadata": {},
+                "created_at": NOW,
             },
             "replayed": False,
         }
@@ -164,6 +175,16 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
     client, _ = _client()
 
     schema = client.get("/openapi.json").json()
+
+    assert schema["info"]["version"] == "3.0.0-alpha.2"
+    assert schema["paths"]["/runs/{run_id}/events"]["get"]["responses"]["200"][
+        "content"
+    ]["text/event-stream"]["schema"] == {
+        "$ref": "#/components/schemas/AgentEvent"
+    }
+    assert schema["components"]["schemas"]["AgentEvent"]["discriminator"][
+        "propertyName"
+    ] == "event_type"
 
     assert set(schema["paths"]) == {
         "/health",

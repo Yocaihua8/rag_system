@@ -69,16 +69,21 @@ def test_v3_lifespan_executes_project_inspection_and_replays_events(
             json={
                 "project_id": project_id,
                 "title": "Inspect project",
-                "message": "Inspect this project's structure",
+                "message": f"Inspect this project at {project_root} with secret-value",
             },
         )
         assert task_response.status_code == 201, task_response.text
         task_id = task_response.json()["data"]["task"]["id"]
+        input_message_id = task_response.json()["data"]["initial_message"]["id"]
 
         run_response = client.post(
             f"/api/v3/tasks/{task_id}/runs",
             headers=_headers("run-1"),
-            json={"workflow_key": "project.inspect.v1", "depth": "quick"},
+            json={
+                "workflow_key": "project.inspect.v1",
+                "depth": "quick",
+                "input_message_id": input_message_id,
+            },
         )
         assert run_response.status_code == 202, run_response.text
         run_id = run_response.json()["data"]["run"]["id"]
@@ -92,11 +97,13 @@ def test_v3_lifespan_executes_project_inspection_and_replays_events(
             "succeeded",
             "succeeded",
             "succeeded",
+            "succeeded",
         ]
         assert [step["node_type"] for step in steps] == [
             "trigger.manual",
             "project.analyze",
             "artifact.create",
+            "agent.respond",
         ]
 
         artifacts_response = client.get(
@@ -121,7 +128,17 @@ def test_v3_lifespan_executes_project_inspection_and_replays_events(
         )
         assert "event: run.queued" in event_response.text
         assert "event: run.completed" in event_response.text
+        assert "event: assistant.message.started" in event_response.text
+        assert "event: assistant.message.delta" in event_response.text
+        assert "event: assistant.message.completed" in event_response.text
         assert str(project_root.resolve()) not in event_response.text
+        assert "secret-value" not in event_response.text
+
+        messages_response = client.get(f"/api/v3/tasks/{task_id}/messages")
+        messages = messages_response.json()["data"]["items"]
+        assert [message["role"] for message in messages] == ["user", "agent"]
+        assert "项目检查已经完成" in messages[1]["content"]
+        assert str(project_root.resolve()) not in messages[1]["content"]
 
         replay_response = client.get(
             f"/api/v3/runs/{run_id}/events",

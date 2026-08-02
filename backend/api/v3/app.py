@@ -6,9 +6,12 @@ from uuid import uuid4
 from fastapi import FastAPI, Header, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
+from pydantic import TypeAdapter
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api.v3.models import (
+    AgentEvent,
     ApprovalData,
     ApprovalListData,
     ApprovalMutationData,
@@ -73,7 +76,7 @@ def create_v3_app(
 ) -> FastAPI:
     app = FastAPI(
         title="Knowledge Island Agent API",
-        version="3.0.0-alpha.1",
+        version="3.0.0-alpha.2",
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
@@ -277,6 +280,7 @@ def create_v3_app(
     ):
         result = _application(request).create_run(
             task_id=task_id,
+            input_message_id=body.input_message_id,
             workflow_key=body.workflow_key,
             depth=body.depth,
             idempotency_key=idempotency_key or "",
@@ -665,6 +669,31 @@ def create_v3_app(
             },
         )
 
+    def custom_openapi() -> dict[str, Any]:
+        if app.openapi_schema is not None:
+            return app.openapi_schema
+        schema = get_openapi(
+            title=app.title,
+            version=app.version,
+            description=app.description,
+            routes=app.routes,
+        )
+        event_schema = TypeAdapter(AgentEvent).json_schema(
+            ref_template="#/components/schemas/{model}"
+        )
+        definitions = event_schema.pop("$defs", {})
+        components = schema.setdefault("components", {}).setdefault("schemas", {})
+        components.update(definitions)
+        components["AgentEvent"] = event_schema
+        schema["paths"]["/runs/{run_id}/events"]["get"]["responses"]["200"][
+            "content"
+        ]["text/event-stream"]["schema"] = {
+            "$ref": "#/components/schemas/AgentEvent"
+        }
+        app.openapi_schema = schema
+        return schema
+
+    app.openapi = custom_openapi
     return app
 
 

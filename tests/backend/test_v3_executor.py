@@ -67,6 +67,10 @@ class FakeStore:
         self.events.append("recover")
         return []
 
+    def expire_pending_approvals(self) -> list[dict[str, Any]]:
+        self.events.append("expire-approvals")
+        return []
+
     def claim_next_run(self, **kwargs: Any) -> dict[str, Any] | None:
         with self._lock:
             self.events.append("claim")
@@ -106,7 +110,7 @@ async def test_start_recovers_before_workers_and_never_processes_more_than_two(
 
     async def process_claim(worker_id: str, claim: dict[str, Any]) -> None:
         nonlocal active, max_active
-        assert store.events[0] == "recover"
+        assert store.events[:2] == ["recover", "expire-approvals"]
         processed.append(str(claim["run_id"]))
         active += 1
         max_active = max(max_active, active)
@@ -122,9 +126,13 @@ async def test_start_recovers_before_workers_and_never_processes_more_than_two(
     await executor.start()
     with anyio.fail_after(2):
         await two_started.wait()
+    with anyio.fail_after(2):
+        while store.events.count("expire-approvals") < 2:
+            await anyio.sleep(0.01)
     assert executor.running is True
     assert len(processed) == 2
     assert max_active == 2
+    assert store.events.count("expire-approvals") >= 2
 
     release.set()
     with anyio.fail_after(2):
@@ -168,7 +176,7 @@ async def test_stop_cancels_workers_and_clears_task_group_state(
 
     with anyio.fail_after(2):
         await all_stopped.wait()
-    assert store.events == ["recover"]
+    assert store.events == ["recover", "expire-approvals"]
     assert executor.running is False
     assert executor._task_group is None
     assert executor._task_group_manager is None
@@ -237,3 +245,52 @@ async def test_fail_run_state_conflict_from_concurrent_control_is_swallowed(
     assert store.complete_calls == []
     assert len(store.fail_calls) == 1
     assert store.fail_calls[0]["error_code"] == "step_execution_failed"
+
+
+@pytest.mark.anyio
+async def test_artifact_keeps_persisted_workflow_version_for_resumed_v1_run(
+    tmp_path: Path,
+):
+    class ArtifactStore(FakeStore):
+        def __init__(self) -> None:
+            super().__init__()
+            self.artifact_payload: dict[str, Any] | None = None
+
+        def list_run_steps(self, run_id: str) -> list[dict[str, Any]]:
+            return [
+                {
+                    "node_type": "project.analyze",
+                    "status": "succeeded",
+                    "output": {"inspection": {"total_files": 1}},
+                }
+            ]
+
+        def create_artifact(self, **kwargs: Any) -> dict[str, Any]:
+            self.artifact_payload = kwargs
+            return {
+                "artifact": {
+                    "id": "artifact-v1",
+                    "artifact_type": "project_inspection",
+                    "status": "ready",
+                    "checksum": "artifact-checksum",
+                }
+            }
+
+    store = ArtifactStore()
+    executor = AgentExecutor(store, _settings(tmp_path))
+    claim = {
+        "run_id": "run-v1",
+        "task_id": "task-v1",
+        "project_id": "project-v1",
+        "run": {"workflow_version": 1},
+        "step": {
+            "id": "artifact-step-v1",
+            "node_type": "artifact.create",
+            "effect_kind": "analysis",
+        },
+    }
+
+    await executor._execute_step(claim)
+
+    assert store.artifact_payload is not None
+    assert store.artifact_payload["metadata"]["workflow_version"] == 1

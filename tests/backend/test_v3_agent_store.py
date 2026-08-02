@@ -7,7 +7,9 @@ from datetime import datetime, timedelta, timezone
 from threading import Barrier
 
 import pytest
-from sqlalchemy import inspect
+from sqlalchemy import func, inspect, select
+
+import backend.storage.v3.store as store_module
 
 from backend.storage.v3 import (
     AgentStore,
@@ -15,7 +17,7 @@ from backend.storage.v3 import (
     StateConflictError,
     V3DataGenerationMismatchError,
 )
-from backend.storage.v3.schema import ALL_TABLES
+from backend.storage.v3.schema import ALL_TABLES, agent_task_messages, agent_tasks
 
 
 @pytest.fixture
@@ -55,6 +57,7 @@ def _create_run(
     effect_kind: str = "read",
     step_count: int = 1,
 ) -> dict:
+    input_message_id = store.list_task_messages(task_id)[0]["id"]
     steps = [
         {
             "step_key": f"step-{index}",
@@ -66,6 +69,7 @@ def _create_run(
     ]
     return store.create_run_with_steps(
         task_id=task_id,
+        input_message_id=input_message_id,
         workflow_key="project.inspect",
         workflow_version=1,
         workflow_checksum=f"checksum-{suffix}",
@@ -138,16 +142,81 @@ def test_project_task_and_run_creation_are_idempotent(store):
         )
 
     project_id, task_id = _create_project_task(store, "idempotent")
+    initial_message = store.list_task_messages(task_id)[0]
     run = _create_run(store, task_id, "idempotent", step_count=2)
     replayed_run = _create_run(store, task_id, "idempotent", step_count=2)
 
     assert store.get_project(project_id)["id"] == project_id
     assert store.get_task(task_id)["status"] == "queued"
+    assert initial_message["role"] == "user"
+    assert initial_message["content"] == "Inspect this project"
     assert replayed_run["replayed"] is True
     assert replayed_run["run"]["id"] == run["run"]["id"]
     assert [event["event_type"] for event in store.list_events(run["run"]["id"])] == [
         "run.queued"
     ]
+    trigger = store.list_run_steps(run["run"]["id"])[0]
+    assert trigger["input"]["input_message_id"] == initial_message["id"]
+    assert trigger["input"]["input_message_hash"] == hashlib.sha256(
+        initial_message["content"].encode("utf-8")
+    ).hexdigest()
+    assert "input_message_content" not in trigger["input"]
+
+
+def test_task_creation_replays_same_initial_message_without_duplicate(store):
+    project = store.create_project(
+        name="Atomic task project",
+        root_path=store.db_path.parent / "atomic-task-project",
+        idempotency_key="atomic-task-project",
+        request_hash="atomic-task-project-hash",
+    )["project"]
+    kwargs = {
+        "project_id": project["id"],
+        "title": "Atomic task",
+        "prompt": "Keep one initial message",
+        "depth": "standard",
+        "idempotency_key": "atomic-task",
+        "request_hash": "atomic-task-hash",
+    }
+
+    created = store.create_task(**kwargs)
+    replayed = store.create_task(**kwargs)
+
+    assert replayed["replayed"] is True
+    assert replayed["task"]["id"] == created["task"]["id"]
+    assert replayed["initial_message"]["id"] == created["initial_message"]["id"]
+    assert len(store.list_task_messages(created["task"]["id"])) == 1
+
+
+def test_task_and_initial_message_roll_back_together_on_idempotency_failure(
+    store, monkeypatch: pytest.MonkeyPatch
+):
+    project = store.create_project(
+        name="Rollback project",
+        root_path=store.db_path.parent / "rollback-project",
+        idempotency_key="rollback-project",
+        request_hash="rollback-project-hash",
+    )["project"]
+
+    def fail_record(*args, **kwargs):
+        raise RuntimeError("idempotency write failed")
+
+    monkeypatch.setattr(store_module, "_record_idempotency", fail_record)
+    with pytest.raises(RuntimeError, match="idempotency write failed"):
+        store.create_task(
+            project_id=project["id"],
+            title="Must roll back",
+            prompt="No orphan message",
+            depth="standard",
+            idempotency_key="rollback-task",
+            request_hash="rollback-task-hash",
+        )
+
+    with store._database.read_connection() as connection:
+        assert connection.execute(select(func.count()).select_from(agent_tasks)).scalar_one() == 0
+        assert connection.execute(
+            select(func.count()).select_from(agent_task_messages)
+        ).scalar_one() == 0
 
 
 def test_claim_complete_steps_and_create_artifact(store):
@@ -193,6 +262,63 @@ def test_claim_complete_steps_and_create_artifact(store):
     assert sequences == list(range(1, len(sequences) + 1))
 
 
+def test_run_rejects_input_message_from_another_task(store):
+    _, first_task_id = _create_project_task(store, "message-owner-first")
+    _, second_task_id = _create_project_task(store, "message-owner-second")
+    foreign_message_id = store.list_task_messages(second_task_id)[0]["id"]
+
+    with pytest.raises(StateConflictError, match="does not belong to task"):
+        store.create_run_with_steps(
+            task_id=first_task_id,
+            input_message_id=foreign_message_id,
+            workflow_key="project.inspect",
+            workflow_version=1,
+            workflow_checksum="message-owner-checksum",
+            depth="standard",
+            steps=[
+                {
+                    "step_key": "trigger",
+                    "node_type": "trigger.manual",
+                    "effect_kind": "none",
+                    "input": {},
+                }
+            ],
+            idempotency_key="message-owner-run",
+            request_hash="message-owner-run-hash",
+        )
+
+
+def test_run_rejects_non_user_input_message_from_same_task(store):
+    _, task_id = _create_project_task(store, "message-role")
+    system_message = store.add_task_message(
+        task_id=task_id,
+        role="system",
+        content="internal context",
+        idempotency_key="message-role-system",
+        request_hash="message-role-system-hash",
+    )["message"]
+
+    with pytest.raises(StateConflictError, match="user role"):
+        store.create_run_with_steps(
+            task_id=task_id,
+            input_message_id=system_message["id"],
+            workflow_key="project.inspect",
+            workflow_version=1,
+            workflow_checksum="message-role-checksum",
+            depth="standard",
+            steps=[
+                {
+                    "step_key": "trigger",
+                    "node_type": "trigger.manual",
+                    "effect_kind": "none",
+                    "input": {},
+                }
+            ],
+            idempotency_key="message-role-run",
+            request_hash="message-role-run-hash",
+        )
+
+
 def test_event_payloads_redact_nested_secrets(store):
     _, task_id = _create_project_task(store, "events")
     run_id = _create_run(store, task_id, "events")["run"]["id"]
@@ -212,6 +338,379 @@ def test_event_payloads_redact_nested_secrets(store):
     }
 
 
+def test_assistant_message_events_are_replayable_and_finalize_canonical_message(store):
+    _, task_id = _create_project_task(store, "assistant-message")
+    run = _create_run(store, task_id, "assistant-message")
+    run_id = run["run"]["id"]
+    claim = store.claim_next_run(worker_id="assistant-worker", lease_seconds=30)
+    step_id = claim["step"]["id"]
+    message_id = "00000000-0000-0000-0000-000000000123"
+    started_payload = {
+        "message_id": message_id,
+        "message_type": "answer",
+        "format": "markdown",
+    }
+    started = store.append_assistant_message_event(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        event_type="assistant.message.started",
+        payload=started_payload,
+        idempotency_key="started",
+        request_hash="started-hash",
+    )
+    replay = store.append_assistant_message_event(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        event_type="assistant.message.started",
+        payload=started_payload,
+        idempotency_key="started",
+        request_hash="started-hash",
+    )
+    delta_payload = {"message_id": message_id, "chunk_index": 0, "text": "完成。"}
+    delta_result = store.append_assistant_message_event(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        event_type="assistant.message.delta",
+        payload=delta_payload,
+        idempotency_key="delta:0",
+        request_hash="delta-hash",
+    )
+    delta_replay = store.append_assistant_message_event(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        event_type="assistant.message.delta",
+        payload=delta_payload,
+        idempotency_key="delta:0",
+        request_hash="delta-hash",
+    )
+    completed = store.finalize_assistant_message(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        content="完成。",
+        chunk_count=1,
+        worker_id="assistant-worker",
+        idempotency_key="completed",
+        request_hash="completed-hash",
+    )
+    completed_replay = store.finalize_assistant_message(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        content="完成。",
+        chunk_count=1,
+        worker_id="assistant-worker",
+        idempotency_key="completed",
+        request_hash="completed-hash",
+    )
+
+    assert started["event"]["event_type"] == "assistant.message.started"
+    assert replay["replayed"] is True
+    assert delta_result["replayed"] is False
+    assert delta_replay["replayed"] is True
+    assert completed["message"]["role"] == "agent"
+    assert completed["message"]["metadata"]["complete"] is True
+    assert completed["step_completed"] is True
+    assert store.get_run(run_id)["status"] == "completed"
+    assert completed_replay["replayed"] is True
+    completed_payload = completed["event"]["payload"]
+    assert completed_payload["chunk_count"] == 1
+    assert completed_payload["char_count"] == len(completed["message"]["content"])
+    assert completed_payload["content_hash"] == completed["message"]["metadata"][
+        "content_hash"
+    ]
+    assert completed_payload["content_hash"] == hashlib.sha256(
+        completed["message"]["content"].encode("utf-8")
+    ).hexdigest()
+    assert [message["role"] for message in store.list_task_messages(task_id)] == [
+        "user",
+        "agent",
+    ]
+    assert [event["event_type"] for event in store.list_events(run_id)] == [
+        "run.queued",
+        "run.started",
+        "step.started",
+        "assistant.message.started",
+        "assistant.message.delta",
+        "assistant.message.completed",
+        "step.succeeded",
+        "run.completed",
+    ]
+
+
+def test_cancel_interrupts_partial_assistant_message_and_blocks_completion(store):
+    _, task_id = _create_project_task(store, "assistant-cancel")
+    run = _create_run(store, task_id, "assistant-cancel")
+    run_id = run["run"]["id"]
+    claim = store.claim_next_run(worker_id="cancel-worker", lease_seconds=30)
+    step_id = claim["step"]["id"]
+    message_id = "00000000-0000-0000-0000-000000000124"
+    started = {
+        "message_id": message_id,
+        "message_type": "answer",
+        "format": "markdown",
+    }
+    delta = {"message_id": message_id, "chunk_index": 0, "text": "部分结果。"}
+    store.append_assistant_message_event(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        event_type="assistant.message.started",
+        payload=started,
+        idempotency_key="started",
+        request_hash="started-hash",
+    )
+    store.append_assistant_message_event(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        event_type="assistant.message.delta",
+        payload=delta,
+        idempotency_key="delta:0",
+        request_hash="delta-hash",
+    )
+
+    cancelled = store.cancel_run(
+        run_id=run_id,
+        expected_version=store.get_run(run_id)["version"],
+        idempotency_key="cancel",
+        request_hash="cancel-hash",
+    )
+
+    with pytest.raises(StateConflictError, match="not running"):
+        store.finalize_assistant_message(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            content="部分结果。",
+            chunk_count=1,
+            worker_id="cancel-worker",
+            idempotency_key="completed",
+            request_hash="completed-hash",
+        )
+    message = store.list_task_messages(task_id)[1]
+    assert message["content"] == "部分结果。"
+    assert message["metadata"]["complete"] is False
+    assert [event["event_type"] for event in cancelled["events"]] == [
+        "assistant.message.interrupted",
+        "step.cancelled",
+        "run.cancelled",
+    ]
+    assert "assistant.message.completed" not in {
+        event["event_type"] for event in store.list_events(run_id)
+    }
+
+
+def test_final_failure_interrupts_partial_assistant_message(store):
+    _, task_id = _create_project_task(store, "assistant-fail")
+    run_id = _create_run(store, task_id, "assistant-fail")["run"]["id"]
+    claim = store.claim_next_run(worker_id="fail-worker", lease_seconds=30)
+    step_id = claim["step"]["id"]
+    message_id = "00000000-0000-0000-0000-000000000125"
+    for key, event_type, payload in (
+        (
+            "started",
+            "assistant.message.started",
+            {"message_id": message_id, "message_type": "answer", "format": "markdown"},
+        ),
+        (
+            "delta:0",
+            "assistant.message.delta",
+            {"message_id": message_id, "chunk_index": 0, "text": "未完成。"},
+        ),
+    ):
+        store.append_assistant_message_event(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            event_type=event_type,
+            payload=payload,
+            idempotency_key=key,
+            request_hash=f"{key}-hash",
+        )
+
+    failed = store.fail_run(
+        run_id=run_id,
+        worker_id="fail-worker",
+        error_code="response_failed",
+        error_message="response generation stopped",
+        retryable=False,
+    )
+
+    assert [event["event_type"] for event in failed["events"]] == [
+        "assistant.message.interrupted",
+        "step.failed",
+        "run.failed",
+    ]
+    assert store.list_task_messages(task_id)[1]["metadata"]["complete"] is False
+
+
+def test_paused_assistant_message_resumes_without_duplicate_chunks(store):
+    _, task_id = _create_project_task(store, "assistant-resume")
+    run_id = _create_run(store, task_id, "assistant-resume")["run"]["id"]
+    first_claim = store.claim_next_run(worker_id="resume-worker-1", lease_seconds=30)
+    step_id = first_claim["step"]["id"]
+    message_id = "00000000-0000-0000-0000-000000000126"
+    started = {"message_id": message_id, "message_type": "answer", "format": "markdown"}
+    delta = {"message_id": message_id, "chunk_index": 0, "text": "可恢复。"}
+    for key, event_type, payload in (
+        ("started", "assistant.message.started", started),
+        ("delta:0", "assistant.message.delta", delta),
+    ):
+        store.append_assistant_message_event(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            event_type=event_type,
+            payload=payload,
+            idempotency_key=key,
+            request_hash=f"{key}-hash",
+        )
+    paused = store.pause_run(
+        run_id=run_id,
+        expected_version=store.get_run(run_id)["version"],
+        idempotency_key="pause",
+        request_hash="pause-hash",
+    )
+    with pytest.raises(StateConflictError, match="not running"):
+        store.finalize_assistant_message(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            content="可恢复。",
+            chunk_count=1,
+            worker_id="resume-worker-1",
+            idempotency_key="completed",
+            request_hash="completed-hash",
+        )
+    store.resume_run(
+        run_id=run_id,
+        expected_version=paused["run"]["version"],
+        idempotency_key="resume",
+        request_hash="resume-hash",
+    )
+    second_claim = store.claim_next_run(
+        worker_id="resume-worker-2", lease_seconds=30
+    )
+    assert second_claim["step"]["id"] == step_id
+    for key, event_type, payload in (
+        ("started", "assistant.message.started", started),
+        ("delta:0", "assistant.message.delta", delta),
+    ):
+        assert store.append_assistant_message_event(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            event_type=event_type,
+            payload=payload,
+            idempotency_key=key,
+            request_hash=f"{key}-hash",
+        )["replayed"] is True
+    store.finalize_assistant_message(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        content="可恢复。",
+        chunk_count=1,
+        worker_id="resume-worker-2",
+        idempotency_key="completed",
+        request_hash="completed-hash",
+    )
+
+    types = [event["event_type"] for event in store.list_events(run_id)]
+    assert types.count("assistant.message.started") == 1
+    assert types.count("assistant.message.delta") == 1
+    assert types.count("assistant.message.completed") == 1
+
+
+def test_expired_lease_resumes_open_assistant_message_without_duplicates(store):
+    started_at = datetime(2026, 8, 2, 1, 0, tzinfo=timezone.utc)
+    _, task_id = _create_project_task(store, "assistant-lease-resume")
+    run_id = _create_run(store, task_id, "assistant-lease-resume")["run"]["id"]
+    first_claim = store.claim_next_run(
+        worker_id="lease-worker-1", lease_seconds=5, now=started_at
+    )
+    step_id = first_claim["step"]["id"]
+    message_id = "00000000-0000-0000-0000-000000000127"
+    started = {"message_id": message_id, "message_type": "answer", "format": "markdown"}
+    delta = {"message_id": message_id, "chunk_index": 0, "text": "租约恢复。"}
+    for key, event_type, payload in (
+        ("started", "assistant.message.started", started),
+        ("delta:0", "assistant.message.delta", delta),
+    ):
+        store.append_assistant_message_event(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            event_type=event_type,
+            payload=payload,
+            idempotency_key=key,
+            request_hash=f"{key}-hash",
+        )
+
+    recovered = store.recover_expired_runs(
+        now=started_at + timedelta(seconds=6)
+    )
+    assert recovered[0]["status"] == "queued"
+    second_claim = store.claim_next_run(
+        worker_id="lease-worker-2", lease_seconds=30
+    )
+    assert second_claim["step"]["id"] == step_id
+    for key, event_type, payload in (
+        ("started", "assistant.message.started", started),
+        ("delta:0", "assistant.message.delta", delta),
+    ):
+        assert store.append_assistant_message_event(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            message_id=message_id,
+            event_type=event_type,
+            payload=payload,
+            idempotency_key=key,
+            request_hash=f"{key}-hash",
+        )["replayed"] is True
+    store.finalize_assistant_message(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=step_id,
+        message_id=message_id,
+        content="租约恢复。",
+        chunk_count=1,
+        worker_id="lease-worker-2",
+        idempotency_key="completed",
+        request_hash="completed-hash",
+    )
+
+    types = [event["event_type"] for event in store.list_events(run_id)]
+    assert types.count("assistant.message.started") == 1
+    assert types.count("assistant.message.delta") == 1
+    assert types.count("assistant.message.completed") == 1
+    assert [message["role"] for message in store.list_task_messages(task_id)] == [
+        "user",
+        "agent",
+    ]
+
+
 def test_expired_read_is_requeued_but_write_requires_manual_recovery(store):
     start = datetime(2026, 8, 2, 1, 0, tzinfo=timezone.utc)
     expired = start + timedelta(seconds=6)
@@ -225,6 +724,10 @@ def test_expired_read_is_requeued_but_write_requires_manual_recovery(store):
     assert recovered_read[0]["status"] == "queued"
     assert store.get_task(read_task)["status"] == "queued"
     assert store.list_run_steps(read_run["run"]["id"])[0]["status"] == "queued"
+    assert [event["event_type"] for event in recovered_read[0]["events"]] == [
+        "step.queued",
+        "run.requeued",
+    ]
     store.cancel_run(
         run_id=read_run["run"]["id"],
         idempotency_key="cancel-recovered-read",
@@ -243,6 +746,10 @@ def test_expired_read_is_requeued_but_write_requires_manual_recovery(store):
     assert recovered_write[0]["status"] == "recovering"
     assert store.get_task(write_task)["status"] == "paused"
     assert store.list_run_steps(write_run["run"]["id"])[0]["status"] == "recovery_required"
+    assert [event["event_type"] for event in recovered_write[0]["events"]] == [
+        "step.recovery_required",
+        "run.recovery_required",
+    ]
 
 
 def test_approval_resolution_checks_snapshot_and_requeues_approved_step(store):
@@ -264,6 +771,10 @@ def test_approval_resolution_checks_snapshot_and_requeues_approved_step(store):
         idempotency_request_hash="approval-request-hash",
     )
     approval = requested["approval"]
+    assert [event["event_type"] for event in requested["events"]] == [
+        "step.waiting_approval",
+        "approval.requested",
+    ]
 
     with pytest.raises(StateConflictError, match="request hash"):
         store.resolve_approval(
@@ -291,6 +802,48 @@ def test_approval_resolution_checks_snapshot_and_requeues_approved_step(store):
     assert store.get_run(run_id)["status"] == "queued"
     assert store.get_task(task_id)["status"] == "queued"
     assert store.list_run_steps(run_id)[0]["status"] == "queued"
+    assert [event["event_type"] for event in resolved["events"]] == [
+        "approval.approved",
+        "step.queued",
+    ]
+
+
+def test_expired_approval_cancels_waiting_work_and_emits_ordered_events(store):
+    started_at = datetime(2026, 8, 2, 1, 0, tzinfo=timezone.utc)
+    _, task_id = _create_project_task(store, "approval-expiry")
+    run_id = _create_run(
+        store, task_id, "approval-expiry", effect_kind="external_write"
+    )["run"]["id"]
+    claim = store.claim_next_run(
+        worker_id="worker-approval-expiry", lease_seconds=30, now=started_at
+    )
+    requested = store.request_approval(
+        task_id=task_id,
+        run_id=run_id,
+        step_id=claim["step"]["id"],
+        action_type="artifact.export",
+        target="project_exports",
+        payload={"name": "report.md"},
+        request_hash="approval-expiry-snapshot",
+        expires_at=started_at + timedelta(seconds=5),
+        idempotency_key="approval-expiry-request",
+        idempotency_request_hash="approval-expiry-request-hash",
+    )
+
+    expired = store.expire_pending_approvals(
+        now=started_at + timedelta(seconds=6)
+    )
+
+    assert expired[0]["approval"]["id"] == requested["approval"]["id"]
+    assert expired[0]["approval"]["status"] == "expired"
+    assert store.get_run(run_id)["status"] == "cancelled"
+    assert store.get_task(task_id)["status"] == "cancelled"
+    assert store.list_run_steps(run_id)[0]["status"] == "cancelled"
+    assert [event["event_type"] for event in expired[0]["events"]] == [
+        "step.cancelled",
+        "approval.expired",
+        "run.cancelled",
+    ]
 
 
 def test_run_controls_enforce_expected_version_and_idempotency(store):
@@ -428,6 +981,7 @@ def test_claim_serializes_write_steps_per_project_but_not_across_projects(store)
     ) -> dict:
         return store.create_run_with_steps(
             task_id=task_id,
+            input_message_id=store.list_task_messages(task_id)[0]["id"],
             workflow_key="write.test",
             workflow_version=1,
             workflow_checksum=f"write-checksum-{suffix}",

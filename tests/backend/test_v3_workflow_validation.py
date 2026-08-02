@@ -100,6 +100,7 @@ def test_safe_node_registry_is_allowlist_only_and_has_typed_effects():
     assert set(SAFE_NODE_REGISTRY) == {
         "trigger.manual",
         "agent.plan",
+        "agent.respond",
         "source.search",
         "source.read",
         "project.analyze",

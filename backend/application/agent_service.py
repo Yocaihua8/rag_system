@@ -17,7 +17,7 @@ from backend.storage.v3.errors import RecordNotFoundError
 
 
 PROJECT_INSPECT_WORKFLOW_KEY = "project.inspect.v1"
-PROJECT_INSPECT_WORKFLOW_VERSION = 1
+PROJECT_INSPECT_WORKFLOW_VERSION = 2
 PROJECT_INSPECT_STEPS: tuple[dict[str, Any], ...] = (
     {
         "step_key": "trigger",
@@ -45,6 +45,15 @@ PROJECT_INSPECT_STEPS: tuple[dict[str, Any], ...] = (
         "status": "pending",
         "input": {"artifact_type": "project_inspection", "format": "json"},
         "max_attempts": 1,
+    },
+    {
+        "step_key": "respond",
+        "node_type": "agent.respond",
+        "effect_kind": "analysis",
+        "ordinal": 3,
+        "status": "pending",
+        "input": {"format": "markdown", "message_type": "answer"},
+        "max_attempts": 3,
     },
 )
 PROJECT_INSPECT_WORKFLOW_CHECKSUM = hashlib.sha256(
@@ -152,6 +161,7 @@ class AgentApplication:
         self,
         *,
         task_id: str,
+        input_message_id: str,
         workflow_key: str,
         depth: str,
         idempotency_key: str,
@@ -163,6 +173,7 @@ class AgentApplication:
             raise ApplicationValidationError("workflow exceeds the selected depth limit")
         payload = {
             "task_id": task_id,
+            "input_message_id": input_message_id,
             "workflow_key": workflow_key,
             "workflow_version": PROJECT_INSPECT_WORKFLOW_VERSION,
             "workflow_checksum": PROJECT_INSPECT_WORKFLOW_CHECKSUM,
