@@ -38,6 +38,10 @@ def test_canonical_flat_document_entry_points_exist():
         "docs/features/README.md",
         "docs/adr/README.md",
         "docs/guides/README.md",
+        "docs/devlog/README.md",
+        "docs/devlog/devlog-template.md",
+        "docs/devlog/postmortem-template.md",
+        "docs/devlog/2026/08/2026-08-02.md",
         "docs/plans/README.md",
     ):
         assert (ROOT / relative).is_file(), f"missing current document: {relative}"
@@ -129,13 +133,14 @@ def test_runtime_separation_adr_records_ports_cors_and_supersession():
     assert "取代" in adr_006
 
 
-def test_active_docs_do_not_recreate_history_or_template_state():
+def test_active_docs_keep_daily_devlog_without_recreating_removed_history_trees():
     for relative in (
         ".docs-template",
-        "docs/devlog",
         "docs/release",
         "docs/previews",
         "docs/superpowers",
     ):
         assert not (ROOT / relative).exists()
+    assert (ROOT / "docs/devlog/README.md").is_file()
+    assert (ROOT / "docs/devlog/2026/08/2026-08-02.md").is_file()
     assert "v2.0.0" in _read("CHANGELOG.md")

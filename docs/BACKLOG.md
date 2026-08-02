@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-02
 > Related：`features/README.md`、`design/architecture-overview.md`、`plans/README.md`
 
 本文件只保存未完成、待验证、待决策或明确不处理的事项。完成并验证后删除对应条目，把对使用者/维护者有意义的事实写入 `CHANGELOG.md`；完整过程由 Git 历史保存。
@@ -22,6 +22,7 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
+| B-172 | refactor/docs | v3 通用项目 Agent 产品与工程治理基线 | doing | P0 | L | Codex | `plans/B-172-agent-v3-foundation.md` | 冻结 v3 产品边界、技术决策、原型门禁、文档迁移和 DevLog 规则；不修改现有 Vue 页面。 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题

@@ -1,6 +1,6 @@
 # Knowledge Island
 
-Knowledge Island 是面向个人开发学习的本地项目知识教练。它把项目代码、文档和笔记转化为可检索资料，通过有来源的问答、项目知识分析、覆盖评估、逐知识点学习、学习计划和受控 Obsidian 发布，帮助用户理解当前项目。
+Knowledge Island 当前是面向个人开发学习的本地项目知识教练，并正在按已批准规格重构为桌面优先、本地优先的通用项目 Agent。现有 v2 仍是可运行基线；v3 目标能力只有在对应代码和测试完成后才视为可用。
 
 当前正式版本为 `v2.0.0`。Vue 前端、FastAPI 后端和 Tauri 桌面壳拥有独立依赖与构建边界；Obsidian Bridge 继续作为独立 desktop-only 插件维护。
 
@@ -109,6 +109,7 @@ npm --prefix integrations/obsidian-plugin run build
     ├── features/            # 逐项用户功能规格
     ├── adr/                 # Accepted 架构决策
     ├── guides/              # 搭建、测试、运行、发布和协作
+    ├── devlog/              # 按年月组织的开发过程日志
     └── plans/               # 执行中 plan 与模板
 ```
 
@@ -123,8 +124,9 @@ npm --prefix integrations/obsidian-plugin run build
 - [`docs/adr/`](docs/adr/)：Accepted 架构决策
 - [`docs/guides/`](docs/guides/)：搭建、测试、运行、发布、安全和协作
 - [`docs/plans/`](docs/plans/)：执行中 plan 与模板，任务完成后删除活动 plan
+- [`docs/devlog/`](docs/devlog/)：每日过程、问题、决定和下一步
 - [`docs/BACKLOG.md`](docs/BACKLOG.md)：仅保存未完成事项
 
-已完成事实进入 [`CHANGELOG.md`](CHANGELOG.md) 和 Git 历史，不再建立 DevLog、readiness 快照或已验收 preview。
+过程事实进入每日 DevLog；已完成且对使用者/维护者有意义的事实进入 [`CHANGELOG.md`](CHANGELOG.md) 和 Git 历史。继续禁止 readiness 快照、已验收 preview 和完成 plan 归档。
 
 贡献前请阅读 [`CONTRIBUTING.md`](CONTRIBUTING.md)、[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)、[`SECURITY.md`](SECURITY.md) 和 [`AGENTS.md`](AGENTS.md)。

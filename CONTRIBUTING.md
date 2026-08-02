@@ -111,9 +111,10 @@ npm audit --audit-level=high
 - 桌面/外部集成：对应功能规格及按操作目的归类的 `docs/guides/`
 - 启动、测试、Docker、发布、安全：`docs/guides/`
 - 未完成事项：`docs/BACKLOG.md`
+- 开发过程：`docs/devlog/YYYY/MM/YYYY-MM-DD.md`
 - 已完成变更：`CHANGELOG.md`
 
-不要创建 DevLog、readiness 快照或已验收 preview。文档元数据和写作规则见 `docs/style-guide.md`。
+同一天只追加一份 DevLog；重大决定提升为 ADR，待办回流 BACKLOG，发布事实回流 CHANGELOG。不要创建 readiness 快照、已验收 preview 或完成 plan 归档。文档元数据和写作规则见 `docs/style-guide.md`。
 
 ## 6. Pull Request
 

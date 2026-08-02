@@ -1,10 +1,11 @@
 # ADR-003 Agent 工具只读白名单硬编码
 
-> 状态：Accepted
+> 状态：Superseded
 > Date：2026-05-26
 > Owner：RAG 团队
 > Scope：Agent 工具准入、只读权限与调用审计
-> Related：[系统设计总览](../design/system-design-overview.md)、[权限矩阵](../design/permission-matrix.md)、[API 规格](../design/api-spec.md)
+> Related：[系统设计总览](../design/system-design-overview.md)、[权限矩阵](../design/permission-matrix.md)、[API 规格](../design/api-spec.md)、[ADR-012](ADR-012-agent-product-and-permissions.md)
+> Superseded by：ADR-012（v3 目标权限；当前 v2 实现保留到切换）
 
 ## 1. 背景
 

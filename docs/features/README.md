@@ -2,11 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-02
 > Scope：当前用户能力、兼容能力与可达边界
 > Related：`../requirements/functional-modules.md`、`../design/api-spec.md`、`../BACKLOG.md`
 
 本目录按用户可感知能力组织，一份文档只描述一个能力。后端存在接口、源码中保留组件或测试覆盖，并不自动代表当前主界面已经接通。
+
+v3 目标规格在实现前标记为 `Proposed`，不得与当前可达能力混写。
 
 | 用户能力 | 规格 | 当前入口 |
 |----------|------|----------|
@@ -24,6 +26,12 @@
 | 桌面应用 | [`desktop-app.md`](desktop-app.md) | Tauri 桌面包 |
 | 结果导出 | [`result-export.md`](result-export.md) | 仅 API，主界面无导出按钮 |
 | 可选 API 认证 | [`authentication.md`](authentication.md) | 后端部署配置；当前 Vue/SSE 未接凭证 |
+
+## v3 目标规格
+
+| 能力 | 规格 | 当前状态 |
+|------|------|----------|
+| Agent 任务、持久运行、审批与产物 | [`agent-tasks-and-runs.md`](agent-tasks-and-runs.md) | Proposed；后端实施中逐项校准 |
 
 状态用语：
 

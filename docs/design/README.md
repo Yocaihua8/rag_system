@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-02
 > Scope：Knowledge Island 完整系统的架构、契约、数据、状态、安全和界面设计
 > Related：`../README.md`、`../requirements/README.md`、`../features/README.md`、`../adr/README.md`
 
@@ -22,6 +22,9 @@
 | [`page-module-contract.md`](page-module-contract.md) | 页面模块顺序和集成边界 |
 | [`component-api-contract.md`](component-api-contract.md) | 活动组件 props、emits 与调用约束 |
 | [`risk-register.md`](risk-register.md) | 当前架构和交付风险 |
+| [`agent-runtime-and-tool-contract.md`](agent-runtime-and-tool-contract.md) | v3 持久运行、工作流节点、审批和工具安全合同 |
+| [`ui-prototype-brief-v3.md`](ui-prototype-brief-v3.md) | P1/P2 原型覆盖、布局、状态与前端实施门禁 |
+| [`v3-document-migration.md`](v3-document-migration.md) | 旧文档事实吸收、归并和安全删除矩阵 |
 | [`rfc-template.md`](rfc-template.md) | 设计提案模板，不代表已批准方案 |
 
 重要决策见 [`../adr/README.md`](../adr/README.md)，未完成设计只进入 [`../BACKLOG.md`](../BACKLOG.md)。
