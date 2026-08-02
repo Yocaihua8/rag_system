@@ -3,7 +3,7 @@
 > 状态：Active
 > Owner：RAG 团队
 > Last Updated：2026-08-02
-> Scope：v3 任务执行、持久状态、工作流节点、审批和工具安全边界
+> Scope：v3 任务执行、持久状态、消息事件、工作流节点、审批和工具安全边界
 > Related：`../requirements/agent-product-v3.md`、`../features/agent-tasks-and-runs.md`、`api-spec.md`、`database-design.md`、`permission-matrix.md`
 
 ## 1. 职责边界
@@ -61,12 +61,27 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 - 事件 payload 使用 Pydantic discriminated union；事件中不得出现 API Key、令牌、完整敏感输入或任意本地绝对路径。
 - 断开 SSE 不影响 Run；Run 终态后事件历史仍可读取。
 
+### 4.1 Agent 消息流
+
+当前 alpha 在 Run、Step、Approval、Artifact 与 tool output 事件之外，已经实现以下 Agent 消息事件：
+
+| 事件 | 关键 payload | 语义 |
+|------|--------------|------|
+| `assistant.message.started` | `message_id`、`message_type`、`format` | 为当前 Run 建立稳定回答身份 |
+| `assistant.message.delta` | `message_id`、`chunk_index`、`text` | 追加一个语义分块，不按 token 落库 |
+| `assistant.message.completed` | `message_id`、`chunk_count`、`char_count`、`content_hash` | 完整任务消息与回答终态已持久化 |
+| `assistant.message.interrupted` | `message_id`、`reason`、`recoverable` | 回答未完成；可见部分和中断原因可恢复 |
+
+当前实现还补齐 `step.waiting_approval / step.failed / step.cancelled / step.recovery_required` 与 `approval.expired`。审批过期由独立周期任务检查，不依赖空闲执行槽。`artifact.created.payload.status=ready` 继续表达当前内部产物就绪；导出执行尚未实现时不得发出虚构的导出完成事件。
+
+任务消息保存长期会话事实，事件保存实时生成与运行事实，未来 React 前端 reducer 只负责去重和界面投影。完整决策见 [`ADR-016`](../adr/ADR-016-agent-message-stream.md)。P1 Revision 2 只用演示事件验证交互，不是后端联调证明。
+
 ## 5. 工作流版本与当前开放边界
 
 - v3 Schema、Store 和 HTTP 已实现 Workflow Definition、不可变 Workflow Version 与项目 Binding；Version 保存 DAG、版本号和内容 checksum。
 - HTTP 开放 validate、创建/列表/详情、新 draft、publish、bind、archive 和 binding 列表。新 draft 与 archive 使用 Definition `expected_version`，publish 同时校验 Version checksum，bind 只接受已发布 Version 并校验 workflow/binding version。
 - 发布不原地改写 DAG；归档只改变 Definition 状态并保留历史 Version，归档后拒绝新草稿。
-- `project.inspect.v1` 由应用层固定版本 1、固定 checksum 和固定三步快照创建 Run，不依赖调用方提交任意工作流。
+- 当前 `project.inspect.v1` 由应用层以固定 workflow version 2、固定 checksum 和固定四步快照创建新 Run，不依赖调用方提交任意工作流；version 1 历史运行继续按其持久版本读取和恢复。
 - v3 首版只允许一个 `trigger.manual`，且必须存在至少一个可达终点。
 - 校验必须拒绝循环、孤立节点、无效边、端口类型不匹配、必填参数缺失、无效资源引用和未受审批保护的写节点。
 
@@ -77,7 +92,7 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 | 分类 | 节点 |
 |------|------|
 | 触发 | `trigger.manual` |
-| Agent | `agent.plan` |
+| Agent | `agent.plan`、`agent.respond`（仅固定项目检查工作流可执行） |
 | 来源 | `source.search`、`source.read` |
 | 分析 | `project.analyze`、`insight.assess`、`learning.plan` |
 | 模型 | `llm.synthesize`、`llm.compare` |
@@ -92,6 +107,10 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 - `trigger.manual`：读取持久 Task prompt；
 - `project.analyze`：运行受限项目结构检查；
 - `artifact.create`：保存内部 `project_inspection` JSON 产物。
+
+当前 `agent.respond` 分析节点只读取固定项目检查的结构化结果，生成普通中文摘要并发出 Agent 消息事件；不调用 shell、网络、任意路径或未批准工具。`project.inspect.v1` version 2 依次包含 `trigger.manual`、`project.analyze`、`artifact.create` 和 `agent.respond`，Quick 仍不超过四步。
+
+P1 中“找出问题 / 整理资料 / 做一份计划”的通用澄清路径仍是演示合同，不表示 alpha executor 已具备通用自然语言规划器。
 
 其他注册节点即使通过 validate、保存并发布，也不能通过当前运行创建 API 执行；`RunCreateRequest.workflow_key` 只接受 `project.inspect.v1`。
 
@@ -119,8 +138,9 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 |------|----------|
 | 独立 v3 数据根、SQLAlchemy/Alembic 与代际 fail-closed | alpha 已实现；默认 `runtime/v3/app.db`，revision `0001_v3_initial` |
 | `/api/v3` 资源和 envelope | alpha 已实现；项目、任务、消息、运行、控制、事件、审批、产物、workflow validate 与版本化工作流管理 |
-| 持久运行 | alpha 已实现固定三步 `project.inspect.v1`，由 lifespan executor 执行并生成内部 JSON 产物 |
+| 持久运行 | alpha 已实现固定四步 `project.inspect.v1` version 2，由 lifespan executor 执行并生成内部 JSON 产物与中文回答；version 1 历史可读 |
 | SSE | alpha 已实现持久事件、单调 sequence、`Last-Event-ID` / `after_sequence` 回放 |
+| Agent 回答流 | alpha 已实现并通过定向、真实 lifespan 集成和全量门禁；完整/中断消息与终结事件保持事务一致 |
 | 审批与写动作 | 数据和 API 基础已存在；当前没有可执行写工作流或端到端审批写回 |
 | 工作流管理 | validate、Definition/不可变 Version/Binding 的创建、读取、发布、绑定和归档已实现；自定义发布 DAG 执行未实现 |
 | 前端 | v2 Vue 保留且未改接 v3；React 生产实现仍受后续门禁约束 |

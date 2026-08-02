@@ -24,7 +24,7 @@
 - [x] 建立 B-178 BACKLOG、plan 和当日 DevLog 恢复点。
 - [x] 以测试驱动补齐任务首消息、运行输入快照、Agent 消息事件、步骤/审批事件和 `agent.respond` 执行闭环。
 - [x] 创建并验证 P1 Revision 2 引导式横屏交互原型，不覆盖旧附件。
-- [ ] 新增 ADR-016，并回流 UI、任务、runtime、API、API changes、CHANGELOG 与 DevLog。
+- [x] 新增 ADR-016，并回流 UI、任务、runtime、API、API changes；CHANGELOG 与最终 DevLog 在关闭任务时回流。
 - [ ] 运行完整后端/集成/仓库/文档门禁，发布 Sites 生产版本并关闭 B-178。
 
 ## 4. 影响范围
@@ -63,10 +63,10 @@
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 新手首页、状态优先级、文案与风险确认 | `../design/ui-prototype-brief-v3.md` | [ ] |
-| 任务首消息、输入快照、回答流与恢复语义 | `../features/agent-tasks-and-runs.md`、`../design/agent-runtime-and-tool-contract.md` | [ ] |
-| HTTP/SSE/OpenAPI alpha.2 变化 | `../design/api-spec.md`、`../design/api-changes.md` | [ ] |
-| 持久消息与实时事件职责 | `../adr/ADR-016-agent-message-stream.md` | [ ] |
+| 新手首页、状态优先级、文案与风险确认 | `../design/ui-prototype-brief-v3.md` | [x] |
+| 任务首消息、输入快照、回答流与恢复语义 | `../features/agent-tasks-and-runs.md`、`../design/agent-runtime-and-tool-contract.md` | [x] |
+| HTTP/SSE/OpenAPI alpha.2 变化 | `../design/api-spec.md`、`../design/api-changes.md` | [x] |
+| 持久消息与实时事件职责 | `../adr/ADR-016-agent-message-stream.md` | [x] |
 | 实际完成事实和验证 | `../../CHANGELOG.md`、`../devlog/2026/08/2026-08-02.md` | [ ] |
 
 ## 8. 执行记录
@@ -76,9 +76,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-02 16:45:51 +08:00
-- **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`f324dc1`（v3 Agent 可重放消息流）
-- **代码状态**：`refactor/agent-v3`；后端切片已提交；P1 Revision 2 已在独立 visualization 文件中完成 1440/736/320×560、命令防重复、离线图标兜底与沙盒浏览器验收；旧原型和 Vue 未修改
-- **下一步**：提交 ADR-016 与 UI、任务、runtime、API、数据库合同回流，再准备 Sites 版本
+- **最后更新**：2026-08-02 16:50:13 +08:00
+- **进度**：已完成 4 / 5 项（见 § 3 勾选状态）
+- **最新 commit**：`9b5168d`（P1 Revision 2 验收恢复点）
+- **代码状态**：`refactor/agent-v3`；后端与 P1 原型已形成独立恢复点；ADR-016、UI、任务、runtime、API、API changes 与数据库合同已按 664 项门禁结果校准，未提前宣称 React 或通用规划器完成
+- **下一步**：运行文档门禁，复用或创建 Sites 项目并部署生产版本；成功后回流 CHANGELOG/DevLog 并关闭 B-178
 - **续任务须知**：P1/P2 门禁继续生效；旧 P1 附件只读保留；Sites 发布前先查询是否存在旧创建结果

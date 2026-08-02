@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-02
 > Scope：v2 当前 SQLite Schema、v3 alpha SQLAlchemy/Alembic Schema、数据代际与存储边界
-> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`api-spec.md`、`permission-matrix.md`、`../adr/ADR-002-sqlite-storage.md`、`../adr/ADR-015-v3-data-and-api-generation.md`
+> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`api-spec.md`、`permission-matrix.md`、`../adr/ADR-002-sqlite-storage.md`、`../adr/ADR-015-v3-data-api-storage.md`、`../adr/ADR-016-agent-message-stream.md`
 
 ## 1. 权威边界
 
@@ -168,7 +168,23 @@ v3 metadata 当前定义 **19 张业务表 + 2 张运行治理表，共 21 张�
 - `idempotency_records` 对 `(scope, idempotency_key)` 唯一；相同 Key 只有请求 hash 相同才可回放。
 - 当前 `project.inspect.v1` 只读取已登记项目根的相对结构元数据，最终把 JSON 检查结果保存到 `agent_artifacts.content`；`runtime/v3/artifacts/` 在本 alpha 中只是预留目录。
 
-### 7.3 v3 路径与配置
+### 7.3 alpha.2 消息流复用现有 Schema
+
+alpha.2 的任务首消息、运行输入快照和 Agent 分段回答不新增表、列、索引或 Alembic revision，继续使用 `0001_v3_initial`。API/OpenAPI 版本变化不等于数据库 schema 版本变化。
+
+| 现有表 | alpha.2 复用方式 |
+|--------|------------------|
+| `agent_tasks` | 与首条用户消息在同一事务创建；表结构不变 |
+| `agent_task_messages` | 保存首条用户消息，以及 completed/interrupted 后的完整或明确标记的部分 Agent 消息；`metadata_json` 保存 format、chunk count、content hash 和 complete 标记 |
+| `agent_steps` | `trigger.manual.input_json` 只冻结 `input_message_id` 与内容 SHA-256；完整正文保留在不可变 `agent_task_messages`，不向 Step、Run 或 SSE 复制 |
+| `agent_events` | 通过既有 `event_type/payload_json` 保存 `assistant.message.*`、补充 Step 事件与 `approval.expired`；继续使用 `(run_id, sequence)` 唯一约束 |
+| `idempotency_records` | 复用既有 scope/key/request hash，保证任务首消息、分块追加和终结消息不会重复写入 |
+
+消息完成或中断时，任务消息与 `assistant.message.completed/interrupted` 在同一事务写入。语义 delta 只属于 append-only 事件，不拆成多条长期任务消息。已有 workflow version 1 Run、消息和事件保持原记录可读；固定工作流升级为 version 2 只改变新 Run 的 workflow 快照和 Step 数量，不迁移旧行。
+
+因此本轮不得生成 `0002` 空迁移，也不得通过 ALTER 为 API 响应字段建立数据库列。若未来需要搜索增量片段、独立消息状态或跨 Run 草稿，再单独评估 schema 与迁移。
+
+### 7.4 v3 路径与配置
 
 | 数据 | 默认位置 | 配置 / 当前边界 |
 |------|----------|-----------------|

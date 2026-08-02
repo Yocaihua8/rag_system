@@ -56,3 +56,4 @@ ADR-002-short-title.md
 | [ADR-013](ADR-013-durable-dag-executor.md) | SQLite 持久化 DAG 执行器 | Accepted | 2026-08-02 | v3 任务、租约、并发、事件和恢复的权威决策 |
 | [ADR-014](ADR-014-react-typescript-frontend.md) | v3 前端采用 React 与 TypeScript | Accepted | 2026-08-02 | P2 批准后取代 ADR-006 的 Vue 框架选择；运行时分离继续有效 |
 | [ADR-015](ADR-015-v3-data-api-storage.md) | v3 数据代际、API 与存储 | Accepted | 2026-08-02 | 独立 v3 数据根、`/api/v3`、SQLAlchemy Core 与 Alembic |
+| [ADR-016](ADR-016-agent-message-stream.md) | 持久任务消息与可重放 Agent 消息流 | Accepted | 2026-08-02 | 完整消息保存长期事实，append-only 语义分块负责实时回放，前端 reducer 只做事件投影 |

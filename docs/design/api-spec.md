@@ -4,7 +4,7 @@
 > Owner：RAG 团队
 > Last Updated：2026-08-02
 > Scope：当前 v2 HTTP/SSE API、v3 alpha API、认证、字段与兼容边界
-> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-015-v3-data-and-api-generation.md`
+> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-015-v3-data-api-storage.md`、`../adr/ADR-016-agent-message-stream.md`
 
 ## 1. 当前 HTTP API
 
@@ -652,7 +652,9 @@ attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CA
 
 ## 2. v3 Agent API（alpha）
 
-主应用把独立 FastAPI sub-app 挂载到 `/api/v3`，其 OpenAPI 版本为 `3.0.0-alpha.1`。v3 使用独立 Store、SQLite 数据代际和 lifespan executor；不会把请求交给 v2 catch-all dispatcher。正常应用启动时同时保留全部 v2 路由和现有 Vue，当前 Vue 尚未调用 v3 API。
+主应用把独立 FastAPI sub-app 挂载到 `/api/v3`，当前工作区声明的 OpenAPI 应用版本为 `3.0.0-alpha.2`。v3 使用独立 Store、SQLite 数据代际和 lifespan executor；不会把请求交给 v2 catch-all dispatcher。正常应用启动时同时保留全部 v2 路由和现有 Vue，当前 Vue 尚未调用 v3 API。
+
+alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全量门禁。当前可达性仍受本节 § 2.6 限制：已完成固定项目检查与回答流，不等于自定义发布 DAG、通用自然语言规划器或 React 生产前端已经完成。
 
 ### 2.1 通用响应、认证与幂等
 
@@ -671,10 +673,10 @@ attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CA
 |------|------|----------|---------------|
 | GET | `/api/v3/health` | 返回 `data_generation=v3`、Alembic revision 和 executor 状态 | 始终放行；不执行项目检查 |
 | POST / GET | `/api/v3/projects` | 创建已有本地目录对应的项目；列出项目 | POST 需要 `Idempotency-Key`；根目录必须存在且为目录 |
-| POST / GET | `/api/v3/tasks` | 创建任务；按 `project_id/status/limit/offset` 列出任务 | POST 需要 `Idempotency-Key` |
+| POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
-| POST | `/api/v3/tasks/{task_id}/runs` | 为任务创建持久运行 | `workflow_key` 当前只允许 `project.inspect.v1`；需要 `Idempotency-Key`；返回 202 |
+| POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；`workflow_key` 只允许 `project.inspect.v1`；需要 `Idempotency-Key`；返回 202 |
 | GET | `/api/v3/runs/{run_id}` | 读取运行、版本、租约、错误和结果状态 | 只读 |
 | POST | `/api/v3/runs/{run_id}/pause` | 暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
 | POST | `/api/v3/runs/{run_id}/resume` | 恢复已暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
@@ -699,26 +701,94 @@ attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CA
 
 `/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
 
-### 2.3 `project.inspect.v1` 持久执行
+### 2.3 任务首消息与运行输入快照
 
-当前唯一可执行工作流固定为三个步骤：
+`POST /api/v3/tasks` 的请求字段保持不变：
+
+```json
+{
+  "project_id": "project-uuid",
+  "title": "检查项目结构",
+  "message": "请找出项目结构中最需要先处理的问题"
+}
+```
+
+alpha.2 成功响应的 `data` 为：
+
+```json
+{
+  "task": {"id": "task-uuid"},
+  "initial_message": {
+    "id": "message-uuid",
+    "task_id": "task-uuid",
+    "run_id": null,
+    "role": "user",
+    "message_type": "message",
+    "content": "请找出项目结构中最需要先处理的问题",
+    "metadata": {},
+    "created_at": "2026-08-02T08:00:00+00:00"
+  },
+  "replayed": false
+}
+```
+
+Task、首条用户消息和幂等响应在同一 SQLite 事务写入；同一作用域、同一 `Idempotency-Key` 和相同 request hash 回放原 Task/Message，并把 `replayed` 置为 `true`。任一写入失败都不得留下没有首消息的 Task。
+
+创建 Run 的请求增加必填 `input_message_id`：
+
+```json
+{
+  "workflow_key": "project.inspect.v1",
+  "depth": "quick",
+  "input_message_id": "message-uuid"
+}
+```
+
+该消息必须存在、属于 URL 中的 Task 且 `role=user`；否则返回 `404 not_found` 或 `409 state_conflict`。服务端只把 `input_message_id` 与消息内容 SHA-256 冻结到 `trigger.manual` 的持久 Step input；完整正文继续由不可变的任务消息保存。执行器按 ID 回读消息并校验 hash，后续新增消息不会改变该 Run。trigger Step 输出与 `run.queued` 事件也只发送消息 ID/hash，不复制完整输入正文。
+
+### 2.4 `project.inspect.v1` workflow version 2
+
+API 的 `workflow_key` 仍为 `project.inspect.v1`，没有新增 `project.inspect.v2` 路径或 key；alpha.2 创建的新 Run 使用 `workflow_version=2` 与新的 checksum。版本 2 快照为四个步骤：
 
 | 顺序 | step_key | node_type | effect | 当前行为 |
 |------|----------|-----------|--------|----------|
-| 0 | `trigger` | `trigger.manual` | `none` | 读取已持久任务 prompt |
+| 0 | `trigger` | `trigger.manual` | `none` | 读取并使用创建 Run 时冻结的用户消息快照 |
 | 1 | `inspect` | `project.analyze` | `analysis` | 遍历授权项目根，输出相对目录/清单/后缀统计；不读取文件正文，不跟随目录符号链接 |
 | 2 | `artifact` | `artifact.create` | `analysis` | 把检查 JSON 持久化为 `project_inspection`、`ready` 产物 |
+| 3 | `respond` | `agent.respond` | `analysis` | 目标为读取固定检查结果、生成普通中文摘要并发出 Agent 消息事件 |
 
 HTTP 只创建持久 Run 和 Steps；executor 在主应用 lifespan 内通过数据库租约领取并执行。浏览器请求或 SSE 断开不会取消 Run。项目检查结果、产物和事件不包含项目绝对根路径；当前检查也不会执行 shell、任意脚本、网络访问或文件写入。
 
-SSE 使用数据库中每个 Run 单调递增的 `sequence` 作为 `id`，事件名使用持久 `event_type`，例如 `run.queued`、步骤状态事件和 `run.completed`。`Last-Event-ID` 与 `after_sequence` 取较大值；终态事件发完后连接结束，非终态无事件时每 15 秒发送 keep-alive 注释。
+已有 workflow version 1 Run、Steps、消息和事件不被改写，仍可通过既有读取接口查看；恢复或重试历史 Run 时保留原 workflow version 事实，不能静默修改旧快照。version 2 的四步执行、Agent 消息持久化和真实 SSE 回放已由 executor 定向测试与 lifespan 集成测试覆盖。
 
-### 2.4 当前 alpha 边界
+### 2.5 SSE 事件合同
+
+SSE 使用数据库中每个 Run 单调递增的 `sequence` 作为 `id`，事件名使用持久 `event_type`。`Last-Event-ID` 与 `after_sequence` 取较大值；终态事件发完后连接结束，非终态无事件时每 15 秒发送 keep-alive 注释。所有 data 至少包含 `sequence/event_type/run_id/step_id/event_schema_version/payload/created_at`。
+
+alpha.2 的事件 union 包含：
+
+| 分类 | `event_type` | payload 要点 |
+|------|--------------|--------------|
+| Run | `run.queued / started / resumed / completed / failed / recovery_required / requeued / paused / cancelled` | 状态、动作或恢复原因；`run.queued` 包含输入消息 ID/hash |
+| Step | `step.queued / started / succeeded / retry_scheduled / waiting_approval / failed / cancelled / recovery_required` | step key、错误、重试、审批或恢复原因 |
+| Approval | `approval.requested / approved / rejected / expired` | approval ID、决议或过期原因 |
+| Artifact | `artifact.created` | 当前内部产物及 `status=ready`；导出未实现前不发出虚构导出事件 |
+| Tool | `tool.output` | 白名单工具输出摘要 |
+| Agent 消息 | `assistant.message.started` | `message_id/message_type/format` |
+| Agent 消息 | `assistant.message.delta` | `message_id/chunk_index/text`；chunk index 从 0 递增 |
+| Agent 消息 | `assistant.message.completed` | `message_id/chunk_count/char_count/content_hash` |
+| Agent 消息 | `assistant.message.interrupted` | `message_id/reason/recoverable` |
+
+`started/delta` 使用稳定 message ID 和命令幂等作用域追加；完整或中断内容保存为 `agent_task_messages` 后，再在同一事务追加 `completed/interrupted`。客户端按 sequence 去重，不能把 delta 单独当作长期任务消息。
+
+`backend/api/v3/models.py` 以 `event_type` 为 discriminator 声明 `AgentEvent`；SSE 输出通过该 union 校验，`/api/v3/openapi.json` 已显式暴露对应 components，并由 OpenAPI 契约测试校验。P2 批准后才能据此生成 React TypeScript 类型，本轮未生成前端调用代码。
+
+### 2.6 当前 alpha 边界
 
 - v3 项目、任务和运行资源不会同步到 v2 的 43 张表；现有 Vue、Coach、问答、导入和 Obsidian 主流程仍走 v2。
 - 审批、产物读取和运行控制 API 已暴露；当前真实闭环只生成内部只读项目检查产物，不执行 `artifact.export`、`obsidian.publish` 或其他写节点。
-- 安全节点注册表、DAG 校验和版本化工作流管理已经存在，但 executor 当前只实现 `trigger.manual`、`project.analyze`、`artifact.create`，且自定义发布工作流尚不能创建 Run。
-- `quick/standard/deep` 当前分别限制最多 4/8/16 步；固定三步检查在三档都可运行，档位不会增加额外检查能力。
+- 安全节点注册表、DAG 校验和版本化工作流管理已经存在；固定 `agent.respond` 四步执行闭环已通过门禁，自定义发布工作流仍不能创建 Run。
+- `quick/standard/deep` 当前分别限制最多 4/8/16 步；固定版本 2 使用四步，档位不会自动增加额外检查能力。
 - v3 API 仍是 alpha 契约，尚无 React 生产前端或 v2 数据迁移承诺。
 
 ## 3. 兼容与变更规则
