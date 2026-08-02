@@ -8,10 +8,6 @@
 
 Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入 `CHANGELOG.md` 与 Git；任务完成后删除 plan。
 
-## 当前计划
-
-- [`B-173-v3-agent-runtime.md`](B-173-v3-agent-runtime.md)：v3 数据、API、持久执行器、事件、审批与产物基础。
-
 ## 创建
 
 1. 在 [`../BACKLOG.md`](../BACKLOG.md) 找到或新建 `B-xxx`，状态设为 `doing`。
