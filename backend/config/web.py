@@ -19,7 +19,14 @@ DEFAULT_CORS_ORIGINS = (
     "http://tauri.localhost",
 )
 CORS_ALLOWED_METHODS = ("GET", "POST", "OPTIONS")
-CORS_ALLOWED_HEADERS = ("Authorization", "Content-Type", "X-API-Key")
+CORS_ALLOWED_HEADERS = (
+    "Authorization",
+    "Content-Type",
+    "Idempotency-Key",
+    "Last-Event-ID",
+    "X-API-Key",
+    "X-Request-ID",
+)
 
 
 def cors_origins(environ: Mapping[str, str] | None = None) -> tuple[str, ...]:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -21,8 +22,12 @@ from backend.config.web import (
     default_db_path,
 )
 from backend.api.openapi_schema import install_custom_openapi
+from backend.api.v3.app import create_v3_app
+from backend.config.v3 import V3RuntimeSettings, load_v3_settings
+from backend.runtime.executor import AgentExecutor
 from backend.routes.ollama import ollama_pull_events, validate_ollama_pull_payload
 from backend.storage import KnowledgeStore
+from backend.storage.v3 import AgentStore
 
 
 AUTHENTICATION_REQUIRED = {"error": "authentication required"}
@@ -40,15 +45,67 @@ def create_app(
     db_path: Path | None = None,
     store: KnowledgeStore | None = None,
     auth_settings: AuthSettings | None = None,
+    *,
+    v3_db_path: Path | None = None,
+    v3_store: AgentStore | None = None,
+    v3_settings: V3RuntimeSettings | None = None,
+    enable_v3: bool | None = None,
 ) -> FastAPI:
     knowledge_store = store or KnowledgeStore(
         db_path or default_db_path(),
         expected_generation="v2",
     )
     auth_config = auth_settings or load_auth_settings()
-    app = FastAPI(title="Knowledge Island", docs_url="/docs", redoc_url="/redoc")
+    v3_enabled = (
+        enable_v3
+        if enable_v3 is not None
+        else (
+            v3_store is not None
+            or v3_db_path is not None
+            or (db_path is None and store is None)
+        )
+    )
+    agent_store: AgentStore | None = None
+    agent_executor: AgentExecutor | None = None
+    v3_sub_app: FastAPI | None = None
+    if v3_enabled:
+        runtime_settings = v3_settings or load_v3_settings(
+            {"KI_V3_DB_PATH": str(v3_db_path)} if v3_db_path else None
+        )
+        agent_store = v3_store or AgentStore(runtime_settings.db_path)
+        agent_executor = AgentExecutor(agent_store, runtime_settings)
+        v3_sub_app = create_v3_app(
+            store=agent_store,
+            executor=agent_executor,
+        )
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        if agent_store is None or agent_executor is None or v3_sub_app is None:
+            yield
+            return
+        initialized = False
+        try:
+            info = await run_in_threadpool(agent_store.initialize)
+            initialized = True
+            v3_sub_app.state.database_info = info
+            await agent_executor.start()
+            yield
+        finally:
+            await agent_executor.stop()
+            if initialized:
+                await run_in_threadpool(agent_store.close)
+
+    app = FastAPI(
+        title="Knowledge Island",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        lifespan=lifespan,
+    )
     app.state.knowledge_store = knowledge_store
     app.state.auth_settings = auth_config
+    app.state.v3_store = agent_store
+    app.state.v3_executor = agent_executor
 
     @app.middleware("http")
     async def require_auth(request: Request, call_next):
@@ -68,6 +125,11 @@ def create_app(
         allow_methods=list(CORS_ALLOWED_METHODS),
         allow_headers=list(CORS_ALLOWED_HEADERS),
     )
+
+    if v3_sub_app is not None:
+        # Register the mount before the legacy catch-all dispatcher so /api/v3
+        # is never interpreted as a v2 compatibility route.
+        app.mount("/api/v3", v3_sub_app)
 
     @app.get("/api/answer/stream")
     async def answer_stream(request: Request) -> StreamingResponse:
@@ -180,6 +242,7 @@ def _requires_auth(settings: AuthSettings, path: str) -> bool:
         return False
     if path in {
         "/api/health",
+        "/api/v3/health",
         "/api/auth/token",
         *OBSIDIAN_SELF_AUTH_PATHS,
     }:
@@ -199,9 +262,6 @@ def _auth_error_response(content: dict[str, str]) -> JSONResponse:
         content=content,
         headers={"WWW-Authenticate": "Bearer"},
     )
-
-
-app = create_app()
 
 
 async def _json_payload(request: Request) -> dict[str, Any]:

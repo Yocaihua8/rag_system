@@ -1,0 +1,4 @@
+Knowledge Island v3 Alembic migration environment.
+
+The application runs upgrades programmatically through AgentStore.initialize().
+Do not point this migration environment at a v2 or unmarked database.

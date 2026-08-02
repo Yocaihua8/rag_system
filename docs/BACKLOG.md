@@ -22,6 +22,7 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
+| B-173 | backend/refactor | v3 Agent 数据、API 与持久执行器 | doing | P0 | XL | Codex | `plans/B-173-v3-agent-runtime.md` | 建立独立 v3 数据根、SQLAlchemy/Alembic Schema、资源 API、持久任务执行、事件续传、审批与产物基础；不修改 Vue。 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题
