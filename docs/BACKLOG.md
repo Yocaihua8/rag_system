@@ -22,6 +22,7 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
+| B-178 | refactor | 新手引导式首页与可重放 Agent 消息流 | doing | P0 | L | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-178-guided-agent-conversation.md`；重做 P1 Revision 2，并补齐 v3 任务首消息、输入快照与流式事件合同 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题
