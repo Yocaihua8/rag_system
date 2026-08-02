@@ -25,7 +25,7 @@
 - [x] 实现 v3 Store、领域状态、幂等项目/任务/运行/事件/审批/产物持久化。
 - [x] 实现 lifespan executor、类型化 `project.inspect` 只读节点、并发/租约/恢复和 SSE 续传。
 - [x] 暴露 `/api/v3` 项目、任务、运行控制、事件、审批、产物和工作流基础接口及真实 OpenAPI。
-- [ ] 补齐后端/集成/仓库测试，校准 API/数据库/权限文档、DevLog 与 CHANGELOG。
+- [x] 补齐后端/集成/仓库测试，校准 API/数据库/权限文档、DevLog 与 CHANGELOG。
 
 ## 4. 影响范围
 
@@ -59,17 +59,17 @@
 - [x] 全局并发、租约、幂等、读取重试、恢复和事件游标测试通过。
 - [x] 写动作拥有审批快照基础，不会在恢复时自动重放。
 - [x] v2 API 测试继续通过，Vue 源码无变化。
-- [ ] 文档与实际 OpenAPI/Schema 同步，完成事实进入 CHANGELOG 和 Git。
+- [x] 文档与实际 OpenAPI/Schema 同步，完成事实进入 CHANGELOG 和 Git。
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| 实际 API 与 envelope | `../design/api-spec.md`、`../design/api-changes.md` | [ ] |
-| v3 Schema、迁移和代际 | `../design/database-design.md` | [ ] |
-| 执行、状态、审批和工具 | `../design/agent-runtime-and-tool-contract.md`、`../design/permission-matrix.md` | [ ] |
-| 测试和运行命令 | `../guides/testing.md`、`../guides/runbook.md` | [ ] |
-| 过程与完成事实 | `../devlog/2026/08/2026-08-02.md`、`../../CHANGELOG.md` | [ ] |
+| 实际 API 与 envelope | `../design/api-spec.md`、`../design/api-changes.md` | [x] |
+| v3 Schema、迁移和代际 | `../design/database-design.md` | [x] |
+| 执行、状态、审批和工具 | `../design/agent-runtime-and-tool-contract.md`、`../design/permission-matrix.md` | [x] |
+| 测试和运行命令 | `../guides/testing.md`、`../guides/runbook.md` | [x] |
+| 过程与完成事实 | `../devlog/2026/08/2026-08-02.md`、`../../CHANGELOG.md` | [x] |
 
 ## 8. 执行记录
 
@@ -77,12 +77,13 @@
 - 2026-08-02：过渡期由主 FastAPI lifespan 管理 v3 executor，v2 路由继续保留；最终切换另行删除兼容实现。
 - 2026-08-02：同项目 `project_write` / `external_write` 在 `BEGIN IMMEDIATE` 认领事务中串行；运行写步骤或 `recovery_required` 不确定写步骤都会保持写槽，读取任务和其他项目不受阻塞。
 - 2026-08-02：Python 3.11 当前环境全量后端、集成和仓库验证为 653 项通过；Python 3.12 仍是后续独立验证边界。
+- 2026-08-02：占位符、文档链接和源码一致性三项门禁通过，repository 测试 146 项通过；实际 v3 OpenAPI 为 27 个路径、31 个操作。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-02 14:11 +08:00
-- **进度**：已完成 4 / 5 项
-- **最新 commit**：`c17cc91` — chore: 关闭 B-172 工程治理任务
-- **代码状态**：v3 数据、Store、executor、API 和专项测试已完成，等待聚焦提交；Vue 未修改
-- **下一步**：提交后端实现，再完成正式文档回流、门禁和 B-173 关闭
+- **最后更新**：2026-08-02 14:14 +08:00
+- **进度**：已完成 5 / 5 项
+- **最新 commit**：`f3aa428` — feat: 建立 v3 Agent 持久执行后端
+- **代码状态**：后端实现已提交；正式文档已回流；Vue 未修改
+- **下一步**：运行文档门禁并提交回流，然后按规则移除完成的 BACKLOG 行与本 plan
 - **续任务须知**：只允许写 `runtime/v3` 或测试临时目录；不得删除 v2 DB，最终删除前必须重新只读校验

@@ -46,6 +46,7 @@ def test_runtime_source_and_docs_are_classified_by_responsibility():
         "docs/adr",
         "docs/guides",
         "docs/plans",
+        "docs/devlog",
     ):
         assert (ROOT / relative).is_dir(), f"missing classified directory: {relative}"
 
@@ -67,7 +68,6 @@ def test_legacy_archive_history_and_mixed_script_roots_are_removed():
         "legacy",
         "tools",
         ".docs-template",
-        "docs/devlog",
         "docs/release",
         "docs/previews",
         "docs/superpowers",

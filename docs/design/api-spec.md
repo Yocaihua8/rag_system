@@ -2,19 +2,19 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
-> Scope：当前 HTTP/SSE API、认证、字段与兼容边界
-> Related：`architecture-overview.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
+> Last Updated：2026-08-02
+> Scope：当前 v2 HTTP/SSE API、v3 alpha API、认证、字段与兼容边界
+> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-015-v3-data-and-api-generation.md`
 
 ## 1. 当前 HTTP API
 
-当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。
+当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。本节描述继续服务现有 Vue 的 v2 契约；新增 v3 alpha sub-app 见 § 2，两者在迁移期并存。
 
 默认认证关闭；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token` 和使用独立插件令牌校验的 Obsidian 路由外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效应用凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。FastAPI 不托管静态资源，`GET /` 返回 404。
 
 当前 Vue `fetch` 不附加上述凭证，问答原生 `EventSource` 也没有自定义认证 Header；因此浏览器主路径只承诺默认关闭认证的本地模式。后端认证能力不能被解释为已完成的前端登录/SSE 凭证链。
 
-前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许本机 5173/4173 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`X-API-Key`。CORS 不改变任何下述方法、字段或响应契约。
+前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许本机 5173/4173 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-Request-ID`。CORS 不改变任何下述方法、字段或响应契约。
 
 `/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载；新增、删除或修改 API 时，需要同时更新 operation 列表、路由/dispatch 测试和本文档端点速览。
 
@@ -650,10 +650,83 @@ attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CA
 
 默认当前发布包含项目理解、知识覆盖、已确认学习计划和已有评估记录；调用方可用 `artifact_types` 缩小范围。设置 `source_publication_id` 时，以历史发布正文创建新的 `draft` 修订并返回 `source_mode=rollback`，不修改历史发布或修订。发布 revision 和 artifact 内容不可变；插件成功回传的 `actual_hash` 成为同一稳定 artifact 下一次预览的覆盖基线。插件离线时发布保持 `queued`，生成文件被用户删除后不会自动重建。
 
-## 2. 兼容与变更规则
+## 2. v3 Agent API（alpha）
+
+主应用把独立 FastAPI sub-app 挂载到 `/api/v3`，其 OpenAPI 版本为 `3.0.0-alpha.1`。v3 使用独立 Store、SQLite 数据代际和 lifespan executor；不会把请求交给 v2 catch-all dispatcher。正常应用启动时同时保留全部 v2 路由和现有 Vue，当前 Vue 尚未调用 v3 API。
+
+### 2.1 通用响应、认证与幂等
+
+- 成功响应统一为 `{"data": {...}, "meta": {"request_id": "..."}}`；响应头同时返回 `X-Request-ID`。
+- 失败响应统一为 `{"error":{"code":"...","message":"...","details":{}},"request_id":"..."}`。
+- 调用方可以发送 `X-Request-ID`；未发送时服务端生成 UUID。输入最多保留 200 字符。
+- 除 `GET /api/v3/health` 始终放行外，认证开启时其他 `/api/v3/*` 继续使用主应用的 `X-API-Key` 或 Bearer JWT。
+- 创建项目、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。
+- 资源不存在返回 `404 not_found`；状态/CAS 冲突返回 `409 state_conflict`；Pydantic 请求错误返回 `422 validation_error`；应用层约束返回 `422 application_validation_error`。
+
+### 2.2 当前路径
+
+当前 v3 sub-app 有 **27 个业务路径、31 个操作**：
+
+| 方法 | 路径 | 当前用途 | 写入/控制要求 |
+|------|------|----------|---------------|
+| GET | `/api/v3/health` | 返回 `data_generation=v3`、Alembic revision 和 executor 状态 | 始终放行；不执行项目检查 |
+| POST / GET | `/api/v3/projects` | 创建已有本地目录对应的项目；列出项目 | POST 需要 `Idempotency-Key`；根目录必须存在且为目录 |
+| POST / GET | `/api/v3/tasks` | 创建任务；按 `project_id/status/limit/offset` 列出任务 | POST 需要 `Idempotency-Key` |
+| GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
+| POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
+| POST | `/api/v3/tasks/{task_id}/runs` | 为任务创建持久运行 | `workflow_key` 当前只允许 `project.inspect.v1`；需要 `Idempotency-Key`；返回 202 |
+| GET | `/api/v3/runs/{run_id}` | 读取运行、版本、租约、错误和结果状态 | 只读 |
+| POST | `/api/v3/runs/{run_id}/pause` | 暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
+| POST | `/api/v3/runs/{run_id}/resume` | 恢复已暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
+| POST | `/api/v3/runs/{run_id}/cancel` | 请求取消运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
+| POST | `/api/v3/runs/{run_id}/retry` | 从允许重试的失败运行创建新运行 | 请求 `expected_version`；需要 `Idempotency-Key`；返回 202 |
+| GET | `/api/v3/runs/{run_id}/steps` | 按顺序读取持久步骤及尝试摘要 | 只读 |
+| GET | `/api/v3/runs/{run_id}/events` | 读取持久 SSE 事件 | 支持 `after_sequence` 与 `Last-Event-ID` |
+| GET | `/api/v3/approvals` | 按项目、任务、运行、状态筛选审批 | 当前 alpha 没有可执行写工作流自动产生审批 |
+| GET | `/api/v3/approvals/{approval_id}` | 读取审批快照 | 只读 |
+| POST | `/api/v3/approvals/{approval_id}/resolve` | 批准或拒绝审批 | `decision/expected_version/expected_request_hash/note`；需要 `Idempotency-Key` |
+| GET | `/api/v3/artifacts` | 按项目、任务或运行列出产物 | 只读 |
+| GET | `/api/v3/artifacts/{artifact_id}` | 读取产物内容与校验信息 | 只读 |
+| GET | `/api/v3/artifacts/{artifact_id}/preview` | 返回当前产物预览结构 | 当前与详情读取同源，不执行导出 |
+| POST | `/api/v3/workflows/validate` | 校验类型化 DAG、端口、循环、可达性和审批支配关系 | 只校验，不保存；不需要 `Idempotency-Key` |
+| POST / GET | `/api/v3/workflows` | 创建带首个不可变 draft 的工作流；按项目、scope、status 列出 | POST 需要 `Idempotency-Key`；创建时先校验 graph |
+| GET | `/api/v3/workflows/{workflow_id}` | 读取 Definition 及全部 Version | 只读 |
+| POST | `/api/v3/workflows/{workflow_id}/drafts` | 从新 graph 创建下一个不可变 draft Version | `expected_version` + `Idempotency-Key`；归档工作流拒绝新草稿 |
+| POST | `/api/v3/workflows/{workflow_id}/publish` | 发布指定 draft 并更新当前发布版本引用 | `version_id/expected_checksum/expected_version` + `Idempotency-Key` |
+| POST | `/api/v3/workflows/{workflow_id}/archive` | 归档 Definition | `expected_version` + `Idempotency-Key`；不删除历史 Version |
+| POST | `/api/v3/workflows/{workflow_id}/bindings` | 把已发布 Version 绑定到项目 | 校验项目/作用域/发布状态与 workflow/binding version；需要 `Idempotency-Key` |
+| GET | `/api/v3/workflow-bindings` | 按项目、工作流或 enabled 筛选绑定 | 只读 |
+
+`/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
+
+### 2.3 `project.inspect.v1` 持久执行
+
+当前唯一可执行工作流固定为三个步骤：
+
+| 顺序 | step_key | node_type | effect | 当前行为 |
+|------|----------|-----------|--------|----------|
+| 0 | `trigger` | `trigger.manual` | `none` | 读取已持久任务 prompt |
+| 1 | `inspect` | `project.analyze` | `analysis` | 遍历授权项目根，输出相对目录/清单/后缀统计；不读取文件正文，不跟随目录符号链接 |
+| 2 | `artifact` | `artifact.create` | `analysis` | 把检查 JSON 持久化为 `project_inspection`、`ready` 产物 |
+
+HTTP 只创建持久 Run 和 Steps；executor 在主应用 lifespan 内通过数据库租约领取并执行。浏览器请求或 SSE 断开不会取消 Run。项目检查结果、产物和事件不包含项目绝对根路径；当前检查也不会执行 shell、任意脚本、网络访问或文件写入。
+
+SSE 使用数据库中每个 Run 单调递增的 `sequence` 作为 `id`，事件名使用持久 `event_type`，例如 `run.queued`、步骤状态事件和 `run.completed`。`Last-Event-ID` 与 `after_sequence` 取较大值；终态事件发完后连接结束，非终态无事件时每 15 秒发送 keep-alive 注释。
+
+### 2.4 当前 alpha 边界
+
+- v3 项目、任务和运行资源不会同步到 v2 的 43 张表；现有 Vue、Coach、问答、导入和 Obsidian 主流程仍走 v2。
+- 审批、产物读取和运行控制 API 已暴露；当前真实闭环只生成内部只读项目检查产物，不执行 `artifact.export`、`obsidian.publish` 或其他写节点。
+- 安全节点注册表、DAG 校验和版本化工作流管理已经存在，但 executor 当前只实现 `trigger.manual`、`project.analyze`、`artifact.create`，且自定义发布工作流尚不能创建 Run。
+- `quick/standard/deep` 当前分别限制最多 4/8/16 步；固定三步检查在三档都可运行，档位不会增加额外检查能力。
+- v3 API 仍是 alpha 契约，尚无 React 生产前端或 v2 数据迁移承诺。
+
+## 3. 兼容与变更规则
 
 - `/api/assessment/*` 是当前仍存在的兼容 HTTP 契约；Coach 主闭环使用 `/api/coach/*`，两套状态和表不能混用。
 - `/api/import/obsidian-vault` 是一次性只读导入；插件配对、事件和发布使用 `/api/obsidian/*` 的独立流程。
+- `/api/v3/*` 是新增 alpha 命名空间，不替换或重定向任何 v2 路径；v2 调用方当前不需要迁移。
+- v3 与 v2 使用不同响应 envelope、数据根和资源 ID，调用方不得跨代际混用 ID 或数据库文件。
 - 内部 Python 类、函数和存储方法不是对外 HTTP API，不在本文冻结其调用签名。
 - HTTP 方法、路径、请求字段、响应字段或错误语义发生破坏性变化时，同步更新 [`api-changes.md`](api-changes.md)、OpenAPI operation 列表、契约测试和调用方。
 - 仅增加文档说明不代表运行时兼容性变化；当前端点统计必须由源码和测试重新派生，不能手工沿用旧快照。

@@ -2,13 +2,13 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
-> Scope：当前 SQLite Schema、关键约束、数据代际与可选向量边界
-> Related：`architecture-overview.md`、`api-spec.md`、`permission-matrix.md`、`../adr/ADR-002-sqlite-storage.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
+> Last Updated：2026-08-02
+> Scope：v2 当前 SQLite Schema、v3 alpha SQLAlchemy/Alembic Schema、数据代际与存储边界
+> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`api-spec.md`、`permission-matrix.md`、`../adr/ADR-002-sqlite-storage.md`、`../adr/ADR-015-v3-data-and-api-generation.md`
 
 ## 1. 权威边界
 
-v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 **37 张当前表**。当前 Unreleased 源码在 `coach_progress_store.py` 增量增加六张逐点学习表，因此初始化 **43 张当前表**；该增量不能解释为已经进入 v2.0.0 Tag 或安装包。API 和领域代码不得绕过 `backend/storage/` 直接操作 SQLite。
+v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 **37 张 v2 表**。当前 Unreleased 源码在 `coach_progress_store.py` 增量增加六张逐点学习表，因此 v2 初始化 **43 张当前表**；该增量不能解释为已经进入 v2.0.0 Tag 或安装包。独立 v3 alpha Schema 见 § 7，不属于这 43 张 v2 表。API 和领域代码不得绕过对应 storage 边界直接操作 SQLite。
 
 | 分组 | 模块 | 表数 |
 |------|------|------|
@@ -19,7 +19,7 @@ v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 
 
 默认数据库为 `runtime/v2/app.db`。正式启动要求 `app_metadata.data_generation=v2`，不会自动把旧代际数据库原地升级为 v2。
 
-## 2. 当前表与字段
+## 2. v2 当前表与字段
 
 以下字段清单按当前 `CREATE TABLE` 与启动时补列逻辑核对。字段名未出现在本节时，不应被当作当前 Schema。
 
@@ -99,13 +99,13 @@ v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 
 | `obsidian_publication_revisions` | `id`, `project_id`, `publication_id`, `artifact_type`, `stable_id`, `target_path`, `content`, `content_hash`, `expected_vault_hash`, `status`, `created_at`, `updated_at` | 同一发布内 stable_id 和 target_path 分别唯一；保存不可变内容基线 |
 | `obsidian_publication_results` | `id`, `project_id`, `publication_id`, `revision_id`, `connection_id`, `status`, `actual_hash`, `error_code`, `message`, `created_at` | `revision_id` 唯一；终态仅 `applied/conflict/failed` |
 
-## 3. 非当前 Schema 与兼容读取
+## 3. v2 非当前 Schema 与兼容读取
 
 `graph_nodes`、`graph_edges` 不由当前初始化器创建、补列或迁移。只有既有数据库已经包含兼容表时，检索链路才会条件式只读一跳关系；表不存在、字段不兼容或来源无法映射时保持原 BM25/向量结果。
 
-以下历史名称也不是当前 43 张表的一部分：`chunks`、`workspaces`、`tasks`、`conversations`、`tags`、`document_tags`、`sources`、`skill_areas`、`knowledge_points`、`evidences`、`mastery_records`。文档、测试或旧数据库出现这些名称不能推导当前应用会创建它们。
+以下历史名称也不是 v2 当前 43 张表的一部分：`chunks`、`workspaces`、`tasks`、`conversations`、`tags`、`document_tags`、`sources`、`skill_areas`、`knowledge_points`、`evidences`、`mastery_records`。其中 `sources` 是 v3 alpha 的独立表名，但不会因此出现在 v2 数据库；文档、测试或旧数据库出现这些名称不能推导 v2 初始化器会创建它们。
 
-## 4. 分块、向量与可选存储
+## 4. v2 分块、向量与可选存储
 
 - 当前 `backend/domain/chunking.py` 按段落分块；长段使用固定 `700` 字符上限和 `80` 字符重叠。
 - `load_settings()` 会读取 `RAG_CHUNK_SIZE` 和 `RAG_CHUNK_OVERLAP`，但当前 Web 入库调用没有把这两个值传入 `split_into_chunks()`；因此不能把环境配置写成已生效行为。
@@ -113,7 +113,7 @@ v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 
 - 未配置外部 Embedding 或调用失败时使用本地 `hashing-96`；启用 Qdrant 时向量候选来自 Qdrant local collection，失败时回退 SQLite cosine similarity。
 - `sentence-transformers` 不在默认 requirements，Cross-Encoder rerank 默认关闭；缺失时 `rerank_score` 可为空。
 
-## 5. 生命周期与一致性
+## 5. v2 生命周期与一致性
 
 - SQLite 连接启用 `PRAGMA foreign_keys=ON` 和 30 秒 busy timeout。
 - 项目删除会级联清理当前项目的大多数子记录；模型 Profile 和技能 taxonomy 是本机全局数据，不随单个项目删除。
@@ -125,7 +125,7 @@ v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 
 - 当前知识覆盖动态合并旧 Coach 评估结果和有效学习 attempt，不新增汇总 mastery 表；来源过期只使证据失效，不删除历史记录。
 - Obsidian 配对码与服务端连接令牌只保存哈希；插件自己的 Vault 数据文件会保存可恢复令牌，属于独立客户端安全边界。
 
-## 6. 路径与备份边界
+## 6. v2 路径与备份边界
 
 | 数据 | 默认位置 | 说明 |
 |------|----------|------|
@@ -137,3 +137,46 @@ v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 
 | 用户应用配置 | 平台应用数据目录下 `KnowledgeIsland/.env` | 兼容全局 LLM 设置可能写入明文 API Key |
 
 备份必须覆盖 SQLite，并在启用 Qdrant 或需要导出文件时明确纳入相应目录。`/api/health` 不验证备份完整性、数据库读写或向量一致性。
+
+## 7. v3 Agent 数据代际（alpha）
+
+### 7.1 物理隔离与迁移
+
+v3 使用 `backend/storage/v3/schema.py` 的 SQLAlchemy 2 Core metadata 和 `backend/storage/v3/migrations/` 的 Alembic 迁移。默认数据库为 `runtime/v3/app.db`，初始 revision 为 `0001_v3_initial`，`app_metadata` 同时写入 `data_generation=v3` 与 `schema_version=0001_v3_initial`。
+
+初始化顺序为：先以只读 SQLite 连接检查既有文件的代际，再创建 SQLAlchemy engine 并升级到 Alembic head。已有非空数据库若没有 `app_metadata`、代际不是 v3、缺少 `alembic_version` 或 revision 不等于当前 head，启动会 fail closed；检查失败前不会创建表、迁移或覆盖原文件。v3 不读取、ALTER、回填或删除 `runtime/v2/app.db`。
+
+连接启用 `foreign_keys=ON`、30 秒 busy timeout、WAL 和 `synchronous=NORMAL`。Store 使用显式事务；需要领取和状态变更的写路径使用 `BEGIN IMMEDIATE`，资源 `version`、请求 hash 和幂等记录用于阻止并发覆盖或同 Key 异载荷重放。
+
+### 7.2 表计数与职责
+
+v3 metadata 当前定义 **19 张业务表 + 2 张运行治理表，共 21 张应用表**；Alembic 另外维护 `alembic_version`。这里的“19 张业务表”口径不包含 `app_metadata` 和 `idempotency_records`。
+
+| 分组 | 表 | 职责 |
+|------|----|------|
+| 项目、来源与模型（8） | `projects`、`sources`、`documents`、`document_chunks`、`chunk_vectors`、`model_profiles`、`settings`、`integrations` | v3 项目上下文、内容、向量、模型引用和连接配置；当前 alpha API 只使用 `projects` |
+| 工作流（3） | `workflow_definitions`、`workflow_versions`、`workflow_bindings` | 工作流身份、不可变版本和项目绑定；HTTP 已开放创建/读取、草稿、发布、绑定和归档，发布工作流尚不能由通用 executor 执行 |
+| Agent 执行（8） | `agent_tasks`、`agent_task_messages`、`agent_runs`、`agent_steps`、`agent_step_attempts`、`agent_events`、`agent_approvals`、`agent_artifacts` | 任务对话、运行、步骤尝试、可重放事件、审批快照和产物 |
+| 运行治理（2） | `app_metadata`、`idempotency_records` | 数据代际/schema 标记和命令幂等回放 |
+
+关键执行约束：
+
+- Task、Run 和 Step 使用显式状态 CheckConstraint；Run 额外保存 workflow key/version/checksum、深度、重试来源、租约、CAS version 和错误结果。
+- `agent_step_attempts` 对 `(step_id, attempt_no)` 唯一；每次领取、成功、失败或取消保留独立尝试记录。
+- `agent_events` 对 `(run_id, sequence)` 唯一，为 SSE 恢复提供持久单调游标。
+- Approval 冻结 action、target、payload、request hash、resource version 和 CAS version；Artifact 保存内容或 content ref、checksum、metadata、状态和版本。
+- `idempotency_records` 对 `(scope, idempotency_key)` 唯一；相同 Key 只有请求 hash 相同才可回放。
+- 当前 `project.inspect.v1` 只读取已登记项目根的相对结构元数据，最终把 JSON 检查结果保存到 `agent_artifacts.content`；`runtime/v3/artifacts/` 在本 alpha 中只是预留目录。
+
+### 7.3 v3 路径与配置
+
+| 数据 | 默认位置 | 配置 / 当前边界 |
+|------|----------|-----------------|
+| 数据根 | `runtime/v3/` | `KI_DATA_ROOT` 可覆盖；必须保持与 v2 物理隔离 |
+| SQLite | `runtime/v3/app.db` | `KI_V3_DB_PATH` 只覆盖数据库文件；代际检查仍强制执行 |
+| 向量目录 | `runtime/v3/vectors/` | 已创建目录，当前项目检查闭环未写向量 |
+| 外部产物目录 | `runtime/v3/artifacts/` | 已创建目录，当前产物正文保存在 SQLite |
+| 日志目录 | `runtime/v3/logs/` | 预留；当前没有独立 v3 日志轮转器 |
+| 备份目录 | `runtime/v3/backups/` | 预留；现有 `ops/scripts/backup_db.sh` 仍只验证 v2 |
+
+现阶段没有 v2 → v3 数据迁移器，也没有经过恢复测试的 v3 自动备份脚本。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把 v2 脚本成功结果当作 v3 备份证据。

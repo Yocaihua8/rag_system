@@ -2,9 +2,9 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
-> Scope：本地与 Docker 启停、健康检查、备份、清理和索引重建
-> Related：`setup.md`、`testing.md`、`troubleshooting.md`、`security.md`
+> Last Updated：2026-08-02
+> Scope：v2/v3 本地与 Docker 启停、健康检查、备份、清理和索引重建
+> Related：`setup.md`、`testing.md`、`troubleshooting.md`、`security.md`、`../design/agent-runtime-and-tool-contract.md`
 
 Knowledge Island 默认是本地单用户应用，没有已确认的生产值班、集中监控或自动回滚平台。
 
@@ -13,8 +13,10 @@ Knowledge Island 默认是本地单用户应用，没有已确认的生产值班
 | 对象 | 默认位置/入口 | 就绪判断 |
 |------|---------------|----------|
 | FastAPI API | `127.0.0.1:8765` | `GET /api/health` |
+| v3 Agent API（alpha） | `/api/v3`；同一 FastAPI 进程 | `GET /api/v3/health` 返回 v3 revision 且 `executor_running=true` |
 | Vue 前端 | Vite 5173；preview/Docker 4173 | 页面加载且能调用 API |
-| SQLite | `runtime/v2/app.db` | 无独立 readiness |
+| v2 SQLite | `runtime/v2/app.db` | 无独立 readiness |
+| v3 SQLite | `runtime/v3/app.db` | 启动时通过 generation 与 Alembic head 校验 |
 | Qdrant local | 默认关闭；配置路径后启用 | 实际检索且无回退 warning |
 | 问答导出 | `runtime/v2/outputs/` | 不属于 SQLite 备份脚本范围 |
 
@@ -34,6 +36,8 @@ Get-NetTCPConnection -LocalPort 8765,5173 -State Listen -ErrorAction SilentlyCon
 ```
 
 在各终端按 `Ctrl+C` 停止。仓库不提供后台进程管理器。
+
+正常 `python -m backend` 在保留 v2 Store/路由的同时初始化 v3 Store，并由 FastAPI lifespan 启动持久 executor。v3 初始化遇到未标记、v2、未知代际或 Alembic revision 不匹配的数据库会拒绝启动；不要通过删除、覆盖或把 v2 文件改名为 v3 来绕过。
 
 ## 3. Docker 启停与日志
 
@@ -56,7 +60,33 @@ ops\docker\stop.ps1
 4. 使用外部 Provider 时单独验证 Provider；不要打印 Key。
 5. 桌面模式额外验证 sidecar 启动、8765 监听和退出清理。
 
-## 5. 备份
+v3 alpha 另做以下最小检查：
+
+1. `/api/v3/health` 返回 `data_generation=v3`、`schema_revision=0001_v3_initial` 和 `executor_running=true`。
+2. health 只证明 v3 数据库初始化和 executor 已启动，不代表项目检查、SSE、审批或产物链都成功。
+3. 完整冒烟必须使用隔离项目创建 Project → Task → `project.inspect.v1` Run，等待终态后检查 Steps、SSE 回放和 `project_inspection` Artifact；不能使用真实敏感项目目录。
+4. 当前 Vue 未接 v3；页面可用不能作为 v3 API 或 executor 的验收证据。
+
+## 5. v3 alpha 配置与恢复边界
+
+| 配置 | 默认值 | 范围 |
+|------|--------|------|
+| `KI_DATA_ROOT` | `runtime/v3/` | v3 vectors/artifacts/logs/backups 根；不得指向 v2 活动目录 |
+| `KI_V3_DB_PATH` | `<v3-data-root>/app.db` | 只覆盖 v3 SQLite 文件 |
+| `KI_AGENT_MAX_CONCURRENCY` | `2` | 允许 1-2 |
+| `KI_AGENT_LEASE_SECONDS` | `30` | 允许 5-3600 秒 |
+| `KI_AGENT_POLL_INTERVAL_MS` | `100` | 允许 10-60000ms |
+
+executor 使用数据库租约和心跳。进程异常退出后，下次启动会检查过期运行：可安全重放的读/分析步骤可以恢复，结果不明确的写步骤不得自动重放。当前真实 `project.inspect.v1` 只有只读/分析步骤；审批写回、外部发布和文件导出尚未形成可执行工作流。
+
+若 v3 启动失败：
+
+1. 停止反复启动，记录脱敏错误、数据库准确路径和 commit；
+2. 只读确认目标是否为预期 v3 文件，不得运行 v2 迁移或手工改 `app_metadata` / `alembic_version`；
+3. 对有价值文件先做可恢复副本，再在隔离目录验证；
+4. 未确认代际和 revision 前，不删除、不覆盖、不执行 downgrade。
+
+## 6. v2 备份
 
 维护脚本在 `ops/scripts/`，需从 Bash、Git Bash 或 WSL 执行：
 
@@ -79,7 +109,9 @@ bash ops/scripts/backup_db.sh
 
 实际恢复前必须停止写入、保留现有数据副本，并先在隔离目录重复上述完整性、代际和样例数据验证；不得直接覆盖活动 `runtime/v2/app.db`。使用 Qdrant local mode 时还要恢复同一时间点的向量目录。仓库没有“一键恢复即保证兼容”的脚本。
 
-## 6. 临时文件清理
+现有 `backup_db.sh`、恢复测试和 7 份保留策略只覆盖 v2，不是 v3 备份证据。v3 当前没有经过仓库恢复测试的自动备份脚本；需要保留 alpha 数据时，应先停止应用并对 `runtime/v3/app.db` 做 SQLite 一致性备份，同时记录 Alembic revision。`runtime/v3/vectors/`、`artifacts/`、`logs/` 和 `backups/` 当前为独立目录，其中内部项目检查产物正文仍保存在 SQLite；不要假定复制预留目录即可恢复运行。
+
+## 7. 临时文件清理
 
 ```bash
 bash ops/scripts/cleanup_runtime.sh
@@ -87,7 +119,9 @@ bash ops/scripts/cleanup_runtime.sh
 
 脚本只允许处理仓库 `runtime/` 内的 `__pycache__`、pytest cache、`.pyc` 和临时文件，并排除数据库、`runtime/v2/backups/` 和配置的 Qdrant 目录。不要把它用于任意外部路径。
 
-## 7. 索引重建
+现有清理脚本排除数据库和 v2 备份，但尚未声明 v3 数据清理契约；不要用它删除 `runtime/v3/` 内容。
+
+## 8. 索引重建
 
 先启动后端，再执行：
 
@@ -98,6 +132,8 @@ KI_PROJECT_ID=<project-id> bash ops/scripts/rebuild_index.sh
 
 脚本调用 `POST /api/admin/rebuild-index`，只使用 SQLite 已保存正文重建 chunk 与向量，不重新扫描文件系统。启用认证时通过 `KI_API_KEY` 或 `KI_BEARER_TOKEN` 临时提供凭证；脚本不保存或输出它们。
 
-## 8. 故障升级
+索引重建接口仍服务 v2 SQLite/Qdrant，不处理 v3 `sources/documents/chunk_vectors`，也不会重新执行 Agent Run。
+
+## 9. 故障升级
 
 收集 commit、运行方式、系统、前后端 URL、脱敏日志、重现步骤和已执行命令。不得复制凭证或真实敏感资料。当前 SLA、值班人和告警阈值均为 `TBD`。
