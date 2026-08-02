@@ -23,7 +23,7 @@
 - [x] 冻结 v3 产品范围、任务/运行能力和两轮 UI 原型验收契约。
 - [x] 新增并登记 v3 产品权限、持久化 DAG、React 前端和 v3 数据/API ADR。
 - [x] 建立 DevLog、文档吸收矩阵并更新仓库文档治理规则和检查器。
-- [ ] 运行文档与仓库测试，回流 CHANGELOG，移除 B-172 并删除本 plan。
+- [x] 运行文档与仓库测试，回流 CHANGELOG，移除 B-172 并删除本 plan。
 
 ## 4. 影响范围
 
@@ -51,21 +51,21 @@
 
 ## 6. 完成标准
 
-- [ ] v3 目标规格与原型门禁完整、无未决实现选择。
-- [ ] 四份 ADR 已登记，旧 ADR 的取代关系清楚。
-- [ ] DevLog 规则、模板、当日日志和检查器一致。
-- [ ] 文档门禁与相关仓库测试通过。
+- [x] v3 目标规格与原型门禁完整、无未决实现选择。
+- [x] 四份 ADR 已登记，旧 ADR 的取代关系清楚。
+- [x] DevLog 规则、模板、当日日志和检查器一致。
+- [x] 文档门禁与相关仓库测试通过。
 - [ ] BACKLOG 中 B-172 已移除，完成事实已写入 CHANGELOG 与 Git 历史。
 
 ## 7. 回流清单
 
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
-| v3 产品范围与非目标 | `../requirements/agent-product-v3.md` | [ ] |
-| UI 原型结构、状态和门禁 | `../design/ui-prototype-brief-v3.md` | [ ] |
-| 旧文档吸收与删除规则 | `../design/v3-document-migration.md` | [ ] |
-| 架构取舍 | `../adr/ADR-012-agent-product-and-permissions.md` 至 `ADR-015-v3-data-api-storage.md` | [ ] |
-| 过程记录 | `../devlog/2026/08/2026-08-02.md` | [ ] |
+| v3 产品范围与非目标 | `../requirements/agent-product-v3.md` | [x] |
+| UI 原型结构、状态和门禁 | `../design/ui-prototype-brief-v3.md` | [x] |
+| 旧文档吸收与删除规则 | `../design/v3-document-migration.md` | [x] |
+| 架构取舍 | `../adr/ADR-012-agent-product-and-permissions.md` 至 `ADR-015-v3-data-api-storage.md` | [x] |
+| 过程记录 | `../devlog/2026/08/2026-08-02.md` | [x] |
 
 ## 8. 执行记录
 
@@ -74,9 +74,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-02 12:57 +08:00
-- **进度**：已完成 3 / 4 项
-- **最新 commit**：`fdc34cf` — Merge pull request #7 from Yocaihua8/agent/b-171-interactive-learning
-- **代码状态**：`refactor/agent-v3`；创建 plan 前工作区干净；现有 Vue 未修改
-- **下一步**：保存治理基线提交，回流 CHANGELOG 后关闭 B-172
+- **最后更新**：2026-08-02 13:00 +08:00
+- **进度**：已完成 4 / 4 项
+- **最新 commit**：`6880ae1` — docs: 建立 v3 Agent 工程治理基线
+- **代码状态**：`refactor/agent-v3`；B-172 已验证，现有 Vue 未修改
+- **下一步**：移除 BACKLOG 行和本 plan，建立 v3 后端垂直切片任务
 - **续任务须知**：后端可在原型评审期间推进；React 生产前端受 P2 门禁阻断

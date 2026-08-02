@@ -10,11 +10,14 @@
 
 ### Added
 
+- **v3 通用项目 Agent 工程基线**：冻结产品范围、任务/运行/审批目标合同、P1/P2 前端原型门禁，以及持久 DAG、React/TypeScript、独立 v3 数据/API 的架构决策；目标文档不冒充当前 v2 已实现能力。
+- **每日 DevLog**：重新启用 `docs/devlog/YYYY/MM/YYYY-MM-DD.md` 过程记录，提供日报与问题复盘模板，并保持 BACKLOG、ADR、CHANGELOG 和 Git 的职责分离。
 - **逐知识点交互学习**：可从教练、学习地图或已确认学习计划任务启动和恢复学习会话，一次展示一个知识点与一道练习；每次作答独立保存，支持有限重试、具体反馈、答案揭示和当前来源版本下的掌握证据更新。
 - **只读 SQL 项目练习**：仅在当前项目存在可解析 SQLite Schema 证据时生成结构化合成 fixture；学习者查询在独立临时 SQLite 数据库中按只读、安全和资源限制确定性评分，不连接正式应用数据库。
 
 ### Changed
 
+- **文档治理门禁**：允许且只允许 DevLog 使用 `YYYY/MM/` 嵌套，校验日期与目录、独立元数据、根目录文件和 150 行上限；继续禁止 readiness、已验收 preview 和完成 plan 归档。
 - **前后端运行时分离**：FastAPI 改为 API-only，后端以 `python -m backend` 启动；Vue 独立构建到 `frontend/dist/` 并通过 `VITE_API_BASE_URL` 使用绝对 API/SSE URL。
 - **受限跨域策略**：新增 `KI_CORS_ORIGINS` 精确 allowlist，默认只允许本机 5173/4173 和 Tauri Origin，不使用通配符或 cookie credentials。
 - **工程依赖分区**：根 npm 只编排 frontend/src-tauri workspace；Python 依赖迁入 `backend/requirements/`；Tauri CLI、Vite/Vitest/Playwright 和 Obsidian 插件依赖各归所属工程。
