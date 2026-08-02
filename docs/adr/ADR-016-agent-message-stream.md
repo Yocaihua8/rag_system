@@ -76,9 +76,9 @@
 | 项目 | 内容 |
 |------|------|
 | 实施开始日期 | 2026-08-02 |
-| 实施结束日期 | 2026-08-02（后端 alpha 与 P1 Revision 2/3）；React reducer 等待 P2 批准 |
+| 实施结束日期 | 2026-08-02（后端 alpha 与 P1 Revision 2/3）；React reducer 进入 B-175 |
 | 实施负责人 | RAG 团队 / Codex |
-| 里程碑 | B-178 后端合同与测试、P1 Revision 2/3、P2 后的 React reducer |
+| 里程碑 | B-178 后端合同与测试、P1 Revision 2/3、B-175 React reducer |
 
 ### 6.2 回滚策略
 
@@ -98,5 +98,5 @@
 
 ### 6.4 待办项
 
-- B-178 已完成后端消息流、API/runtime 合同与 P1 Revision 3 本地验收；P1 等待用户确认。
-- P2 明确批准后，在 React 生产前端实现事件 reducer 与真实 SSE 联调。
+- B-178 已完成后端消息流、API/runtime 合同与 P1 Revision 3 本地验收；用户已批准按该版本进入独立 React 实施。
+- B-175 在 React 生产前端实现事件 reducer；真实 SSE 联调只覆盖当前固定工作流和已存在事件，缺失能力不得用演示事件替代。

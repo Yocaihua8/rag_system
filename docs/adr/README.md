@@ -52,8 +52,9 @@ ADR-002-short-title.md
 | [ADR-009](ADR-009-obsidian-plugin-bridge.md) | Obsidian 桌面插件桥与受控写回 | Accepted | 2026-07-23 | desktop-only 插件、幂等同步和受控发布边界有效 |
 | [ADR-010](ADR-010-runtime-separation.md) | 前后端运行时分离 | Accepted | 2026-08-01 | 取代 ADR-006 的静态托管/同源请求部分，不拆分产品领域 |
 | [ADR-011](ADR-011-interactive-learning-sql-sandbox.md) | 逐知识点学习会话与只读 SQL 沙箱 | Accepted | 2026-08-01 | 增量会话模型与隔离只读 SQL 评分边界已由 B-171 当前提交验证 |
-| [ADR-012](ADR-012-agent-product-and-permissions.md) | v3 通用项目 Agent 与权限边界 | Accepted | 2026-08-02 | 取代 ADR-003 的 v3 工具范围和 ADR-008 的目标产品定位；v2 实现保留到切换 |
+| [ADR-012](ADR-012-agent-product-and-permissions.md) | v3 通用项目 Agent 与权限边界 | Accepted | 2026-08-02 | 产品与权限边界有效；P2 先于 React 开工的时间门禁由 ADR-017 部分取代 |
 | [ADR-013](ADR-013-durable-dag-executor.md) | SQLite 持久化 DAG 执行器 | Accepted | 2026-08-02 | v3 任务、租约、并发、事件和恢复的权威决策 |
-| [ADR-014](ADR-014-react-typescript-frontend.md) | v3 前端采用 React 与 TypeScript | Accepted | 2026-08-02 | P2 批准后取代 ADR-006 的 Vue 框架选择；运行时分离继续有效 |
+| [ADR-014](ADR-014-react-typescript-frontend.md) | v3 前端采用 React 与 TypeScript | Accepted | 2026-08-02 | React 技术栈与平行替换有效；开工时间门禁由 ADR-017 部分取代 |
 | [ADR-015](ADR-015-v3-data-api-storage.md) | v3 数据代际、API 与存储 | Accepted | 2026-08-02 | 独立 v3 数据根、`/api/v3`、SQLAlchemy Core 与 Alembic |
 | [ADR-016](ADR-016-agent-message-stream.md) | 持久任务消息与可重放 Agent 消息流 | Accepted | 2026-08-02 | 完整消息保存长期事实，append-only 语义分块负责实时回放，前端 reducer 只做事件投影 |
+| [ADR-017](ADR-017-approved-p1-react-implementation-gate.md) | 以批准的 P1 Revision 3 启动 React 实施 | Accepted | 2026-08-02 | P1 R3 作为 B-175 基线；高保真验收并入实现，不授权最终切换 |

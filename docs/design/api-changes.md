@@ -37,7 +37,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全�
 | 运行输入 | 读取 Task prompt | 在 trigger Step 冻结消息 ID 与内容 hash，执行时回读不可变任务消息并校验 hash | 后续消息不改变已创建 Run；Step/SSE 不复制完整输入正文 |
 | 固定工作流 | key `project.inspect.v1`、version 1、三步 | key 不变、version 2、增加 `agent.respond` 为第四步 | 不得把 version 2 错写成新 API key；旧 version 1 历史仍可读取 |
 | SSE | Run/Step/Approval/Artifact/Tool 基础事件 | 新增 Agent 消息事件，并补齐 Step 与 Approval 终态事件 | 客户端按 sequence 去重并支持未知的新增事件 |
-| OpenAPI 事件类型 | 运行时事件为通用 SSE | `AgentEvent` 使用 `event_type` discriminated union | components 已显式暴露并通过契约测试；P2 后再生成 TS 类型 |
+| OpenAPI 事件类型 | 运行时事件为通用 SSE | `AgentEvent` 使用 `event_type` discriminated union | components 已显式暴露并通过契约测试；生产 React 前端已获授权生成 TS 类型 |
 
 新增事件：
 

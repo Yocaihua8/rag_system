@@ -22,7 +22,9 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
-| B-178 | refactor | 新手引导式首页与可重放 Agent 消息流 | doing | P0 | L | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-178-guided-agent-conversation.md`；P1 Revision 3 等待确认，Sites 发布仍阻塞；v3 任务首消息、输入快照与流式事件合同已完成 |
+| B-174 | infra | Tauri sidecar、安全令牌与本地数据运维基础 | todo | P1 | L | Codex | `guides/v3-upgrade.md`、`adr/ADR-010-runtime-separation.md` | 原批准序列中的非视觉桌面基础；尚未建立 plan，不阻塞 B-175 Web 基础，但阻塞桌面切换、存储迁移和备份恢复验收 |
+| B-175 | refactor | React 生产前端基础与 P1 Revision 3 实施 | doing | P0 | XL | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-175-react-frontend-foundation.md`；用户已批准按 Revision 3 实施，Vue/Tauri/Docker 保持现状，只消费真实 v3 能力 |
+| B-178 | refactor | 新手引导式首页与可重放 Agent 消息流 | blocked | P0 | L | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-178-guided-agent-conversation.md`；后端与 P1 本地验收已完成，Sites `list_sites` 传输错误阻塞生产发布和关闭 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题

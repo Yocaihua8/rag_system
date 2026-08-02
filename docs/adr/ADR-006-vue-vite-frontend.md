@@ -6,7 +6,7 @@
 > Scope：Web 表现层框架、构建工具与迁移边界
 > Related：[架构总览](../design/architecture-overview.md)、[UI 线框](../design/ui-wireframes.md)、[页面模块契约](../design/page-module-contract.md)、[组件契约](../design/component-api-contract.md)、[搭建指南](../guides/setup.md)、[测试指南](../guides/testing.md)、[ADR-010](ADR-010-runtime-separation.md)、[ADR-014](ADR-014-react-typescript-frontend.md)
 > 部分取代：[ADR-010](ADR-010-runtime-separation.md) 已取代本决策中的 FastAPI 静态托管和同源 `/api` 请求边界
-> Superseded by：ADR-014（v3 前端；当前 Vue 实现保留到 P2 批准后的平行替换完成）
+> Superseded by：ADR-014（v3 前端；开工门禁调整见 ADR-017，当前 Vue 保留到平行替换验收完成）
 
 ## 1. 背景
 

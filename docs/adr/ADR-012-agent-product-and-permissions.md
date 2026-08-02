@@ -1,6 +1,7 @@
 # ADR-012 v3 通用项目 Agent 与权限边界
 
 > 状态：Accepted
+> Partially Superseded by：ADR-017（仅取代 P2 先于 React 开工的时间门禁）
 > Date：2026-08-02
 > Owner：RAG 团队
 > Scope：v3 产品定位、任务归属、工具能力和写操作确认
@@ -91,4 +92,4 @@ Knowledge Island v3 定位为单用户、桌面优先、本地优先的通用项
 ### 6.4 待办项
 
 - B-173 实现后把目标合同校准为源码事实。
-- P2 批准后再解除 React 前端实施门禁。
+- React 开工门禁已由用户对 P1 Revision 3 的明确实施授权解除；高保真验收并入 B-175，见 ADR-017。

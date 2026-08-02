@@ -781,7 +781,7 @@ alpha.2 的事件 union 包含：
 
 `started/delta` 使用稳定 message ID 和命令幂等作用域追加；完整或中断内容保存为 `agent_task_messages` 后，再在同一事务追加 `completed/interrupted`。客户端按 sequence 去重，不能把 delta 单独当作长期任务消息。
 
-`backend/api/v3/models.py` 以 `event_type` 为 discriminator 声明 `AgentEvent`；SSE 输出通过该 union 校验，`/api/v3/openapi.json` 已显式暴露对应 components，并由 OpenAPI 契约测试校验。P2 批准后才能据此生成 React TypeScript 类型，本轮未生成前端调用代码。
+`backend/api/v3/models.py` 以 `event_type` 为 discriminator 声明 `AgentEvent`；SSE 输出通过该 union 校验，`/api/v3/openapi.json` 已显式暴露对应 components，并由 OpenAPI 契约测试校验。生产 React 前端已获授权据此生成 TypeScript 类型；生成客户端仍必须把 base URL 固定在 `/api/v3`，不得从根 v2 OpenAPI 生成。
 
 ### 2.6 当前 alpha 边界
 

@@ -1,6 +1,7 @@
 # ADR-014 v3 前端采用 React 与 TypeScript
 
 > 状态：Accepted
+> Partially Superseded by：ADR-017（仅取代独立 P2 先于 React 开工的时间门禁）
 > Date：2026-08-02
 > Owner：RAG 团队
 > Scope：v3 Web/Tauri 前端框架、状态边界、工作流画布和迁移方式
@@ -12,7 +13,7 @@
 
 ## 2. 决策结论
 
-P2 原型明确批准后，在独立 `frontend-v3/` 建立：
+用户明确批准实施基线后，在独立 `frontend-v3/` 建立；当前授权与验收迁移见 ADR-017：
 
 - React 19、TypeScript 6 和 Vite 8；使用 Hash Router 让同一构建产物适配 Web 静态服务与 Tauri。
 - TanStack Query 管理后端权威数据；Zustand 只管理临时 UI、布局和工作流草稿。
@@ -58,7 +59,7 @@ P2 原型明确批准后，在独立 `frontend-v3/` 建立：
 
 ### 5.3 对现有系统的改动点
 
-- 根 npm workspace 在 P2 后暂时加入 `frontend-v3`。
+- 根 npm workspace 在 B-175 开始后暂时加入 `frontend-v3`。
 - 最终切换 Tauri、Docker 和根脚本到 React 产物。
 - ADR-006 的 Vue 框架结论被本 ADR 取代；ADR-010 的运行时分离继续有效。
 
@@ -68,7 +69,7 @@ P2 原型明确批准后，在独立 `frontend-v3/` 建立：
 
 | 项目 | 内容 |
 |------|------|
-| 实施开始日期 | P2 明确批准后 |
+| 实施开始日期 | 2026-08-02（P1 Revision 3 获得明确实施授权；见 ADR-017） |
 | 实施结束日期 | TBD |
 | 实施负责人 | RAG 团队 / Codex |
 | 里程碑 | 应用壳、任务时间线、工作流、项目洞察、设置、切换 |
@@ -85,10 +86,10 @@ P2 原型明确批准后，在独立 `frontend-v3/` 建立：
 
 ### 6.3 验证方式
 
-- P1/P2 均获得明确批准。
+- P1 Revision 3 已获得明确实施授权；原 P2 高保真验收并入 B-175。
 - 生成类型、单测、构建和连接真实 v3 后端的 E2E 通过。
 - Tauri 与 Web 使用同一构建产物且路由可直接打开。
 
 ### 6.4 待办项
 
-- P2 前禁止创建 `frontend-v3/` 或修改 Vue 页面。
+- B-175 可创建 `frontend-v3/`，但继续禁止修改 Vue 页面或切换正式入口；详细边界见 ADR-017。
