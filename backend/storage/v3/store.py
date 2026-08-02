@@ -972,6 +972,27 @@ class AgentStore:
             row = connection.execute(statement).mappings().first()
             return _public_row(row) if row else None
 
+    def list_task_runs(
+        self,
+        task_id: str,
+        *,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        bounded_limit = max(1, min(int(limit), 500))
+        bounded_offset = max(0, int(offset))
+        statement = (
+            select(agent_runs, agent_tasks.c.project_id.label("project_id"))
+            .join(agent_tasks, agent_tasks.c.id == agent_runs.c.task_id)
+            .where(agent_runs.c.task_id == str(task_id))
+            .order_by(agent_runs.c.created_at.desc(), agent_runs.c.id.desc())
+            .limit(bounded_limit)
+            .offset(bounded_offset)
+        )
+        with self._database.read_connection() as connection:
+            rows = connection.execute(statement).mappings()
+            return [_public_row(row) for row in rows]
+
     def list_run_steps(self, run_id: str) -> list[dict[str, Any]]:
         with self._database.read_connection() as connection:
             rows = connection.execute(
@@ -1788,6 +1809,14 @@ class AgentStore:
             _require_version(source, expected_version, "run")
             if source["status"] != "failed":
                 raise StateConflictError("only failed runs can be retried")
+            existing_retry_id = connection.execute(
+                select(agent_runs.c.id)
+                .where(agent_runs.c.retry_of_run_id == clean_run_id)
+                .order_by(agent_runs.c.created_at, agent_runs.c.id)
+                .limit(1)
+            ).scalar_one_or_none()
+            if existing_retry_id is not None:
+                raise StateConflictError("failed run already has a retry")
             source_steps = list(
                 connection.execute(
                     select(agent_steps)

@@ -56,7 +56,7 @@ npm audit --audit-level=high
 npm --prefix integrations/obsidian-plugin audit --audit-level=high
 ```
 
-根 npm 审计覆盖 frontend 与 src-tauri workspace；插件独立审计。Python 生产依赖使用 `base.txt`。只引用本次实际结果。
+根 npm 审计覆盖 Vue、React v3、Tauri 与 OpenAPI codegen workspace；插件独立审计。React Router 的受控 RSC 公告例外及失效条件见 ADR-014，不能把受控通过写成零漏洞。Python 生产依赖使用 `base.txt`。只引用本次实际结果。
 
 ## 7. 安全变更联动
 

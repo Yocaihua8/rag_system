@@ -10,8 +10,9 @@
 
 ### Added
 
+- **React v3 平行 Agent 工作台**：新增独立 `frontend-v3/` React 19/TypeScript 6/Vite 8 应用，提供任务、项目、工作流和设置四个一级入口；通过生成的 v3 OpenAPI 类型接入真实项目、任务消息、运行、SSE、控制、审批、历史产物与工作流只读信息，并在缺少资料、洞察、导出、工作流编辑和桌面运维 API 时保持明确不可用状态。正式入口仍为现有 Vue。
 - **v3 通用项目 Agent 工程基线**：冻结产品范围、任务/运行/审批目标合同、P1/P2 前端原型门禁，以及持久 DAG、React/TypeScript、独立 v3 数据/API 的架构决策；目标文档不冒充当前 v2 已实现能力。
-- **v3 Agent 后端 alpha 垂直切片**：在保留 v2 API、SQLite 与 Vue 的同时，新增独立 `runtime/v3` SQLAlchemy/Alembic 数据代际和 `/api/v3` sub-app；项目、任务与固定三步 `project.inspect.v1` 运行由 lifespan executor 持久执行，支持可续传 SSE、运行控制/重试、审批与产物读取基础，并生成不含文件正文和绝对根路径的项目结构检查产物。
+- **v3 Agent 后端 alpha 垂直切片**：在保留 v2 API、SQLite 与 Vue 的同时，新增独立 `runtime/v3` SQLAlchemy/Alembic 数据代际和 `/api/v3` sub-app；项目、任务与固定四步 `project.inspect.v1` version 2 运行由 lifespan executor 持久执行，支持可续传 Agent 回答、运行控制/重试、审批与产物读取基础，并生成不含文件正文和绝对根路径的项目结构检查产物。
 - **每日 DevLog**：重新启用 `docs/devlog/YYYY/MM/YYYY-MM-DD.md` 过程记录，提供日报与问题复盘模板，并保持 BACKLOG、ADR、CHANGELOG 和 Git 的职责分离。
 - **逐知识点交互学习**：可从教练、学习地图或已确认学习计划任务启动和恢复学习会话，一次展示一个知识点与一道练习；每次作答独立保存，支持有限重试、具体反馈、答案揭示和当前来源版本下的掌握证据更新。
 - **只读 SQL 项目练习**：仅在当前项目存在可解析 SQLite Schema 证据时生成结构化合成 fixture；学习者查询在独立临时 SQLite 数据库中按只读、安全和资源限制确定性评分，不连接正式应用数据库。
@@ -19,10 +20,11 @@
 ### Changed
 
 - **文档治理门禁**：允许且只允许 DevLog 使用 `YYYY/MM/` 嵌套，校验日期与目录、独立元数据、根目录文件和 150 行上限；继续禁止 readiness、已验收 preview 和完成 plan 归档。
-- **v3 API 请求控制与工作流版本化**：新增统一 success/error envelope、`X-Request-ID`、命令 `Idempotency-Key`、资源 version/CAS 与事件 `Last-Event-ID`；CORS allowlist 同步放行这些显式请求头；工作流支持 validate、不可变 draft、checksum/version 发布、项目绑定与归档，但自定义发布 DAG 尚不能执行。
+- **v3 API 请求控制与工作流版本化**：新增统一 success/error envelope、`X-Request-ID`、必填命令 `Idempotency-Key`、资源 version/CAS 与事件 `Last-Event-ID`；增加按 Task 查询 Run 的刷新恢复接口，CORS allowlist 同步放行平行 React 端口和显式请求头；工作流支持 validate、不可变 draft、checksum/version 发布、项目绑定与归档，但自定义发布 DAG 尚不能执行。
+- **v3 Web 未决操作恢复**：React 以不含原始 prompt 和项目路径的 SHA-256 intent ledger 恢复 Task/Message 已保存而 Run 响应丢失的部分成功操作；Run 成功后释放键，相同正文可再次形成新运行。同一失败 Run 只允许一个直接 retry 后继。
 - **前后端运行时分离**：FastAPI 改为 API-only，后端以 `python -m backend` 启动；Vue 独立构建到 `frontend/dist/` 并通过 `VITE_API_BASE_URL` 使用绝对 API/SSE URL。
-- **受限跨域策略**：新增 `KI_CORS_ORIGINS` 精确 allowlist，默认只允许本机 5173/4173 和 Tauri Origin，不使用通配符或 cookie credentials。
-- **工程依赖分区**：根 npm 只编排 frontend/src-tauri workspace；Python 依赖迁入 `backend/requirements/`；Tauri CLI、Vite/Vitest/Playwright 和 Obsidian 插件依赖各归所属工程。
+- **受限跨域策略**：新增 `KI_CORS_ORIGINS` 精确 allowlist，默认只允许本机 Vue 5173/4173、React v3 5174/4174 和 Tauri Origin，不使用通配符或 cookie credentials。
+- **工程依赖分区**：根 npm 在迁移期并行编排 Vue、React v3、Tauri 与隔离的 OpenAPI codegen workspace；Python 依赖迁入 `backend/requirements/`，Obsidian 插件继续独立安装和验证。
 - **v2 结果输出目录**：问答结果默认写入活动运行时派生的 `<runtime>/outputs/`，本地默认由 `data/outputs/` 调整为 `runtime/v2/outputs/`；`KI_OUTPUT_DIR` 和 `RAG_OUTPUT_DIR` 覆盖顺序保持兼容。
 - **Docker 双服务**：Compose 迁入 `ops/docker/`，前端与后端使用独立镜像、端口和健康检查，前端 Nginx 不反向代理 API。
 - **仓库与测试分类**：运行入口、工具、测试和构建脚本按 backend、frontend、desktop、integration、operations、repository 职责重组。

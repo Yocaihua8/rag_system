@@ -18,7 +18,7 @@
 
 HTTP 创建运行时只提交持久状态；执行器由应用 lifespan 启动并从数据库领取步骤。浏览器或 SSE 连接断开不能取消持久运行。
 
-当前 alpha 已按上述边界实现 `backend/api/v3/`、`backend/application/agent_service.py`、`backend/runtime/` 与 `backend/storage/v3/`。v2 路由和 Vue 继续运行；v3 没有生产前端接线。
+当前 alpha 已按上述边界实现 `backend/api/v3/`、`backend/application/agent_service.py`、`backend/runtime/` 与 `backend/storage/v3/`。v2 路由和 Vue 继续运行；独立 `frontend-v3/` 已接入当前真实 v3 切片，但尚未成为正式入口。
 
 ## 2. 核心实体和状态
 
@@ -74,7 +74,7 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 
 当前实现还补齐 `step.waiting_approval / step.failed / step.cancelled / step.recovery_required` 与 `approval.expired`。审批过期由独立周期任务检查，不依赖空闲执行槽。`artifact.created.payload.status=ready` 继续表达当前内部产物就绪；导出执行尚未实现时不得发出虚构的导出完成事件。
 
-任务消息保存长期会话事实，事件保存实时生成与运行事实，未来 React 前端 reducer 只负责去重和界面投影。完整决策见 [`ADR-016`](../adr/ADR-016-agent-message-stream.md)。P1 Revision 3 沿用确定性演示事件验证交互，不是后端联调证明。
+任务消息保存长期会话事实，事件保存实时生成与运行事实，React 前端 reducer 只负责去重和界面投影。完整决策见 [`ADR-016`](../adr/ADR-016-agent-message-stream.md)。P1 Revision 3 的确定性演示事件仍只证明原型交互；生产闭环另由真实后端 Playwright 用例验证。
 
 ## 5. 工作流版本与当前开放边界
 
@@ -143,6 +143,6 @@ P1 中“找出问题 / 整理资料 / 做一份计划”的通用澄清路径�
 | Agent 回答流 | alpha 已实现并通过定向、真实 lifespan 集成和全量门禁；完整/中断消息与终结事件保持事务一致 |
 | 审批与写动作 | 数据和 API 基础已存在；当前没有可执行写工作流或端到端审批写回 |
 | 工作流管理 | validate、Definition/不可变 Version/Binding 的创建、读取、发布、绑定和归档已实现；自定义发布 DAG 执行未实现 |
-| 前端 | v2 Vue 保留且未改接 v3；React 生产实现仍受后续门禁约束 |
+| 前端 | v2 Vue 保留且未改接 v3；独立 React 工作台已接真实 v3 固定任务闭环，正式入口切换仍受后续门禁约束 |
 
-因此可以把当前能力描述为“v3 后端 alpha 垂直切片与版本化工作流管理基础”，不能描述为自定义工作流执行、可视化编排或前端迁移已经完成。
+因此可以把当前能力描述为“v3 后端 alpha 垂直切片、版本化工作流管理基础与平行 React 工作台”，不能描述为自定义工作流执行、完整可视化编排或正式前端迁移已经完成。

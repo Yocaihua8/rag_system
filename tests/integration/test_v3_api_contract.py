@@ -6,7 +6,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from backend.api.v3.app import create_v3_app
-from backend.storage.v3.errors import IdempotencyConflictError
+from backend.storage.v3.errors import IdempotencyConflictError, StateConflictError
 
 
 NOW = "2026-08-02T10:00:00.000Z"
@@ -15,6 +15,7 @@ NOW = "2026-08-02T10:00:00.000Z"
 class FakeStore:
     def __init__(self) -> None:
         self.raise_task_conflict = False
+        self.raise_retry_conflict = False
         self.projects = [
             {
                 "id": "project-1",
@@ -26,6 +27,20 @@ class FakeStore:
                 "updated_at": NOW,
             }
         ]
+        self.tasks = {
+            "task-1": {
+                "id": "task-1",
+                "project_id": "project-1",
+                "title": "Inspect",
+                "prompt": "Inspect this project",
+                "depth": "standard",
+                "status": "queued",
+                "version": 1,
+                "created_at": NOW,
+                "updated_at": NOW,
+            }
+        }
+        self.runs: list[dict[str, Any]] = []
 
     def create_project(self, **kwargs: Any) -> dict[str, Any]:
         return {"project": self.projects[0], "replayed": False}
@@ -34,10 +49,19 @@ class FakeStore:
         return list(self.projects)
 
     def get_task(self, task_id: str) -> dict[str, Any] | None:
-        return None
+        return self.tasks.get(task_id)
 
     def list_tasks(self, **kwargs: Any) -> list[dict[str, Any]]:
         return []
+
+    def list_task_runs(
+        self,
+        task_id: str,
+        *,
+        limit: int,
+        offset: int,
+    ) -> list[dict[str, Any]]:
+        return self.runs[offset : offset + limit]
 
     def create_task(self, **kwargs: Any) -> dict[str, Any]:
         if self.raise_task_conflict:
@@ -69,6 +93,11 @@ class FakeStore:
             },
             "replayed": False,
         }
+
+    def retry_run(self, **kwargs: Any) -> dict[str, Any]:
+        if self.raise_retry_conflict:
+            raise StateConflictError("failed run already has a retry")
+        raise AssertionError("retry_run was not configured for this test")
 
 
 def _client(store: FakeStore | None = None) -> tuple[TestClient, FakeStore]:
@@ -118,14 +147,14 @@ def test_missing_idempotency_key_uses_error_envelope(tmp_path: Path):
 
     assert response.status_code == 422
     assert response.headers["X-Request-ID"] == "missing-idempotency"
-    assert response.json() == {
-        "error": {
-            "code": "application_validation_error",
-            "message": "Idempotency-Key header is required",
-            "details": {},
-        },
-        "request_id": "missing-idempotency",
-    }
+    body = response.json()
+    assert body["request_id"] == "missing-idempotency"
+    assert body["error"]["code"] == "validation_error"
+    assert body["error"]["message"] == "request validation failed"
+    assert any(
+        issue["loc"] == ["header", "Idempotency-Key"] and issue["type"] == "missing"
+        for issue in body["error"]["details"]["issues"]
+    )
 
 
 def test_not_found_and_idempotency_conflict_use_error_envelope():
@@ -168,6 +197,93 @@ def test_not_found_and_idempotency_conflict_use_error_envelope():
             "details": {},
         },
         "request_id": "task-conflict",
+    }
+
+
+def test_task_runs_list_supports_empty_and_paginated_typed_results():
+    client, store = _client()
+
+    empty = client.get("/tasks/task-1/runs")
+    assert empty.status_code == 200
+    assert empty.json()["data"] == {"items": []}
+
+    store.runs = [
+        {
+            "id": f"run-{index}",
+            "task_id": "task-1",
+            "project_id": "project-1",
+            "workflow_version_id": None,
+            "workflow_key": "project.inspect.v1",
+            "workflow_version": 2,
+            "workflow_checksum": f"checksum-{index}",
+            "depth": "quick",
+            "status": "queued",
+            "priority": 0,
+            "attempt_no": 1,
+            "retry_of_run_id": None,
+            "version": 1,
+            "queued_at": NOW,
+            "started_at": None,
+            "finished_at": None,
+            "paused_at": None,
+            "cancel_requested_at": None,
+            "lease_owner": "",
+            "lease_expires_at": None,
+            "error_code": "",
+            "error_message": "",
+            "result": {},
+            "created_at": NOW,
+            "updated_at": NOW,
+        }
+        for index in range(3)
+    ]
+
+    page = client.get(
+        "/tasks/task-1/runs",
+        params={"limit": 1, "offset": 1},
+        headers={"X-Request-ID": "task-runs-page"},
+    )
+
+    assert page.status_code == 200
+    assert page.json()["meta"] == {"request_id": "task-runs-page"}
+    assert [run["id"] for run in page.json()["data"]["items"]] == ["run-1"]
+
+    missing = client.get(
+        "/tasks/missing/runs",
+        headers={"X-Request-ID": "missing-task-runs"},
+    )
+    assert missing.status_code == 404
+    assert missing.json() == {
+        "error": {
+            "code": "not_found",
+            "message": "task not found",
+            "details": {},
+        },
+        "request_id": "missing-task-runs",
+    }
+
+
+def test_second_manual_retry_key_uses_state_conflict_envelope():
+    client, store = _client()
+    store.raise_retry_conflict = True
+
+    response = client.post(
+        "/runs/run-1/retry",
+        headers={
+            "Idempotency-Key": "retry-second-command",
+            "X-Request-ID": "retry-already-created",
+        },
+        json={"expected_version": 3},
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "error": {
+            "code": "state_conflict",
+            "message": "failed run already has a retry",
+            "details": {},
+        },
+        "request_id": "retry-already-created",
     }
 
 
@@ -224,6 +340,17 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "application/json"
     ]["schema"] == {
         "$ref": "#/components/schemas/SuccessEnvelope_TaskMutationData_"
+    }
+    idempotency_parameter = next(
+        parameter
+        for parameter in schema["paths"]["/tasks"]["post"]["parameters"]
+        if parameter["in"] == "header" and parameter["name"] == "Idempotency-Key"
+    )
+    assert idempotency_parameter["required"] is True
+    assert schema["paths"]["/tasks/{task_id}/runs"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_RunListData_"
     }
     success_schema = schema["components"]["schemas"][
         "SuccessEnvelope_TaskMutationData_"

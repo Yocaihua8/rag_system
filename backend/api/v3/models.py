@@ -307,6 +307,10 @@ class RunData(StrictModel):
     run: RunResource
 
 
+class RunListData(StrictModel):
+    items: list[RunResource]
+
+
 class RunStepsData(StrictModel):
     items: list[StepResource]
 

@@ -14,7 +14,7 @@
 
 当前 Vue `fetch` 不附加上述凭证，问答原生 `EventSource` 也没有自定义认证 Header；因此浏览器主路径只承诺默认关闭认证的本地模式。后端认证能力不能被解释为已完成的前端登录/SSE 凭证链。
 
-前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许本机 5173/4173 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-Request-ID`。CORS 不改变任何下述方法、字段或响应契约。
+前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许现有 Vue 的本机 5173/4173、平行 React v3 的 5174/4174 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-Request-ID`。CORS 不改变任何下述方法、字段或响应契约。
 
 `/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载；新增、删除或修改 API 时，需要同时更新 operation 列表、路由/dispatch 测试和本文档端点速览。
 
@@ -652,9 +652,9 @@ attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CA
 
 ## 2. v3 Agent API（alpha）
 
-主应用把独立 FastAPI sub-app 挂载到 `/api/v3`，当前工作区声明的 OpenAPI 应用版本为 `3.0.0-alpha.2`。v3 使用独立 Store、SQLite 数据代际和 lifespan executor；不会把请求交给 v2 catch-all dispatcher。正常应用启动时同时保留全部 v2 路由和现有 Vue，当前 Vue 尚未调用 v3 API。
+主应用把独立 FastAPI sub-app 挂载到 `/api/v3`，当前工作区声明的 OpenAPI 应用版本为 `3.0.0-alpha.2`。v3 使用独立 Store、SQLite 数据代际和 lifespan executor；不会把请求交给 v2 catch-all dispatcher。正常应用启动时同时保留全部 v2 路由和现有 Vue；平行的 `frontend-v3/` 已调用本命名空间，但 Vue 仍是 Tauri、Docker 与正式脚本入口。
 
-alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全量门禁。当前可达性仍受本节 § 2.6 限制：已完成固定项目检查与回答流，不等于自定义发布 DAG、通用自然语言规划器或 React 生产前端已经完成。
+alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门禁。当前可达性仍受本节 § 2.6 限制：已完成固定项目检查、回答流与独立 React 调用闭环，不等于自定义发布 DAG、通用自然语言规划器或正式前端切换已经完成。
 
 ### 2.1 通用响应、认证与幂等
 
@@ -662,12 +662,12 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全�
 - 失败响应统一为 `{"error":{"code":"...","message":"...","details":{}},"request_id":"..."}`。
 - 调用方可以发送 `X-Request-ID`；未发送时服务端生成 UUID。输入最多保留 200 字符。
 - 除 `GET /api/v3/health` 始终放行外，认证开启时其他 `/api/v3/*` 继续使用主应用的 `X-API-Key` 或 Bearer JWT。
-- 创建项目、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。
+- 创建项目、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。OpenAPI 把该 Header 标记为 required；缺失时返回 `422 validation_error`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。手动重试 Run 时，原 Key 仍回放已经创建的 retry Run；同一失败源已经存在直接 retry Run 后，其他 Key 返回 `409 state_conflict`，不会再创建第二个直接后继。
 - 资源不存在返回 `404 not_found`；状态/CAS 冲突返回 `409 state_conflict`；Pydantic 请求错误返回 `422 validation_error`；应用层约束返回 `422 application_validation_error`。
 
 ### 2.2 当前路径
 
-当前 v3 sub-app 有 **27 个业务路径、31 个操作**：
+当前 v3 sub-app 有 **27 个业务路径、32 个操作**：
 
 | 方法 | 路径 | 当前用途 | 写入/控制要求 |
 |------|------|----------|---------------|
@@ -676,12 +676,13 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全�
 | POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
+| GET | `/api/v3/tasks/{task_id}/runs` | 按 `created_at DESC, id DESC` 读取该任务的运行历史 | 支持 `limit=1..500`、`offset>=0`；未知任务返回 404 |
 | POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；`workflow_key` 只允许 `project.inspect.v1`；需要 `Idempotency-Key`；返回 202 |
 | GET | `/api/v3/runs/{run_id}` | 读取运行、版本、租约、错误和结果状态 | 只读 |
 | POST | `/api/v3/runs/{run_id}/pause` | 暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
 | POST | `/api/v3/runs/{run_id}/resume` | 恢复已暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
 | POST | `/api/v3/runs/{run_id}/cancel` | 请求取消运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
-| POST | `/api/v3/runs/{run_id}/retry` | 从允许重试的失败运行创建新运行 | 请求 `expected_version`；需要 `Idempotency-Key`；返回 202 |
+| POST | `/api/v3/runs/{run_id}/retry` | 从允许重试的失败运行创建新运行 | 请求 `expected_version`；需要 `Idempotency-Key`；返回 202；同一失败源已有直接 retry Run 时，原 Key 回放，其他 Key 返回 409 |
 | GET | `/api/v3/runs/{run_id}/steps` | 按顺序读取持久步骤及尝试摘要 | 只读 |
 | GET | `/api/v3/runs/{run_id}/events` | 读取持久 SSE 事件 | 支持 `after_sequence` 与 `Last-Event-ID` |
 | GET | `/api/v3/approvals` | 按项目、任务、运行、状态筛选审批 | 当前 alpha 没有可执行写工作流自动产生审批 |
@@ -734,6 +735,8 @@ alpha.2 成功响应的 `data` 为：
 
 Task、首条用户消息和幂等响应在同一 SQLite 事务写入；同一作用域、同一 `Idempotency-Key` 和相同 request hash 回放原 Task/Message，并把 `replayed` 置为 `true`。任一写入失败都不得留下没有首消息的 Task。
 
+刷新任务页时，调用方通过 `GET /api/v3/tasks/{task_id}/runs?limit=1&offset=0` 取得服务端权威的最近运行，再按 Run ID 恢复详情与 SSE。浏览器本地选择可以作为导航缓存，但不能代替该查询或虚构运行状态。
+
 创建 Run 的请求增加必填 `input_message_id`：
 
 ```json
@@ -781,7 +784,7 @@ alpha.2 的事件 union 包含：
 
 `started/delta` 使用稳定 message ID 和命令幂等作用域追加；完整或中断内容保存为 `agent_task_messages` 后，再在同一事务追加 `completed/interrupted`。客户端按 sequence 去重，不能把 delta 单独当作长期任务消息。
 
-`backend/api/v3/models.py` 以 `event_type` 为 discriminator 声明 `AgentEvent`；SSE 输出通过该 union 校验，`/api/v3/openapi.json` 已显式暴露对应 components，并由 OpenAPI 契约测试校验。生产 React 前端已获授权据此生成 TypeScript 类型；生成客户端仍必须把 base URL 固定在 `/api/v3`，不得从根 v2 OpenAPI 生成。
+`backend/api/v3/models.py` 以 `event_type` 为 discriminator 声明 `AgentEvent`；SSE 输出通过该 union 校验，`/api/v3/openapi.json` 已显式暴露对应 components，并由 OpenAPI 契约测试校验。`scripts/export_v3_openapi.py` 确定性导出 schema，锁定的 `tools/openapi-codegen` workspace 使用 TypeScript 5 运行 `openapi-typescript`，生成物再由 TypeScript 6 React 应用消费；生成客户端仍必须把 base URL 固定在 `/api/v3`，不得从根 v2 OpenAPI 生成。
 
 ### 2.6 当前 alpha 边界
 
@@ -789,7 +792,7 @@ alpha.2 的事件 union 包含：
 - 审批、产物读取和运行控制 API 已暴露；当前真实闭环只生成内部只读项目检查产物，不执行 `artifact.export`、`obsidian.publish` 或其他写节点。
 - 安全节点注册表、DAG 校验和版本化工作流管理已经存在；固定 `agent.respond` 四步执行闭环已通过门禁，自定义发布工作流仍不能创建 Run。
 - `quick/standard/deep` 当前分别限制最多 4/8/16 步；固定版本 2 使用四步，档位不会自动增加额外检查能力。
-- v3 API 仍是 alpha 契约，尚无 React 生产前端或 v2 数据迁移承诺。
+- v3 API 仍是 alpha 契约；独立 React 应用已经接入当前真实切片，但尚未替换 Vue/Tauri/Docker 正式入口，也没有 v2 数据迁移承诺。
 
 ## 3. 兼容与变更规则
 

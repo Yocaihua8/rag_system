@@ -27,6 +27,7 @@ from backend.api.v3.models import (
     RunControlData,
     RunControlRequest,
     RunData,
+    RunListData,
     RunMutationData,
     RunStepsData,
     SuccessEnvelope,
@@ -64,7 +65,7 @@ from backend.storage.v3.errors import (
 )
 
 
-IdempotencyHeader = Annotated[str | None, Header(alias="Idempotency-Key")]
+IdempotencyHeader = Annotated[str, Header(alias="Idempotency-Key")]
 
 
 def create_v3_app(
@@ -109,7 +110,7 @@ def create_v3_app(
             status_code=422,
             code="validation_error",
             message="request validation failed",
-            details={"issues": jsonable_encoder(exc.errors(include_url=False))},
+            details={"issues": jsonable_encoder(exc.errors())},
         )
 
     @app.exception_handler(StarletteHTTPException)
@@ -187,12 +188,12 @@ def create_v3_app(
     def create_project(
         request: Request,
         body: ProjectCreateRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         result = _application(request).create_project(
             name=body.name,
             root_path=body.root_path,
-            idempotency_key=idempotency_key or "",
+            idempotency_key=idempotency_key,
         )
         return success(request, result, status_code=201)
 
@@ -208,13 +209,13 @@ def create_v3_app(
     def create_task(
         request: Request,
         body: TaskCreateRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         result = _application(request).create_task(
             project_id=body.project_id,
             title=body.title,
             message=body.message,
-            idempotency_key=idempotency_key or "",
+            idempotency_key=idempotency_key,
         )
         return success(request, result, status_code=201)
 
@@ -248,12 +249,12 @@ def create_v3_app(
         request: Request,
         task_id: str,
         body: TaskMessageRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         result = _application(request).add_task_message(
             task_id=task_id,
             content=body.content,
-            idempotency_key=idempotency_key or "",
+            idempotency_key=idempotency_key,
         )
         return success(request, result, status_code=201)
 
@@ -276,16 +277,33 @@ def create_v3_app(
         request: Request,
         task_id: str,
         body: RunCreateRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         result = _application(request).create_run(
             task_id=task_id,
             input_message_id=body.input_message_id,
             workflow_key=body.workflow_key,
             depth=body.depth,
-            idempotency_key=idempotency_key or "",
+            idempotency_key=idempotency_key,
         )
         return success(request, result, status_code=202)
+
+    @app.get(
+        "/tasks/{task_id}/runs",
+        response_model=SuccessEnvelope[RunListData],
+    )
+    def list_task_runs(
+        request: Request,
+        task_id: str,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ):
+        items = _application(request).list_task_runs(
+            task_id,
+            limit=limit,
+            offset=offset,
+        )
+        return success(request, {"items": items})
 
     @app.get("/runs/{run_id}", response_model=SuccessEnvelope[RunData])
     def get_run(request: Request, run_id: str):
@@ -300,7 +318,7 @@ def create_v3_app(
         request: Request,
         run_id: str,
         body: RunControlRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -308,7 +326,7 @@ def create_v3_app(
                 run_id=run_id,
                 action="pause",
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 
@@ -320,7 +338,7 @@ def create_v3_app(
         request: Request,
         run_id: str,
         body: RunControlRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -328,7 +346,7 @@ def create_v3_app(
                 run_id=run_id,
                 action="resume",
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 
@@ -340,7 +358,7 @@ def create_v3_app(
         request: Request,
         run_id: str,
         body: RunControlRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -348,7 +366,7 @@ def create_v3_app(
                 run_id=run_id,
                 action="cancel",
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 
@@ -361,14 +379,14 @@ def create_v3_app(
         request: Request,
         run_id: str,
         body: RunControlRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
             _application(request).retry_run(
                 run_id=run_id,
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
             status_code=202,
         )
@@ -446,7 +464,7 @@ def create_v3_app(
         request: Request,
         approval_id: str,
         body: ApprovalResolveRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -456,7 +474,7 @@ def create_v3_app(
                 expected_version=body.expected_version,
                 expected_request_hash=body.expected_request_hash,
                 note=body.note,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 
@@ -517,7 +535,7 @@ def create_v3_app(
     def create_workflow(
         request: Request,
         body: WorkflowCreateRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -528,7 +546,7 @@ def create_v3_app(
                 scope_type=body.scope_type,
                 project_id=body.project_id,
                 graph=body.graph.model_dump(),
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
             status_code=201,
         )
@@ -573,7 +591,7 @@ def create_v3_app(
         request: Request,
         workflow_id: str,
         body: WorkflowDraftRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -581,7 +599,7 @@ def create_v3_app(
                 workflow_id=workflow_id,
                 graph=body.graph.model_dump(),
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
             status_code=201,
         )
@@ -594,7 +612,7 @@ def create_v3_app(
         request: Request,
         workflow_id: str,
         body: WorkflowPublishRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -603,7 +621,7 @@ def create_v3_app(
                 version_id=body.version_id,
                 expected_checksum=body.expected_checksum,
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 
@@ -615,14 +633,14 @@ def create_v3_app(
         request: Request,
         workflow_id: str,
         body: WorkflowArchiveRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
             _application(request).archive_workflow(
                 workflow_id=workflow_id,
                 expected_version=body.expected_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 
@@ -634,7 +652,7 @@ def create_v3_app(
         request: Request,
         workflow_id: str,
         body: WorkflowBindRequest,
-        idempotency_key: IdempotencyHeader = None,
+        idempotency_key: IdempotencyHeader,
     ):
         return success(
             request,
@@ -644,7 +662,7 @@ def create_v3_app(
                 workflow_version_id=body.workflow_version_id,
                 expected_workflow_version=body.expected_workflow_version,
                 expected_binding_version=body.expected_binding_version,
-                idempotency_key=idempotency_key or "",
+                idempotency_key=idempotency_key,
             ),
         )
 

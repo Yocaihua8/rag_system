@@ -163,6 +163,44 @@ def test_project_task_and_run_creation_are_idempotent(store):
     assert "input_message_content" not in trigger["input"]
 
 
+def test_list_task_runs_orders_newest_first_with_stable_pagination(
+    store,
+    monkeypatch,
+):
+    project_id, task_id = _create_project_task(store, "run-list")
+
+    assert store.list_task_runs(task_id) == []
+
+    timestamps = iter(
+        [
+            "2026-08-02T10:00:00.001Z",
+            "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
+        ]
+    )
+    monkeypatch.setattr(store_module, "_utc_now", lambda: next(timestamps))
+    created = [
+        _create_run(store, task_id, f"run-list-{index}")["run"]
+        for index in range(3)
+    ]
+    expected = sorted(
+        created,
+        key=lambda run: (run["created_at"], run["id"]),
+        reverse=True,
+    )
+
+    first_page = store.list_task_runs(task_id, limit=2, offset=0)
+    second_page = store.list_task_runs(task_id, limit=2, offset=2)
+
+    assert [run["id"] for run in first_page] == [
+        run["id"] for run in expected[:2]
+    ]
+    assert [run["id"] for run in second_page] == [expected[2]["id"]]
+    assert {run["project_id"] for run in first_page + second_page} == {
+        project_id
+    }
+
+
 def test_task_creation_replays_same_initial_message_without_duplicate(store):
     project = store.create_project(
         name="Atomic task project",
@@ -921,6 +959,13 @@ def test_safe_failure_retries_in_place_and_manual_retry_creates_new_run(store):
         idempotency_key="manual-retry",
         request_hash="manual-retry-hash",
     )
+    with pytest.raises(StateConflictError, match="already has a retry"):
+        store.retry_run(
+            run_id=original_id,
+            expected_version=failed["run"]["version"],
+            idempotency_key="manual-retry-other-command",
+            request_hash="manual-retry-hash",
+        )
 
     assert second_claim["step"]["attempt_count"] == 2
     assert failed["retry_scheduled"] is False
@@ -950,6 +995,46 @@ def test_safe_failure_retries_in_place_and_manual_retry_creates_new_run(store):
 
     assert write_failure["retry_scheduled"] is False
     assert write_failure["run"]["status"] == "failed"
+
+
+def test_manual_retry_serializes_different_idempotency_keys_per_failed_source(store):
+    _, task_id = _create_project_task(store, "retry-concurrent")
+    original_id = _create_run(store, task_id, "retry-concurrent")["run"]["id"]
+    store.claim_next_run(worker_id="worker-retry-concurrent", lease_seconds=30)
+    failed = store.fail_run(
+        run_id=original_id,
+        worker_id="worker-retry-concurrent",
+        error_code="permanent_read_error",
+        error_message="stop",
+        retryable=False,
+    )
+    expected_version = failed["run"]["version"]
+    barrier = Barrier(2)
+
+    def retry(index: int):
+        barrier.wait()
+        try:
+            return store.retry_run(
+                run_id=original_id,
+                expected_version=expected_version,
+                idempotency_key=f"manual-retry-concurrent-{index}",
+                request_hash="manual-retry-concurrent-hash",
+            )
+        except StateConflictError as exc:
+            return exc
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(retry, range(2)))
+
+    successes = [result for result in results if isinstance(result, dict)]
+    conflicts = [result for result in results if isinstance(result, StateConflictError)]
+    runs = store.list_task_runs(task_id)
+
+    assert len(successes) == 1
+    assert len(conflicts) == 1
+    assert str(conflicts[0]) == "failed run already has a retry"
+    assert len(runs) == 2
+    assert [run["retry_of_run_id"] for run in runs].count(original_id) == 1
 
 
 def test_claim_serializes_write_steps_per_project_but_not_across_projects(store):

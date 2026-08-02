@@ -20,7 +20,9 @@ def test_default_cors_origins_are_explicit_and_local_only():
     assert cors_origins({}) == DEFAULT_CORS_ORIGINS
     assert "*" not in DEFAULT_CORS_ORIGINS
     assert "http://127.0.0.1:5173" in DEFAULT_CORS_ORIGINS
+    assert "http://127.0.0.1:5174" in DEFAULT_CORS_ORIGINS
     assert "http://127.0.0.1:4173" in DEFAULT_CORS_ORIGINS
+    assert "http://127.0.0.1:4174" in DEFAULT_CORS_ORIGINS
     assert "tauri://localhost" in DEFAULT_CORS_ORIGINS
 
 
@@ -29,14 +31,14 @@ def test_cors_allows_configured_origin_and_required_request_headers(tmp_path):
     response = client.options(
         "/api/projects",
         headers={
-            "Origin": "http://127.0.0.1:5173",
+            "Origin": "http://127.0.0.1:5174",
             "Access-Control-Request-Method": "POST",
             "Access-Control-Request-Headers": "authorization,content-type,x-api-key",
         },
     )
 
     assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5174"
     assert response.headers.get("access-control-allow-credentials") is None
     assert "POST" in response.headers["access-control-allow-methods"]
 

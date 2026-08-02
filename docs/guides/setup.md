@@ -25,7 +25,7 @@ npm ci
 Copy-Item backend/.env.example backend/.env
 ```
 
-`backend/requirements/dev.txt` 包含 `base.txt`，并增加 pytest、PyInstaller 和 pip-audit。根 npm workspace 只安装 `frontend` 与 `src-tauri`；Obsidian 插件独立安装：
+`backend/requirements/dev.txt` 包含 `base.txt`，并增加 pytest、PyInstaller 和 pip-audit。根 npm workspace 在迁移期安装 `frontend`、`frontend-v3`、`src-tauri` 与隔离的 `tools/openapi-codegen`；Obsidian 插件仍独立安装：
 
 ```powershell
 npm --prefix integrations/obsidian-plugin ci
@@ -68,6 +68,21 @@ npm run frontend:dev
 
 该值进入公开前端产物，不得包含凭证。
 
+### 4.1 React v3 平行开发入口
+
+`frontend-v3/` 尚未替换 Vue、Tauri 或 Docker，只用于迁移期独立开发与验收。Node 必须满足 `^20.19.0 || ^22.13.0 || >=24.0.0`。启动后端后另开终端：
+
+```powershell
+$env:VITE_API_BASE_URL = 'http://127.0.0.1:8765/api/v3'
+npm run frontend-v3:dev
+```
+
+浏览器访问 `http://127.0.0.1:5174`。React v3 的 `VITE_API_BASE_URL` 必须直接包含 `/api/v3`；不能指向根 v2 OpenAPI，也不能包含 Key 或令牌。生成 API 类型使用锁定的独立工具，不需要临时下载：
+
+```powershell
+npm run frontend-v3:generate:api
+```
+
 ## 5. 构建与预览
 
 ```powershell
@@ -77,6 +92,15 @@ npm --workspace frontend run preview
 
 构建输出为 `frontend/dist/`，preview 默认监听 `127.0.0.1:4173`。FastAPI 不托管该目录。
 
+React v3 的平行构建和预览为：
+
+```powershell
+npm run frontend-v3:build
+npm --workspace frontend-v3 run preview
+```
+
+输出为 `frontend-v3/dist/`，preview 监听 `127.0.0.1:4174`；正式入口仍是上一段的 Vue 构建。
+
 ## 6. 常用后端配置
 
 | 变量 | 默认或行为 |
@@ -84,7 +108,7 @@ npm --workspace frontend run preview
 | `RAG_RUNTIME_DIR` | 默认仓库内 `runtime/v2/` |
 | `RAG_AUTH_ENABLED` | 默认关闭 |
 | `RAG_AUTH_API_KEY` / `RAG_AUTH_JWT_SECRET` | 启用认证时必填，不得提交 |
-| `KI_CORS_ORIGINS` | 精确 Origin 列表；默认本机 5173/4173 和 Tauri Origin |
+| `KI_CORS_ORIGINS` | 精确 Origin 列表；默认本机 Vue 5173/4173、React v3 5174/4174 和 Tauri Origin |
 | `RAG_LLM_PROVIDER` | 本地降级、OpenAI-compatible API 或 Ollama |
 | `RAG_EMBED_PROVIDER` | 默认本地 hashing；`api` 使用 OpenAI-compatible embeddings |
 | `RAG_VECTOR_STORE_PROVIDER` | 默认 SQLite；`qdrant` 启用 local mode |

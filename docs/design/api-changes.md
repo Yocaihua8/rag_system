@@ -20,13 +20,13 @@ v3 调用方必须显式适配以下不同契约：
 | 写命令幂等 | 按现有各接口规则 | 资源与工作流管理命令统一要求 `Idempotency-Key`；工作流 validate 除外 |
 | 并发控制 | 按现有业务规则 | run/approval 控制使用 `expected_version`，审批同时冻结 request hash |
 | 数据 | `runtime/v2/app.db` | 默认 `runtime/v3/app.db`，拒绝未标记或非 v3 数据库 |
-| 当前前端 | Vue 已接线 | 尚无生产前端接线 |
+| 当前前端 | Vue 已接线 | React 在独立 `frontend-v3/` 接入；正式入口仍未切换 |
 
 当前 v3 OpenAPI 提供项目、任务、消息、运行、控制、SSE、审批、产物、工作流 validate，以及 Definition/不可变 Version/项目 Binding 的创建、读取、发布、绑定和归档。发布要求 expected checksum 与 Definition version，归档保留历史 Version。自定义发布工作流仍不能创建 Run；运行创建只接受固定 `project.inspect.v1`，不能把管理 API 写成任意 DAG 已可执行。
 
 ## 2. alpha.1 → alpha.2 变化
 
-alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全量门禁。以下是当前可达的调用方合同；它仍是 alpha，不代表 React 生产前端、自定义发布 DAG 或通用自然语言规划器已经完成。
+alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门禁。以下是当前可达的调用方合同；独立 React 调用方已经存在，但它仍是 alpha，不代表正式入口切换、自定义发布 DAG 或通用自然语言规划器已经完成。
 
 | 变化 | alpha.1 | alpha.2 | 调用方影响 |
 |------|---------|---------|------------|
@@ -34,6 +34,9 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全�
 | 创建任务请求 | `project_id/title/message` | 不变 | 无请求迁移 |
 | 创建任务响应 data | `task/replayed` | `task/initial_message/replayed` | 保存 `initial_message.id`；幂等回放继续使用同一消息 |
 | 创建 Run 请求 | `workflow_key/depth` | 新增必填 `input_message_id` | 破坏性变化；必须引用同 Task 的用户消息 |
+| 手动 Run 重试并发 | 不限制同一失败源的不同命令 | 同一失败源只允许一个直接 retry Run | 原 Key 可回放；其他 Key 返回 `409 state_conflict`，调用方应刷新任务运行列表 |
+| Task 运行发现 | 无按 Task 查询 Run 的接口 | 新增 `GET /tasks/{task_id}/runs` | 加法兼容；刷新时按服务端最近 Run 恢复，不依赖本地伪状态 |
+| 幂等 Header 的 OpenAPI 声明 | Schema 中可被生成器视为可选 | 所有持久写命令标记 `Idempotency-Key` 为 required | 生成客户端必须显式传 Header；缺失返回 `422 validation_error` |
 | 运行输入 | 读取 Task prompt | 在 trigger Step 冻结消息 ID 与内容 hash，执行时回读不可变任务消息并校验 hash | 后续消息不改变已创建 Run；Step/SSE 不复制完整输入正文 |
 | 固定工作流 | key `project.inspect.v1`、version 1、三步 | key 不变、version 2、增加 `agent.respond` 为第四步 | 不得把 version 2 错写成新 API key；旧 version 1 历史仍可读取 |
 | SSE | Run/Step/Approval/Artifact/Tool 基础事件 | 新增 Agent 消息事件，并补齐 Step 与 Approval 终态事件 | 客户端按 sequence 去重并支持未知的新增事件 |
@@ -51,9 +54,10 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库全�
 
 1. 调用 `POST /api/v3/tasks`，从 `data.initial_message.id` 保存首条输入消息 ID。
 2. 调用 `POST /api/v3/tasks/{task_id}/runs` 时提交该 ID；跨任务消息、非用户消息或不存在消息会失败。
-3. SSE reducer 先按 `sequence` 去重，再按稳定 `message_id/chunk_index` 拼接回答；刷新历史以任务消息为准。
-4. 只有收到服务端 completed/interrupted、Run、Step 或 Approval 事件后才推进最终状态，不从按钮回调推断成功。
-5. 保留对未知新增事件的安全忽略/日志能力，避免 alpha 后续加法事件让整个连接失败。
+3. 刷新或直接打开 Task 时调用 `GET /api/v3/tasks/{task_id}/runs?limit=1`，以返回的 Run ID 恢复详情和事件游标。
+4. SSE reducer 先按 `sequence` 去重，再按稳定 `message_id/chunk_index` 拼接回答；刷新历史以任务消息为准。
+5. 只有收到服务端 completed/interrupted、Run、Step 或 Approval 事件后才推进最终状态，不从按钮回调推断成功。
+6. 保留对未知新增事件的安全忽略/日志能力，避免 alpha 后续加法事件让整个连接失败。
 
 ### 2.2 兼容与回滚
 

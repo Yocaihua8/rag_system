@@ -41,13 +41,14 @@ React 技术栈、前后端状态边界、Vue 平行保留、真实后端验收�
 ### 4.2 风险
 
 - 高保真决策进入实现阶段后，视觉调整可能产生代码返工。
-- 当前 v3 API 仍缺少任务运行发现、Settings、Sources、Insights、导出与可执行自定义工作流；第一阶段页面必须明确能力边界。
+- 当前 v3 API 已补充按 Task 查询运行历史；仍缺少 Settings、Sources、Insights、导出与可执行自定义工作流，第一阶段页面必须明确能力边界。
 - B-174 未完成前，不能把桌面令牌、存储迁移、备份恢复描述为可用能力。
 
 ## 5. 验证方式
 
 - `frontend-v3/` 使用独立 workspace，现有 `frontend/`、Tauri 和 Docker 入口保持不变。
 - OpenAPI 类型来自 `/api/v3/openapi.json`，生产运行逻辑不含演示数据回退。
+- 当前独立 workspace、四个一级页面、生成类型和固定项目检查闭环已经建立；工作流编辑、资料/洞察、导出及桌面运维仍保持不可用，不能据此扩大到 B-176/B-177。
 - B-175 完成前通过 typecheck、Vitest、React Testing Library、构建、主题、键盘和 320px–桌面响应式验收。
 - B-176/B-177 开始前仍需按各自计划确认真实 API、Desktop 和最终切换门禁。
 

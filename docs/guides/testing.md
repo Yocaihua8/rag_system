@@ -13,10 +13,16 @@
 npm run frontend:test
 npm run frontend:build
 npm run frontend:e2e
+npm run frontend-v3:typecheck
+npm run frontend-v3:test
+npm run frontend-v3:build
+npm run frontend-v3:e2e
 git diff --check
 ```
 
 E2E 用例位于 `tests/e2e/`，默认使用 4173 前端和隔离的 18765 后端，覆盖真实跨域导入、问答/SSE、逐点学习、学习计划和 Obsidian 用户侧流程。`frontend/scripts/run-e2e.mjs` 为每次运行创建系统临时数据库，不复用正式 `runtime/v2/app.db`。
+
+React v3 E2E 由 `frontend-v3/scripts/run-e2e.mjs` 默认启动 4174 前端和隔离的 18766 后端，使用系统临时目录中的独立 v2/v3 数据库与项目 fixture，覆盖项目创建、任务原子首消息、固定 Run、SSE、结果内容、刷新恢复、离线草稿和响应式。端口被占用时通过 `KI_V3_E2E_FRONTEND_PORT`、`KI_V3_E2E_BACKEND_PORT` 显式改用空闲端口；预览使用 strict port，不会静默连接其他服务。运行器不读取或修改正式 `runtime/v2/app.db`、`runtime/v3/app.db`。
 
 当前 CI 和本地 venv 验证基线是 Python 3.11；v3 正式目标为 Python 3.12，但本阶段不能把 3.11 结果写成 3.12 已通过。`backend/requirements/base.txt` 已包含 SQLAlchemy 2 与 Alembic 运行依赖。
 
@@ -28,8 +34,9 @@ E2E 用例位于 `tests/e2e/`，默认使用 4173 前端和隔离的 18765 后�
 | API/领域 | 对应后端和集成测试；方法、字段、错误保持兼容 |
 | 存储 | 当前 Schema、迁移、CRUD 与 v2 数据代际 |
 | v3 数据 | SQLAlchemy metadata/Alembic head、19 张业务表与 2 张治理表、generation fail-closed、WAL/外键/事务、幂等与 CAS；v2 哨兵保持不变 |
-| v3 API | `/api/v3` 的真实 OpenAPI、envelope、request ID、幂等冲突、项目/任务/运行资源、controls/retry、审批/产物读取，以及工作流版本化 CRUD/发布/绑定/归档边界 |
-| v3 执行 | 固定三步 `project.inspect.v1`、租约/心跳/恢复、步骤尝试、SSE 续传、绝对路径/正文不泄漏、产物持久化 |
+| v3 API | `/api/v3` 的真实 OpenAPI、envelope、request ID、幂等冲突、项目/任务/按任务查询运行、controls/retry、审批/产物读取，以及工作流版本化 CRUD/发布/绑定/归档边界 |
+| v3 执行 | 固定四步 `project.inspect.v1`、租约/心跳/恢复、步骤尝试、SSE 续传、绝对路径/正文不泄漏、产物与 Agent 消息持久化 |
+| React v3 | TS6 typecheck、OpenAPI 重复生成、API/SSE reducer、四个一级页面、320px–桌面响应式与真实 v3 E2E；缺失能力无演示回退 |
 | 逐点学习 | 七态会话、当前步骤公开范围、三次 attempt、幂等/CAS、reveal 证据资格、stale 只读、覆盖投影和确认计划任务单调联动 |
 | SQL 练习 | fixture hash、只读临时库、结果与必要语义评分、多语句/写操作/Schema/危险函数阻断、时间/VM/行列/字节上限、正式数据库哨兵不变 |
 | 前端 API | `fetch` 与 `EventSource` 都断言绝对 API URL |
@@ -54,7 +61,7 @@ $env:KI_V3_DB_PATH = Join-Path $b173TempDir "v3\app.db"
 - 未标记、v2 或未知代际数据库被只读拒绝且文件 hash/哨兵不变；全新数据库升级到 `0001_v3_initial`；
 - Project/Task/Message/Run 的幂等回放和同 Key 异载荷冲突，状态控制的 `expected_version`；
 - workflow validate 对安全 allowlist、循环、孤立节点、端口类型和未受审批保护写节点的拒绝；工作流创建、不可变 draft、checksum/version 发布、项目绑定、归档后拒绝新草稿和历史 Version 保留；
-- `project.inspect.v1` 三步持久执行、重试/租约/暂停/取消竞争、产物生成，以及事件 `Last-Event-ID` / `after_sequence` 回放；
+- `project.inspect.v1` 四步持久执行、按 Task 恢复最近 Run、重试/租约/暂停/取消竞争、产物与 Agent 消息生成，以及事件 `Last-Event-ID` / `after_sequence` 回放；
 - 项目检查不读取正文、不跟随目录符号链接，产物和 SSE 不包含项目绝对路径；
 - v2 API 和 Vue 文件未被 v3 测试或迁移改写。
 
@@ -91,12 +98,12 @@ npm run frontend:e2e
 ## 5. 依赖审计
 
 ```powershell
-npm audit --audit-level=high
+python scripts/check_npm_audit.py
 .\.venv\Scripts\pip-audit.exe -r backend/requirements/base.txt --progress-spinner off
 npm --prefix integrations/obsidian-plugin audit --audit-level=high
 ```
 
-生产 Python 审计使用 `base.txt`；`dev.txt` 还包含测试和打包工具，不能代替生产依赖范围。只记录本次实际输出。
+根 npm 审计脚本只允许 ADR-014 记录的 React Router RSC 公告例外，并同时静态拒绝任何 RSC/server 入口；出现其他包、其他公告、数量变化或扫描命中都会失败。它仍会明确报告 2 个 high，不能写成零漏洞。生产 Python 审计使用 `base.txt`；`dev.txt` 还包含测试和打包工具，不能代替生产依赖范围。只记录本次实际输出。
 
 ## 6. Docker
 
@@ -144,7 +151,7 @@ pwsh -NoProfile -File scripts/check-doc-links.ps1
 
 ## 10. CI 覆盖边界
 
-当前 GitHub Actions 会运行 npm audit、前端构建与单测、Python 依赖审计、后端/集成/仓库测试、文档一致性和 Playwright E2E。默认 CI **不运行** Docker 镜像/健康检查、Cargo/Tauri bundle 或 Obsidian 插件 test/typecheck/build；发布前必须另外执行并记录这些门禁。
+当前 GitHub Actions 会运行受控 npm 审计策略、Vue 与 React v3 构建/单测、Python 依赖审计、后端/集成/仓库测试、文档一致性和两套 Playwright E2E。默认 CI **不运行** Docker 镜像/健康检查、Cargo/Tauri bundle 或 Obsidian 插件 test/typecheck/build；发布前必须另外执行并记录这些门禁。
 
 ## 11. 记录要求
 

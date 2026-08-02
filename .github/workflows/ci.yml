@@ -46,10 +46,14 @@ jobs:
         run: npm ci
 
       - name: Run npm dependency audit
-        run: npm audit --audit-level=high
+        run: python scripts/check_npm_audit.py
 
       - name: Build frontend
-        run: npm run frontend:build
+        run: |
+          npm run frontend:build
+          npm run frontend-v3:typecheck
+          npm run frontend-v3:test
+          npm run frontend-v3:build
 
       - name: Install Python dependencies
         run: |
@@ -100,7 +104,9 @@ jobs:
         run: npm ci
 
       - name: Run frontend unit tests
-        run: npm run frontend:test
+        run: |
+          npm run frontend:test
+          npm run frontend-v3:test
 
       - name: Install Python dependencies
         run: |
@@ -109,7 +115,9 @@ jobs:
           .venv/bin/pip install -r backend/requirements/dev.txt
 
       - name: Install Playwright browsers
-        run: npm exec --workspace frontend -- playwright install chromium --with-deps
+        run: npm exec --workspace frontend-v3 -- playwright install chromium --with-deps
 
       - name: Run E2E tests
-        run: npm run frontend:e2e
+        run: |
+          npm run frontend:e2e
+          npm run frontend-v3:e2e

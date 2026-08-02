@@ -166,6 +166,7 @@ v3 metadata 当前定义 **19 张业务表 + 2 张运行治理表，共 21 张�
 - `agent_events` 对 `(run_id, sequence)` 唯一，为 SSE 恢复提供持久单调游标。
 - Approval 冻结 action、target、payload、request hash、resource version 和 CAS version；Artifact 保存内容或 content ref、checksum、metadata、状态和版本。
 - `idempotency_records` 对 `(scope, idempotency_key)` 唯一；相同 Key 只有请求 hash 相同才可回放。
+- 手动 Run 重试在 `BEGIN IMMEDIATE` 事务中先检查幂等回放，再按 `agent_runs.retry_of_run_id` 检查直接后继；因此同一失败源最多创建一个直接 retry Run。该约束由 Store 事务保证，不新增唯一索引、列或 Alembic 迁移。
 - 当前 `project.inspect.v1` 只读取已登记项目根的相对结构元数据，最终把 JSON 检查结果保存到 `agent_artifacts.content`；`runtime/v3/artifacts/` 在本 alpha 中只是预留目录。
 
 ### 7.3 alpha.2 消息流复用现有 Schema

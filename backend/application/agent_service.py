@@ -234,6 +234,20 @@ class AgentApplication:
             raise RecordNotFoundError("run not found")
         return run
 
+    def list_task_runs(
+        self,
+        task_id: str,
+        *,
+        limit: int,
+        offset: int,
+    ) -> list[dict[str, Any]]:
+        self.get_task(task_id)
+        return self.store.list_task_runs(
+            task_id,
+            limit=limit,
+            offset=offset,
+        )
+
     def list_run_steps(self, run_id: str) -> list[dict[str, Any]]:
         self.get_run(run_id)
         return self.store.list_run_steps(run_id)

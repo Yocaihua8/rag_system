@@ -66,7 +66,6 @@ def test_legacy_archive_history_and_mixed_script_roots_are_removed():
     for relative in (
         "archive",
         "legacy",
-        "tools",
         ".docs-template",
         "docs/release",
         "docs/previews",
@@ -78,3 +77,9 @@ def test_legacy_archive_history_and_mixed_script_roots_are_removed():
         "docs/governance",
     ):
         assert not (ROOT / relative).exists(), f"obsolete path remains: {relative}"
+
+    tools_entries = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").iterdir()
+    }
+    assert tools_entries == {"tools/openapi-codegen"}

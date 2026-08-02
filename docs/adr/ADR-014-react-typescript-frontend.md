@@ -19,7 +19,7 @@
 - TanStack Query 管理后端权威数据；Zustand 只管理临时 UI、布局和工作流草稿。
 - React Flow 与 ELK.js Worker 提供类型化 DAG 画布和自动布局。
 - Tailwind CSS、CSS Variables、Radix Primitives 和 Lucide 构成内部 UI 层。
-- React Hook Form 与 Zod 管理表单；OpenAPI 生成 TypeScript 类型并由 `openapi-fetch` 调用。
+- React Hook Form 与 Zod 管理表单；OpenAPI 生成 TypeScript 类型并由 `openapi-fetch` 调用。生成器隔离在锁定的 `tools/openapi-codegen` workspace（TypeScript 5），生产应用继续使用 TypeScript 6。
 - Vitest、React Testing Library 和 Playwright 覆盖组件与真实后端流程。
 
 现有 Vue 前端在 React 完整验收前保持可运行；不在同一运行时混合 Vue 与 React。最终切换后再删除 Vue 代码和依赖。
@@ -59,7 +59,7 @@
 
 ### 5.3 对现有系统的改动点
 
-- 根 npm workspace 在 B-175 开始后暂时加入 `frontend-v3`。
+- 根 npm workspace 在 B-175 开始后暂时加入 `frontend-v3`，并加入只用于离线类型生成的 `tools/openapi-codegen`。
 - 最终切换 Tauri、Docker 和根脚本到 React 产物。
 - ADR-006 的 Vue 框架结论被本 ADR 取代；ADR-010 的运行时分离继续有效。
 
@@ -70,7 +70,7 @@
 | 项目 | 内容 |
 |------|------|
 | 实施开始日期 | 2026-08-02（P1 Revision 3 获得明确实施授权；见 ADR-017） |
-| 实施结束日期 | TBD |
+| 平行基础完成日期 | 2026-08-02；正式入口切换日期仍为 TBD |
 | 实施负责人 | RAG 团队 / Codex |
 | 里程碑 | 应用壳、任务时间线、工作流、项目洞察、设置、切换 |
 
@@ -88,8 +88,14 @@
 
 - P1 Revision 3 已获得明确实施授权；原 P2 高保真验收并入 B-175。
 - 生成类型、单测、构建和连接真实 v3 后端的 E2E 通过。
-- Tauri 与 Web 使用同一构建产物且路由可直接打开。
+- 平行 Web 构建使用 Hash Router 并可直接打开；Tauri 仍指向 Vue，待最终切换阶段另行验证同一 React 产物。
 
 ### 6.4 待办项
 
-- B-175 可创建 `frontend-v3/`，但继续禁止修改 Vue 页面或切换正式入口；详细边界见 ADR-017。
+- `frontend-v3/` 已作为平行应用建立；继续禁止修改 Vue 页面或切换正式入口，详细边界见 ADR-017。
+
+## 7. React Router 安全边界
+
+当前锁定 `react-router-dom@7.18.2`，npm 审计会命中 [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2)。该公告限定在不稳定 RSC 服务端 Action API；本项目只使用浏览器端 Hash Router，不引入 React Server Components、`ServerRouter` 或 `@react-router/dev|node|serve`。仓库测试对这些入口做零命中检查，因此当前运行路径不触达漏洞前提，但审计结果仍必须如实记录为 2 个 high，不能宣称零漏洞。
+
+修复版迁移需要重新评估 React Router 8 与 Node 基线，不能用 `npm audit fix --force` 降级或混装不兼容版本。最迟在 B-177 最终切换前复查公告与可升级版本；若前端开始使用服务端/RSC 路径，本风险接受立即失效并阻断交付。

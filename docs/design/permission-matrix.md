@@ -44,7 +44,9 @@
 默认精确 Origin allowlist 为：
 
 - `http://127.0.0.1:5173`、`http://localhost:5173`；
+- `http://127.0.0.1:5174`、`http://localhost:5174`；
 - `http://127.0.0.1:4173`、`http://localhost:4173`；
+- `http://127.0.0.1:4174`、`http://localhost:4174`；
 - `tauri://localhost`、`http://tauri.localhost`。
 
 `KI_CORS_ORIGINS` 可以提供逗号分隔的精确 Origin。包含 `*` 会在启动配置校验中被拒绝。

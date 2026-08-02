@@ -13,16 +13,27 @@ def _json(relative: str) -> dict:
     return json.loads((ROOT / relative).read_text(encoding="utf-8"))
 
 
-def test_root_package_only_orchestrates_frontend_and_desktop_workspaces():
+def test_root_package_orchestrates_parallel_frontends_desktop_and_codegen():
     package = _json("package.json")
 
     assert package["private"] is True
-    assert package["workspaces"] == ["frontend", "src-tauri"]
+    assert package["workspaces"] == [
+        "frontend",
+        "frontend-v3",
+        "src-tauri",
+        "tools/openapi-codegen",
+    ]
     assert package["scripts"] == {
         "frontend:dev": "npm run dev --workspace frontend",
         "frontend:build": "npm run build --workspace frontend",
         "frontend:test": "npm run test --workspace frontend",
         "frontend:e2e": "npm run e2e --workspace frontend",
+        "frontend-v3:dev": "npm run dev --workspace frontend-v3",
+        "frontend-v3:build": "npm run build --workspace frontend-v3",
+        "frontend-v3:test": "npm run test --workspace frontend-v3",
+        "frontend-v3:typecheck": "npm run typecheck --workspace frontend-v3",
+        "frontend-v3:generate:api": "npm run generate:api --workspace frontend-v3",
+        "frontend-v3:e2e": "npm run e2e --workspace frontend-v3",
         "desktop:dev": "npm run dev --workspace src-tauri",
         "desktop:build:windows": "npm run build:windows --workspace src-tauri",
     }
