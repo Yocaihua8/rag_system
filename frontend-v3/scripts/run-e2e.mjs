@@ -19,6 +19,7 @@ const apiBaseUrl = `http://127.0.0.1:${backendPort}/api/v3`
 const frontendBaseUrl = `http://127.0.0.1:${frontendPort}`
 const e2eRoot = mkdtempSync(path.join(os.tmpdir(), 'knowledge-island-v3-e2e-'))
 const projectRoot = path.join(e2eRoot, 'sample-project')
+const v3DataRoot = path.join(e2eRoot, 'runtime', 'v3')
 
 mkdirSync(path.join(projectRoot, 'src'), { recursive: true })
 writeFileSync(
@@ -103,6 +104,7 @@ const commonEnvironment = {
   KI_V3_E2E_API_BASE_URL: apiBaseUrl,
   KI_V3_E2E_BASE_URL: frontendBaseUrl,
   KI_V3_E2E_PROJECT_ROOT: projectRoot,
+  KI_DATA_ROOT: v3DataRoot,
 }
 
 let backend
@@ -122,7 +124,7 @@ try {
         ...commonEnvironment,
         KI_V3_E2E_PORT: backendPort,
         KI_V3_E2E_V2_DB_PATH: path.join(e2eRoot, 'v2.db'),
-        KI_V3_E2E_DB_PATH: path.join(e2eRoot, 'v3.db'),
+        KI_V3_E2E_DB_PATH: path.join(v3DataRoot, 'app.db'),
       },
     },
   )

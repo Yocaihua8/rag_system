@@ -22,7 +22,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
-| B-176 | feature | v3 真实业务联调 | doing | P1 | XL | RAG 团队 | `features/agent-tasks-and-runs.md`、`design/api-spec.md` | 执行计划：`plans/B-176-v3-business-integration.md`。先完成项目资料（Sources）的真实数据/API/React 闭环，再按计划扩展洞察、设置、导出与工作流执行；不切换正式入口，不修改 Vue/Tauri/Docker 指向。 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题

@@ -26,7 +26,12 @@ test('creates a real project and restores a completed Agent task after refresh',
   await page.getByRole('button', { name: '生成资料事实报告' }).click()
   await expect(page.getByRole('heading', { name: '处理完成' })).toBeVisible({ timeout: 30_000 })
   await page.getByRole('button', { name: '查看结果' }).click()
-  await expect(page.locator('aside[aria-label="详细过程"]')).toContainText('项目资料事实报告')
+  const sourceFactsDrawer = page.locator('aside[aria-label="详细过程"]')
+  await expect(sourceFactsDrawer).toContainText('项目资料事实报告')
+  await sourceFactsDrawer.getByRole('button', { name: '导出结果' }).click()
+  await expect(sourceFactsDrawer.getByLabel('导出确认')).toContainText('不会修改项目文件，也不能自动撤销')
+  await sourceFactsDrawer.getByRole('button', { name: '确认导出' }).click()
+  await expect(sourceFactsDrawer).toContainText('已导出')
   await page.goto('/#/projects')
   await expect(page.getByRole('heading', { name: 'E2E 本地项目' })).toBeVisible()
   const selectedProjectResponse = await page.request.get(`${apiBaseUrl}/projects`)
@@ -88,6 +93,36 @@ test('creates a real project and restores a completed Agent task after refresh',
     timeout: 15_000,
   })
   await expect(page.locator('.message--assistant')).toHaveCount(1)
+})
+
+test('shows a persisted approval and requires a second confirmation before resolving it', async ({ page }) => {
+  if (!apiBaseUrl) throw new Error('KI_V3_E2E_API_BASE_URL is required')
+
+  const projectsResponse = await page.request.get(`${apiBaseUrl}/projects`)
+  const project = ((await projectsResponse.json()).data.items as Array<{ id: string }>)[0]
+  if (!project) throw new Error('E2E project fixture was not created')
+  const fixtureResponse = await page.request.post(`${apiBaseUrl.replace('/api/v3', '')}/__e2e__/approval`, {
+    data: { project_id: project.id },
+  })
+  expect(fixtureResponse.ok(), await fixtureResponse.text()).toBeTruthy()
+  const fixture = await fixtureResponse.json() as { task_id: string; approval_id: string }
+
+  await page.goto(`/#/tasks/${fixture.task_id}`)
+  await expect(page.getByRole('heading', { name: '需要你确认一次' })).toBeVisible()
+  await expect(page.getByText('github.create_issue')).toBeVisible()
+  await expect(page.getByText('owner/e2e-repository')).toBeVisible()
+  await page.getByRole('button', { name: '查看并确认' }).click()
+  await expect(page.getByRole('heading', { name: '最后确认：执行这项操作？' })).toBeVisible()
+  const resolveResponse = page.waitForResponse((response) => response.url().includes(`/approvals/${fixture.approval_id}/resolve`))
+  await page.getByRole('button', { name: '确认执行' }).click()
+  const resolved = await resolveResponse
+  expect(resolved.ok(), await resolved.text()).toBeTruthy()
+
+  await expect.poll(async () => {
+    const response = await page.request.get(`${apiBaseUrl}/approvals/${fixture.approval_id}`)
+    return (await response.json()).data.approval.status
+  }).toBe('approved')
+  await expect(page.getByRole('heading', { name: '需要你确认一次' })).not.toBeVisible()
 })
 
 test('keeps the task composer reachable at 320 by 560 without horizontal overflow', async ({ page }) => {

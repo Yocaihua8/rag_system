@@ -10,12 +10,11 @@
 
 ### Added
 
-- **React v3 平行 Agent 工作台**：新增独立 `frontend-v3/` React 19/TypeScript 6/Vite 8 应用，提供任务、项目、工作流和设置四个一级入口；通过生成的 v3 OpenAPI 类型接入真实项目、任务消息、运行、SSE、控制、审批、历史产物与工作流只读信息，并在缺少资料、洞察、导出和工作流编辑 API 时保持明确不可用状态。该平行前端已于 2026-08-03 获用户高保真验收，正式入口仍为现有 Vue。
+- **React v3 平行 Agent 工作台**：新增独立 `frontend-v3/` React 19/TypeScript 6/Vite 8 应用，提供任务、项目、工作流和设置四个一级入口；通过生成的 v3 OpenAPI 类型接入真实 Sources/Document 元数据、资料快照概览、资料事实报告、模型 Profile 元数据、任务消息、运行、SSE、控制、审批、受控导出、历史产物和受限工作流启动。通用洞察分析、模型调用及工作流编辑/绑定仍保持不可用；正式入口仍为现有 Vue。
 - **v3 通用项目 Agent 工程基线**：冻结产品范围、任务/运行/审批目标合同、P1/P2 前端原型门禁，以及持久 DAG、React/TypeScript、独立 v3 数据/API 的架构决策；目标文档不冒充当前 v2 已实现能力。
 - **v3 Agent 后端 alpha 垂直切片**：在保留 v2 API、SQLite 与 Vue 的同时，新增独立 `runtime/v3` SQLAlchemy/Alembic 数据代际和 `/api/v3` sub-app；项目、任务与固定四步 `project.inspect.v1` version 2 运行由 lifespan executor 持久执行，支持可续传 Agent 回答、运行控制/重试、审批与产物读取基础，并生成不含文件正文和绝对根路径的项目结构检查产物。
 - **新手引导式 Agent 交互合同**：完成 P1 Revision 3 的单一当前状态、分段回答、离线/失败恢复、风险确认、工作流标准命名和设置作用域设计，并把任务首消息、运行输入快照与可重放消息事件接入 v3 后端；原型只作为本地设计依据，不再要求 Sites 生产发布。
 - **v3 本地数据运维基础**：新增只读存储目标预检、SQLite 在线一致性备份和受控恢复；备份验证 integrity、代际、Alembic revision 与两级 SHA-256，恢复使用确认 hash、完整请求排他、executor/Store 停启、同目录失败回滚和持久幂等回放，不读写 v2 数据根。
-- **v3 资料事实报告**：项目页可在已扫描资料后显式创建 `project.source-facts.v1` Task/Run；报告只读取已持久 v3 Documents，保存资料快照 hash、逐文档统计、有限 Markdown 标题与证据，不调用模型或重新读取项目目录。资料再次扫描改变快照时，旧报告保留正文并标记为过期。
 - **v3 资料事实报告**：项目页可在已扫描资料后显式创建 `project.source-facts.v1` Task/Run；报告只读取已持久 v3 Documents，保存资料快照 hash、逐文档统计、有限 Markdown 标题与证据，不调用模型或重新读取项目目录。资料再次扫描改变快照时，旧报告保留正文并标记为过期。
 - **每日 DevLog**：重新启用 `docs/devlog/YYYY/MM/YYYY-MM-DD.md` 过程记录，提供日报与问题复盘模板，并保持 BACKLOG、ADR、CHANGELOG 和 Git 的职责分离。
 - **逐知识点交互学习**：可从教练、学习地图或已确认学习计划任务启动和恢复学习会话，一次展示一个知识点与一道练习；每次作答独立保存，支持有限重试、具体反馈、答案揭示和当前来源版本下的掌握证据更新。
@@ -25,8 +24,7 @@
 
 - **文档治理门禁**：允许且只允许 DevLog 使用 `YYYY/MM/` 嵌套，校验日期与目录、独立元数据、根目录文件和 150 行上限；继续禁止 readiness、已验收 preview 和完成 plan 归档。
 - **v3 API 请求控制与工作流版本化**：新增统一 success/error envelope、`X-Request-ID`、必填命令 `Idempotency-Key`、资源 version/CAS 与事件 `Last-Event-ID`；增加按 Task 查询 Run 的刷新恢复接口，CORS allowlist 同步放行平行 React 端口和显式请求头；工作流支持 validate、不可变 draft、checksum/version 发布、项目绑定与归档，但自定义发布 DAG 尚不能执行。
-- **v3 浏览器联调**：真实 Playwright 流程现覆盖项目创建、Sources 扫描、资料快照概览、资料事实报告、已发布/绑定受限工作流启动、完成后刷新恢复；正式 Vue/Tauri/Docker 入口未切换。
-- **v3 浏览器联调**：真实 Playwright 流程现覆盖项目创建、Sources 扫描、资料快照概览、资料事实报告、已发布/绑定受限工作流启动、完成后刷新恢复；正式 Vue/Tauri/Docker 入口未切换。
+- **v3 浏览器联调**：真实 Playwright 流程现覆盖项目创建、Sources 扫描、资料快照概览、资料事实报告的二次确认导出、已发布/绑定受限工作流启动、完成后刷新恢复，以及持久待审批记录的影响展示和二次确认决议；E2E 数据根完全隔离，正式 Vue/Tauri/Docker 入口未切换。
 - **v3 Web 未决操作恢复**：React 以不含原始 prompt 和项目路径的 SHA-256 intent ledger 恢复 Task/Message 已保存而 Run 响应丢失的部分成功操作；Run 成功后释放键，相同正文可再次形成新运行。同一失败 Run 只允许一个直接 retry 后继。
 - **前后端运行时分离**：FastAPI 改为 API-only，后端以 `python -m backend` 启动；Vue 独立构建到 `frontend/dist/` 并通过 `VITE_API_BASE_URL` 使用绝对 API/SSE URL。
 - **受限跨域策略**：新增 `KI_CORS_ORIGINS` 精确 allowlist，默认只允许本机 Vue 5173/4173、React v3 5174/4174 和 Tauri Origin，不使用通配符或 cookie credentials。

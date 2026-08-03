@@ -10,7 +10,7 @@ Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入
 
 ## 当前活动计划
 
-[`B-176-v3-business-integration.md`](B-176-v3-business-integration.md)：Active；正在完成 v3 Sources、洞察、设置、导出与工作流执行的真实业务联调。
+当前没有 Active 或 Interrupted plan。
 
 ## 创建
 
