@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-02
+> Last Updated：2026-08-03
 > Scope：Knowledge Island 架构决策的职责、生命周期和当前索引
 > Related：[文档总览](../README.md)、[系统设计总览](../design/system-design-overview.md)、[ADR 模板](ADR-000-template.md)
 
@@ -58,3 +58,4 @@ ADR-002-short-title.md
 | [ADR-015](ADR-015-v3-data-api-storage.md) | v3 数据代际、API 与存储 | Accepted | 2026-08-02 | 独立 v3 数据根、`/api/v3`、SQLAlchemy Core 与 Alembic |
 | [ADR-016](ADR-016-agent-message-stream.md) | 持久任务消息与可重放 Agent 消息流 | Accepted | 2026-08-02 | 完整消息保存长期事实，append-only 语义分块负责实时回放，前端 reducer 只做事件投影 |
 | [ADR-017](ADR-017-approved-p1-react-implementation-gate.md) | 以批准的 P1 Revision 3 启动 React 实施 | Accepted | 2026-08-02 | P1 R3 作为 B-175 基线；高保真验收并入实现，不授权最终切换 |
+| [ADR-018](ADR-018-desktop-ephemeral-endpoint-and-session-token.md) | 桌面临时端点与进程期会话令牌 | Accepted | 2026-08-03 | v3 桌面目标使用随机 loopback 端口和进程期令牌；正式启用等待 B-177 |
