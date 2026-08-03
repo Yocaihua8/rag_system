@@ -154,7 +154,7 @@ v3 metadata 当前定义 **19 张业务表 + 2 张运行治理表，共 21 张�
 
 | 分组 | 表 | 职责 |
 |------|----|------|
-| 项目、来源与模型（8） | `projects`、`sources`、`documents`、`document_chunks`、`chunk_vectors`、`model_profiles`、`settings`、`integrations` | v3 项目上下文、内容、向量、模型引用和连接配置；alpha 已使用 `projects`、`sources` 和 `documents` 支持受控项目根扫描和动态资料快照概览，其余仍未开放 |
+| 项目、来源与模型（8） | `projects`、`sources`、`documents`、`document_chunks`、`chunk_vectors`、`model_profiles`、`settings`、`integrations` | v3 项目上下文、内容、向量、模型引用和连接配置；alpha 已使用 `projects`、`sources`、`documents` 和 `model_profiles`，支持受控项目根扫描、动态资料快照概览与独立 Profile 元数据管理，其余仍未开放 |
 | 工作流（3） | `workflow_definitions`、`workflow_versions`、`workflow_bindings` | 工作流身份、不可变版本和项目绑定；HTTP 已开放创建/读取、草稿、发布、绑定和归档，发布工作流尚不能由通用 executor 执行 |
 | Agent 执行（8） | `agent_tasks`、`agent_task_messages`、`agent_runs`、`agent_steps`、`agent_step_attempts`、`agent_events`、`agent_approvals`、`agent_artifacts` | 任务对话、运行、步骤尝试、可重放事件、审批快照和产物 |
 | 运行治理（2） | `app_metadata`、`idempotency_records` | 数据代际/schema 标记和命令幂等回放 |
@@ -184,6 +184,8 @@ alpha.2 的任务首消息、运行输入快照和 Agent 分段回答不新增�
 Sources 第一段不新增 Alembic revision。每个项目使用一个 `sources(source_type=project_root, locator=.)` 行作为扫描身份；`documents` 以项目内相对路径唯一，保存受控 UTF-8 副本、校验摘要、MIME、大小和版本。扫描在单一 Store 事务内同步 Source、Documents 和 idempotency 记录；消失文件的 Document 删除会沿用现有外键级联清理 chunks/vectors。HTTP 资源不公开 `locator`、`config_json`、`source_path` 或 `content`。
 
 Project Insights 资料快照概览不新增表或 Alembic revision。它在 Store 内只读取当前项目的 `sources` 数量及 `documents` 元数据，动态计算文件总数、字节数、类型、清单和 fingerprint；不会持久化洞察结论，也不读取 `documents.content`。
+
+Model Profiles 复用既有 `model_profiles` 表，不新增 Alembic revision。Store 只保存已校验的 Profile 元数据和受控 `api_key_ref`；默认标记使用已有部分唯一索引保证最多一条，切换默认在单一事务内完成。它不保存 Key 明文、不访问用户 `.env`，也不在本切片写入 `settings` 或任务/运行表。
 | `agent_events` | 通过既有 `event_type/payload_json` 保存 `assistant.message.*`、补充 Step 事件与 `approval.expired`；继续使用 `(run_id, sequence)` 唯一约束 |
 | `idempotency_records` | 复用既有 scope/key/request hash，保证任务首消息、分块追加和终结消息不会重复写入 |
 

@@ -231,7 +231,8 @@
 | 分段回答 | `GET /runs/{id}/events`、`GET /tasks/{id}/messages` | Run 内按 sequence 去重；最多五次有界重连并从最后序号续传；完整消息负责刷新历史 |
 | 详细过程 | steps、approvals、artifacts | 产物按 Task 查询并标注所属 Run；只展示真实返回，当前固定工作流不会伪造审批 |
 | 工作流 | definitions / versions | 定义、详情与版本步骤只读接线；绑定、编辑、校验和执行 UI 在稳定 API 可用前保持禁用 |
-| 设置、洞察、导出 | N/A | 只保留本机外观偏好或明确不可用说明，不调用 v2 填空 |
+| 模型 Profile 设置 | `GET/POST /model-profiles`、`POST /model-profiles/{id}/update|default|delete` | 使用独立 v3 数据和幂等写请求；只提交 Key 引用，不提供 Key 录入或连接测试 |
+| 洞察、导出与其余设置 | N/A | 资料快照概览已在项目页接入；其余能力只保留明确不可用说明，不调用 v2 填空 |
 
 TanStack Query 持有服务端项目、任务、运行、步骤、审批、产物和工作流；Zustand 只保存界面主题、抽屉、最后项目选择和按任务隔离的未发送草稿。离线恢复后不会自动提交写请求。
 

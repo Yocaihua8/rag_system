@@ -19,7 +19,7 @@ v3 目标规格在实现前标记为 `Proposed`，不得与当前可达能力混
 | 项目知识教练与逐点学习 | [`project-knowledge-coach.md`](project-knowledge-coach.md) | 教练、学习地图、学习计划及学习覆盖层 |
 | 首次运行引导 | [`first-run-wizard.md`](first-run-wizard.md) | 教练工作台首次状态 |
 | 多模型比较 | [`multi-model-comparison.md`](multi-model-comparison.md) | 教练工作台高级区域 |
-| 模型配置 | [`model-profile-settings.md`](model-profile-settings.md) | 设置页 |
+| 模型配置（v2） | [`model-profile-settings.md`](model-profile-settings.md) | Vue 设置页 |
 | Prompt 预设 | [`prompt-preset-settings.md`](prompt-preset-settings.md) | 设置页 |
 | GitHub 仓库导入 | [`github-integration.md`](github-integration.md) | 资料弹窗 |
 | Obsidian 同步与发布 | [`obsidian-integration.md`](obsidian-integration.md) | 资料、设置、学习计划与桌面插件 |
@@ -32,8 +32,9 @@ v3 目标规格在实现前标记为 `Proposed`，不得与当前可达能力混
 | 能力 | 规格 | 当前状态 |
 |------|------|----------|
 | Agent 任务、持久运行、审批与产物 | [`agent-tasks-and-runs.md`](agent-tasks-and-runs.md) | Proposed；后端实施中逐项校准 |
-| 项目资料（Sources） | [`project-sources.md`](project-sources.md) | 项目根扫描已接入平行 React；外部资料、预览与洞察仍未实现 |
+| 项目资料（Sources） | [`project-sources.md`](project-sources.md) | 项目根扫描已接入平行 React；外部资料和正文预览仍未实现 |
 | 项目洞察（Project Insights） | [`project-insights.md`](project-insights.md) | Active；当前可查看基于已扫描 v3 文档元数据的资料快照概览 |
+| 模型配置 | [`model-profile-settings-v3.md`](model-profile-settings-v3.md) | Active；平行 React 可管理独立 v3 Profile 元数据与默认选择 |
 
 状态用语：
 

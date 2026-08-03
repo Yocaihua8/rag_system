@@ -27,6 +27,7 @@
 | [`v3-document-migration.md`](v3-document-migration.md) | 旧文档事实吸收、归并和安全删除矩阵 |
 | [`v3-sources-contract.md`](v3-sources-contract.md) | v3 Sources 的路径、响应脱敏和持久化合同 |
 | [`v3-project-insights-contract.md`](v3-project-insights-contract.md) | v3 文档快照的只读项目概览合同 |
+| [`v3-model-profiles-contract.md`](v3-model-profiles-contract.md) | v3 模型 Profile 元数据、幂等与密钥引用合同 |
 | [`rfc-template.md`](rfc-template.md) | 设计提案模板，不代表已批准方案 |
 
 重要决策见 [`../adr/README.md`](../adr/README.md)，未完成设计只进入 [`../BACKLOG.md`](../BACKLOG.md)。

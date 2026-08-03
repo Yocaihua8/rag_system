@@ -88,7 +88,8 @@ CORS 中间件包裹认证中间件，使合法浏览器预检在业务认证前
 
 | 能力 | 保存内容 | 明文位置 / 回显 |
 |------|----------|-----------------|
-| 模型 Profile | SQLite `model_profiles.api_key_ref` 只允许空值、`env:RAG_LLM_API_KEY`、`env:DEEPSEEK_API_KEY`、`saved:RAG_LLM_API_KEY`；即受控的 `env:*` / `saved:*` 引用 | 列表响应只返回引用、`has_api_key` 和来源，不返回值 |
+| 模型 Profile（v2） | v2 SQLite `model_profiles.api_key_ref` 只允许空值、`env:RAG_LLM_API_KEY`、`env:DEEPSEEK_API_KEY`、`saved:RAG_LLM_API_KEY`；即受控的 `env:*` / `saved:*` 引用 | 列表响应只返回引用、`has_api_key` 和来源，不返回值 |
+| 模型 Profile（v3） | v3 SQLite `model_profiles.api_key_ref` 只允许同一固定白名单引用；v3 API 不接受 `api_key` 字段，也不解析引用 | 响应只返回引用和 Profile 元数据，不返回值、掩码或 Key 存在性 |
 | 兼容全局 LLM 设置 | `POST /api/settings/llm` 接收非空 `api_key` 后调用 `save_setting()` | 明文以引号值写入用户应用数据目录 `KnowledgeIsland/.env`；GET 只返回是否存在和来源 |
 | 应用认证 | `RAG_AUTH_API_KEY`、`RAG_AUTH_JWT_SECRET` | 只从环境读取，不写数据库、不通过接口回显 |
 | Obsidian 服务端 | `code_hash`、`token_hash` | 数据库不保存明文配对码/令牌 |

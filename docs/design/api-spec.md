@@ -669,7 +669,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 
 ### 2.2 当前路径
 
-当前 v3 sub-app 有 **34 个业务路径、39 个操作**：
+当前 v3 sub-app 有 **38 个业务路径、43 个操作**：
 
 | 方法 | 路径 | 当前用途 | 写入/控制要求 |
 |------|------|----------|---------------|
@@ -682,6 +682,10 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | GET | `/api/v3/projects/{project_id}/sources` | 列出已受管资料源 | 支持 `status`、`limit=1..500`、`offset>=0`；只返回来源元数据与文件数 |
 | GET | `/api/v3/projects/{project_id}/documents` | 列出已受管文档元数据 | 支持 `source_id`、`limit=1..500`、`offset>=0`；只返回相对路径、类型、大小、hash 和版本 |
 | GET | `/api/v3/projects/{project_id}/insights/overview` | 汇总当前受管文档快照的来源数、文件数、大小、类型、常见清单和证据 | 只读；无文档返回 `source_required`，不读取正文、项目根或 v2 数据 |
+| POST / GET | `/api/v3/model-profiles` | 创建；列出独立 v3 模型 Profile 元数据 | POST 需要 `Idempotency-Key`；只接受受控 Key 引用，不接收明文 Key |
+| POST | `/api/v3/model-profiles/{profile_id}/update` | 全量更新 Profile | 需要 `Idempotency-Key`；disabled Profile 不能保持默认 |
+| POST | `/api/v3/model-profiles/{profile_id}/default` | 设为唯一默认 Profile | 需要 `Idempotency-Key`；disabled Profile 返回 `409` |
+| POST | `/api/v3/model-profiles/{profile_id}/delete` | 删除 Profile 元数据 | 需要 `Idempotency-Key`；不操作环境变量或 provider |
 | POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
@@ -714,6 +718,8 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 Sources 首段只有 `project_root` 一种资料源。扫描从已登记的项目根重新解析并逐项检查，跳过忽略目录、符号链接、不支持文件、超过单文件 1 MiB 或总计 10 MiB 的文件；最多访问 5,000 个目录项。成功文件以相对路径、UTF-8 正文、副本 hash、MIME、大小和版本写入独立 v3 `documents`，重复扫描更新变化文件并删除已消失文件。响应中的 `SourceResource` 不含 locator/config，`DocumentResource` 不含正文、源绝对路径或内部错误。根不可用返回 `409 project_root_unavailable`；任一单文件不可读仅增加扫描摘要的 `read_failures`，不阻断其他文件。
 
 Project Insights 的首段 `overview` 只汇总当前 v3 Documents 元数据。`fingerprint` 是按相对路径稳定排序的 `relative_path:checksum` SHA-256 聚合；文件类型和清单识别均可由 `evidence` 中的文档 ID、来源 ID、相对路径和 hash 回溯。它不读取正文、项目根、v2 数据或调用模型；没有已索引文档时以 `source_required` 明确资料缺口，不伪造评分、技术栈或质量结论。
+
+v3 Model Profiles 复用既有 `model_profiles` 表保存非敏感元数据。写入只允许空或固定白名单的 `api_key_ref`，不接受 `api_key`、不解析环境/兼容 `.env`、不返回 Key 明文、掩码或可用性探测。Profile 管理尚未接入 Agent Run 或任何模型调用；因此设置默认值不会改变现有 v2 问答或正式入口的配置。
 
 存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
 

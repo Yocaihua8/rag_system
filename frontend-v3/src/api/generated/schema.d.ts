@@ -123,6 +123,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/model-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Model Profiles */
+        get: operations["list_model_profiles_model_profiles_get"];
+        put?: never;
+        /** Create Model Profile */
+        post: operations["create_model_profile_model_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/model-profiles/{profile_id}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Default Model Profile */
+        post: operations["set_default_model_profile_model_profiles__profile_id__default_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/model-profiles/{profile_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete Model Profile */
+        post: operations["delete_model_profile_model_profiles__profile_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/model-profiles/{profile_id}/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Model Profile */
+        post: operations["update_model_profile_model_profiles__profile_id__update_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects": {
         parameters: {
             query?: never;
@@ -1020,6 +1089,106 @@ export interface components {
              */
             status: "ok" | "starting" | "error";
         };
+        /** ModelProfileDeleteData */
+        ModelProfileDeleteData: {
+            /** Deleted */
+            deleted: boolean;
+            /** Profile Id */
+            profile_id: string;
+            /** Replayed */
+            replayed: boolean;
+        };
+        /** ModelProfileListData */
+        ModelProfileListData: {
+            /** Items */
+            items: components["schemas"]["ModelProfileResource"][];
+        };
+        /** ModelProfileMutationData */
+        ModelProfileMutationData: {
+            profile: components["schemas"]["ModelProfileResource"];
+            /** Replayed */
+            replayed: boolean;
+        };
+        /** ModelProfileResource */
+        ModelProfileResource: {
+            /** Api Base */
+            api_base: string;
+            /**
+             * Api Key Ref
+             * @enum {string}
+             */
+            api_key_ref: "" | "env:RAG_LLM_API_KEY" | "env:DEEPSEEK_API_KEY" | "saved:RAG_LLM_API_KEY";
+            /** Created At */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Is Default */
+            is_default: boolean;
+            /** Max Tokens */
+            max_tokens: number;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "api" | "ollama";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+            /** Temperature */
+            temperature: number;
+            /** Updated At */
+            updated_at: string;
+        };
+        /** ModelProfileWriteRequest */
+        ModelProfileWriteRequest: {
+            /**
+             * Api Base
+             * @default
+             */
+            api_base: string;
+            /**
+             * Api Key Ref
+             * @default
+             * @enum {string}
+             */
+            api_key_ref: "" | "env:RAG_LLM_API_KEY" | "env:DEEPSEEK_API_KEY" | "saved:RAG_LLM_API_KEY";
+            /**
+             * Is Default
+             * @default false
+             */
+            is_default: boolean;
+            /**
+             * Max Tokens
+             * @default 2048
+             */
+            max_tokens: number;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "api" | "ollama";
+            /**
+             * Status
+             * @default active
+             * @enum {string}
+             */
+            status: "active" | "disabled";
+            /**
+             * Temperature
+             * @default 0.7
+             */
+            temperature: number;
+        };
         /** ProjectCreateRequest */
         ProjectCreateRequest: {
             /** Name */
@@ -1514,6 +1683,21 @@ export interface components {
         /** SuccessEnvelope[HealthData] */
         SuccessEnvelope_HealthData_: {
             data: components["schemas"]["HealthData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[ModelProfileDeleteData] */
+        SuccessEnvelope_ModelProfileDeleteData_: {
+            data: components["schemas"]["ModelProfileDeleteData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[ModelProfileListData] */
+        SuccessEnvelope_ModelProfileListData_: {
+            data: components["schemas"]["ModelProfileListData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[ModelProfileMutationData] */
+        SuccessEnvelope_ModelProfileMutationData_: {
+            data: components["schemas"]["ModelProfileMutationData"];
             meta: components["schemas"]["ResponseMeta"];
         };
         /** SuccessEnvelope[ProjectInsightData] */
@@ -2302,6 +2486,263 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_HealthData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_model_profiles_model_profiles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ModelProfileListData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_model_profile_model_profiles_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelProfileWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ModelProfileMutationData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    set_default_model_profile_model_profiles__profile_id__default_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ModelProfileMutationData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    delete_model_profile_model_profiles__profile_id__delete_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ModelProfileDeleteData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_model_profile_model_profiles__profile_id__update_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelProfileWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ModelProfileMutationData_"];
                 };
             };
             /** @description Resource not found */

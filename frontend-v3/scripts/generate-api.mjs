@@ -58,6 +58,10 @@ function validateOpenApiSchema(filename) {
   const idempotentWrites = [
     ['/projects', 'post'],
     ['/projects/{project_id}/sources/scan', 'post'],
+    ['/model-profiles', 'post'],
+    ['/model-profiles/{profile_id}/update', 'post'],
+    ['/model-profiles/{profile_id}/default', 'post'],
+    ['/model-profiles/{profile_id}/delete', 'post'],
     ['/tasks', 'post'],
     ['/tasks/{task_id}/messages', 'post'],
     ['/tasks/{task_id}/runs', 'post'],

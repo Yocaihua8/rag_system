@@ -187,6 +187,63 @@ class AgentApplication:
             documents=snapshot["documents"],
         )
 
+    def list_model_profiles(self) -> list[dict[str, Any]]:
+        return self.store.list_model_profiles()
+
+    def create_model_profile(
+        self,
+        *,
+        fields: Mapping[str, Any],
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        payload = {"profile": dict(fields)}
+        return self.store.create_model_profile(
+            fields=fields,
+            idempotency_key=_required_idempotency_key(idempotency_key),
+            request_hash=request_hash(payload),
+        )
+
+    def update_model_profile(
+        self,
+        *,
+        profile_id: str,
+        fields: Mapping[str, Any],
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        payload = {"profile_id": profile_id, "profile": dict(fields)}
+        return self.store.update_model_profile(
+            profile_id=profile_id,
+            fields=fields,
+            idempotency_key=_required_idempotency_key(idempotency_key),
+            request_hash=request_hash(payload),
+        )
+
+    def set_default_model_profile(
+        self,
+        *,
+        profile_id: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        payload = {"profile_id": profile_id, "operation": "set_default"}
+        return self.store.set_default_model_profile(
+            profile_id=profile_id,
+            idempotency_key=_required_idempotency_key(idempotency_key),
+            request_hash=request_hash(payload),
+        )
+
+    def delete_model_profile(
+        self,
+        *,
+        profile_id: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        payload = {"profile_id": profile_id, "operation": "delete"}
+        return self.store.delete_model_profile(
+            profile_id=profile_id,
+            idempotency_key=_required_idempotency_key(idempotency_key),
+            request_hash=request_hash(payload),
+        )
+
     def create_task(
         self,
         *,

@@ -38,6 +38,30 @@ class ProjectCreateRequest(StrictModel):
     root_path: str = Field(min_length=1, max_length=2_048)
 
 
+class ModelProfileWriteRequest(StrictModel):
+    name: str = Field(min_length=1, max_length=200)
+    provider: Literal["api", "ollama"]
+    api_base: str = Field(default="", max_length=2_048)
+    model: str = Field(min_length=1, max_length=200)
+    temperature: float = Field(default=0.7, ge=0, le=2)
+    max_tokens: int = Field(default=2_048, ge=1, le=128_000)
+    api_key_ref: Literal[
+        "",
+        "env:RAG_LLM_API_KEY",
+        "env:DEEPSEEK_API_KEY",
+        "saved:RAG_LLM_API_KEY",
+    ] = ""
+    status: Literal["active", "disabled"] = "active"
+    is_default: bool = False
+
+    @field_validator("is_default")
+    @classmethod
+    def disabled_profile_cannot_be_default(cls, is_default: bool, info):
+        if is_default and info.data.get("status") == "disabled":
+            raise ValueError("disabled model profile cannot be default")
+        return is_default
+
+
 class TaskCreateRequest(StrictModel):
     project_id: str = Field(min_length=1, max_length=64)
     title: str = Field(min_length=1, max_length=200)
@@ -224,6 +248,41 @@ class ProjectMutationData(StrictModel):
 
 class ProjectListData(StrictModel):
     items: list[ProjectResource]
+
+
+class ModelProfileResource(StrictModel):
+    id: str
+    name: str
+    provider: Literal["api", "ollama"]
+    api_base: str
+    model: str
+    temperature: float = Field(ge=0, le=2)
+    max_tokens: int = Field(ge=1, le=128_000)
+    api_key_ref: Literal[
+        "",
+        "env:RAG_LLM_API_KEY",
+        "env:DEEPSEEK_API_KEY",
+        "saved:RAG_LLM_API_KEY",
+    ]
+    status: Literal["active", "disabled"]
+    is_default: bool
+    created_at: str
+    updated_at: str
+
+
+class ModelProfileListData(StrictModel):
+    items: list[ModelProfileResource]
+
+
+class ModelProfileMutationData(StrictModel):
+    profile: ModelProfileResource
+    replayed: bool
+
+
+class ModelProfileDeleteData(StrictModel):
+    deleted: bool
+    profile_id: str
+    replayed: bool
 
 
 class SourceResource(StrictModel):

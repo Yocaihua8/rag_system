@@ -37,6 +37,7 @@ from backend.storage.v3.schema import (
     agent_task_messages,
     agent_tasks,
     idempotency_records,
+    model_profiles,
     projects,
     documents,
     sources,
@@ -413,6 +414,205 @@ class AgentStore:
                 "source_count": source_count,
                 "documents": [_document_resource(row) for row in rows],
             }
+
+    def list_model_profiles(self) -> list[dict[str, Any]]:
+        with self._database.read_connection() as connection:
+            rows = connection.execute(
+                select(model_profiles).order_by(
+                    model_profiles.c.is_default.desc(),
+                    model_profiles.c.updated_at.desc(),
+                    model_profiles.c.id,
+                )
+            ).mappings()
+            return [_model_profile_resource(row) for row in rows]
+
+    def create_model_profile(
+        self,
+        *,
+        fields: Mapping[str, Any],
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        scope = "model_profile.create"
+        now = _utc_now()
+        values = _model_profile_values(fields)
+        try:
+            with self._database.transaction() as connection:
+                replay = _idempotency_replay(
+                    connection, scope, idempotency_key, request_hash
+                )
+                if replay is not None:
+                    return replay
+                if values["is_default"]:
+                    connection.execute(
+                        update(model_profiles)
+                        .where(model_profiles.c.is_default == 1)
+                        .values(is_default=0, updated_at=now)
+                    )
+                profile = {
+                    "id": _identifier(),
+                    **values,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+                connection.execute(insert(model_profiles).values(**profile))
+                response = {
+                    "profile": _model_profile_resource(profile),
+                    "replayed": False,
+                }
+                _record_idempotency(
+                    connection,
+                    scope=scope,
+                    idempotency_key=idempotency_key,
+                    request_hash=request_hash,
+                    response_kind="model_profile",
+                    response_id=profile["id"],
+                    response=response,
+                    now=now,
+                )
+                return response
+        except IntegrityError as exc:
+            raise StateConflictError("model profile name already exists") from exc
+
+    def update_model_profile(
+        self,
+        *,
+        profile_id: str,
+        fields: Mapping[str, Any],
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        clean_profile_id = _required(profile_id, "profile_id")
+        scope = f"model_profile.update:{clean_profile_id}"
+        now = _utc_now()
+        values = _model_profile_values(fields)
+        try:
+            with self._database.transaction() as connection:
+                replay = _idempotency_replay(
+                    connection, scope, idempotency_key, request_hash
+                )
+                if replay is not None:
+                    return replay
+                current = _require_row(
+                    connection, model_profiles, clean_profile_id, "model profile"
+                )
+                if values["is_default"]:
+                    connection.execute(
+                        update(model_profiles)
+                        .where(
+                            model_profiles.c.is_default == 1,
+                            model_profiles.c.id != clean_profile_id,
+                        )
+                        .values(is_default=0, updated_at=now)
+                    )
+                updated = {**dict(current), **values, "updated_at": now}
+                connection.execute(
+                    update(model_profiles)
+                    .where(model_profiles.c.id == clean_profile_id)
+                    .values(**values, updated_at=now)
+                )
+                response = {
+                    "profile": _model_profile_resource(updated),
+                    "replayed": False,
+                }
+                _record_idempotency(
+                    connection,
+                    scope=scope,
+                    idempotency_key=idempotency_key,
+                    request_hash=request_hash,
+                    response_kind="model_profile",
+                    response_id=clean_profile_id,
+                    response=response,
+                    now=now,
+                )
+                return response
+        except IntegrityError as exc:
+            raise StateConflictError("model profile name already exists") from exc
+
+    def set_default_model_profile(
+        self,
+        *,
+        profile_id: str,
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        clean_profile_id = _required(profile_id, "profile_id")
+        scope = f"model_profile.default:{clean_profile_id}"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(
+                connection, scope, idempotency_key, request_hash
+            )
+            if replay is not None:
+                return replay
+            current = _require_row(
+                connection, model_profiles, clean_profile_id, "model profile"
+            )
+            if str(current["status"]) != "active":
+                raise StateConflictError("disabled model profile cannot be default")
+            connection.execute(
+                update(model_profiles)
+                .where(model_profiles.c.is_default == 1)
+                .values(is_default=0, updated_at=now)
+            )
+            connection.execute(
+                update(model_profiles)
+                .where(model_profiles.c.id == clean_profile_id)
+                .values(is_default=1, updated_at=now)
+            )
+            profile = {**dict(current), "is_default": True, "updated_at": now}
+            response = {
+                "profile": _model_profile_resource(profile),
+                "replayed": False,
+            }
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="model_profile",
+                response_id=clean_profile_id,
+                response=response,
+                now=now,
+            )
+            return response
+
+    def delete_model_profile(
+        self,
+        *,
+        profile_id: str,
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        clean_profile_id = _required(profile_id, "profile_id")
+        scope = f"model_profile.delete:{clean_profile_id}"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(
+                connection, scope, idempotency_key, request_hash
+            )
+            if replay is not None:
+                return replay
+            _require_row(connection, model_profiles, clean_profile_id, "model profile")
+            connection.execute(
+                delete(model_profiles).where(model_profiles.c.id == clean_profile_id)
+            )
+            response = {
+                "deleted": True,
+                "profile_id": clean_profile_id,
+                "replayed": False,
+            }
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="model_profile_delete",
+                response_id=clean_profile_id,
+                response=response,
+                now=now,
+            )
+            return response
 
     def create_workflow(
         self,
@@ -3444,6 +3644,59 @@ def _document_resource(row: Mapping[str, Any]) -> dict[str, Any]:
         "size_bytes": int(row["size_bytes"]),
         "checksum": str(row["checksum"]),
         "version": int(row["version"]),
+        "updated_at": str(row["updated_at"]),
+    }
+
+
+def _model_profile_values(fields: Mapping[str, Any]) -> dict[str, Any]:
+    name = _required(fields.get("name"), "name")
+    provider = _enum(fields.get("provider"), "provider", {"api", "ollama"})
+    model = _required(fields.get("model"), "model")
+    api_key_ref = str(fields.get("api_key_ref", "")).strip()
+    allowed_key_refs = {
+        "",
+        "env:RAG_LLM_API_KEY",
+        "env:DEEPSEEK_API_KEY",
+        "saved:RAG_LLM_API_KEY",
+    }
+    if api_key_ref not in allowed_key_refs:
+        raise ValueError("api_key_ref is invalid")
+    status = _enum(fields.get("status", "active"), "status", {"active", "disabled"})
+    is_default = bool(fields.get("is_default", False))
+    if status == "disabled" and is_default:
+        raise ValueError("disabled model profile cannot be default")
+    temperature = float(fields.get("temperature", 0.7))
+    max_tokens = _positive_int(fields.get("max_tokens", 2_048), "max_tokens")
+    if not 0 <= temperature <= 2:
+        raise ValueError("temperature must be between 0 and 2")
+    if max_tokens > 128_000:
+        raise ValueError("max_tokens must not exceed 128000")
+    return {
+        "name": name,
+        "provider": provider,
+        "api_base": str(fields.get("api_base", "")).strip(),
+        "model": model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "api_key_ref": api_key_ref,
+        "status": status,
+        "is_default": int(is_default),
+    }
+
+
+def _model_profile_resource(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "id": str(row["id"]),
+        "name": str(row["name"]),
+        "provider": str(row["provider"]),
+        "api_base": str(row["api_base"]),
+        "model": str(row["model"]),
+        "temperature": float(row["temperature"]),
+        "max_tokens": int(row["max_tokens"]),
+        "api_key_ref": str(row["api_key_ref"]),
+        "status": str(row["status"]),
+        "is_default": bool(row["is_default"]),
+        "created_at": str(row["created_at"]),
         "updated_at": str(row["updated_at"]),
     }
 

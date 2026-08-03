@@ -8,6 +8,7 @@ export const v3QueryKeys = {
     [...v3QueryKeys.all, 'project', projectId, 'documents'] as const,
   projectInsight: (projectId: string) =>
     [...v3QueryKeys.all, 'project', projectId, 'insight'] as const,
+  modelProfiles: () => [...v3QueryKeys.all, 'model-profiles'] as const,
   tasks: (filters: Record<string, unknown> = {}) =>
     [...v3QueryKeys.all, 'tasks', filters] as const,
   task: (taskId: string) => [...v3QueryKeys.all, 'task', taskId] as const,

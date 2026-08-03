@@ -617,6 +617,10 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "/projects/{project_id}/sources",
         "/projects/{project_id}/documents",
         "/projects/{project_id}/insights/overview",
+        "/model-profiles",
+        "/model-profiles/{profile_id}/update",
+        "/model-profiles/{profile_id}/default",
+        "/model-profiles/{profile_id}/delete",
         "/projects/{project_id}/insights/overview",
         "/tasks",
         "/tasks/{task_id}",
@@ -700,6 +704,16 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "responses"
     ]["200"]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/SuccessEnvelope_ProjectInsightData_"
+    }
+    assert schema["paths"]["/model-profiles"]["post"]["responses"]["201"][
+        "content"
+    ]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_ModelProfileMutationData_"
+    }
+    assert schema["paths"]["/model-profiles/{profile_id}/delete"]["post"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_ModelProfileDeleteData_"
     }
     assert schema["paths"]["/projects/{project_id}/insights/overview"]["get"][
         "responses"

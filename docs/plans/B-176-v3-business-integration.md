@@ -25,7 +25,8 @@
 - [x] 实现 Sources 的后端发现/读取索引、查询 API、持久化和幂等/失败行为，补后端与集成测试。
 - [x] 通过生成的 OpenAPI 类型把 Sources 列表和受控导入接入 `frontend-v3/` 项目页，补组件测试与真实浏览器联调。
 - [x] 在 Sources 闭环通过后，按同一边界实现 Project Insights 的资料快照概览：只基于 v3 Documents 元数据动态计算，不读正文、不写入结论，补真实后端合同、生成类型、前端状态和测试。
-- [ ] 独立评估并分段实现持久分析、设置、受控导出和工作流执行；每一段先补真实后端合同再开放 UI。
+- [x] 实现 v3 模型 Profile 元数据设置：使用独立表、受控 Key 引用和幂等写请求完成列表、新增、编辑、默认选择和确认删除；不接入模型调用或 Key 录入。
+- [ ] 独立评估并分段实现持久分析、其余设置、受控导出和工作流执行；每一段先补真实后端合同再开放 UI。
 - [ ] 在所有 B-176 分段完成后，执行完整 Web/desktop 联调矩阵；同步功能、设计、CHANGELOG、DevLog，移除 BACKLOG 条目并删除本 plan。
 
 ## 4. 影响范围
@@ -67,6 +68,7 @@
 | v3 Sources/Document 数据模型与迁移 | `docs/design/v3-sources-contract.md` | [x] |
 | 业务能力可达性和限制 | `docs/features/project-sources.md`、`docs/features/agent-tasks-and-runs.md` | [x] |
 | Project Insights 资料快照概览合同和前端状态 | `docs/design/v3-project-insights-contract.md`、`docs/features/project-insights.md` | [x] |
+| v3 模型 Profile 设置合同和前端状态 | `docs/design/v3-model-profiles-contract.md`、`docs/features/model-profile-settings-v3.md` | [x] |
 | 开发过程、验证和下一步 | `docs/devlog/2026/08/2026-08-03.md` | [ ] |
 | 用户可见完成事实 | `CHANGELOG.md` | [ ] |
 
@@ -77,6 +79,7 @@
 - 2026-08-03：完成 Sources 后端与平行 React 闭环。定向 Sources、v3 API contract 和 Store 测试 41 项通过；React typecheck、44 项单测、OpenAPI 类型生成与 production build 通过。Playwright 真实浏览器联调仍在本 plan 的最终矩阵中，尚未作为本段完成证据。
 - 2026-08-03：启动 Project Insights 子阶段，先冻结不读正文、只依据 v3 Documents 元数据计算的资料快照概览。持久化分析、LLM、知识点和评估不在本段范围。
 - 2026-08-03：完成 Project Insights 资料快照概览：新增只读 overview API 和生成类型，React 项目页展示扫描前资料缺口与扫描后的文件数、大小、类型/清单；定向 Python 42 项、React typecheck、45 项单测、OpenAPI 生成和 production build 通过。正式浏览器 E2E 仍留在最终联调矩阵。
+- 2026-08-03：完成 v3 模型 Profile 元数据设置：Profile 只保存固定白名单 Key 引用，React 可对真实 v3 Profile 新增、编辑、设默认和确认删除；不接入 Key 录入、模型调用或 v2 数据。定向 Python 43 项、React typecheck、46 项单测、OpenAPI 生成和 production build 通过。
 
 ## 9. 状态快照
 

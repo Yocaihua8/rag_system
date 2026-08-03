@@ -26,6 +26,10 @@ from backend.api.v3.models import (
     DocumentListData,
     ErrorEnvelope,
     HealthData,
+    ModelProfileDeleteData,
+    ModelProfileListData,
+    ModelProfileMutationData,
+    ModelProfileWriteRequest,
     ProjectCreateRequest,
     ProjectListData,
     ProjectInsightData,
@@ -637,6 +641,73 @@ def create_v3_app(
     def get_project_insight_overview(request: Request, project_id: str):
         overview = _application(request).get_project_insight_overview(project_id)
         return success(request, {"overview": overview})
+
+    @app.get("/model-profiles", response_model=SuccessEnvelope[ModelProfileListData])
+    def list_model_profiles(request: Request):
+        return success(request, {"items": _application(request).list_model_profiles()})
+
+    @app.post(
+        "/model-profiles",
+        response_model=SuccessEnvelope[ModelProfileMutationData],
+        status_code=201,
+    )
+    def create_model_profile(
+        request: Request,
+        body: ModelProfileWriteRequest,
+        idempotency_key: IdempotencyHeader,
+    ):
+        result = _application(request).create_model_profile(
+            fields=body.model_dump(),
+            idempotency_key=idempotency_key,
+        )
+        return success(request, result, status_code=201)
+
+    @app.post(
+        "/model-profiles/{profile_id}/update",
+        response_model=SuccessEnvelope[ModelProfileMutationData],
+    )
+    def update_model_profile(
+        request: Request,
+        profile_id: str,
+        body: ModelProfileWriteRequest,
+        idempotency_key: IdempotencyHeader,
+    ):
+        result = _application(request).update_model_profile(
+            profile_id=profile_id,
+            fields=body.model_dump(),
+            idempotency_key=idempotency_key,
+        )
+        return success(request, result)
+
+    @app.post(
+        "/model-profiles/{profile_id}/default",
+        response_model=SuccessEnvelope[ModelProfileMutationData],
+    )
+    def set_default_model_profile(
+        request: Request,
+        profile_id: str,
+        idempotency_key: IdempotencyHeader,
+    ):
+        result = _application(request).set_default_model_profile(
+            profile_id=profile_id,
+            idempotency_key=idempotency_key,
+        )
+        return success(request, result)
+
+    @app.post(
+        "/model-profiles/{profile_id}/delete",
+        response_model=SuccessEnvelope[ModelProfileDeleteData],
+    )
+    def delete_model_profile(
+        request: Request,
+        profile_id: str,
+        idempotency_key: IdempotencyHeader,
+    ):
+        result = _application(request).delete_model_profile(
+            profile_id=profile_id,
+            idempotency_key=idempotency_key,
+        )
+        return success(request, result)
 
     @app.post(
         "/tasks",

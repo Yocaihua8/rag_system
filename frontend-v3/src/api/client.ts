@@ -107,6 +107,57 @@ export function createV3ApiClient(options: V3ApiClientOptions) {
         }),
       ),
 
+    listModelProfiles: (request: RequestOptions = {}) =>
+      unwrap<Schemas['ModelProfileListData']>(
+        client.GET('/model-profiles', { signal: request.signal }),
+      ),
+    createModelProfile: (
+      body: Schemas['ModelProfileWriteRequest'],
+      request: WriteRequestOptions,
+    ) =>
+      unwrap<Schemas['ModelProfileMutationData']>(
+        client.POST('/model-profiles', {
+          body,
+          params: { header: writeHeaderParams(request.idempotencyKey) },
+          signal: request.signal,
+        }),
+      ),
+    updateModelProfile: (
+      profileId: string,
+      body: Schemas['ModelProfileWriteRequest'],
+      request: WriteRequestOptions,
+    ) =>
+      unwrap<Schemas['ModelProfileMutationData']>(
+        client.POST('/model-profiles/{profile_id}/update', {
+          body,
+          params: {
+            path: { profile_id: profileId },
+            header: writeHeaderParams(request.idempotencyKey),
+          },
+          signal: request.signal,
+        }),
+      ),
+    setDefaultModelProfile: (profileId: string, request: WriteRequestOptions) =>
+      unwrap<Schemas['ModelProfileMutationData']>(
+        client.POST('/model-profiles/{profile_id}/default', {
+          params: {
+            path: { profile_id: profileId },
+            header: writeHeaderParams(request.idempotencyKey),
+          },
+          signal: request.signal,
+        }),
+      ),
+    deleteModelProfile: (profileId: string, request: WriteRequestOptions) =>
+      unwrap<Schemas['ModelProfileDeleteData']>(
+        client.POST('/model-profiles/{profile_id}/delete', {
+          params: {
+            path: { profile_id: profileId },
+            header: writeHeaderParams(request.idempotencyKey),
+          },
+          signal: request.signal,
+        }),
+      ),
+
     listTasks: (
       query: {
         project_id?: string
