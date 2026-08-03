@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import backend.api.server as server
+from backend.config.settings import load_settings
 from backend.storage import DataGenerationMismatchError, KnowledgeStore
 
 
@@ -22,6 +23,36 @@ def test_fastapi_app_exposes_health_check(tmp_path):
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_fastapi_app_injects_loaded_chunk_and_retrieval_defaults(tmp_path, monkeypatch):
+    settings = load_settings(
+        {
+            "RAG_CHUNK_SIZE": "48",
+            "RAG_CHUNK_OVERLAP": "12",
+            "RAG_TOP_K": "2",
+            "RAG_RETRIEVER_KIND": "keyword",
+        }
+    )
+    monkeypatch.setattr(server, "load_settings", lambda: settings)
+    app = server.create_app(db_path=tmp_path / "app.db", enable_v3=False)
+    project = app.state.knowledge_store.create_project("Configured", tmp_path)
+    app.state.knowledge_store.upsert_document(
+        project.id,
+        tmp_path / "configured.md",
+        "configured.md",
+        " ".join(["configured chunk"] * 20),
+    )
+
+    chunks = app.state.knowledge_store.list_chunks(project.id)
+    assert max(len(chunk.content) for chunk in chunks) <= 48
+    assert app.state.knowledge_store.get_project_retrieval_settings(project.id) == {
+        "project_id": project.id,
+        "top_k": 2,
+        "min_score": 0.0,
+        "use_keyword": True,
+        "use_vector": False,
+    }
 
 
 def test_fastapi_create_app_rejects_unmarked_database_without_writing(tmp_path):

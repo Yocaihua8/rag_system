@@ -41,7 +41,13 @@ def default_retrieval_settings(project_id: str) -> dict[str, object]:
 
 
 def project_retrieval_settings(store: Any, project_id: str) -> dict[str, object]:
-    return store.get_project_retrieval_settings(project_id) or default_retrieval_settings(project_id)
+    settings = store.get_project_retrieval_settings(project_id)
+    if settings:
+        return settings
+    defaults = getattr(store, "default_retrieval_settings", None)
+    if callable(defaults):
+        return defaults(project_id)
+    return default_retrieval_settings(project_id)
 
 
 def source_quality(hits: list[SearchHit]) -> dict[str, Any]:

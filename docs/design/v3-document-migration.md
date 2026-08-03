@@ -33,7 +33,7 @@
 | ISSUE-005 | 与 v3 无直接冲突，继续保留并独立处理 GitHub Action runtime |
 | ISSUE-007 | 吸收到最终 Desktop 安装与跨平台验收，完成前保留 |
 | ISSUE-008 | 由 React 页面替换和真实 API 联调吸收；旧 Vue 不再单独修复 |
-| ISSUE-009 | 吸收到 v3 Retrieval 配置测试；不能在其他后端重构中顺带改变语义 |
+| ISSUE-009 | 当前 v2 活动导入与检索配置已经接线；v3 尚无通用 Retrieval/Chunking 运行时，不能借迁移文档误称已吸收 |
 
 删除 BACKLOG 项目前必须把仍未完成的验收要求转入新的 B-ID；不能因为旧 UI 即将删除就丢失真实缺口。
 

@@ -107,8 +107,8 @@ v2.0.0 发布基线由 `KnowledgeStore` 组合四个存储模块，共初始化 
 
 ## 4. v2 分块、向量与可选存储
 
-- 当前 `backend/domain/chunking.py` 按段落分块；长段使用固定 `700` 字符上限和 `80` 字符重叠。
-- `load_settings()` 会读取 `RAG_CHUNK_SIZE` 和 `RAG_CHUNK_OVERLAP`，但当前 Web 入库调用没有把这两个值传入 `split_into_chunks()`；因此不能把环境配置写成已生效行为。
+- 当前 `backend/domain/chunking.py` 按段落分块；Web `KnowledgeStore` 在创建时接收启动配置，并把 `RAG_CHUNK_SIZE` 与 `RAG_CHUNK_OVERLAP` 传入新导入、更新和缺失 chunk 回填的 `split_into_chunks()` 调用。
+- 这两个环境值必须为整数，窗口为 1 至 1,000,000，重叠为 0 至窗口减一；它们不会自动重写数据库中已有的 chunk。
 - `document_chunks` 是当前 Web 检索分块表；`chunk_vectors` 保存向量兼容副本，供备份/恢复、健康统计和 Qdrant 回退使用。
 - 未配置外部 Embedding 或调用失败时使用本地 `hashing-96`；启用 Qdrant 时向量候选来自 Qdrant local collection，失败时回退 SQLite cosine similarity。
 - `sentence-transformers` 不在默认 requirements，Cross-Encoder rerank 默认关闭；缺失时 `rerank_score` 可为空。

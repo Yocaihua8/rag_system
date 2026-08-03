@@ -8,9 +8,15 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from backend.config.settings import retrieval_default_flags
 from backend.config.vector_store import get_default_vector_store
 from backend.providers.base import BaseVectorStore, VectorUpsertRecord
-from backend.domain.chunking import count_tokens, split_into_chunks
+from backend.domain.chunking import (
+    DEFAULT_CHUNK_CHARS,
+    DEFAULT_OVERLAP_CHARS,
+    count_tokens,
+    split_into_chunks,
+)
 from backend.domain.embeddings import EmbeddingClient, embed_with_fallback, get_default_embedding_client
 from backend.domain.models import (
     AgentToolRun,
@@ -68,6 +74,10 @@ class KnowledgeStore(
         embedding_client: EmbeddingClient | None = None,
         vector_store: BaseVectorStore | None | object = _DEFAULT_VECTOR_STORE,
         expected_generation: str | None = None,
+        chunk_size: int = DEFAULT_CHUNK_CHARS,
+        chunk_overlap: int = DEFAULT_OVERLAP_CHARS,
+        retrieval_top_k: int = int(DEFAULT_RETRIEVAL_SETTINGS["top_k"]),
+        retriever_kind: str = "hybrid",
     ):
         self.db_path = Path(db_path)
         self.expected_generation = (expected_generation or "").strip()
@@ -78,6 +88,15 @@ class KnowledgeStore(
         self._vector_store = (
             get_default_vector_store() if vector_store is _DEFAULT_VECTOR_STORE else vector_store
         )
+        self._chunk_size = _chunk_size_value(chunk_size)
+        self._chunk_overlap = _chunk_overlap_value(chunk_overlap, self._chunk_size)
+        use_keyword, use_vector = retrieval_default_flags(retriever_kind)
+        self._default_retrieval_settings = {
+            "top_k": _top_k_value(retrieval_top_k),
+            "min_score": 0.0,
+            "use_keyword": use_keyword,
+            "use_vector": use_vector,
+        }
         self._init_schema()
 
     def create_project(self, name: str, root_path: Path) -> Project:
@@ -89,10 +108,27 @@ class KnowledgeStore(
         )
         with self._connect() as conn:
             conn.execute(
-                "INSERT INTO projects (id, name, root_path, created_at) VALUES (?, ?, ?, ?)",
-                (project.id, project.name, str(project.root_path), project.created_at),
+                """
+                INSERT INTO projects
+                    (id, name, root_path, created_at, retrieval_top_k,
+                     retrieval_min_score, retrieval_use_keyword, retrieval_use_vector)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    project.id,
+                    project.name,
+                    str(project.root_path),
+                    project.created_at,
+                    self._default_retrieval_settings["top_k"],
+                    self._default_retrieval_settings["min_score"],
+                    self._default_retrieval_settings["use_keyword"],
+                    self._default_retrieval_settings["use_vector"],
+                ),
             )
         return project
+
+    def default_retrieval_settings(self, project_id: str) -> dict[str, object]:
+        return {"project_id": project_id, **self._default_retrieval_settings}
 
     def restore_document_metadata(
         self,
@@ -2432,7 +2468,11 @@ class KnowledgeStore(
         vector_rows = []
         vector_records: list[VectorUpsertRecord] = []
         now = _now()
-        chunks = split_into_chunks(document.content)
+        chunks = split_into_chunks(
+            document.content,
+            max_chars=self._chunk_size,
+            overlap_chars=self._chunk_overlap,
+        )
         vectors, provider, model = embed_with_fallback(self._embedding_client, chunks)
         for index, chunk in enumerate(chunks):
             chunk_id = str(uuid.uuid4())
@@ -2679,6 +2719,36 @@ def _retrieval_settings_from_row(row: sqlite3.Row) -> dict[str, object]:
         "use_keyword": bool(row["retrieval_use_keyword"]),
         "use_vector": bool(row["retrieval_use_vector"]),
     }
+
+
+def _chunk_size_value(value: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("chunk_size must be an integer") from exc
+    if not 1 <= parsed <= 1_000_000:
+        raise ValueError("chunk_size must be between 1 and 1000000")
+    return parsed
+
+
+def _chunk_overlap_value(value: int, chunk_size: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("chunk_overlap must be an integer") from exc
+    if not 0 <= parsed < chunk_size:
+        raise ValueError("chunk_overlap must be at least 0 and smaller than chunk_size")
+    return parsed
+
+
+def _top_k_value(value: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("retrieval_top_k must be an integer") from exc
+    if not 1 <= parsed <= 20:
+        raise ValueError("retrieval_top_k must be between 1 and 20")
+    return parsed
 
 
 def _ensure_column(

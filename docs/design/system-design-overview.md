@@ -45,7 +45,7 @@ FastAPI 根路由不提供产品首页，`GET /` 返回 404；接口文档位于
   -> Obsidian 插件写入受管 Markdown 并回传结果
 ```
 
-- 导入时分块实现当前固定使用 700 字符上限和 80 字符重叠；配置对象虽加载 `RAG_CHUNK_SIZE` / `RAG_CHUNK_OVERLAP`，当前 Web 入库链路没有把它们传给分块函数。
+- 导入时 `KnowledgeStore` 使用启动时的 `RAG_CHUNK_SIZE` / `RAG_CHUNK_OVERLAP` 生成后续写入的 chunk；已存在 chunk 保持原样，环境调整不会触发自动重分块。
 - 问答 SSE 使用 `GET /api/answer/stream`，按 `token`、`done`、`answer_error` 事件推进；Ollama 拉取是另一条 `POST /api/ollama/pull` SSE 流。
 - 来源变化会影响检索，并使相关 Coach 分析进入 `stale`；历史结果可以追溯但不能冒充当前结果。
 - 逐点学习一次只公开当前步骤和 exercise；有效 attempt 可进入当前覆盖投影，从确认计划任务启动时还可单调推进该任务进度。

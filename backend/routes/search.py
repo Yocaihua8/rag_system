@@ -18,8 +18,19 @@ def handle_search_route(
     if method == "POST" and path == "/api/search":
         project_id = str(payload.get("project_id", ""))
         query_text = str(payload.get("query", ""))
-        hits = search_documents(store, project_id, query_text)
-        return ApiResponse(200, {"hits": [hit.to_dict() for hit in hits if hit.score > 0]})
+        settings = project_retrieval_settings(store, project_id)
+        hits = search_documents(
+            store,
+            project_id,
+            query_text,
+            limit=int(settings["top_k"]),
+            use_keyword=bool(settings["use_keyword"]),
+            use_vector=bool(settings["use_vector"]),
+        )
+        minimum_score = float(settings["min_score"])
+        return ApiResponse(200, {"hits": [
+            hit.to_dict() for hit in hits if hit.score >= minimum_score and hit.score > 0
+        ]})
 
     if method == "POST" and path == "/api/search/debug":
         project_id = str(payload.get("project_id", ""))
@@ -99,10 +110,11 @@ def _handle_retrieval_reviews_route(
         query_text = str(payload.get("query", "")).strip()
         if not query_text:
             return ApiResponse(400, {"error": "query is required"})
-        top_k = int_value(payload.get("top_k"), 5, minimum=1, maximum=20)
-        min_score = float_value(payload.get("min_score"), 0.0, minimum=0.0)
-        use_keyword = bool_value(payload.get("use_keyword"), True)
-        use_vector = bool_value(payload.get("use_vector"), True)
+        settings = project_retrieval_settings(store, project_id)
+        top_k = int_value(payload.get("top_k"), int(settings["top_k"]), minimum=1, maximum=20)
+        min_score = float_value(payload.get("min_score"), float(settings["min_score"]), minimum=0.0)
+        use_keyword = bool_value(payload.get("use_keyword"), bool(settings["use_keyword"]))
+        use_vector = bool_value(payload.get("use_vector"), bool(settings["use_vector"]))
         hits = search_documents(
             store,
             project_id,

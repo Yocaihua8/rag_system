@@ -26,7 +26,7 @@
 - `failed`：批次无法形成可用结果；部分在项目或有效负载尚未建立前失败的请求不会创建批次。
 - 批次摘要字段为 `imported/created/updated/unchanged/deleted/skipped/errors`；预览接口不创建批次。
 
-当前文档表只保存原始统一正文 `content`，不生成 `normalized_markdown/plain_text/rendered_html` 三份字段。分块实现当前固定 700/80；可选 Qdrant 写入失败只产生警告，不回滚 SQLite 已完成入库。
+当前文档表只保存原始统一正文 `content`，不生成 `normalized_markdown/plain_text/rendered_html` 三份字段。分块参数来自启动时的 `RAG_CHUNK_SIZE/RAG_CHUNK_OVERLAP`，仅作用于后续写入或缺失 chunk 回填；可选 Qdrant 写入失败只产生警告，不回滚 SQLite 已完成入库。
 
 ### 1.2 受控网页抓取
 

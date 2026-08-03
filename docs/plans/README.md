@@ -10,7 +10,7 @@ Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入
 
 ## 当前活动计划
 
-当前没有 Active 或 Interrupted plan。
+当前没有 Active 或 Interrupted plan。新开发任务须先创建对应 B-ID 和执行计划。
 
 ## 创建
 

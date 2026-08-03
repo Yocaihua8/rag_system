@@ -27,6 +27,7 @@ from backend.config.web import (
     cors_origins,
     default_db_path,
 )
+from backend.config.settings import load_settings
 from backend.api.openapi_schema import install_custom_openapi
 from backend.api.v3.app import create_v3_app
 from backend.config.v3 import V3RuntimeSettings, load_v3_settings
@@ -58,9 +59,14 @@ def create_app(
     v3_settings: V3RuntimeSettings | None = None,
     enable_v3: bool | None = None,
 ) -> FastAPI:
+    runtime_settings = load_settings()
     knowledge_store = store or KnowledgeStore(
         db_path or default_db_path(),
         expected_generation="v2",
+        chunk_size=runtime_settings.chunk_size,
+        chunk_overlap=runtime_settings.chunk_overlap,
+        retrieval_top_k=runtime_settings.retrieval_top_k,
+        retriever_kind=runtime_settings.retriever_kind,
     )
     auth_config = auth_settings or load_auth_settings()
     desktop_config = desktop_settings or load_desktop_settings()

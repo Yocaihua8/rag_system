@@ -214,7 +214,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
 | `assessment_result_count` | 当前项目已保存评估结果数 |
 | `last_activity_at` | 当前项目最近活动时间，取项目创建、文档更新、向量更新、聊天、工具运行、检索复盘、评估题目和评估结果中的最新时间 |
 
-`GET/POST /api/projects/retrieval-settings` 用于读取和保存项目级检索默认值。字段包括 `top_k`、`min_score`、`use_keyword`、`use_vector`，保存到当前项目记录中。`top_k` 会限制在 1-20，`min_score` 最小为 0；布尔字段按 `true/false` 保存。问答和检索诊断共用这组默认值：`/api/answer` 会直接使用当前项目默认值，`/api/search/debug` 在请求未显式传入参数时使用当前项目默认值；如果诊断请求显式传入参数，则以本次请求参数为准。该接口不创建检索复盘、不执行检索、不调用模型。
+`GET/POST /api/projects/retrieval-settings` 用于读取和保存项目级检索默认值。字段包括 `top_k`、`min_score`、`use_keyword`、`use_vector`，保存到当前项目记录中。新项目在创建时以启动配置的 `RAG_TOP_K` 和 `RAG_RETRIEVER_KIND` 初始化：`keyword` 为仅关键词、`vector` 为仅向量、`hybrid` 为两者同时开启；已有项目的保存值不会被环境变量覆盖。`top_k` 会限制在 1-20，`min_score` 最小为 0；布尔字段按 `true/false` 保存。问答、默认 `/api/search`、检索复盘、检索诊断与 `search_sources` 工具共用这组有效设置；`/api/search/debug` 和检索复盘请求显式传入参数时以本次请求参数为准。该接口不创建检索复盘、不执行检索、不调用模型。
 
 `/api/prompt-presets` 用于管理当前项目空间的 Prompt 预设。预设字段包括 `id/project_id/name/description/system_prompt/answer_format/created_at/updated_at`；默认预设 ID 保存到当前项目的 `default_prompt_preset_id`。第一片内置 `项目问答`、`代码解释`、`学习复盘` 三个本地模板，模板只用于前端复制，不会自动写入数据库。Prompt 预设只影响真实 LLM 的回答风格和结构，不改变检索参数、不自动运行工具、不保存 API Key 或模型凭证。设置默认预设时会校验预设必须属于当前项目，跨项目 preset 返回 `404 prompt preset not found`。`system_prompt` 和 `answer_format` 会被放在固定来源约束之后；固定约束仍要求只基于来源片段回答、资料不足时说明缺口，用户 Prompt 不能覆盖该边界。
 
@@ -380,7 +380,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 `parent_message_id` 用于历史消息编辑重发。客户端传入该字段时，服务端会校验父消息必须属于同一 `project_id` 和同一 `session_id`；不存在、跨项目或跨会话时返回 `404 parent chat message not found`，且不写入新消息。校验通过后，新消息的 `parent_message_id` 指向被编辑消息，`branch_index` 为同一父消息下的递增序号；未传 `parent_message_id` 的普通问答保持 `parent_message_id=""`、`branch_index=0`。`message.to_dict()` 响应会返回 `parent_message_id` 和 `branch_index`。
 
-`observability` 用于展示本轮问答的可观察性元数据，不持久化为新的数据库表。当前 `/api/answer` 使用项目级检索默认值，未保存时默认为 `top_k=5`、`min_score=0.0`、`use_keyword=true`、`use_vector=true`。响应结构包含 `retrieval.top_k`、`retrieval.min_score`、`retrieval.use_keyword`、`retrieval.use_vector`、`retrieval.hit_count`、`model.mode`、`model.provider` 和 `elapsed_ms`。`retrieval.hit_count` 统计本轮回答最终可用来源数量，包含显式 `tool_run_id` 带入且通过校验的来源片段；前端 `sources` 仍只展示前 5 条。`model.mode` 与顶层 `mode` 一致，`model.provider` 与顶层 `provider` 一致。`elapsed_ms` 覆盖本轮问答处理耗时，用于本地调试，不是性能 SLA。
+`observability` 用于展示本轮问答的可观察性元数据，不持久化为新的数据库表。当前 `/api/answer` 使用项目级检索默认值；新项目的初始值来自启动时 `RAG_TOP_K/RAG_RETRIEVER_KIND`，已有项目使用保存值。响应结构包含 `retrieval.top_k`、`retrieval.min_score`、`retrieval.use_keyword`、`retrieval.use_vector`、`retrieval.hit_count`、`model.mode`、`model.provider` 和 `elapsed_ms`。`retrieval.hit_count` 统计本轮回答最终可用来源数量，包含显式 `tool_run_id` 带入且通过校验的来源片段；前端 `sources` 仍只展示前 5 条。`model.mode` 与顶层 `mode` 一致，`model.provider` 与顶层 `provider` 一致。`elapsed_ms` 覆盖本轮问答处理耗时，用于本地调试，不是性能 SLA。
 
 `pipeline_trace` 用于暴露本轮检索管线的轻量状态，不持久化为新的数据库表。当前字段为 `reranker_used`，当最终可用来源中至少一条包含 `rerank_score` 时为 `true`，否则为 `false`。
 
@@ -461,7 +461,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 | 工具 | 类型 | 说明 |
 |------|------|------|
 | `project_overview` | 只读 | 返回当前项目名称、根目录、文档数、分块数、向量数和聊天记录数 |
-| `search_sources` | 只读 | 使用现有 RAG 检索返回当前项目来源片段，参数为 `{"query":"..."}`，最多返回 5 条命中 |
+| `search_sources` | 只读 | 使用当前项目有效检索设置返回来源片段，参数为 `{"query":"..."}`，数量受项目 `top_k` 限制 |
 
 `GET /api/agent/tools` 返回只读工具白名单元数据。为兼容既有前端，工具对象继续保留 `name`、`description`、`title`、`read_only` 和旧版 `arguments` 字段，并提供以下结构化字段；这不会新增数据库表：
 

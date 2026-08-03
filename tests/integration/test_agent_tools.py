@@ -137,6 +137,31 @@ def test_agent_search_sources_tool_returns_hits_and_records_audit(tmp_path: Path
     assert runs[0].result["hit_count"] >= 1
 
 
+def test_agent_search_sources_uses_the_project_retrieval_limit(tmp_path: Path):
+    project_dir = tmp_path / "notes"
+    project_dir.mkdir()
+    store = KnowledgeStore(
+        tmp_path / "app.db",
+        vector_store=None,
+        retrieval_top_k=1,
+        retriever_kind="keyword",
+    )
+    project = store.create_project("知识岛", project_dir)
+    store.upsert_document(project.id, project_dir / "first.md", "first.md", "configured search endpoint first")
+    store.upsert_document(project.id, project_dir / "second.md", "second.md", "configured search endpoint second")
+
+    response = dispatch(
+        store,
+        "POST",
+        "/api/agent/tools/run",
+        {"project_id": project.id, "tool": "search_sources", "arguments": {"query": "configured search endpoint"}},
+    )
+
+    assert response.status == 200
+    assert response.body["result"]["hit_count"] == 1
+    assert len(response.body["result"]["hits"]) == 1
+
+
 def test_agent_search_sources_tool_requires_query_and_records_error(tmp_path: Path):
     project_dir = tmp_path / "notes"
     project_dir.mkdir()
