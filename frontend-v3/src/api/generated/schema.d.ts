@@ -1409,9 +1409,10 @@ export interface components {
             /**
              * Workflow Key
              * @default project.inspect.v1
-             * @constant
              */
-            workflow_key: "project.inspect.v1";
+            workflow_key: string;
+            /** Workflow Version Id */
+            workflow_version_id?: string | null;
         };
         /** RunData */
         RunData: {

@@ -690,7 +690,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}/runs` | 按 `created_at DESC, id DESC` 读取该任务的运行历史 | 支持 `limit=1..500`、`offset>=0`；未知任务返回 404 |
-| POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；`workflow_key` 只允许 `project.inspect.v1`；需要 `Idempotency-Key`；返回 202 |
+| POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；固定 `project.inspect.v1` 或显式 `workflow_version_id` 的已发布/已绑定受限工作流；需要 `Idempotency-Key`；返回 202 |
 | GET | `/api/v3/runs/{run_id}` | 读取运行、版本、租约、错误和结果状态 | 只读 |
 | POST | `/api/v3/runs/{run_id}/pause` | 暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
 | POST | `/api/v3/runs/{run_id}/resume` | 恢复已暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |

@@ -87,6 +87,7 @@
 - 2026-08-03：完成 Artifact 受控导出。后端提供 ready Artifact 的只读预览和带 `Idempotency-Key` 的确认接口，文件名由服务端固定并只写入 `<KI_DATA_ROOT>/artifacts/exports/`；React 详细过程先显示快照与不可自动撤销提示，再发送确认。定向 Python 44 项、React typecheck、47 项单测、OpenAPI 生成、production build 与三项文档门禁通过。真实浏览器 E2E 仍留在最终联调矩阵。
 - 2026-08-03：补齐导出确认中断恢复。若文件写入后数据库状态提交前进程中断，后续确认仅在既有受管文件与当前 ready 快照完全一致时继续提交；不同内容或不可读目标仍拒绝。定向导出/API 契约 14 项与三项文档门禁通过。
 - 2026-08-03：冻结受限工作流执行合同。当前 Definition/Version/Binding 管理 API 与执行器支持范围并不等价；首段只允许已发布、已绑定项目的既有四类只读/分析节点，任何 LLM、资料正文、审批写入、导出、外部发布或控制流节点都必须在创建 Run 前拒绝。
+- 2026-08-03：实现受限工作流执行。`POST /tasks/{id}/runs` 接受显式已发布/已绑定的 `workflow_version_id`，冻结版本/checksum 并仅将既有四节点映射为持久 Steps；端口注册表已对齐执行器真实数据流。定向应用、工作流 API 与 OpenAPI 契约 21 项通过。
 
 ## 9. 状态快照
 

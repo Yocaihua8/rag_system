@@ -73,7 +73,8 @@ class TaskMessageRequest(StrictModel):
 
 
 class RunCreateRequest(StrictModel):
-    workflow_key: Literal["project.inspect.v1"] = "project.inspect.v1"
+    workflow_key: str = Field(default="project.inspect.v1", min_length=1, max_length=200)
+    workflow_version_id: str | None = Field(default=None, min_length=1, max_length=64)
     depth: Depth = "standard"
     input_message_id: str = Field(min_length=1, max_length=64)
 

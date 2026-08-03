@@ -794,6 +794,7 @@ def create_v3_app(
             task_id=task_id,
             input_message_id=body.input_message_id,
             workflow_key=body.workflow_key,
+            workflow_version_id=body.workflow_version_id,
             depth=body.depth,
             idempotency_key=idempotency_key,
         )

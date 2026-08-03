@@ -210,7 +210,7 @@ _SAFE_NODE_DEFINITIONS = (
         type_id="project.analyze",
         label="Project analyze",
         effect=EffectKind.ANALYSIS,
-        input_ports=(_port("in", PortDataType.CONTEXT),),
+        input_ports=(_port("in", PortDataType.PROMPT),),
         output_ports=(_port("out", PortDataType.ANALYSIS),),
         config_fields=(
             _config(
@@ -269,7 +269,7 @@ _SAFE_NODE_DEFINITIONS = (
         type_id="artifact.create",
         label="Artifact create",
         effect=EffectKind.ANALYSIS,
-        input_ports=(_port("in", PortDataType.RESULT),),
+        input_ports=(_port("in", PortDataType.ANALYSIS),),
         output_ports=(_port("out", PortDataType.ARTIFACT),),
         config_fields=(
             _config("format", required=True, choices=("markdown", "json")),

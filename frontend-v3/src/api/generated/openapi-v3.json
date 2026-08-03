@@ -1868,10 +1868,24 @@
             "type": "string"
           },
           "workflow_key": {
-            "const": "project.inspect.v1",
             "default": "project.inspect.v1",
+            "maxLength": 200,
+            "minLength": 1,
             "title": "Workflow Key",
             "type": "string"
+          },
+          "workflow_version_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Version Id"
           }
         },
         "required": [

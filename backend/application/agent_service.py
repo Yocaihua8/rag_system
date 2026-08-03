@@ -311,7 +311,17 @@ class AgentApplication:
         workflow_key: str,
         depth: str,
         idempotency_key: str,
+        workflow_version_id: str | None = None,
     ) -> dict[str, Any]:
+        if workflow_version_id:
+            return self._create_bound_workflow_run(
+                task_id=task_id,
+                input_message_id=input_message_id,
+                workflow_key=workflow_key,
+                workflow_version_id=workflow_version_id,
+                depth=depth,
+                idempotency_key=idempotency_key,
+            )
         if workflow_key != PROJECT_INSPECT_WORKFLOW_KEY:
             raise ApplicationValidationError("workflow is not executable in this slice")
         limits = get_depth_limits(depth)
@@ -325,6 +335,61 @@ class AgentApplication:
             "workflow_checksum": PROJECT_INSPECT_WORKFLOW_CHECKSUM,
             "depth": depth,
             "steps": list(PROJECT_INSPECT_STEPS),
+        }
+        return self.store.create_run_with_steps(
+            **payload,
+            idempotency_key=_required_idempotency_key(idempotency_key),
+            request_hash=request_hash(payload),
+        )
+
+    def _create_bound_workflow_run(
+        self,
+        *,
+        task_id: str,
+        input_message_id: str,
+        workflow_key: str,
+        workflow_version_id: str,
+        depth: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        task = self.get_task(task_id)
+        version = self.store.get_workflow_version(workflow_version_id)
+        if version is None or str(version["status"]) != "published":
+            raise ApplicationValidationError("workflow version is not published")
+        workflow = self.get_workflow(str(version["workflow_id"]))
+        if (
+            workflow["status"] != "active"
+            or workflow["workflow_key"] != workflow_key
+            or workflow["current_published_version_id"] != workflow_version_id
+        ):
+            raise ApplicationValidationError("workflow version is not executable")
+        binding = next(
+            (
+                item
+                for item in self.store.list_workflow_bindings(
+                    project_id=str(task["project_id"]),
+                    workflow_id=str(workflow["id"]),
+                    enabled=True,
+                )
+                if item["workflow_version_id"] == workflow_version_id
+            ),
+            None,
+        )
+        if binding is None:
+            raise ApplicationValidationError("workflow version is not bound to the task project")
+        steps = _executable_workflow_steps(dict(version.get("dag") or {}))
+        limits = get_depth_limits(depth)
+        if len(steps) > limits.max_steps:
+            raise ApplicationValidationError("workflow exceeds the selected depth limit")
+        payload = {
+            "task_id": task_id,
+            "input_message_id": input_message_id,
+            "workflow_key": workflow_key,
+            "workflow_version_id": workflow_version_id,
+            "workflow_version": int(version["version_number"]),
+            "workflow_checksum": str(version["checksum"]),
+            "depth": depth,
+            "steps": steps,
         }
         return self.store.create_run_with_steps(
             **payload,
@@ -780,6 +845,40 @@ def request_hash(payload: Mapping[str, Any]) -> str:
 
 def _artifact_export_filename(artifact: Mapping[str, Any]) -> str:
     return f"artifact-{str(artifact['id'])}.txt"
+
+
+def _executable_workflow_steps(graph: Mapping[str, Any]) -> list[dict[str, Any]]:
+    nodes = list(graph.get("nodes") or [])
+    expected_types = ("trigger.manual", "project.analyze", "artifact.create", "agent.respond")
+    if len(nodes) != len(expected_types):
+        raise ApplicationValidationError("workflow graph is not executable in this slice")
+    types = [str(item.get("type") or "") for item in nodes if isinstance(item, Mapping)]
+    if len(types) != len(expected_types) or set(types) != set(expected_types):
+        raise ApplicationValidationError("workflow graph contains unsupported executable nodes")
+    ids_by_type = {str(item["type"]): str(item["id"]) for item in nodes if isinstance(item, Mapping)}
+    required_edges = {
+        (ids_by_type[expected_types[index]], ids_by_type[expected_types[index + 1]])
+        for index in range(len(expected_types) - 1)
+    }
+    actual_edges = {
+        (str(edge.get("source") or ""), str(edge.get("target") or ""))
+        for edge in list(graph.get("edges") or [])
+        if isinstance(edge, Mapping)
+    }
+    if actual_edges != required_edges:
+        raise ApplicationValidationError("workflow graph has unsupported execution order")
+    return [
+        {
+            "step_key": node_type.replace(".", "_"),
+            "node_type": node_type,
+            "effect_kind": "none" if node_type == "trigger.manual" else "analysis",
+            "ordinal": index,
+            "status": "queued" if index == 0 else "pending",
+            "input": {},
+            "max_attempts": 1,
+        }
+        for index, node_type in enumerate(expected_types)
+    ]
 
 
 def _required_idempotency_key(value: str) -> str:
