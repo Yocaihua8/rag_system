@@ -71,6 +71,7 @@
 | Project Insights 资料快照概览合同和前端状态 | `docs/design/v3-project-insights-contract.md`、`docs/features/project-insights.md` | [x] |
 | v3 模型 Profile 设置合同和前端状态 | `docs/design/v3-model-profiles-contract.md`、`docs/features/model-profile-settings-v3.md` | [x] |
 | Artifact 受控导出合同和前端状态 | `docs/design/v3-artifact-export-contract.md`、`docs/features/artifact-export-v3.md` | [x] |
+| 受限工作流执行准入、快照与节点白名单 | `docs/design/v3-workflow-execution-contract.md` | [x]（合同已冻结，待实现） |
 | 开发过程、验证和下一步 | `docs/devlog/2026/08/2026-08-03.md` | [ ] |
 | 用户可见完成事实 | `CHANGELOG.md` | [ ] |
 
@@ -85,6 +86,7 @@
 - 2026-08-03：冻结 Artifact 受控导出合同。现有 Approval 资源绑定运行中 Step，不能复用已完成 Artifact 伪造审批；导出改用独立的预览/确认两阶段，确认请求固定 Artifact hash/version 并只写入受管 v3 目录，后续实现前不得开放任意目标路径。
 - 2026-08-03：完成 Artifact 受控导出。后端提供 ready Artifact 的只读预览和带 `Idempotency-Key` 的确认接口，文件名由服务端固定并只写入 `<KI_DATA_ROOT>/artifacts/exports/`；React 详细过程先显示快照与不可自动撤销提示，再发送确认。定向 Python 44 项、React typecheck、47 项单测、OpenAPI 生成、production build 与三项文档门禁通过。真实浏览器 E2E 仍留在最终联调矩阵。
 - 2026-08-03：补齐导出确认中断恢复。若文件写入后数据库状态提交前进程中断，后续确认仅在既有受管文件与当前 ready 快照完全一致时继续提交；不同内容或不可读目标仍拒绝。定向导出/API 契约 14 项与三项文档门禁通过。
+- 2026-08-03：冻结受限工作流执行合同。当前 Definition/Version/Binding 管理 API 与执行器支持范围并不等价；首段只允许已发布、已绑定项目的既有四类只读/分析节点，任何 LLM、资料正文、审批写入、导出、外部发布或控制流节点都必须在创建 Run 前拒绝。
 
 ## 9. 状态快照
 
@@ -92,5 +94,5 @@
 - **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
 - **最新 commit**：`f9ff591` — fix: 恢复中断的 v3 导出确认
 - **代码状态**：`refactor/agent-v3`；Sources、资料快照概览、模型 Profile 设置和受控导出的后端、React、测试和文档已提交；正式入口未切换。
-- **下一步**：独立冻结并实现持久洞察分析、其余设置或工作流执行中的一个最小真实切片；不把它们混入当前导出切片。
+- **下一步**：按已冻结合同实现已发布、已绑定项目的受限工作流创建 Run；不把 LLM、正文检索、审批写入或控制流节点混入首段。
 - **续任务须知**：v3 `sources/documents/document_chunks` 已在 `0001_v3_initial` 中建表，但当前 alpha HTTP 仅使用 `projects`；不得用 v2 导入接口或数据根填充 React v3 页面。

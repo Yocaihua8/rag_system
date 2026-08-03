@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-02
+> Last Updated：2026-08-03
 > Scope：Knowledge Island 完整系统的架构、契约、数据、状态、安全和界面设计
 > Related：`../README.md`、`../requirements/README.md`、`../features/README.md`、`../adr/README.md`
 
@@ -29,6 +29,7 @@
 | [`v3-project-insights-contract.md`](v3-project-insights-contract.md) | v3 文档快照的只读项目概览合同 |
 | [`v3-model-profiles-contract.md`](v3-model-profiles-contract.md) | v3 模型 Profile 元数据、幂等与密钥引用合同 |
 | [`v3-artifact-export-contract.md`](v3-artifact-export-contract.md) | v3 Artifact 两阶段确认与受管导出目录合同 |
+| [`v3-workflow-execution-contract.md`](v3-workflow-execution-contract.md) | v3 已发布工作流首段执行的准入、快照和节点白名单合同 |
 | [`rfc-template.md`](rfc-template.md) | 设计提案模板，不代表已批准方案 |
 
 重要决策见 [`../adr/README.md`](../adr/README.md)，未完成设计只进入 [`../BACKLOG.md`](../BACKLOG.md)。
