@@ -210,7 +210,7 @@ _SAFE_NODE_DEFINITIONS = (
         type_id="project.analyze",
         label="Project analyze",
         effect=EffectKind.ANALYSIS,
-        input_ports=(_port("in", PortDataType.PROMPT),),
+        input_ports=(_port("in", PortDataType.ANY),),
         output_ports=(_port("out", PortDataType.ANALYSIS),),
         config_fields=(
             _config(
@@ -224,7 +224,7 @@ _SAFE_NODE_DEFINITIONS = (
         type_id="llm.synthesize",
         label="LLM synthesize",
         effect=EffectKind.ANALYSIS,
-        input_ports=(_port("in", PortDataType.ANALYSIS),),
+        input_ports=(_port("in", PortDataType.ANY),),
         output_ports=(_port("out", PortDataType.RESULT),),
         config_fields=(
             _config("model_profile_id", required=True),
@@ -269,7 +269,7 @@ _SAFE_NODE_DEFINITIONS = (
         type_id="artifact.create",
         label="Artifact create",
         effect=EffectKind.ANALYSIS,
-        input_ports=(_port("in", PortDataType.ANALYSIS),),
+        input_ports=(_port("in", PortDataType.ANY),),
         output_ports=(_port("out", PortDataType.ARTIFACT),),
         config_fields=(
             _config("format", required=True, choices=("markdown", "json")),
