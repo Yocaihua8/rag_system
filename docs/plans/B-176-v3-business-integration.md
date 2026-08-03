@@ -26,7 +26,8 @@
 - [x] 通过生成的 OpenAPI 类型把 Sources 列表和受控导入接入 `frontend-v3/` 项目页，补组件测试与真实浏览器联调。
 - [x] 在 Sources 闭环通过后，按同一边界实现 Project Insights 的资料快照概览：只基于 v3 Documents 元数据动态计算，不读正文、不写入结论，补真实后端合同、生成类型、前端状态和测试。
 - [x] 实现 v3 模型 Profile 元数据设置：使用独立表、受控 Key 引用和幂等写请求完成列表、新增、编辑、默认选择和确认删除；不接入模型调用或 Key 录入。
-- [ ] 独立评估并分段实现持久分析、其余设置、受控导出和工作流执行；每一段先补真实后端合同再开放 UI。
+- [x] 实现 Artifact 受控导出：预览不写入，明确确认时固定版本/hash 并只写入受管 v3 目录；不复用已完成 Run 的审批。
+- [ ] 独立评估并分段实现持久分析、其余设置和工作流执行；每一段先补真实后端合同再开放 UI。
 - [ ] 在所有 B-176 分段完成后，执行完整 Web/desktop 联调矩阵；同步功能、设计、CHANGELOG、DevLog，移除 BACKLOG 条目并删除本 plan。
 
 ## 4. 影响范围
@@ -69,6 +70,7 @@
 | 业务能力可达性和限制 | `docs/features/project-sources.md`、`docs/features/agent-tasks-and-runs.md` | [x] |
 | Project Insights 资料快照概览合同和前端状态 | `docs/design/v3-project-insights-contract.md`、`docs/features/project-insights.md` | [x] |
 | v3 模型 Profile 设置合同和前端状态 | `docs/design/v3-model-profiles-contract.md`、`docs/features/model-profile-settings-v3.md` | [x] |
+| Artifact 受控导出合同和前端状态 | `docs/design/v3-artifact-export-contract.md`、`docs/features/artifact-export-v3.md` | [x] |
 | 开发过程、验证和下一步 | `docs/devlog/2026/08/2026-08-03.md` | [ ] |
 | 用户可见完成事实 | `CHANGELOG.md` | [ ] |
 
@@ -81,12 +83,13 @@
 - 2026-08-03：完成 Project Insights 资料快照概览：新增只读 overview API 和生成类型，React 项目页展示扫描前资料缺口与扫描后的文件数、大小、类型/清单；定向 Python 42 项、React typecheck、45 项单测、OpenAPI 生成和 production build 通过。正式浏览器 E2E 仍留在最终联调矩阵。
 - 2026-08-03：完成 v3 模型 Profile 元数据设置：Profile 只保存固定白名单 Key 引用，React 可对真实 v3 Profile 新增、编辑、设默认和确认删除；不接入 Key 录入、模型调用或 v2 数据。定向 Python 43 项、React typecheck、46 项单测、OpenAPI 生成和 production build 通过。
 - 2026-08-03：冻结 Artifact 受控导出合同。现有 Approval 资源绑定运行中 Step，不能复用已完成 Artifact 伪造审批；导出改用独立的预览/确认两阶段，确认请求固定 Artifact hash/version 并只写入受管 v3 目录，后续实现前不得开放任意目标路径。
+- 2026-08-03：完成 Artifact 受控导出。后端提供 ready Artifact 的只读预览和带 `Idempotency-Key` 的确认接口，文件名由服务端固定并只写入 `<KI_DATA_ROOT>/artifacts/exports/`；React 详细过程先显示快照与不可自动撤销提示，再发送确认。定向 Python 44 项、React typecheck、47 项单测、OpenAPI 生成、production build 与三项文档门禁通过。真实浏览器 E2E 仍留在最终联调矩阵。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 13:51 CST
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`70a281c` — feat: 增加 v3 模型配置管理
-- **代码状态**：`refactor/agent-v3`；Sources、资料快照概览和模型 Profile 设置的后端、React、测试和文档已提交；正式入口未切换。
-- **下一步**：独立冻结并实现受控导出或工作流执行中的一个最小真实切片；不把持久洞察分析、其余设置或通用执行混入该切片。
+- **最后更新**：2026-08-03 14:12 CST
+- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
+- **最新 commit**：`119fe79` — feat: 增加 v3 受控结果导出
+- **代码状态**：`refactor/agent-v3`；Sources、资料快照概览、模型 Profile 设置和受控导出的后端、React、测试和文档已提交；正式入口未切换。
+- **下一步**：独立冻结并实现持久洞察分析、其余设置或工作流执行中的一个最小真实切片；不把它们混入当前导出切片。
 - **续任务须知**：v3 `sources/documents/document_chunks` 已在 `0001_v3_initial` 中建表，但当前 alpha HTTP 仅使用 `projects`；不得用 v2 导入接口或数据根填充 React v3 页面。
