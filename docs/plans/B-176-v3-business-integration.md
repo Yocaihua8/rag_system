@@ -80,6 +80,7 @@
 - 2026-08-03：启动 Project Insights 子阶段，先冻结不读正文、只依据 v3 Documents 元数据计算的资料快照概览。持久化分析、LLM、知识点和评估不在本段范围。
 - 2026-08-03：完成 Project Insights 资料快照概览：新增只读 overview API 和生成类型，React 项目页展示扫描前资料缺口与扫描后的文件数、大小、类型/清单；定向 Python 42 项、React typecheck、45 项单测、OpenAPI 生成和 production build 通过。正式浏览器 E2E 仍留在最终联调矩阵。
 - 2026-08-03：完成 v3 模型 Profile 元数据设置：Profile 只保存固定白名单 Key 引用，React 可对真实 v3 Profile 新增、编辑、设默认和确认删除；不接入 Key 录入、模型调用或 v2 数据。定向 Python 43 项、React typecheck、46 项单测、OpenAPI 生成和 production build 通过。
+- 2026-08-03：冻结 Artifact 受控导出合同。现有 Approval 资源绑定运行中 Step，不能复用已完成 Artifact 伪造审批；导出改用独立的预览/确认两阶段，确认请求固定 Artifact hash/version 并只写入受管 v3 目录，后续实现前不得开放任意目标路径。
 
 ## 9. 状态快照
 
