@@ -10,7 +10,7 @@
 
 ### Added
 
-- **React v3 平行 Agent 工作台**：新增独立 `frontend-v3/` React 19/TypeScript 6/Vite 8 应用，提供任务、项目、工作流和设置四个一级入口；通过生成的 v3 OpenAPI 类型接入真实项目、任务消息、运行、SSE、控制、审批、历史产物与工作流只读信息，并在缺少资料、洞察、导出、工作流编辑和桌面运维 API 时保持明确不可用状态。正式入口仍为现有 Vue。
+- **React v3 平行 Agent 工作台**：新增独立 `frontend-v3/` React 19/TypeScript 6/Vite 8 应用，提供任务、项目、工作流和设置四个一级入口；通过生成的 v3 OpenAPI 类型接入真实项目、任务消息、运行、SSE、控制、审批、历史产物与工作流只读信息，并在缺少资料、洞察、导出和工作流编辑 API 时保持明确不可用状态。该平行前端已于 2026-08-03 获用户高保真验收，正式入口仍为现有 Vue。
 - **v3 通用项目 Agent 工程基线**：冻结产品范围、任务/运行/审批目标合同、P1/P2 前端原型门禁，以及持久 DAG、React/TypeScript、独立 v3 数据/API 的架构决策；目标文档不冒充当前 v2 已实现能力。
 - **v3 Agent 后端 alpha 垂直切片**：在保留 v2 API、SQLite 与 Vue 的同时，新增独立 `runtime/v3` SQLAlchemy/Alembic 数据代际和 `/api/v3` sub-app；项目、任务与固定四步 `project.inspect.v1` version 2 运行由 lifespan executor 持久执行，支持可续传 Agent 回答、运行控制/重试、审批与产物读取基础，并生成不含文件正文和绝对根路径的项目结构检查产物。
 - **v3 本地数据运维基础**：新增只读存储目标预检、SQLite 在线一致性备份和受控恢复；备份验证 integrity、代际、Alembic revision 与两级 SHA-256，恢复使用确认 hash、完整请求排他、executor/Store 停启、同目录失败回滚和持久幂等回放，不读写 v2 数据根。

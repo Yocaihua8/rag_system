@@ -4,7 +4,7 @@
 > Date：2026-08-02
 > Owner：RAG 团队
 > Scope：P1/P2 原型门禁、B-175 React 开工授权与后续阶段边界
-> Related：`ADR-012-agent-product-and-permissions.md`、`ADR-014-react-typescript-frontend.md`、`../design/ui-prototype-brief-v3.md`、`../plans/B-175-react-frontend-foundation.md`
+> Related：`ADR-012-agent-product-and-permissions.md`、`ADR-014-react-typescript-frontend.md`、`../design/ui-prototype-brief-v3.md`、`../guides/v3-upgrade.md`
 
 ## 1. 背景
 
@@ -42,7 +42,7 @@ React 技术栈、前后端状态边界、Vue 平行保留、真实后端验收�
 
 - 高保真决策进入实现阶段后，视觉调整可能产生代码返工。
 - 当前 v3 API 已补充按 Task 查询运行历史；仍缺少 Settings、Sources、Insights、导出与可执行自定义工作流，第一阶段页面必须明确能力边界。
-- B-174 未完成前，不能把桌面令牌、存储迁移、备份恢复描述为可用能力。
+- 桌面令牌、存储预检、备份和受控恢复后端已经完成，但平行 React 前端尚未接入这些操作，界面仍需保持真实不可用边界。
 
 ## 5. 验证方式
 
@@ -51,6 +51,10 @@ React 技术栈、前后端状态边界、Vue 平行保留、真实后端验收�
 - 当前独立 workspace、四个一级页面、生成类型和固定项目检查闭环已经建立；工作流编辑、资料/洞察、导出及桌面运维仍保持不可用，不能据此扩大到 B-176/B-177。
 - B-175 完成前通过 typecheck、Vitest、React Testing Library、构建、主题、键盘和 320px–桌面响应式验收。
 - B-176/B-177 开始前仍需按各自计划确认真实 API、Desktop 和最终切换门禁。
+
+## 7. 执行结果
+
+用户于 2026-08-03 明确确认前端验收，B-175 的高保真门禁完成。该结果冻结当前平行 React 的视觉与交互基线，但不改变本 ADR 对完整联调、正式入口切换、Vue 删除和发布动作的独立授权边界。
 
 ## 6. 回滚
 
