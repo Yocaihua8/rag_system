@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-02
+> Last Updated：2026-08-03
 > Scope：从当前 v2 基线迁移到 v3 通用项目 Agent 的实施、验证与回滚顺序
 > Related：`../requirements/agent-product-v3.md`、`../design/v3-document-migration.md`、`../design/ui-prototype-brief-v3.md`、`../adr/ADR-015-v3-data-api-storage.md`
 
@@ -16,7 +16,7 @@
 
 1. 冻结产品、权限、数据、工作流和 UI 原型合同，建立每日 DevLog。
 2. 在不修改 Vue 的前提下实现独立 v3 Schema、资源 API、持久执行器和真实只读垂直切片。
-3. 实现随机环回端口、一次性启动令牌、存储预检、备份和恢复等非视觉 Desktop 能力。
+3. 实现随机环回端口、一次性启动令牌、存储预检、在线备份和受控恢复等非视觉 Desktop 能力；能力已建立但保持默认关闭，启用仍受正式入口切换门禁控制。
 4. 完成并确认 P1 信息架构；当前 Revision 3 已获得用户明确实施授权，门禁变更见 ADR-017。
 5. 建立独立 React 前端，通过 OpenAPI 类型连接真实 v3 后端；该平行入口已完成固定任务切片验收，原 P2 高保真要求继续作为正式切换前门禁。
 6. Web 与 Desktop E2E 通过后切换正式前端、Tauri 和镜像入口。
@@ -60,3 +60,4 @@ v3 启动只允许创建或打开带 `data_generation=v3` 标记的数据库。�
 - 最终切换后但尚未产生外部写入：恢复上一个提交和 v2 配置；v3 数据根保留供诊断。
 - 已由用户批准的文件或外部系统写入不能通过数据库回滚撤销，必须使用对应产物审计和补偿操作。
 - 回滚不得把 v3 数据反向写入 v2，也不得自动删除任何代际数据。
+- v3 受控恢复只接受受管备份标识和确认 SHA-256；必须先结束其他 v3 请求。若返回 `restore_finalization_failed` 或 `restore_rollback_failed`，先保留现场并检查 health/数据，不得自动重试或改写 v2。

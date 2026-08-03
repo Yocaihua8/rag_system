@@ -130,7 +130,7 @@ npm run desktop:build:windows
 
 Tauri 打包 `frontend/dist/` 并启动 `127.0.0.1:8765` sidecar。bundle 成功后仍需在安装应用中验证 sidecar、REST、SSE 和核心用户流程；macOS/Linux 必须在目标平台单独构建。
 
-后端已提供默认关闭的 desktop mode，但当前正式 Tauri 尚未接入动态端口和令牌，仍按上一段固定端口基线运行。不要在日常启动脚本中手工设置或保存 `KI_DESKTOP_STARTUP_TOKEN`；壳接线完成后由父进程临时生成并注入。
+后端与 Tauri 已提供默认关闭的安全 sidecar 路径；设置 `KI_TAURI_SECURE_RUNTIME=1` 时，壳使用 OS 随机源生成进程令牌、选择临时 loopback 端口并只通过子进程环境传递。当前正式 Vue/Tauri 入口仍按上一段固定 8765 基线运行，安全路径将在正式入口切换时启用。不要在日常脚本中手工设置或保存 `KI_DESKTOP_STARTUP_TOKEN`，也不要把令牌写入参数、日志、SQLite 或浏览器存储。
 
 ## 8. Obsidian 插件
 

@@ -125,9 +125,18 @@ v2 的 `backup_db.sh` 和恢复测试不适用于 v3。v3 应通过已认证的 
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8765/api/v3/system/backups -Headers @{ 'Idempotency-Key' = [guid]::NewGuid().ToString() }
 ```
 
-成功响应只证明受管备份已通过 SQLite integrity、代际、revision、大小和 hash 校验；不证明恢复可用。备份位于 `runtime/v3/backups/backup-*/`，每份包含 `app.db`、`manifest.json`、`manifest.sha256`。不得手工修改 manifest/hash 或把目录改名后继续使用；损坏/未知目录不会被自动保留策略删除。`runtime/v3/vectors/`、`artifacts/` 和 `logs/` 当前没有必须随 SQLite 恢复的业务事实，但未来这些目录开始承载正式数据时需提升备份格式版本。
+成功响应只证明受管备份已通过 SQLite integrity、代际、revision、大小和 hash 校验。备份位于 `runtime/v3/backups/backup-*/`，每份包含 `app.db`、`manifest.json`、`manifest.sha256`。不得手工修改 manifest/hash 或把目录改名后继续使用；损坏/未知目录不会被自动保留策略删除。`runtime/v3/vectors/`、`artifacts/` 和 `logs/` 当前没有必须随 SQLite 恢复的业务事实，但未来这些目录开始承载正式数据时需提升备份格式版本。
 
-存储层已有离线替换与失败回滚测试，但当前没有可调用的 v3 恢复 HTTP/CLI。不要直接复制受管备份覆盖活动 `app.db`，也不要调用内部 Python 函数绕过 executor、请求排他和幂等门禁；正式恢复入口完成前，只把备份作为经过校验的恢复来源保留。
+受控恢复必须使用创建备份响应中的 `backup_id` 和 `database_sha256`。先关闭正在使用 `/api/v3` 的页面、SSE 和其他调用，再发送恢复命令：
+
+```powershell
+$backupId = 'backup-00000000000000000000000000000000'
+$backupSha256 = '替换为备份响应中的64位database_sha256'
+$restoreBody = @{ expected_database_sha256 = $backupSha256 } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8765/api/v3/system/backups/$backupId/restore" -Headers @{ 'Idempotency-Key' = [guid]::NewGuid().ToString() } -ContentType 'application/json' -Body $restoreBody
+```
+
+服务端会复验备份、停止 executor、checkpoint/关闭数据库、执行可回滚替换并重启 executor。存在其他 v3 请求时返回 `409 restore_busy`，不会无限等待；恢复期间的新请求返回 `503 maintenance_in_progress`。`409 restore_failed` 且 `original_database_reactivated=true` 表示原库已恢复可用；`500 restore_rollback_failed` 表示数据状态不确定且 executor 保持停止；`503 restore_finalization_failed` 可能表示数据已经恢复但运行时收尾失败，必须先检查 health 和数据，不得换新 Key 盲目重复恢复。不要直接复制受管备份覆盖活动 `app.db`，也不要调用内部 Python 函数绕过这些门禁。
 
 ## 7. 临时文件清理
 

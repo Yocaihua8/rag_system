@@ -1161,6 +1161,96 @@
         "title": "ResponseMeta",
         "type": "object"
       },
+      "RestoreDatabaseInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "alembic_head": {
+            "title": "Alembic Head",
+            "type": "string"
+          },
+          "alembic_revision": {
+            "title": "Alembic Revision",
+            "type": "string"
+          },
+          "busy_timeout_ms": {
+            "minimum": 0.0,
+            "title": "Busy Timeout Ms",
+            "type": "integer"
+          },
+          "data_generation": {
+            "const": "v3",
+            "title": "Data Generation",
+            "type": "string"
+          },
+          "foreign_keys": {
+            "title": "Foreign Keys",
+            "type": "integer"
+          },
+          "journal_mode": {
+            "title": "Journal Mode",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "data_generation",
+          "schema_version",
+          "alembic_revision",
+          "alembic_head",
+          "journal_mode",
+          "foreign_keys",
+          "busy_timeout_ms"
+        ],
+        "title": "RestoreDatabaseInfo",
+        "type": "object"
+      },
+      "RestoreMutationData": {
+        "additionalProperties": false,
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupResource"
+          },
+          "database_info": {
+            "$ref": "#/components/schemas/RestoreDatabaseInfo"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "restored": {
+            "title": "Restored",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "backup",
+          "database_info",
+          "restored",
+          "replayed"
+        ],
+        "title": "RestoreMutationData",
+        "type": "object"
+      },
+      "RestoreRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_database_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Expected Database Sha256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_database_sha256"
+        ],
+        "title": "RestoreRequest",
+        "type": "object"
+      },
       "RunControlData": {
         "additionalProperties": false,
         "properties": {
@@ -2012,6 +2102,22 @@
           "meta"
         ],
         "title": "SuccessEnvelope[ProjectMutationData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_RestoreMutationData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RestoreMutationData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[RestoreMutationData]",
         "type": "object"
       },
       "SuccessEnvelope_RunControlData_": {
@@ -4415,6 +4521,84 @@
           }
         },
         "summary": "Create Backup"
+      }
+    },
+    "/system/backups/{backup_id}/restore": {
+      "post": {
+        "operationId": "restore_backup_system_backups__backup_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "backup_id",
+            "required": true,
+            "schema": {
+              "title": "Backup Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_RestoreMutationData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Restore Backup"
       }
     },
     "/system/storage/preflight": {

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import re
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
@@ -9,6 +11,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from pydantic import TypeAdapter
+from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from backend.api.v3.models import (
@@ -25,6 +28,8 @@ from backend.api.v3.models import (
     ProjectCreateRequest,
     ProjectListData,
     ProjectMutationData,
+    RestoreMutationData,
+    RestoreRequest,
     RunCreateRequest,
     RunControlData,
     RunControlRequest,
@@ -61,6 +66,7 @@ from backend.api.v3.sse import stream_run_events
 from backend.application.agent_service import (
     AgentApplication,
     ApplicationValidationError,
+    request_hash,
 )
 from backend.storage.v3.errors import (
     IdempotencyConflictError,
@@ -70,13 +76,82 @@ from backend.storage.v3.errors import (
 from backend.storage.v3.maintenance import (
     BackupError,
     BackupValidationError,
+    RestoreError,
+    RestoreRollbackError,
     StoragePreflightError,
     create_v3_backup,
     preflight_storage_target,
+    restore_v3_backup,
+    validate_v3_backup,
 )
 
 
 IdempotencyHeader = Annotated[str, Header(alias="Idempotency-Key")]
+_RESTORE_PATH = re.compile(
+    r"^(?:/api/v3)?/system/backups/[^/]+/restore$"
+)
+_MANAGED_BACKUP_ID = re.compile(r"^backup-[0-9a-f]{32}$")
+
+
+class _RestoreMaintenanceMiddleware:
+    """Hold the maintenance lease until the complete ASGI response is sent."""
+
+    def __init__(self, app: Any, *, runtime_state: Any) -> None:
+        self.app = app
+        self.runtime_state = runtime_state
+
+    async def __call__(self, scope: dict[str, Any], receive: Any, send: Any) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request = Request(scope, receive=receive)
+        state = self.runtime_state
+        restore_request = bool(
+            request.method == "POST" and _RESTORE_PATH.fullmatch(request.url.path)
+        )
+        lock = state.maintenance_lock
+        async with lock:
+            if restore_request:
+                if state.restore_in_progress:
+                    response = failure(
+                        request,
+                        status_code=409,
+                        code="restore_in_progress",
+                        message="another database restore is already in progress",
+                    )
+                    await response(scope, receive, send)
+                    return
+                if state.active_requests:
+                    response = failure(
+                        request,
+                        status_code=409,
+                        code="restore_busy",
+                        message="database restore requires all other v3 requests to finish",
+                        details={"active_requests": state.active_requests},
+                    )
+                    await response(scope, receive, send)
+                    return
+                state.restore_in_progress = True
+            else:
+                if state.restore_in_progress:
+                    response = failure(
+                        request,
+                        status_code=503,
+                        code="maintenance_in_progress",
+                        message="the v3 database is temporarily unavailable during restore",
+                    )
+                    await response(scope, receive, send)
+                    return
+                state.active_requests += 1
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            async with lock:
+                if restore_request:
+                    state.restore_in_progress = False
+                else:
+                    state.active_requests -= 1
 
 
 def create_v3_app(
@@ -119,6 +194,10 @@ def create_v3_app(
         backups_dir or app.state.current_data_root / "backups"
     ).resolve()
     app.state.backup_retention = int(backup_retention)
+    app.state.maintenance_lock = asyncio.Lock()
+    app.state.active_requests = 0
+    app.state.restore_in_progress = False
+    app.add_middleware(_RestoreMaintenanceMiddleware, runtime_state=app.state)
 
     @app.middleware("http")
     async def attach_request_id(request: Request, call_next):
@@ -260,6 +339,204 @@ def create_v3_app(
                 message=str(exc),
             )
         return success(request, result, status_code=201)
+
+    @app.post(
+        "/system/backups/{backup_id}/restore",
+        response_model=SuccessEnvelope[RestoreMutationData],
+    )
+    async def restore_backup(
+        request: Request,
+        backup_id: str,
+        body: RestoreRequest,
+        idempotency_key: IdempotencyHeader,
+    ):
+        if not _MANAGED_BACKUP_ID.fullmatch(backup_id):
+            return failure(
+                request,
+                status_code=404,
+                code="backup_not_found",
+                message="managed backup was not found",
+            )
+        clean_idempotency_key = idempotency_key.strip()
+        if not clean_idempotency_key or len(clean_idempotency_key) > 200:
+            return failure(
+                request,
+                status_code=422,
+                code="validation_error",
+                message="Idempotency-Key must contain between 1 and 200 characters",
+            )
+
+        store = request.app.state.store
+        required_store_methods = (
+            "get_restore_replay",
+            "record_restore_result",
+            "checkpoint",
+            "close",
+            "initialize",
+        )
+        if any(not hasattr(store, name) for name in required_store_methods):
+            return failure(
+                request,
+                status_code=503,
+                code="restore_unavailable",
+                message="database restore is not available for this runtime",
+            )
+
+        command_hash = request_hash(
+            {
+                "backup_id": backup_id,
+                "expected_database_sha256": body.expected_database_sha256,
+            }
+        )
+        try:
+            replay = await run_in_threadpool(
+                lambda: store.get_restore_replay(
+                    idempotency_key=clean_idempotency_key,
+                    request_hash=command_hash,
+                )
+            )
+        except IdempotencyConflictError:
+            raise
+        if replay is not None:
+            return success(request, replay)
+
+        current_info = dict(request.app.state.database_info)
+        if not current_info.get("alembic_head"):
+            current_info = await run_in_threadpool(store.initialize)
+            request.app.state.database_info = current_info
+        expected_revision = str(
+            current_info.get("alembic_head")
+            or current_info.get("alembic_revision")
+            or ""
+        )
+        backup_dir = request.app.state.backups_dir / backup_id
+        try:
+            manifest = await run_in_threadpool(
+                lambda: validate_v3_backup(
+                    backup_dir,
+                    expected_generation="v3",
+                    expected_revision=expected_revision,
+                    expected_backup_id=backup_id,
+                )
+            )
+        except BackupValidationError as exc:
+            return failure(
+                request,
+                status_code=409,
+                code="backup_validation_failed",
+                message=str(exc),
+            )
+        if manifest["database_sha256"] != body.expected_database_sha256:
+            return failure(
+                request,
+                status_code=409,
+                code="restore_confirmation_mismatch",
+                message="selected backup hash does not match confirmation",
+            )
+
+        executor = request.app.state.executor
+        executor_was_running = bool(
+            executor is not None and getattr(executor, "running", False)
+        )
+        executor_stopped = False
+        restored = False
+        try:
+            if executor_was_running:
+                await executor.stop()
+                executor_stopped = True
+            await run_in_threadpool(store.checkpoint)
+            await run_in_threadpool(store.close)
+            result = await run_in_threadpool(
+                lambda: restore_v3_backup(
+                    store.db_path,
+                    backup_dir,
+                    expected_backup_sha256=body.expected_database_sha256,
+                    expected_revision=expected_revision,
+                    activate=store.initialize,
+                )
+            )
+            restored = True
+            sanitized_info = _public_database_info(result["database_info"])
+            response = {
+                "backup": result["backup"],
+                "database_info": sanitized_info,
+                "restored": True,
+                "replayed": False,
+            }
+            response = await run_in_threadpool(
+                lambda: store.record_restore_result(
+                    idempotency_key=clean_idempotency_key,
+                    request_hash=command_hash,
+                    response=response,
+                )
+            )
+            request.app.state.database_info = dict(result["database_info"])
+            if executor_was_running:
+                await executor.start()
+                executor_stopped = False
+            return success(request, response)
+        except RestoreRollbackError as exc:
+            return failure(
+                request,
+                status_code=500,
+                code="restore_rollback_failed",
+                message=str(exc),
+                details={"data_state": "uncertain", "executor_restarted": False},
+            )
+        except RestoreError as exc:
+            info = await run_in_threadpool(store.initialize)
+            request.app.state.database_info = info
+            if executor_was_running and executor_stopped:
+                await executor.start()
+                executor_stopped = False
+            return failure(
+                request,
+                status_code=409,
+                code="restore_failed",
+                message=str(exc),
+                details={"original_database_reactivated": True},
+            )
+        except Exception as exc:
+            if restored:
+                if executor_was_running and executor_stopped:
+                    try:
+                        await executor.start()
+                        executor_stopped = False
+                    except Exception:
+                        pass
+                return failure(
+                    request,
+                    status_code=503,
+                    code="restore_finalization_failed",
+                    message="database was restored but runtime finalization failed",
+                    details={
+                        "restored": True,
+                        "executor_restarted": not executor_stopped,
+                        "error_type": type(exc).__name__,
+                    },
+                )
+            try:
+                info = await run_in_threadpool(store.initialize)
+                request.app.state.database_info = info
+            except Exception:
+                info = None
+            if executor_was_running and executor_stopped and info is not None:
+                try:
+                    await executor.start()
+                    executor_stopped = False
+                except Exception:
+                    pass
+            return failure(
+                request,
+                status_code=503,
+                code="restore_failed",
+                message="database restore could not be completed",
+                details={
+                    "restored": False,
+                    "executor_restarted": not executor_stopped,
+                    "error_type": type(exc).__name__,
+                },
+            )
 
     @app.post(
         "/projects",
@@ -798,6 +1075,20 @@ def create_v3_app(
 
 def _application(request: Request) -> AgentApplication:
     return request.app.state.application
+
+
+def _public_database_info(value: dict[str, Any]) -> dict[str, Any]:
+    """Expose operational facts without leaking the absolute database path."""
+
+    return {
+        "data_generation": str(value.get("data_generation") or ""),
+        "schema_version": str(value.get("schema_version") or ""),
+        "alembic_revision": str(value.get("alembic_revision") or ""),
+        "alembic_head": str(value.get("alembic_head") or ""),
+        "journal_mode": str(value.get("journal_mode") or ""),
+        "foreign_keys": int(value.get("foreign_keys") or 0),
+        "busy_timeout_ms": int(value.get("busy_timeout_ms") or 0),
+    }
 
 
 __all__ = ["create_v3_app"]

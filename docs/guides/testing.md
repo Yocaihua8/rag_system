@@ -36,7 +36,8 @@ React v3 E2E 由 `frontend-v3/scripts/run-e2e.mjs` 默认启动 4174 前端和�
 | API/领域 | 对应后端和集成测试；方法、字段、错误保持兼容 |
 | 存储 | 当前 Schema、迁移、CRUD 与 v2 数据代际 |
 | v3 数据 | SQLAlchemy metadata/Alembic head、19 张业务表与 2 张治理表、generation fail-closed、WAL/外键/事务、幂等与 CAS；v2 哨兵保持不变 |
-| v3 API | `/api/v3` 的真实 OpenAPI、envelope、request ID、幂等冲突、项目/任务/按任务查询运行、controls/retry、审批/产物读取，以及工作流版本化 CRUD/发布/绑定/归档边界 |
+| v3 API | `/api/v3` 的真实 OpenAPI、envelope、request ID、幂等冲突、项目/任务/按任务查询运行、controls/retry、审批/产物读取、受控备份恢复，以及工作流版本化 CRUD/发布/绑定/归档边界 |
+| v3 数据运维 | 存储预检只读、在线备份一致性/manifest/hash/保留策略、恢复确认 hash、完整请求排他、executor 停启、重启后幂等回放、激活失败原库回滚与 v2 隔离 |
 | v3 执行 | 固定四步 `project.inspect.v1`、租约/心跳/恢复、步骤尝试、SSE 续传、绝对路径/正文不泄漏、产物与 Agent 消息持久化 |
 | React v3 | TS6 typecheck、OpenAPI 重复生成、API/SSE reducer、四个一级页面、320px–桌面响应式与真实 v3 E2E；缺失能力无演示回退 |
 | Tauri 安全运行时 | OS 随机令牌长度/字符集、loopback 动态端口、main-only bootstrap、sidecar 环境注入、异常退出清理与空 capability；正式切换后补真实 WebView/API/SSE/退出门禁 |
@@ -56,7 +57,7 @@ New-Item -ItemType Directory -Path $b173TempDir | Out-Null
 $env:KI_DB_PATH = Join-Path $b173TempDir "v2.db"
 $env:KI_V3_DB_PATH = Join-Path $b173TempDir "v3\app.db"
 
-.\.venv\Scripts\python.exe -m pytest tests/backend/test_v3_runtime_settings.py tests/backend/test_v3_agent_store.py tests/backend/test_v3_workflow_validation.py tests/backend/test_v3_agent_application.py tests/backend/test_v3_project_inspector.py tests/backend/test_v3_executor.py tests/integration/test_v3_api_contract.py tests/integration/test_v3_workflow_api.py tests/integration/test_v3_agent_end_to_end.py tests/repository/test_repository_layout.py -q --basetemp (Join-Path $b173TempDir "pytest")
+.\.venv\Scripts\python.exe -m pytest tests/backend/test_v3_runtime_settings.py tests/backend/test_v3_agent_store.py tests/backend/test_v3_storage_maintenance.py tests/backend/test_v3_workflow_validation.py tests/backend/test_v3_agent_application.py tests/backend/test_v3_project_inspector.py tests/backend/test_v3_executor.py tests/integration/test_v3_api_contract.py tests/integration/test_v3_workflow_api.py tests/integration/test_v3_agent_end_to_end.py tests/repository/test_repository_layout.py -q --basetemp (Join-Path $b173TempDir "pytest")
 ```
 
 专项至少覆盖：
@@ -66,6 +67,7 @@ $env:KI_V3_DB_PATH = Join-Path $b173TempDir "v3\app.db"
 - workflow validate 对安全 allowlist、循环、孤立节点、端口类型和未受审批保护写节点的拒绝；工作流创建、不可变 draft、checksum/version 发布、项目绑定、归档后拒绝新草稿和历史 Version 保留；
 - `project.inspect.v1` 四步持久执行、按 Task 恢复最近 Run、重试/租约/暂停/取消竞争、产物与 Agent 消息生成，以及事件 `Last-Event-ID` / `after_sequence` 回放；
 - 项目检查不读取正文、不跟随目录符号链接，产物和 SSE 不包含项目绝对路径；
+- 备份只发布完整可复验的受管目录；恢复在活动请求存在时拒绝进入，成功后重启仍可回放同 Key，激活失败时原数据库重新可读，公开响应不包含绝对数据库路径；
 - v2 API 和 Vue 文件未被 v3 测试或迁移改写。
 
 专项命令定义验证范围，不代表当前 Python 3.11、目标 Python 3.12 或完整回归已经通过；最终结果必须按实际命令输出记录。

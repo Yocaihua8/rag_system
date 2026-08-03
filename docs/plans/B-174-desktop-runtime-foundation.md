@@ -26,7 +26,7 @@
 - [x] 实现 Tauri sidecar 随机端口/令牌生成、内存 bootstrap 与精确 capability；不切换正式前端。
 - [x] 实现 v3 存储目标预检、路径隔离和可用空间检查。
 - [x] 实现 v3 在线一致性备份、manifest/hash 校验和保留策略。
-- [ ] 实现离线或受控停机恢复、失败回滚与代际/revision 复验。
+- [x] 实现离线或受控停机恢复、失败回滚与代际/revision 复验。
 - [ ] 完成 Python、Rust、仓库、真实 sidecar 和文档全量门禁并关闭 B-174。
 
 ## 4. 影响范围
@@ -68,8 +68,8 @@
 | 内容 | 目标文档 | 是否完成 |
 |------|----------|----------|
 | 桌面端口/令牌/认证边界 | `../adr/`、`../design/permission-matrix.md` | [x] |
-| 存储预检、备份恢复合同 | `../design/database-design.md`、`../guides/runbook.md` | [ ] |
-| 启动、测试和迁移边界 | `../guides/setup.md`、`../guides/testing.md`、`../guides/v3-upgrade.md` | [ ] |
+| 存储预检、备份恢复合同 | `../design/database-design.md`、`../guides/runbook.md` | [x] |
+| 启动、测试和迁移边界 | `../guides/setup.md`、`../guides/testing.md`、`../guides/v3-upgrade.md` | [x] |
 
 ## 8. 执行记录
 
@@ -82,12 +82,13 @@
 - 2026-08-03：新增只读 `POST /api/v3/system/storage/preflight`，拒绝与 v2/v3 重叠、非空/符号链接目标、不可读源、不可写父目录和空间不足；不创建目标。同步 OpenAPI 生成类型，阶段门禁 35 项通过；本机缺少 Windows 创建目录符号链接权限，1 项动态 symlink 用例跳过。
 - 2026-08-03：新增幂等 `POST /api/v3/system/backups`，用 SQLite backup API 生成自包含数据库，验证 integrity、代际、revision、数据库/manifest hash 后原子发布；默认保留 7 份且只清理完整可验证的受管备份。阶段门禁 42 项通过，1 项沿用 Windows symlink 权限跳过。
 - 2026-08-03：建立受控停机恢复核心：WAL checkpoint/关闭后，按备份 hash/revision 复验并使用同目录 staging 替换；激活失败自动放回原 DB/WAL/SHM 并重新初始化。恢复核心门禁 35 项通过，1 项沿用 Windows symlink 权限跳过；HTTP 排他、executor 协调与持久幂等尚未完成，因此任务不勾选。
+- 2026-08-03：开放受控恢复 API：ASGI 门禁覆盖完整响应生命周期，活动请求存在时拒绝进入；服务端协调 executor/Store 停启、确认备份 SHA-256，并把成功结果写入恢复后数据库用于重启回放。定向恢复门禁 23 项通过，1 项沿用 Windows symlink 权限跳过；OpenAPI 类型检查通过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 10:50:27 +08:00
-- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`cc5a437` — 增加 v3 在线一致性备份
-- **代码状态**：`refactor/agent-v3`；恢复存储事务与测试待提交，HTTP 协调尚未实现
-- **下一步**：实现恢复请求排他门禁、executor 停启、持久幂等回放与 System 恢复 API
+- **最后更新**：2026-08-03 11:07:48 +08:00
+- **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`aa46e3d` — 建立 v3 恢复失败回滚事务
+- **代码状态**：`refactor/agent-v3`；受控恢复 API、生成类型、测试与文档待形成阶段提交
+- **下一步**：提交受控恢复阶段，再执行 Python、Rust、仓库、真实 sidecar 和文档全量门禁
 - **续任务须知**：不得把令牌放入 CLI 参数、日志、SQLite 或前端持久存储；不得在本计划提前切换 Vue/Tauri/正式入口

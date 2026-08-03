@@ -277,6 +277,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/backups/{backup_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Backup */
+        post: operations["restore_backup_system_backups__backup_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/storage/preflight": {
         parameters: {
             query?: never;
@@ -952,6 +969,40 @@ export interface components {
             /** Request Id */
             request_id: string;
         };
+        /** RestoreDatabaseInfo */
+        RestoreDatabaseInfo: {
+            /** Alembic Head */
+            alembic_head: string;
+            /** Alembic Revision */
+            alembic_revision: string;
+            /** Busy Timeout Ms */
+            busy_timeout_ms: number;
+            /**
+             * Data Generation
+             * @constant
+             */
+            data_generation: "v3";
+            /** Foreign Keys */
+            foreign_keys: number;
+            /** Journal Mode */
+            journal_mode: string;
+            /** Schema Version */
+            schema_version: string;
+        };
+        /** RestoreMutationData */
+        RestoreMutationData: {
+            backup: components["schemas"]["BackupResource"];
+            database_info: components["schemas"]["RestoreDatabaseInfo"];
+            /** Replayed */
+            replayed: boolean;
+            /** Restored */
+            restored: boolean;
+        };
+        /** RestoreRequest */
+        RestoreRequest: {
+            /** Expected Database Sha256 */
+            expected_database_sha256: string;
+        };
         /** RunControlData */
         RunControlData: {
             event: components["schemas"]["EventResource"];
@@ -1262,6 +1313,11 @@ export interface components {
         /** SuccessEnvelope[ProjectMutationData] */
         SuccessEnvelope_ProjectMutationData_: {
             data: components["schemas"]["ProjectMutationData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[RestoreMutationData] */
+        SuccessEnvelope_RestoreMutationData_: {
+            data: components["schemas"]["RestoreMutationData"];
             meta: components["schemas"]["ResponseMeta"];
         };
         /** SuccessEnvelope[RunControlData] */
@@ -2539,6 +2595,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_BackupMutationData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    restore_backup_system_backups__backup_id__restore_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                backup_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_RestoreMutationData_"];
                 };
             };
             /** @description Resource not found */

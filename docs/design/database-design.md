@@ -200,6 +200,6 @@ alpha.2 的任务首消息、运行输入快照和 Agent 分段回答不新增�
 
 v3 在线备份使用 SQLite backup API，不复制活动 WAL 文件。每份受管备份包含自包含 `app.db`、`manifest.json` 与 `manifest.sha256`；发布前验证 integrity、代际、Alembic revision、文件大小和两级 SHA-256。保留策略只删除能够完整复验的受管旧目录，未知或损坏目录 fail closed 保留。幂等 Key 只以 SHA-256 写入 manifest，不保存明文或源绝对路径。
 
-现阶段没有 v2 → v3 数据迁移器，也尚未实现 v3 恢复切换。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把预检通过、备份创建成功或 v2 脚本结果当作 v3 恢复证据。
+现阶段没有 v2 → v3 数据迁移器。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把预检通过、备份创建成功或 v2 脚本结果当作 v3 恢复证据。
 
-后端存储层已建立受控停机恢复事务，但尚未开放 HTTP：调用方必须先执行 WAL `TRUNCATE` checkpoint 并关闭 Store。恢复先复验选中备份及调用方确认的数据库 SHA-256，在活动数据库同目录准备 staging，移动原数据库及可能存在的 WAL/SHM 后再替换并重新初始化；激活失败时原文件和 sidecar 会放回并再次初始化。HTTP 排他门禁、executor 协调和持久幂等回放完成前，这项内部能力不得视为用户可达恢复。
+`POST /api/v3/system/backups/{backup_id}/restore` 已把存储事务接入受控 HTTP：ASGI 维护门禁覆盖完整响应生命周期，存在其他 v3 请求时不进入恢复，恢复窗口内拒绝新请求。服务端停止 executor 后执行 WAL `TRUNCATE` checkpoint 并关闭 Store；恢复再次复验选中备份及调用方确认的数据库 SHA-256，在活动数据库同目录准备 staging，移动原数据库及可能存在的 WAL/SHM 后再替换并重新初始化。激活失败时原文件和 sidecar 会放回并再次初始化；成功结果使用现有 `idempotency_records` 的 `system.restore` scope 写入恢复后的数据库，不增加表、列或 Alembic revision。公开响应剔除绝对 `db_path`，且任何流程都不得读写 v2 数据根。

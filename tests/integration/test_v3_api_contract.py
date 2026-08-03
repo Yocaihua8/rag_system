@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+import backend.api.v3.app as v3_api
 from backend.api.v3.app import create_v3_app
 from backend.storage.v3.errors import IdempotencyConflictError, StateConflictError
 from backend.storage.v3.store import AgentStore
@@ -99,6 +100,21 @@ class FakeStore:
         if self.raise_retry_conflict:
             raise StateConflictError("failed run already has a retry")
         raise AssertionError("retry_run was not configured for this test")
+
+
+class FakeExecutor:
+    def __init__(self) -> None:
+        self.running = True
+        self.start_calls = 0
+        self.stop_calls = 0
+
+    async def start(self) -> None:
+        self.start_calls += 1
+        self.running = True
+
+    async def stop(self) -> None:
+        self.stop_calls += 1
+        self.running = False
 
 
 def _client(store: FakeStore | None = None) -> tuple[TestClient, FakeStore]:
@@ -240,6 +256,187 @@ def test_system_backup_api_requires_idempotency_and_replays(tmp_path: Path):
     assert replayed.status_code == 201
     assert replayed.json()["data"]["replayed"] is True
     assert replayed.json()["data"]["backup"] == created.json()["data"]["backup"]
+
+
+def test_system_restore_api_is_controlled_persistent_and_idempotent(tmp_path: Path):
+    data_root = tmp_path / "runtime" / "v3"
+    data_root.mkdir(parents=True)
+    store = AgentStore(data_root / "app.db")
+    database_info = store.initialize()
+    store.create_project(
+        name="Before backup",
+        root_path=tmp_path / "before-backup",
+        idempotency_key="project-before-backup",
+        request_hash="project-before-backup-hash",
+    )
+    executor = FakeExecutor()
+    app = create_v3_app(
+        store=store,
+        executor=executor,
+        database_info=database_info,
+        current_data_root=data_root,
+        legacy_data_root=tmp_path / "runtime" / "v2",
+        backups_dir=data_root / "backups",
+    )
+    client = TestClient(app)
+    try:
+        created_backup = client.post(
+            "/system/backups",
+            headers={"Idempotency-Key": "restore-source-backup"},
+        ).json()["data"]["backup"]
+        store.create_project(
+            name="After backup",
+            root_path=tmp_path / "after-backup",
+            idempotency_key="project-after-backup",
+            request_hash="project-after-backup-hash",
+        )
+        restore_path = (
+            f"/system/backups/{created_backup['backup_id']}/restore"
+        )
+        restore_body = {
+            "expected_database_sha256": created_backup["database_sha256"]
+        }
+        restored = client.post(
+            restore_path,
+            headers={
+                "Idempotency-Key": "restore-command-1",
+                "X-Request-ID": "restore-request",
+            },
+            json=restore_body,
+        )
+        store.close()
+        store.initialize()
+        replayed = client.post(
+            restore_path,
+            headers={"Idempotency-Key": "restore-command-1"},
+            json=restore_body,
+        )
+        conflict = client.post(
+            restore_path,
+            headers={"Idempotency-Key": "restore-command-1"},
+            json={"expected_database_sha256": "0" * 64},
+        )
+        project_names = {item["name"] for item in store.list_projects()}
+    finally:
+        store.close()
+
+    assert restored.status_code == 200
+    assert restored.headers["X-Request-ID"] == "restore-request"
+    restored_data = restored.json()["data"]
+    assert restored_data["restored"] is True
+    assert restored_data["replayed"] is False
+    assert restored_data["backup"] == created_backup
+    assert restored_data["database_info"]["data_generation"] == "v3"
+    assert "db_path" not in restored_data["database_info"]
+    assert project_names == {"Before backup"}
+    assert replayed.status_code == 200
+    assert replayed.json()["data"]["replayed"] is True
+    assert replayed.json()["data"]["backup"] == created_backup
+    assert conflict.status_code == 409
+    assert conflict.json()["error"]["code"] == "idempotency_conflict"
+    assert executor.stop_calls == 1
+    assert executor.start_calls == 1
+    assert executor.running is True
+
+
+def test_system_restore_gate_rejects_active_or_maintenance_requests(tmp_path: Path):
+    data_root = tmp_path / "runtime" / "v3"
+    data_root.mkdir(parents=True)
+    store = AgentStore(data_root / "app.db")
+    database_info = store.initialize()
+    app = create_v3_app(
+        store=store,
+        database_info=database_info,
+        current_data_root=data_root,
+        legacy_data_root=tmp_path / "runtime" / "v2",
+        backups_dir=data_root / "backups",
+    )
+    client = TestClient(app)
+    try:
+        app.state.active_requests = 1
+        busy = client.post(
+            "/system/backups/backup-00000000000000000000000000000000/restore",
+            headers={
+                "Idempotency-Key": "busy-restore",
+                "X-Request-ID": "busy-restore-request",
+            },
+            json={"expected_database_sha256": "0" * 64},
+        )
+        app.state.active_requests = 0
+        app.state.restore_in_progress = True
+        unavailable = client.get(
+            "/health",
+            headers={"X-Request-ID": "maintenance-health"},
+        )
+    finally:
+        app.state.restore_in_progress = False
+        store.close()
+
+    assert busy.status_code == 409
+    assert busy.headers["X-Request-ID"] == "busy-restore-request"
+    assert busy.json()["error"]["code"] == "restore_busy"
+    assert busy.json()["error"]["details"] == {"active_requests": 1}
+    assert unavailable.status_code == 503
+    assert unavailable.headers["X-Request-ID"] == "maintenance-health"
+    assert unavailable.json()["error"]["code"] == "maintenance_in_progress"
+
+
+def test_system_restore_api_reactivates_original_after_restore_failure(
+    tmp_path: Path,
+    monkeypatch,
+):
+    data_root = tmp_path / "runtime" / "v3"
+    data_root.mkdir(parents=True)
+    store = AgentStore(data_root / "app.db")
+    database_info = store.initialize()
+    store.create_project(
+        name="Original data",
+        root_path=tmp_path / "original-project",
+        idempotency_key="original-project",
+        request_hash="original-project-hash",
+    )
+    backup = v3_api.create_v3_backup(
+        store.db_path,
+        current_data_root=data_root,
+        backups_dir=data_root / "backups",
+        idempotency_key="failed-restore-source",
+    )["backup"]
+    executor = FakeExecutor()
+    app = create_v3_app(
+        store=store,
+        executor=executor,
+        database_info=database_info,
+        current_data_root=data_root,
+        legacy_data_root=tmp_path / "runtime" / "v2",
+        backups_dir=data_root / "backups",
+    )
+    client = TestClient(app)
+
+    def fail_restore(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        raise v3_api.RestoreError(
+            "restored database failed activation; original database was restored"
+        )
+
+    monkeypatch.setattr(v3_api, "restore_v3_backup", fail_restore)
+    try:
+        response = client.post(
+            f"/system/backups/{backup['backup_id']}/restore",
+            headers={"Idempotency-Key": "failed-restore-command"},
+            json={"expected_database_sha256": backup["database_sha256"]},
+        )
+        project_names = {item["name"] for item in store.list_projects()}
+    finally:
+        store.close()
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "restore_failed"
+    assert response.json()["error"]["details"] == {
+        "original_database_reactivated": True
+    }
+    assert project_names == {"Original data"}
+    assert executor.stop_calls == 1
+    assert executor.start_calls == 1
+    assert executor.running is True
 
 
 def test_missing_idempotency_key_uses_error_envelope(tmp_path: Path):
@@ -413,6 +610,7 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
     assert set(schema["paths"]) == {
         "/health",
         "/system/backups",
+        "/system/backups/{backup_id}/restore",
         "/system/storage/preflight",
         "/projects",
         "/tasks",
@@ -455,6 +653,11 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "content"
     ]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/SuccessEnvelope_BackupMutationData_"
+    }
+    assert schema["paths"]["/system/backups/{backup_id}/restore"]["post"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_RestoreMutationData_"
     }
     assert schema["paths"]["/tasks"]["post"]["responses"]["201"]["content"][
         "application/json"

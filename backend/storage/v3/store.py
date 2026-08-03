@@ -89,6 +89,59 @@ class AgentStore:
     def checkpoint(self) -> dict[str, int]:
         return self._database.checkpoint()
 
+    def get_restore_replay(
+        self,
+        *,
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any] | None:
+        """Return a completed restore response without mutating the database."""
+
+        with self._database.read_connection() as connection:
+            return _idempotency_replay(
+                connection,
+                "system.restore",
+                idempotency_key,
+                request_hash,
+            )
+
+    def record_restore_result(
+        self,
+        *,
+        idempotency_key: str,
+        request_hash: str,
+        response: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Persist a successful restore result in the activated database."""
+
+        backup = response.get("backup")
+        if not isinstance(backup, Mapping):
+            raise ValueError("restore response must include backup metadata")
+        backup_id = _required(backup.get("backup_id"), "backup_id")
+        scope = "system.restore"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(
+                connection,
+                scope,
+                idempotency_key,
+                request_hash,
+            )
+            if replay is not None:
+                return replay
+            result = dict(response)
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="system_restore",
+                response_id=backup_id.removeprefix("backup-"),
+                response=result,
+                now=now,
+            )
+            return result
+
     def create_project(
         self,
         *,

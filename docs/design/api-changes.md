@@ -24,10 +24,11 @@ v3 调用方必须显式适配以下不同契约：
 
 当前 v3 OpenAPI 提供项目、任务、消息、运行、控制、SSE、审批、产物、工作流 validate，以及 Definition/不可变 Version/项目 Binding 的创建、读取、发布、绑定和归档。发布要求 expected checksum 与 Definition version，归档保留历史 Version。自定义发布工作流仍不能创建 Run；运行创建只接受固定 `project.inspect.v1`，不能把管理 API 写成任意 DAG 已可执行。
 
-当前 alpha.2 另新增两个 System 端点：
+当前 alpha.2 另新增三个 System 端点：
 
-- `POST /api/v3/system/storage/preflight` 是加法只读端点，不改变已有请求；生成客户端增加 `StoragePreflightRequest/Data/Check` 类型。检查失败以 `200 + ready=false` 返回各项结果，只有空白或不可解析路径使用 `422 validation_error / storage_preflight_invalid_path`。该端点不创建目录、不复制数据，也不表示存储迁移或恢复已经实现。
-- `POST /api/v3/system/backups` 使用 SQLite 在线备份并增加 `BackupResource/MutationData` 类型。调用方必须提供 `Idempotency-Key`；首次与回放均返回 201，通过 `replayed` 区分。失败使用 `409 backup_validation_failed` 或 `422 backup_failed`。这是加法能力，不改变 v2 导出/恢复接口，也不表示 v3 恢复已经实现。
+- `POST /api/v3/system/storage/preflight` 是加法只读端点，不改变已有请求；生成客户端增加 `StoragePreflightRequest/Data/Check` 类型。检查失败以 `200 + ready=false` 返回各项结果，只有空白或不可解析路径使用 `422 validation_error / storage_preflight_invalid_path`。该端点不创建目录、不复制数据，也不表示存储迁移已经实现。
+- `POST /api/v3/system/backups` 使用 SQLite 在线备份并增加 `BackupResource/MutationData` 类型。调用方必须提供 `Idempotency-Key`；首次与回放均返回 201，通过 `replayed` 区分。失败使用 `409 backup_validation_failed` 或 `422 backup_failed`。
+- `POST /api/v3/system/backups/{backup_id}/restore` 增加 `RestoreRequest/MutationData/DatabaseInfo` 类型。调用方必须提交唯一 `Idempotency-Key` 和选中备份的 `expected_database_sha256`；首次与回放均返回 200。服务端只在没有其他 v3 请求时进入恢复，协调 executor/Store 停启并持久化回放结果；`409 restore_busy` 表示应先结束活动请求，`503 maintenance_in_progress` 表示恢复窗口内禁止新操作。该能力只替换 v3 SQLite，不触碰 v2 或相邻 runtime 内容。
 
 ## 2. alpha.1 → alpha.2 变化
 

@@ -182,6 +182,31 @@ class BackupMutationData(StrictModel):
     pruned_backup_ids: list[str]
 
 
+class RestoreRequest(StrictModel):
+    expected_database_sha256: str = Field(
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+
+
+class RestoreDatabaseInfo(StrictModel):
+    data_generation: Literal["v3"]
+    schema_version: str
+    alembic_revision: str
+    alembic_head: str
+    journal_mode: str
+    foreign_keys: int
+    busy_timeout_ms: int = Field(ge=0)
+
+
+class RestoreMutationData(StrictModel):
+    backup: BackupResource
+    database_info: RestoreDatabaseInfo
+    restored: bool
+    replayed: bool
+
+
 class ProjectResource(StrictModel):
     id: str
     name: str
