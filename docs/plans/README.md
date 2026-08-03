@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-02
+> Last Updated：2026-08-03
 > Scope：`docs/plans/` 中 Active/Interrupted plan 的生命周期
 > Related：`../BACKLOG.md`、`plan-template.md`、`../../AGENTS.md`
 
@@ -10,7 +10,8 @@ Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入
 
 ## 当前活动计划
 
-- [`B-175-react-frontend-foundation.md`](B-175-react-frontend-foundation.md)：React 生产前端基础与 P1 Revision 3 实施（Active）。
+- [`B-174-desktop-runtime-foundation.md`](B-174-desktop-runtime-foundation.md)：桌面会话认证、随机端口与 v3 数据运维基础（Active）。
+- [`B-175-react-frontend-foundation.md`](B-175-react-frontend-foundation.md)：React 生产前端基础与 P1 Revision 3 实施；等待用户高保真验收（Interrupted）。
 - [`B-178-guided-agent-conversation.md`](B-178-guided-agent-conversation.md)：新手引导式首页与可重放 Agent 消息流；Sites 生产发布外部阻塞（Interrupted）。
 
 ## 创建
