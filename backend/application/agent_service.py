@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from backend.domain.agent_runtime import DepthProfile, get_depth_limits
+from backend.domain.project_insights import build_project_insight_overview
 from backend.domain.import_rules import (
     IGNORED_DIR_NAMES,
     MAX_TEXT_FILE_BYTES,
@@ -174,6 +175,16 @@ class AgentApplication:
             source_id=source_id,
             limit=limit,
             offset=offset,
+        )
+
+    def get_project_insight_overview(self, project_id: str) -> dict[str, Any]:
+        if self.store.get_project(project_id) is None:
+            raise RecordNotFoundError("project not found")
+        snapshot = self.store.get_project_source_snapshot(project_id)
+        return build_project_insight_overview(
+            project_id=project_id,
+            source_count=int(snapshot["source_count"]),
+            documents=snapshot["documents"],
         )
 
     def create_task(

@@ -394,6 +394,26 @@ class AgentStore:
                 for row in connection.execute(statement).mappings()
             ]
 
+    def get_project_source_snapshot(self, project_id: str) -> dict[str, Any]:
+        clean_project_id = _required(project_id, "project_id")
+        with self._database.read_connection() as connection:
+            source_count = int(
+                connection.execute(
+                    select(func.count())
+                    .select_from(sources)
+                    .where(sources.c.project_id == clean_project_id)
+                ).scalar_one()
+            )
+            rows = connection.execute(
+                select(documents)
+                .where(documents.c.project_id == clean_project_id)
+                .order_by(documents.c.relative_path, documents.c.id)
+            ).mappings()
+            return {
+                "source_count": source_count,
+                "documents": [_document_resource(row) for row in rows],
+            }
+
     def create_workflow(
         self,
         *,

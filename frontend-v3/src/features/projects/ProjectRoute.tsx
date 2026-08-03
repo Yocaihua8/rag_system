@@ -24,6 +24,11 @@ export function ProjectRoute() {
     queryFn: () => v3Api.listProjectDocuments(activeProjectId!),
     enabled: Boolean(activeProjectId),
   })
+  const insight = useQuery({
+    queryKey: v3QueryKeys.projectInsight(activeProjectId ?? ''),
+    queryFn: () => v3Api.getProjectInsightOverview(activeProjectId!),
+    enabled: Boolean(activeProjectId),
+  })
 
   useEffect(() => {
     if (projectId && projects.data?.items.some((project) => project.id === projectId)) {
@@ -62,6 +67,7 @@ export function ProjectRoute() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: v3QueryKeys.projectSources(id) }),
         queryClient.invalidateQueries({ queryKey: v3QueryKeys.projectDocuments(id) }),
+        queryClient.invalidateQueries({ queryKey: v3QueryKeys.projectInsight(id) }),
       ])
     },
   })
@@ -97,6 +103,15 @@ export function ProjectRoute() {
       sourcesLoading={sources.isLoading || documents.isLoading}
       scanningSources={scanSources.isPending}
       sourcesError={errorMessage(sources.error ?? documents.error ?? scanSources.error)}
+      insight={insight.data ? {
+        status: insight.data.overview.status,
+        documentCount: insight.data.overview.source_snapshot.document_count,
+        totalBytes: insight.data.overview.source_snapshot.total_bytes,
+        fileTypes: insight.data.overview.file_types,
+        manifestPaths: insight.data.overview.manifest_paths,
+      } : undefined}
+      insightLoading={insight.isLoading}
+      insightError={errorMessage(insight.error)}
       onSelectProject={(id) => {
         projects.selectProject(id)
         navigate(`/projects/${id}/overview`)

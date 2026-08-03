@@ -24,7 +24,8 @@
 - [x] 冻结 Sources 第一段的 API、路径允许范围、响应脱敏和数据库迁移边界；补充设计契约。
 - [x] 实现 Sources 的后端发现/读取索引、查询 API、持久化和幂等/失败行为，补后端与集成测试。
 - [x] 通过生成的 OpenAPI 类型把 Sources 列表和受控导入接入 `frontend-v3/` 项目页，补组件测试与真实浏览器联调。
-- [ ] 在 Sources 闭环通过后，按同一边界依次立项或扩展 Project Insights、设置、受控导出和工作流执行；每一段先补真实后端合同再开放 UI。
+- [x] 在 Sources 闭环通过后，按同一边界实现 Project Insights 的资料快照概览：只基于 v3 Documents 元数据动态计算，不读正文、不写入结论，补真实后端合同、生成类型、前端状态和测试。
+- [ ] 独立评估并分段实现持久分析、设置、受控导出和工作流执行；每一段先补真实后端合同再开放 UI。
 - [ ] 在所有 B-176 分段完成后，执行完整 Web/desktop 联调矩阵；同步功能、设计、CHANGELOG、DevLog，移除 BACKLOG 条目并删除本 plan。
 
 ## 4. 影响范围
@@ -65,6 +66,7 @@
 | Sources API、授权范围、响应脱敏和错误语义 | `docs/design/v3-sources-contract.md` | [x] |
 | v3 Sources/Document 数据模型与迁移 | `docs/design/v3-sources-contract.md` | [x] |
 | 业务能力可达性和限制 | `docs/features/project-sources.md`、`docs/features/agent-tasks-and-runs.md` | [x] |
+| Project Insights 资料快照概览合同和前端状态 | `docs/design/v3-project-insights-contract.md`、`docs/features/project-insights.md` | [x] |
 | 开发过程、验证和下一步 | `docs/devlog/2026/08/2026-08-03.md` | [ ] |
 | 用户可见完成事实 | `CHANGELOG.md` | [ ] |
 
@@ -73,6 +75,8 @@
 - 2026-08-03：用户明确要求进入开发阶段。当前无活动 plan；根据 v3 迁移顺序创建 B-176。第一段选 Sources，因为 `sources/documents/document_chunks` 已在独立 v3 schema 中预留，但 alpha API 只暴露 projects，React 项目页明确保持资料不可用状态。
 - 2026-08-03：冻结第一段的安全合同：只读扫描已绑定根、响应不泄露正文或绝对路径、v3 Store 幂等写入；现有 Schema 已满足本段，无需 Alembic migration。
 - 2026-08-03：完成 Sources 后端与平行 React 闭环。定向 Sources、v3 API contract 和 Store 测试 41 项通过；React typecheck、44 项单测、OpenAPI 类型生成与 production build 通过。Playwright 真实浏览器联调仍在本 plan 的最终矩阵中，尚未作为本段完成证据。
+- 2026-08-03：启动 Project Insights 子阶段，先冻结不读正文、只依据 v3 Documents 元数据计算的资料快照概览。持久化分析、LLM、知识点和评估不在本段范围。
+- 2026-08-03：完成 Project Insights 资料快照概览：新增只读 overview API 和生成类型，React 项目页展示扫描前资料缺口与扫描后的文件数、大小、类型/清单；定向 Python 42 项、React typecheck、45 项单测、OpenAPI 生成和 production build 通过。正式浏览器 E2E 仍留在最终联调矩阵。
 
 ## 9. 状态快照
 

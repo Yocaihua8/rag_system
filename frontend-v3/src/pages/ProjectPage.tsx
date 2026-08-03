@@ -23,6 +23,14 @@ export interface ProjectDocumentSummary {
   sizeBytes: number
 }
 
+export interface ProjectInsightSummary {
+  status: 'ready' | 'source_required'
+  documentCount: number
+  totalBytes: number
+  fileTypes: Array<{ extension: string; count: number }>
+  manifestPaths: string[]
+}
+
 interface ProjectPageProps {
   project?: ProjectSummary
   projects?: ProjectSummary[]
@@ -34,12 +42,15 @@ interface ProjectPageProps {
   sourcesLoading?: boolean
   scanningSources?: boolean
   sourcesError?: string
+  insight?: ProjectInsightSummary
+  insightLoading?: boolean
+  insightError?: string
   onCreateProject?: (name: string, rootPath: string) => void | Promise<void>
   onSelectProject?: (projectId: string) => void
   onScanSources?: () => void | Promise<void>
 }
 
-export function ProjectPage({ project, projects = [], loading = false, error, creating = false, sources = [], documents = [], sourcesLoading = false, scanningSources = false, sourcesError, onCreateProject, onSelectProject, onScanSources }: ProjectPageProps) {
+export function ProjectPage({ project, projects = [], loading = false, error, creating = false, sources = [], documents = [], sourcesLoading = false, scanningSources = false, sourcesError, insight, insightLoading = false, insightError, onCreateProject, onSelectProject, onScanSources }: ProjectPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
   const [rootPath, setRootPath] = useState('')
@@ -80,7 +91,7 @@ export function ProjectPage({ project, projects = [], loading = false, error, cr
           {projects.length > 1 ? <section className="content-section"><h2>选择项目</h2><label className="field-label" htmlFor="project-select">当前项目</label><select id="project-select" className="field-control" value={project.id} onChange={(event) => onSelectProject?.(event.target.value)}>{projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></section> : null}
           <section className="content-section"><h2>项目概况</h2><dl className="summary-list"><div><dt>名称</dt><dd>{project.name}</dd></div><div><dt>位置</dt><dd>{project.rootLabel}</dd></div></dl></section>
           <section className="content-section"><h2>参考资料</h2>{sourcesLoading ? <p role="status">正在读取资料…</p> : null}{sourcesError ? <p role="alert">{sourcesError}</p> : null}{!sourcesLoading && !sources.length ? <p>尚未扫描此项目。扫描只读取已绑定目录中的受支持文本文件，不会修改项目文件。</p> : null}{sources.map((source) => <div className="summary-list" key={source.id}><div><dt>{source.name}</dt><dd>{source.documentCount} 个文件 · {source.status}</dd></div></div>)}{documents.length ? <ul className="plain-list" aria-label="已索引资料">{documents.map((document) => <li key={document.id}><code>{document.relativePath}</code><span>{document.mimeType} · {document.sizeBytes} 字节</span></li>)}</ul> : null}<button className="button button--secondary" type="button" disabled={!onScanSources || scanningSources} onClick={() => void onScanSources?.()}>{scanningSources ? '正在扫描…' : sources.length ? '重新扫描资料' : '扫描项目资料'}</button></section>
-          <section className="content-section"><h2>项目洞察</h2><p>Overview、Knowledge、Assessments 和 Learning Plan 将在真实接口接入后开放。</p></section>
+          <section className="content-section"><h2>项目洞察</h2>{insightLoading ? <p role="status">正在汇总项目资料…</p> : null}{insightError ? <p role="alert">{insightError}</p> : null}{insight?.status === 'source_required' ? <p>请先扫描项目资料；当前不会用演示结论填充洞察。</p> : null}{insight?.status === 'ready' ? <><dl className="summary-list"><div><dt>已索引文件</dt><dd>{insight.documentCount}</dd></div><div><dt>资料大小</dt><dd>{insight.totalBytes} 字节</dd></div></dl>{insight.fileTypes.length ? <p>文件类型：{insight.fileTypes.map((item) => `${item.extension} × ${item.count}`).join('，')}</p> : null}{insight.manifestPaths.length ? <p>识别到清单：{insight.manifestPaths.join('，')}</p> : null}</> : null}{!insight && !insightLoading && !insightError ? <p>项目洞察接口尚未返回结果。</p> : null}</section>
         </div>
       ) : null}
       {dialogOpen ? <div className="modal-layer" role="presentation"><form className="modal" role="dialog" aria-modal="true" aria-labelledby="create-project-title" onSubmit={submit}><div className="modal__header"><h2 id="create-project-title">添加项目</h2><button className="icon-button" type="button" aria-label="关闭添加项目" onClick={() => setDialogOpen(false)}><X aria-hidden="true" /></button></div><p>路径必须是运行后端的这台机器上已经存在的文件夹。浏览器不会上传该目录。</p><label className="field-label" htmlFor="project-name">项目名称</label><input className="field-control" id="project-name" value={name} onChange={(event) => setName(event.target.value)} required /><label className="field-label" htmlFor="project-root">现有文件夹路径</label><input className="field-control" id="project-root" value={rootPath} onChange={(event) => setRootPath(event.target.value)} placeholder="例如 E:\\Dev\\Projects\\my-project" required />{submitError ? <p role="alert">{submitError}</p> : null}<div className="modal__actions"><button className="button button--primary" type="submit" disabled={creating || !name.trim() || !rootPath.trim()}>{creating ? '正在添加…' : '确认添加'}</button></div></form></div> : null}

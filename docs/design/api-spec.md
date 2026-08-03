@@ -669,7 +669,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 
 ### 2.2 当前路径
 
-当前 v3 sub-app 有 **33 个业务路径、38 个操作**：
+当前 v3 sub-app 有 **34 个业务路径、39 个操作**：
 
 | 方法 | 路径 | 当前用途 | 写入/控制要求 |
 |------|------|----------|---------------|
@@ -681,6 +681,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | POST | `/api/v3/projects/{project_id}/sources/scan` | 只读扫描已绑定根内的受支持文本文件，并同步 v3 Sources/Documents 快照 | 需要 `Idempotency-Key`，返回 201；不跟随符号链接、不修改源目录、不返回正文或绝对路径 |
 | GET | `/api/v3/projects/{project_id}/sources` | 列出已受管资料源 | 支持 `status`、`limit=1..500`、`offset>=0`；只返回来源元数据与文件数 |
 | GET | `/api/v3/projects/{project_id}/documents` | 列出已受管文档元数据 | 支持 `source_id`、`limit=1..500`、`offset>=0`；只返回相对路径、类型、大小、hash 和版本 |
+| GET | `/api/v3/projects/{project_id}/insights/overview` | 汇总当前受管文档快照的来源数、文件数、大小、类型、常见清单和证据 | 只读；无文档返回 `source_required`，不读取正文、项目根或 v2 数据 |
 | POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
@@ -711,6 +712,8 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 `/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
 
 Sources 首段只有 `project_root` 一种资料源。扫描从已登记的项目根重新解析并逐项检查，跳过忽略目录、符号链接、不支持文件、超过单文件 1 MiB 或总计 10 MiB 的文件；最多访问 5,000 个目录项。成功文件以相对路径、UTF-8 正文、副本 hash、MIME、大小和版本写入独立 v3 `documents`，重复扫描更新变化文件并删除已消失文件。响应中的 `SourceResource` 不含 locator/config，`DocumentResource` 不含正文、源绝对路径或内部错误。根不可用返回 `409 project_root_unavailable`；任一单文件不可读仅增加扫描摘要的 `read_failures`，不阻断其他文件。
+
+Project Insights 的首段 `overview` 只汇总当前 v3 Documents 元数据。`fingerprint` 是按相对路径稳定排序的 `relative_path:checksum` SHA-256 聚合；文件类型和清单识别均可由 `evidence` 中的文档 ID、来源 ID、相对路径和 hash 回溯。它不读取正文、项目根、v2 数据或调用模型；没有已索引文档时以 `source_required` 明确资料缺口，不伪造评分、技术栈或质量结论。
 
 存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
 

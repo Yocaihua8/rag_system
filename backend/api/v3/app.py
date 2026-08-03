@@ -28,6 +28,7 @@ from backend.api.v3.models import (
     HealthData,
     ProjectCreateRequest,
     ProjectListData,
+    ProjectInsightData,
     ProjectMutationData,
     SourceListData,
     SourceScanData,
@@ -628,6 +629,14 @@ def create_v3_app(
             offset=offset,
         )
         return success(request, {"items": items})
+
+    @app.get(
+        "/projects/{project_id}/insights/overview",
+        response_model=SuccessEnvelope[ProjectInsightData],
+    )
+    def get_project_insight_overview(request: Request, project_id: str):
+        overview = _application(request).get_project_insight_overview(project_id)
+        return success(request, {"overview": overview})
 
     @app.post(
         "/tasks",

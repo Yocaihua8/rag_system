@@ -33,4 +33,23 @@ describe('ProjectPage Sources', () => {
     expect(screen.getByText('src/main.py')).toBeInTheDocument()
     expect(screen.queryByText('资料接口尚未接入当前前端阶段，因此不会显示占位资料。')).not.toBeInTheDocument()
   })
+
+  it('renders a source-backed insight instead of a synthetic score', () => {
+    render(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        insight={{
+          status: 'ready',
+          documentCount: 2,
+          totalBytes: 42,
+          fileTypes: [{ extension: '.py', count: 1 }],
+          manifestPaths: ['package.json'],
+        }}
+      />,
+    )
+
+    expect(screen.getByText('已索引文件')).toBeInTheDocument()
+    expect(screen.getByText('文件类型：.py × 1')).toBeInTheDocument()
+    expect(screen.getByText('识别到清单：package.json')).toBeInTheDocument()
+  })
 })

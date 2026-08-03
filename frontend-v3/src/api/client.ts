@@ -99,6 +99,13 @@ export function createV3ApiClient(options: V3ApiClientOptions) {
           signal: request.signal,
         }),
       ),
+    getProjectInsightOverview: (projectId: string, request: RequestOptions = {}) =>
+      unwrap<Schemas['ProjectInsightData']>(
+        client.GET('/projects/{project_id}/insights/overview', {
+          params: { path: { project_id: projectId } },
+          signal: request.signal,
+        }),
+      ),
 
     listTasks: (
       query: {

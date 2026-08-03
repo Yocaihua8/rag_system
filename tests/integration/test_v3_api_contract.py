@@ -616,6 +616,8 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "/projects/{project_id}/sources/scan",
         "/projects/{project_id}/sources",
         "/projects/{project_id}/documents",
+        "/projects/{project_id}/insights/overview",
+        "/projects/{project_id}/insights/overview",
         "/tasks",
         "/tasks/{task_id}",
         "/tasks/{task_id}/messages",
@@ -694,6 +696,16 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
     assert "content" not in schema["components"]["schemas"]["DocumentResource"][
         "properties"
     ]
+    assert schema["paths"]["/projects/{project_id}/insights/overview"]["get"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_ProjectInsightData_"
+    }
+    assert schema["paths"]["/projects/{project_id}/insights/overview"]["get"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_ProjectInsightData_"
+    }
 
 
 def test_openapi_documents_runtime_error_envelope_for_422_404_and_409():

@@ -277,6 +277,38 @@ class DocumentListData(StrictModel):
     items: list[DocumentResource]
 
 
+class ProjectInsightSnapshot(StrictModel):
+    source_count: int = Field(ge=0)
+    document_count: int = Field(ge=0)
+    total_bytes: int = Field(ge=0)
+    fingerprint: str = Field(min_length=64, max_length=64)
+
+
+class ProjectInsightFileType(StrictModel):
+    extension: str
+    count: int = Field(ge=1)
+
+
+class ProjectInsightEvidence(StrictModel):
+    document_id: str
+    source_id: str | None = None
+    relative_path: str
+    checksum: str = Field(min_length=64, max_length=128)
+
+
+class ProjectInsightOverview(StrictModel):
+    project_id: str
+    status: Literal["ready", "source_required"]
+    source_snapshot: ProjectInsightSnapshot
+    file_types: list[ProjectInsightFileType]
+    manifest_paths: list[str]
+    evidence: list[ProjectInsightEvidence]
+
+
+class ProjectInsightData(StrictModel):
+    overview: ProjectInsightOverview
+
+
 class TaskResource(StrictModel):
     id: str
     project_id: str

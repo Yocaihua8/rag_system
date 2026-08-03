@@ -1145,6 +1145,161 @@
         "title": "ProjectCreateRequest",
         "type": "object"
       },
+      "ProjectInsightData": {
+        "additionalProperties": false,
+        "properties": {
+          "overview": {
+            "$ref": "#/components/schemas/ProjectInsightOverview"
+          }
+        },
+        "required": [
+          "overview"
+        ],
+        "title": "ProjectInsightData",
+        "type": "object"
+      },
+      "ProjectInsightEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "checksum": {
+            "maxLength": 128,
+            "minLength": 64,
+            "title": "Checksum",
+            "type": "string"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "relative_path": {
+            "title": "Relative Path",
+            "type": "string"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          }
+        },
+        "required": [
+          "document_id",
+          "relative_path",
+          "checksum"
+        ],
+        "title": "ProjectInsightEvidence",
+        "type": "object"
+      },
+      "ProjectInsightFileType": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 1.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "extension": {
+            "title": "Extension",
+            "type": "string"
+          }
+        },
+        "required": [
+          "extension",
+          "count"
+        ],
+        "title": "ProjectInsightFileType",
+        "type": "object"
+      },
+      "ProjectInsightOverview": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectInsightEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "file_types": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectInsightFileType"
+            },
+            "title": "File Types",
+            "type": "array"
+          },
+          "manifest_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Manifest Paths",
+            "type": "array"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "source_snapshot": {
+            "$ref": "#/components/schemas/ProjectInsightSnapshot"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "source_required"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "status",
+          "source_snapshot",
+          "file_types",
+          "manifest_paths",
+          "evidence"
+        ],
+        "title": "ProjectInsightOverview",
+        "type": "object"
+      },
+      "ProjectInsightSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "document_count": {
+            "minimum": 0.0,
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "fingerprint": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Fingerprint",
+            "type": "string"
+          },
+          "source_count": {
+            "minimum": 0.0,
+            "title": "Source Count",
+            "type": "integer"
+          },
+          "total_bytes": {
+            "minimum": 0.0,
+            "title": "Total Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_count",
+          "document_count",
+          "total_bytes",
+          "fingerprint"
+        ],
+        "title": "ProjectInsightSnapshot",
+        "type": "object"
+      },
       "ProjectListData": {
         "additionalProperties": false,
         "properties": {
@@ -2341,6 +2496,22 @@
           "meta"
         ],
         "title": "SuccessEnvelope[HealthData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_ProjectInsightData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ProjectInsightData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[ProjectInsightData]",
         "type": "object"
       },
       "SuccessEnvelope_ProjectListData_": {
@@ -4360,6 +4531,65 @@
           }
         },
         "summary": "List Project Documents"
+      }
+    },
+    "/projects/{project_id}/insights/overview": {
+      "get": {
+        "operationId": "get_project_insight_overview_projects__project_id__insights_overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_ProjectInsightData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Get Project Insight Overview"
       }
     },
     "/projects/{project_id}/sources": {

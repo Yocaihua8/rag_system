@@ -158,6 +158,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/insights/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project Insight Overview */
+        get: operations["get_project_insight_overview_projects__project_id__insights_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/projects/{project_id}/sources": {
         parameters: {
             query?: never;
@@ -1010,6 +1027,56 @@ export interface components {
             /** Root Path */
             root_path: string;
         };
+        /** ProjectInsightData */
+        ProjectInsightData: {
+            overview: components["schemas"]["ProjectInsightOverview"];
+        };
+        /** ProjectInsightEvidence */
+        ProjectInsightEvidence: {
+            /** Checksum */
+            checksum: string;
+            /** Document Id */
+            document_id: string;
+            /** Relative Path */
+            relative_path: string;
+            /** Source Id */
+            source_id?: string | null;
+        };
+        /** ProjectInsightFileType */
+        ProjectInsightFileType: {
+            /** Count */
+            count: number;
+            /** Extension */
+            extension: string;
+        };
+        /** ProjectInsightOverview */
+        ProjectInsightOverview: {
+            /** Evidence */
+            evidence: components["schemas"]["ProjectInsightEvidence"][];
+            /** File Types */
+            file_types: components["schemas"]["ProjectInsightFileType"][];
+            /** Manifest Paths */
+            manifest_paths: string[];
+            /** Project Id */
+            project_id: string;
+            source_snapshot: components["schemas"]["ProjectInsightSnapshot"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ready" | "source_required";
+        };
+        /** ProjectInsightSnapshot */
+        ProjectInsightSnapshot: {
+            /** Document Count */
+            document_count: number;
+            /** Fingerprint */
+            fingerprint: string;
+            /** Source Count */
+            source_count: number;
+            /** Total Bytes */
+            total_bytes: number;
+        };
         /** ProjectListData */
         ProjectListData: {
             /** Items */
@@ -1447,6 +1514,11 @@ export interface components {
         /** SuccessEnvelope[HealthData] */
         SuccessEnvelope_HealthData_: {
             data: components["schemas"]["HealthData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[ProjectInsightData] */
+        SuccessEnvelope_ProjectInsightData_: {
+            data: components["schemas"]["ProjectInsightData"];
             meta: components["schemas"]["ResponseMeta"];
         };
         /** SuccessEnvelope[ProjectListData] */
@@ -2383,6 +2455,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_DocumentListData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    get_project_insight_overview_projects__project_id__insights_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ProjectInsightData_"];
                 };
             };
             /** @description Resource not found */

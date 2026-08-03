@@ -33,6 +33,7 @@ v3 目标规格在实现前标记为 `Proposed`，不得与当前可达能力混
 |------|------|----------|
 | Agent 任务、持久运行、审批与产物 | [`agent-tasks-and-runs.md`](agent-tasks-and-runs.md) | Proposed；后端实施中逐项校准 |
 | 项目资料（Sources） | [`project-sources.md`](project-sources.md) | 项目根扫描已接入平行 React；外部资料、预览与洞察仍未实现 |
+| 项目洞察（Project Insights） | [`project-insights.md`](project-insights.md) | Active；当前可查看基于已扫描 v3 文档元数据的资料快照概览 |
 
 状态用语：
 

@@ -223,6 +223,7 @@
 | 服务状态 | `GET /api/v3/health` | 同时显示连接与 executor 事实；失败不伪装在线 |
 | 项目选择 / 创建 | `GET/POST /api/v3/projects` | 只接受后端实际存在的目录；浏览器阶段明确要求完整路径 |
 | 项目资料扫描 / 浏览 | `POST /projects/{id}/sources/scan`、`GET /projects/{id}/sources`、`GET /projects/{id}/documents` | 只显示后端返回的 Sources 与相对文档元数据；扫描写请求使用稳定 `Idempotency-Key`，不回退到 v2 导入或演示资料 |
+| 项目资料概览 | `GET /projects/{id}/insights/overview` | 只展示受控 v3 Documents 元数据汇总；资料为空时明确提示扫描，不合成评分或技术栈结论 |
 | 任务列表 / 首次发送 | `GET/POST /api/v3/tasks` | 创建响应直接使用 `initial_message`，不重复追加首消息 |
 | 继续任务 | `POST /api/v3/tasks/{id}/messages` | 成功消息 ID 作为新 Run 的不可变输入引用 |
 | 刷新恢复 | `GET /api/v3/tasks/{id}/runs?limit=20&offset=0` | 按服务端倒序结果取最近 Run，并保留历史运行标识；不把浏览器存储当作运行事实源 |
