@@ -83,12 +83,14 @@
 - 2026-08-03：新增幂等 `POST /api/v3/system/backups`，用 SQLite backup API 生成自包含数据库，验证 integrity、代际、revision、数据库/manifest hash 后原子发布；默认保留 7 份且只清理完整可验证的受管备份。阶段门禁 42 项通过，1 项沿用 Windows symlink 权限跳过。
 - 2026-08-03：建立受控停机恢复核心：WAL checkpoint/关闭后，按备份 hash/revision 复验并使用同目录 staging 替换；激活失败自动放回原 DB/WAL/SHM 并重新初始化。恢复核心门禁 35 项通过，1 项沿用 Windows symlink 权限跳过；HTTP 排他、executor 协调与持久幂等尚未完成，因此任务不勾选。
 - 2026-08-03：开放受控恢复 API：ASGI 门禁覆盖完整响应生命周期，活动请求存在时拒绝进入；服务端协调 executor/Store 停启、确认备份 SHA-256，并把成功结果写入恢复后数据库用于重启回放。定向恢复门禁 23 项通过，1 项沿用 Windows symlink 权限跳过；OpenAPI 类型检查通过。
+- 2026-08-03：全量 Python 707 项通过、1 项沿用 Windows symlink 权限跳过；Rust、Vue、React v3 测试与构建通过。真实 sidecar 前两次启动发现 PyInstaller 未收集 Alembic migrations 与配置文件，已修正双平台构建脚本并等待重打包动态复验，因此最终任务保持未完成。
+- 2026-08-03：资源补齐后重打包成功；清理按精确二进制路径确认的两个遗留 onefile 子进程后，真实 sidecar 动态验证通过随机端口、无/错令牌 401、认证 health、executor 与恢复 OpenAPI 路径，最终无进程或临时目录残留。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 11:07:48 +08:00
+- **最后更新**：2026-08-03 11:34:08 +08:00
 - **进度**：已完成 6 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`aa46e3d` — 建立 v3 恢复失败回滚事务
-- **代码状态**：`refactor/agent-v3`；受控恢复 API、生成类型、测试与文档待形成阶段提交
-- **下一步**：提交受控恢复阶段，再执行 Python、Rust、仓库、真实 sidecar 和文档全量门禁
+- **最新 commit**：`e3b935b` — 增加 v3 受控数据库恢复接口
+- **代码状态**：`refactor/agent-v3`；全量代码门禁与真实 sidecar 动态验证通过，打包修复待提交
+- **下一步**：提交 sidecar 打包修复，再执行最终仓库/文档门禁和计划关闭
 - **续任务须知**：不得把令牌放入 CLI 参数、日志、SQLite 或前端持久存储；不得在本计划提前切换 Vue/Tauri/正式入口

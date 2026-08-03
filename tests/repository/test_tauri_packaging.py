@@ -62,6 +62,9 @@ def test_sidecar_scripts_build_backend_module_without_frontend_payload():
     for source in (windows, unix):
         assert "backend/__main__.py" in source
         assert "PyInstaller" in source
+        assert "--add-data" in source
+        assert "backend/alembic.ini" in source.replace("\\", "/")
+        assert "backend/storage/v3/migrations" in source.replace("\\", "/")
         assert "frontend/dist" not in source
         assert "backend/static_dist" not in source
         assert "build/sidecar" in source or "build\\sidecar" in source
