@@ -321,6 +321,28 @@ export function createV3ApiClient(options: V3ApiClientOptions) {
           signal: request.signal,
         }),
       ),
+    previewArtifactExport: (artifactId: string, request: RequestOptions = {}) =>
+      unwrap<Schemas['ArtifactExportPreviewData']>(
+        client.GET('/artifacts/{artifact_id}/export-preview', {
+          params: { path: { artifact_id: artifactId } },
+          signal: request.signal,
+        }),
+      ),
+    confirmArtifactExport: (
+      artifactId: string,
+      body: Schemas['ArtifactExportRequest'],
+      request: WriteRequestOptions,
+    ) =>
+      unwrap<Schemas['ArtifactExportMutationData']>(
+        client.POST('/artifacts/{artifact_id}/export-confirm', {
+          params: {
+            path: { artifact_id: artifactId },
+            header: writeHeaderParams(request.idempotencyKey),
+          },
+          body,
+          signal: request.signal,
+        }),
+      ),
 
     validateWorkflow: (body: Schemas['WorkflowGraphInput'], request: RequestOptions = {}) =>
       unwrap<Schemas['WorkflowValidationData']>(

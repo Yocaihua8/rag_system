@@ -21,6 +21,9 @@ from backend.api.v3.models import (
     ApprovalMutationData,
     ApprovalResolveRequest,
     ArtifactData,
+    ArtifactExportMutationData,
+    ArtifactExportPreviewData,
+    ArtifactExportRequest,
     ArtifactListData,
     BackupMutationData,
     DocumentListData,
@@ -1026,6 +1029,35 @@ def create_v3_app(
             request,
             {"artifact": _application(request).get_artifact(artifact_id)},
         )
+
+    @app.get(
+        "/artifacts/{artifact_id}/export-preview",
+        response_model=SuccessEnvelope[ArtifactExportPreviewData],
+    )
+    def preview_artifact_export(request: Request, artifact_id: str):
+        return success(
+            request,
+            {"preview": _application(request).preview_artifact_export(artifact_id)},
+        )
+
+    @app.post(
+        "/artifacts/{artifact_id}/export-confirm",
+        response_model=SuccessEnvelope[ArtifactExportMutationData],
+    )
+    def confirm_artifact_export(
+        request: Request,
+        artifact_id: str,
+        body: ArtifactExportRequest,
+        idempotency_key: IdempotencyHeader,
+    ):
+        result = _application(request).confirm_artifact_export(
+            artifact_id=artifact_id,
+            expected_version=body.expected_version,
+            expected_checksum=body.expected_checksum,
+            idempotency_key=idempotency_key,
+            artifact_export_dir=request.app.state.current_data_root / "artifacts" / "exports",
+        )
+        return success(request, result)
 
     @app.post(
         "/workflows/validate",

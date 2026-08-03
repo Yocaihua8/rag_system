@@ -51,6 +51,9 @@ export interface TasksPageProps {
   artifactCount?: number
   runLabel?: string
   artifacts?: Array<{ id: string; name: string; status: string; content: string; runLabel?: string }>
+  onPreviewArtifactExport?: (artifactId: string) => Promise<ArtifactExportPreview>
+  onConfirmArtifactExport?: (preview: ArtifactExportPreview) => Promise<void>
+  exportingArtifactId?: string
   error?: string
   actionNotice?: string
   depth?: ProcessingPreference
@@ -84,6 +87,9 @@ export function TasksPage({
   artifactCount,
   runLabel,
   artifacts,
+  onPreviewArtifactExport,
+  onConfirmArtifactExport,
+  exportingArtifactId,
   error,
   actionNotice,
   depth = 'standard',
@@ -201,7 +207,7 @@ export function TasksPage({
         </>
       )}
 
-      <TaskDetailsDrawer open={drawer === 'details'} onClose={() => { setResultRequested(false); closeDrawer() }} plan={plan} artifactCount={artifactCount} runLabel={runLabel} artifacts={artifacts} revealFirstReady={resultRequested} />
+      <TaskDetailsDrawer open={drawer === 'details'} onClose={() => { setResultRequested(false); closeDrawer() }} plan={plan} artifactCount={artifactCount} runLabel={runLabel} artifacts={artifacts} revealFirstReady={resultRequested} onPreviewArtifactExport={onPreviewArtifactExport} onConfirmArtifactExport={onConfirmArtifactExport} exportingArtifactId={exportingArtifactId} />
       {drawer === 'details' ? <button className="drawer-scrim" type="button" aria-label="关闭详细过程" onClick={() => { setResultRequested(false); closeDrawer() }} /> : null}
 
       {optionsOpen ? (
@@ -236,6 +242,15 @@ export function TasksPage({
       ) : null}
     </div>
   )
+}
+
+export interface ArtifactExportPreview {
+  artifact_id: string
+  name: string
+  checksum: string
+  version: number
+  content_bytes: number
+  target_filename: string
 }
 
 function taskStatusPresentation(status: TaskStatus): { label: string; Icon: LucideIcon } {

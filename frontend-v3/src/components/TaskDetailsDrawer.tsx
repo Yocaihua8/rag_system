@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
+import type { ArtifactExportPreview } from '../pages/TasksPage'
 import { workflowStepLabel } from './workflowLabels'
 
 interface TaskDetailsDrawerProps {
@@ -11,6 +12,9 @@ interface TaskDetailsDrawerProps {
   runLabel?: string
   artifacts?: Array<{ id: string; name: string; status: string; content: string; runLabel?: string }>
   revealFirstReady?: boolean
+  onPreviewArtifactExport?: (artifactId: string) => Promise<ArtifactExportPreview>
+  onConfirmArtifactExport?: (preview: ArtifactExportPreview) => Promise<void>
+  exportingArtifactId?: string
 }
 
 export function TaskDetailsDrawer({
@@ -22,7 +26,13 @@ export function TaskDetailsDrawer({
   runLabel,
   artifacts = [],
   revealFirstReady = false,
+  onPreviewArtifactExport,
+  onConfirmArtifactExport,
+  exportingArtifactId,
 }: TaskDetailsDrawerProps) {
+  const [exportPreview, setExportPreview] = useState<ArtifactExportPreview>()
+  const [exportArtifactId, setExportArtifactId] = useState<string>()
+  const [exportError, setExportError] = useState<string>()
   const firstReadyId = useMemo(
     () => artifacts.find((artifact) => artifact.status === 'ready')?.id,
     [artifacts],
@@ -37,6 +47,29 @@ export function TaskDetailsDrawer({
     })
     return () => cancelAnimationFrame(frame)
   }, [firstReadyId, open, revealFirstReady])
+
+  const previewExport = async (artifactId: string) => {
+    if (!onPreviewArtifactExport) return
+    setExportArtifactId(artifactId)
+    setExportError(undefined)
+    try {
+      setExportPreview(await onPreviewArtifactExport(artifactId))
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : '无法读取导出确认信息。')
+    }
+  }
+
+  const confirmExport = async () => {
+    if (!exportPreview || !onConfirmArtifactExport) return
+    setExportError(undefined)
+    try {
+      await onConfirmArtifactExport(exportPreview)
+      setExportPreview(undefined)
+      setExportArtifactId(undefined)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : '导出没有完成。')
+    }
+  }
 
   return (
     <aside className={`details-drawer${open ? ' is-open' : ''}`} aria-label="详细过程" aria-hidden={!open}>
@@ -63,6 +96,25 @@ export function TaskDetailsDrawer({
                   {artifact.name} · {artifactStatusLabel(artifact.status)}{artifact.runLabel ? ` · ${artifact.runLabel}` : ''}
                 </summary>
                 <ArtifactContent content={artifact.content} />
+                {artifact.status === 'ready' && onPreviewArtifactExport && onConfirmArtifactExport ? (
+                  <div className="artifact-export">
+                    <button className="button button--secondary" type="button" onClick={() => void previewExport(artifact.id)} disabled={exportingArtifactId === artifact.id}>
+                      导出结果
+                    </button>
+                    {exportPreview?.artifact_id === artifact.id ? (
+                      <section className="artifact-export__confirmation" aria-label="导出确认">
+                        <p>将导出“{exportPreview.name}”到受管 v3 目录中的 <code>{exportPreview.target_filename}</code>（{exportPreview.content_bytes} 字节）。不会修改项目文件，也不能自动撤销。</p>
+                        <div className="modal__actions">
+                          <button className="button button--secondary" type="button" onClick={() => { setExportPreview(undefined); setExportArtifactId(undefined); setExportError(undefined) }} disabled={exportingArtifactId === artifact.id}>取消</button>
+                          <button className="button button--primary" type="button" onClick={() => void confirmExport()} disabled={exportingArtifactId === artifact.id}>
+                            {exportingArtifactId === artifact.id ? '正在导出…' : '确认导出'}
+                          </button>
+                        </div>
+                      </section>
+                    ) : null}
+                    {exportArtifactId === artifact.id && exportError ? <p className="project-required__error" role="alert">{exportError}</p> : null}
+                  </div>
+                ) : null}
               </details>
             )
           })}

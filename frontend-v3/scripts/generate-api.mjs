@@ -70,6 +70,7 @@ function validateOpenApiSchema(filename) {
     ['/runs/{run_id}/cancel', 'post'],
     ['/runs/{run_id}/retry', 'post'],
     ['/approvals/{approval_id}/resolve', 'post'],
+    ['/artifacts/{artifact_id}/export-confirm', 'post'],
     ['/workflows', 'post'],
     ['/workflows/{workflow_id}/drafts', 'post'],
     ['/workflows/{workflow_id}/publish', 'post'],

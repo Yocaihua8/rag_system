@@ -70,6 +70,7 @@ def create_app(
         else (
             v3_store is not None
             or v3_db_path is not None
+            or v3_settings is not None
             or (db_path is None and store is None)
         )
     )

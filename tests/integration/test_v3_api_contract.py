@@ -639,6 +639,8 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "/artifacts",
         "/artifacts/{artifact_id}",
         "/artifacts/{artifact_id}/preview",
+        "/artifacts/{artifact_id}/export-preview",
+        "/artifacts/{artifact_id}/export-confirm",
         "/workflows/validate",
         "/workflows",
         "/workflows/{workflow_id}",
@@ -683,6 +685,16 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "200"
     ]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/SuccessEnvelope_RunListData_"
+    }
+    assert schema["paths"]["/artifacts/{artifact_id}/export-preview"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_ArtifactExportPreviewData_"
+    }
+    assert schema["paths"]["/artifacts/{artifact_id}/export-confirm"]["post"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_ArtifactExportMutationData_"
     }
     success_schema = schema["components"]["schemas"][
         "SuccessEnvelope_TaskMutationData_"

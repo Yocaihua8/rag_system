@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-02
+> Last Updated：2026-08-03
 > Scope：当前用户能力、兼容能力与可达边界
 > Related：`../requirements/functional-modules.md`、`../design/api-spec.md`、`../BACKLOG.md`
 
@@ -35,6 +35,7 @@ v3 目标规格在实现前标记为 `Proposed`，不得与当前可达能力混
 | 项目资料（Sources） | [`project-sources.md`](project-sources.md) | 项目根扫描已接入平行 React；外部资料和正文预览仍未实现 |
 | 项目洞察（Project Insights） | [`project-insights.md`](project-insights.md) | Active；当前可查看基于已扫描 v3 文档元数据的资料快照概览 |
 | 模型配置 | [`model-profile-settings-v3.md`](model-profile-settings-v3.md) | Active；平行 React 可管理独立 v3 Profile 元数据与默认选择 |
+| Artifact 受控导出 | [`artifact-export-v3.md`](artifact-export-v3.md) | Active；ready Artifact 可预览并确认写入受管 v3 导出目录 |
 
 状态用语：
 

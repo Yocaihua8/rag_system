@@ -3504,6 +3504,70 @@ class AgentStore:
             ).mappings().first()
             return _public_row(row) if row else None
 
+    def mark_artifact_exported(
+        self,
+        *,
+        artifact_id: str,
+        expected_version: int,
+        expected_checksum: str,
+        content_ref: str,
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        clean_artifact_id = _required(artifact_id, "artifact_id")
+        clean_ref = _required(content_ref, "content_ref")
+        scope = f"artifact.export:{clean_artifact_id}"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(connection, scope, idempotency_key, request_hash)
+            if replay is not None:
+                return replay
+            artifact = _require_row(connection, agent_artifacts, clean_artifact_id, "artifact")
+            _require_version(artifact, expected_version, "artifact")
+            if artifact["status"] != "ready":
+                raise StateConflictError("artifact is not ready for export")
+            if str(artifact["checksum"]) != _required(expected_checksum, "expected_checksum"):
+                raise StateConflictError("artifact checksum changed")
+            connection.execute(
+                update(agent_artifacts)
+                .where(agent_artifacts.c.id == clean_artifact_id)
+                .values(
+                    status="exported",
+                    content_ref=clean_ref,
+                    exported_at=now,
+                    updated_at=now,
+                    version=agent_artifacts.c.version + 1,
+                )
+            )
+            current = _require_row(connection, agent_artifacts, clean_artifact_id, "artifact")
+            response = {
+                "artifact": _public_row(current),
+                "content_ref": clean_ref,
+                "replayed": False,
+            }
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="artifact_export",
+                response_id=clean_artifact_id,
+                response=response,
+                now=now,
+            )
+            return response
+
+    def get_artifact_export_replay(
+        self, *, artifact_id: str, idempotency_key: str, request_hash: str
+    ) -> dict[str, Any] | None:
+        with self._database.read_connection() as connection:
+            return _idempotency_replay(
+                connection,
+                f"artifact.export:{_required(artifact_id, 'artifact_id')}",
+                idempotency_key,
+                request_hash,
+            )
+
     def list_artifacts(
         self,
         *,

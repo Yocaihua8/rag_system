@@ -704,6 +704,8 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | GET | `/api/v3/artifacts` | 按项目、任务或运行列出产物 | 只读 |
 | GET | `/api/v3/artifacts/{artifact_id}` | 读取产物内容与校验信息 | 只读 |
 | GET | `/api/v3/artifacts/{artifact_id}/preview` | 返回当前产物预览结构 | 当前与详情读取同源，不执行导出 |
+| GET | `/api/v3/artifacts/{artifact_id}/export-preview` | 返回 ready 产物的版本、hash、字节数与受管目标文件名 | 只读；不创建目录或文件 |
+| POST | `/api/v3/artifacts/{artifact_id}/export-confirm` | 以预览中的版本与 hash 确认导出到受管 v3 目录 | 需要 `Idempotency-Key`；不接收调用方路径；返回相对 `content_ref` |
 | POST | `/api/v3/workflows/validate` | 校验类型化 DAG、端口、循环、可达性和审批支配关系 | 只校验，不保存；不需要 `Idempotency-Key` |
 | POST / GET | `/api/v3/workflows` | 创建带首个不可变 draft 的工作流；按项目、scope、status 列出 | POST 需要 `Idempotency-Key`；创建时先校验 graph |
 | GET | `/api/v3/workflows/{workflow_id}` | 读取 Definition 及全部 Version | 只读 |
@@ -720,6 +722,8 @@ Sources 首段只有 `project_root` 一种资料源。扫描从已登记的项�
 Project Insights 的首段 `overview` 只汇总当前 v3 Documents 元数据。`fingerprint` 是按相对路径稳定排序的 `relative_path:checksum` SHA-256 聚合；文件类型和清单识别均可由 `evidence` 中的文档 ID、来源 ID、相对路径和 hash 回溯。它不读取正文、项目根、v2 数据或调用模型；没有已索引文档时以 `source_required` 明确资料缺口，不伪造评分、技术栈或质量结论。
 
 v3 Model Profiles 复用既有 `model_profiles` 表保存非敏感元数据。写入只允许空或固定白名单的 `api_key_ref`，不接受 `api_key`、不解析环境/兼容 `.env`、不返回 Key 明文、掩码或可用性探测。Profile 管理尚未接入 Agent Run 或任何模型调用；因此设置默认值不会改变现有 v2 问答或正式入口的配置。
+
+v3 Artifact 导出使用独立的两阶段合同：`export-preview` 只返回当前 ready 产物的 `version/checksum/content_bytes/target_filename`，不创建路径；`export-confirm` 必须回传同一版本与 hash 并携带 `Idempotency-Key`，仅写入 `<KI_DATA_ROOT>/artifacts/exports/artifact-<id>.txt`。请求不接受目标路径，响应仅返回相对 `content_ref`。确认成功后 Artifact 转为 `exported` 并保存 `exported_at`；同 Key、同请求 hash 回放原响应。该动作不复用已完成 Run 的 Approval，也不会发出尚未定义的 `artifact.exported` SSE 事件；React 在确认成功后重新读取 Artifact 状态。
 
 存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
 
@@ -800,7 +804,7 @@ alpha.2 的事件 union 包含：
 | Run | `run.queued / started / resumed / completed / failed / recovery_required / requeued / paused / cancelled` | 状态、动作或恢复原因；`run.queued` 包含输入消息 ID/hash |
 | Step | `step.queued / started / succeeded / retry_scheduled / waiting_approval / failed / cancelled / recovery_required` | step key、错误、重试、审批或恢复原因 |
 | Approval | `approval.requested / approved / rejected / expired` | approval ID、决议或过期原因 |
-| Artifact | `artifact.created` | 当前内部产物及 `status=ready`；导出未实现前不发出虚构导出事件 |
+| Artifact | `artifact.created` | 当前内部产物及 `status=ready`；受控导出后仍不新增虚构的 `artifact.exported` 事件 |
 | Tool | `tool.output` | 白名单工具输出摘要 |
 | Agent 消息 | `assistant.message.started` | `message_id/message_type/format` |
 | Agent 消息 | `assistant.message.delta` | `message_id/chunk_index/text`；chunk index 从 0 递增 |
@@ -814,7 +818,7 @@ alpha.2 的事件 union 包含：
 ### 2.6 当前 alpha 边界
 
 - v3 项目、任务和运行资源不会同步到 v2 的 43 张表；现有 Vue、Coach、问答、导入和 Obsidian 主流程仍走 v2。
-- 审批、产物读取和运行控制 API 已暴露；当前真实闭环只生成内部只读项目检查产物，不执行 `artifact.export`、`obsidian.publish` 或其他写节点。
+- 审批、产物读取和运行控制 API 已暴露；ready Artifact 可经独立的预览/确认流程导出到受管 v3 目录，但固定 Run 不执行 `artifact.export`、`obsidian.publish` 或其他写节点。
 - 安全节点注册表、DAG 校验和版本化工作流管理已经存在；固定 `agent.respond` 四步执行闭环已通过门禁，自定义发布工作流仍不能创建 Run。
 - `quick/standard/deep` 当前分别限制最多 4/8/16 步；固定版本 2 使用四步，档位不会自动增加额外检查能力。
 - v3 API 仍是 alpha 契约；独立 React 应用已经接入当前真实切片，但尚未替换 Vue/Tauri/Docker 正式入口，也没有 v2 数据迁移承诺。

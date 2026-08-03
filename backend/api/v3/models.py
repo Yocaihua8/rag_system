@@ -90,8 +90,8 @@ class ApprovalResolveRequest(StrictModel):
 
 
 class ArtifactExportRequest(StrictModel):
-    target_path: str = Field(min_length=1, max_length=2_048)
     expected_version: int = Field(ge=1)
+    expected_checksum: str = Field(min_length=64, max_length=128)
 
 
 class WorkflowNodeInput(StrictModel):
@@ -659,6 +659,25 @@ class ArtifactData(StrictModel):
 
 class ArtifactListData(StrictModel):
     items: list[ArtifactResource]
+
+
+class ArtifactExportPreview(StrictModel):
+    artifact_id: str
+    name: str
+    checksum: str = Field(min_length=64, max_length=128)
+    version: int = Field(ge=1)
+    content_bytes: int = Field(ge=0)
+    target_filename: str
+
+
+class ArtifactExportPreviewData(StrictModel):
+    preview: ArtifactExportPreview
+
+
+class ArtifactExportMutationData(StrictModel):
+    artifact: ArtifactResource
+    content_ref: str
+    replayed: bool
 
 
 class AgentEventBase(StrictModel):

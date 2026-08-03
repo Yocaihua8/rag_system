@@ -54,7 +54,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 - `step.waiting_approval / failed / cancelled / recovery_required`
 - `approval.expired`
 
-`artifact.created.payload.status=ready` 继续表示当前内部产物就绪。导出执行未实现前，没有 `artifact.exported` 合同。
+`artifact.created.payload.status=ready` 继续表示当前内部产物就绪。受控导出由独立的预览/确认 HTTP 响应表达状态变更，仍没有 `artifact.exported` SSE 合同。
 
 ### 2.1 v3 alpha 客户端迁移顺序
 

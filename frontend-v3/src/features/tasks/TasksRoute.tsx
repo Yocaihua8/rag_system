@@ -248,6 +248,35 @@ export function TasksRoute() {
     onSettled: () => invalidateTask(queryClient, taskId ?? '', latestRun?.id),
   })
 
+  const exportArtifact = useMutation({
+    mutationFn: async ({ artifactId, expectedVersion, expectedChecksum }: {
+      artifactId: string
+      expectedVersion: number
+      expectedChecksum: string
+    }) => {
+      const scope = 'artifact-export'
+      const fingerprint = await digestIntentFingerprint([
+        artifactId,
+        String(expectedVersion),
+        expectedChecksum,
+      ])
+      return v3Api.confirmArtifactExport(
+        artifactId,
+        {
+          expected_version: expectedVersion,
+          expected_checksum: expectedChecksum,
+        },
+        { idempotencyKey: intentKeys.get(scope, fingerprint) },
+      ).then((result) => {
+        intentKeys.release(scope, fingerprint)
+        return result
+      })
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: [...v3QueryKeys.all, 'artifacts'] })
+    },
+  })
+
   const canonicalMessages = useMemo(
     () => mapMessages(messages.data?.items ?? []),
     [messages.data],
@@ -260,7 +289,7 @@ export function TasksRoute() {
     taskRuns.error,
     stream.error,
   )
-  const actionError = firstError(command.error, resolveApproval.error)
+  const actionError = firstError(command.error, resolveApproval.error, exportArtifact.error)
   const detailError = firstError(
     taskId ? projects.error : undefined,
     messages.error,
@@ -308,7 +337,7 @@ export function TasksRoute() {
       messages={timelineMessages}
       serviceAvailable={serviceAvailable}
       online={online}
-      commandPending={submit.isPending || command.isPending || resolveApproval.isPending}
+      commandPending={submit.isPending || command.isPending || resolveApproval.isPending || exportArtifact.isPending}
       currentStep={currentStep === undefined ? undefined : currentStep + 1}
       totalSteps={steps.data?.items.length}
       approval={pendingApproval ? mapApproval(pendingApproval) : undefined}
@@ -326,6 +355,13 @@ export function TasksRoute() {
         content: artifact.content,
         runLabel: runLabelById.get(artifact.run_id),
       }))}
+      onPreviewArtifactExport={(artifactId) => v3Api.previewArtifactExport(artifactId).then((result) => result.preview)}
+      onConfirmArtifactExport={(preview) => exportArtifact.mutateAsync({
+        artifactId: preview.artifact_id,
+        expectedVersion: preview.version,
+        expectedChecksum: preview.checksum,
+      }).then(() => undefined)}
+      exportingArtifactId={exportArtifact.isPending ? exportArtifact.variables?.artifactId : undefined}
       runLabel={latestRun ? `${runStatusLabel(latestRun.status)} · 第 ${latestRun.attempt_no} 次运行` : undefined}
       error={taskError}
       actionNotice={actionNotice}

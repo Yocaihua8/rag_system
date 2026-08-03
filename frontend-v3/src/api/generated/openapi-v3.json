@@ -338,6 +338,107 @@
         "title": "ArtifactData",
         "type": "object"
       },
+      "ArtifactExportMutationData": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "$ref": "#/components/schemas/ArtifactResource"
+          },
+          "content_ref": {
+            "title": "Content Ref",
+            "type": "string"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "artifact",
+          "content_ref",
+          "replayed"
+        ],
+        "title": "ArtifactExportMutationData",
+        "type": "object"
+      },
+      "ArtifactExportPreview": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "checksum": {
+            "maxLength": 128,
+            "minLength": 64,
+            "title": "Checksum",
+            "type": "string"
+          },
+          "content_bytes": {
+            "minimum": 0.0,
+            "title": "Content Bytes",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "target_filename": {
+            "title": "Target Filename",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "artifact_id",
+          "name",
+          "checksum",
+          "version",
+          "content_bytes",
+          "target_filename"
+        ],
+        "title": "ArtifactExportPreview",
+        "type": "object"
+      },
+      "ArtifactExportPreviewData": {
+        "additionalProperties": false,
+        "properties": {
+          "preview": {
+            "$ref": "#/components/schemas/ArtifactExportPreview"
+          }
+        },
+        "required": [
+          "preview"
+        ],
+        "title": "ArtifactExportPreviewData",
+        "type": "object"
+      },
+      "ArtifactExportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_checksum": {
+            "maxLength": 128,
+            "minLength": 64,
+            "title": "Expected Checksum",
+            "type": "string"
+          },
+          "expected_version": {
+            "minimum": 1.0,
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version",
+          "expected_checksum"
+        ],
+        "title": "ArtifactExportRequest",
+        "type": "object"
+      },
       "ArtifactLifecycleEvent": {
         "additionalProperties": false,
         "properties": {
@@ -2657,6 +2758,38 @@
         "title": "SuccessEnvelope[ArtifactData]",
         "type": "object"
       },
+      "SuccessEnvelope_ArtifactExportMutationData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ArtifactExportMutationData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[ArtifactExportMutationData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_ArtifactExportPreviewData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ArtifactExportPreviewData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[ArtifactExportPreviewData]",
+        "type": "object"
+      },
       "SuccessEnvelope_ArtifactListData_": {
         "properties": {
           "data": {
@@ -4482,6 +4615,143 @@
           }
         },
         "summary": "Get Artifact"
+      }
+    },
+    "/artifacts/{artifact_id}/export-confirm": {
+      "post": {
+        "operationId": "confirm_artifact_export_artifacts__artifact_id__export_confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "title": "Artifact Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_ArtifactExportMutationData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Confirm Artifact Export"
+      }
+    },
+    "/artifacts/{artifact_id}/export-preview": {
+      "get": {
+        "operationId": "preview_artifact_export_artifacts__artifact_id__export_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artifact_id",
+            "required": true,
+            "schema": {
+              "title": "Artifact Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_ArtifactExportPreviewData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Preview Artifact Export"
       }
     },
     "/artifacts/{artifact_id}/preview": {

@@ -89,6 +89,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/artifacts/{artifact_id}/export-confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Artifact Export */
+        post: operations["confirm_artifact_export_artifacts__artifact_id__export_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/artifacts/{artifact_id}/export-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview Artifact Export */
+        get: operations["preview_artifact_export_artifacts__artifact_id__export_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/artifacts/{artifact_id}/preview": {
         parameters: {
             query?: never;
@@ -767,6 +801,40 @@ export interface components {
         /** ArtifactData */
         ArtifactData: {
             artifact: components["schemas"]["ArtifactResource"];
+        };
+        /** ArtifactExportMutationData */
+        ArtifactExportMutationData: {
+            artifact: components["schemas"]["ArtifactResource"];
+            /** Content Ref */
+            content_ref: string;
+            /** Replayed */
+            replayed: boolean;
+        };
+        /** ArtifactExportPreview */
+        ArtifactExportPreview: {
+            /** Artifact Id */
+            artifact_id: string;
+            /** Checksum */
+            checksum: string;
+            /** Content Bytes */
+            content_bytes: number;
+            /** Name */
+            name: string;
+            /** Target Filename */
+            target_filename: string;
+            /** Version */
+            version: number;
+        };
+        /** ArtifactExportPreviewData */
+        ArtifactExportPreviewData: {
+            preview: components["schemas"]["ArtifactExportPreview"];
+        };
+        /** ArtifactExportRequest */
+        ArtifactExportRequest: {
+            /** Expected Checksum */
+            expected_checksum: string;
+            /** Expected Version */
+            expected_version: number;
         };
         /** ArtifactLifecycleEvent */
         ArtifactLifecycleEvent: {
@@ -1665,6 +1733,16 @@ export interface components {
             data: components["schemas"]["ArtifactData"];
             meta: components["schemas"]["ResponseMeta"];
         };
+        /** SuccessEnvelope[ArtifactExportMutationData] */
+        SuccessEnvelope_ArtifactExportMutationData_: {
+            data: components["schemas"]["ArtifactExportMutationData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[ArtifactExportPreviewData] */
+        SuccessEnvelope_ArtifactExportPreviewData_: {
+            data: components["schemas"]["ArtifactExportPreviewData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
         /** SuccessEnvelope[ArtifactListData] */
         SuccessEnvelope_ArtifactListData_: {
             data: components["schemas"]["ArtifactListData"];
@@ -2390,6 +2468,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_ArtifactData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    confirm_artifact_export_artifacts__artifact_id__export_confirm_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArtifactExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ArtifactExportMutationData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    preview_artifact_export_artifacts__artifact_id__export_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifact_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_ArtifactExportPreviewData_"];
                 };
             };
             /** @description Resource not found */

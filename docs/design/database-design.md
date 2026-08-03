@@ -167,7 +167,7 @@ v3 metadata 当前定义 **19 张业务表 + 2 张运行治理表，共 21 张�
 - Approval 冻结 action、target、payload、request hash、resource version 和 CAS version；Artifact 保存内容或 content ref、checksum、metadata、状态和版本。
 - `idempotency_records` 对 `(scope, idempotency_key)` 唯一；相同 Key 只有请求 hash 相同才可回放。
 - 手动 Run 重试在 `BEGIN IMMEDIATE` 事务中先检查幂等回放，再按 `agent_runs.retry_of_run_id` 检查直接后继；因此同一失败源最多创建一个直接 retry Run。该约束由 Store 事务保证，不新增唯一索引、列或 Alembic 迁移。
-- 当前 `project.inspect.v1` 只读取已登记项目根的相对结构元数据，最终把 JSON 检查结果保存到 `agent_artifacts.content`；`runtime/v3/artifacts/` 在本 alpha 中只是预留目录。
+- 当前 `project.inspect.v1` 只读取已登记项目根的相对结构元数据，最终把 JSON 检查结果保存到 `agent_artifacts.content`；受控导出只将已保存的 ready Artifact 内容写入 `runtime/v3/artifacts/exports/`，并把相对 `content_ref`、`exported_at` 与 `exported` 状态回写同一 Artifact，不读取项目根或 v2 数据。
 
 ### 7.3 alpha.2 消息流复用现有 Schema
 
@@ -200,7 +200,7 @@ Model Profiles 复用既有 `model_profiles` 表，不新增 Alembic revision。
 | 数据根 | `runtime/v3/` | `KI_DATA_ROOT` 可覆盖；必须保持与 v2 物理隔离 |
 | SQLite | `runtime/v3/app.db` | `KI_V3_DB_PATH` 只覆盖数据库文件；代际检查仍强制执行 |
 | 向量目录 | `runtime/v3/vectors/` | 已创建目录，当前项目检查闭环未写向量 |
-| 外部产物目录 | `runtime/v3/artifacts/` | 已创建目录，当前产物正文保存在 SQLite |
+| 外部产物目录 | `runtime/v3/artifacts/exports/` | 仅受控导出写入；文件名由服务端 Artifact ID 固定生成，正文仍以 SQLite 为事实源 |
 | 日志目录 | `runtime/v3/logs/` | 预留；当前没有独立 v3 日志轮转器 |
 | 备份目录 | `runtime/v3/backups/` | v3 在线备份受管目录；v2 `ops/scripts/backup_db.sh` 不适用于此目录 |
 

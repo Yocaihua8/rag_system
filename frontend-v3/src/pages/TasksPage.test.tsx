@@ -192,4 +192,25 @@ describe('TasksPage', () => {
     await user.selectOptions(screen.getByLabelText('处理方式'), 'quick')
     expect(onDepthChange).toHaveBeenCalledWith('quick')
   })
+
+  it('requires a second explicit confirmation before exporting a ready artifact', async () => {
+    const user = userEvent.setup()
+    const onConfirmArtifactExport = vi.fn().mockResolvedValue(undefined)
+    useUiStore.getState().openDrawer('details')
+    render(
+      <TasksPage
+        projectId="project-1"
+        artifacts={[{ id: 'artifact-1', name: '项目结构检查', status: 'ready', content: 'exported content' }]}
+        artifactCount={1}
+        onPreviewArtifactExport={async () => ({ artifact_id: 'artifact-1', name: '项目结构检查', checksum: 'a'.repeat(64), version: 1, content_bytes: 16, target_filename: 'artifact-artifact-1.txt' })}
+        onConfirmArtifactExport={onConfirmArtifactExport}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: '导出结果' }))
+    expect(screen.getByText(/不会修改项目文件，也不能自动撤销/)).toBeInTheDocument()
+    expect(onConfirmArtifactExport).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: '确认导出' }))
+    expect(onConfirmArtifactExport).toHaveBeenCalledWith(expect.objectContaining({ artifact_id: 'artifact-1', version: 1 }))
+  })
 })

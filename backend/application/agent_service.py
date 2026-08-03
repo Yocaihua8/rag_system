@@ -480,6 +480,70 @@ class AgentApplication:
             run_id=run_id,
         )
 
+    def preview_artifact_export(self, artifact_id: str) -> dict[str, Any]:
+        artifact = self.get_artifact(artifact_id)
+        if artifact["status"] != "ready":
+            raise ApplicationValidationError("artifact is not ready for export")
+        return {
+            "artifact_id": str(artifact["id"]),
+            "name": str(artifact["name"]),
+            "checksum": str(artifact["checksum"]),
+            "version": int(artifact["version"]),
+            "content_bytes": len(str(artifact["content"]).encode("utf-8")),
+            "target_filename": _artifact_export_filename(artifact),
+        }
+
+    def confirm_artifact_export(
+        self,
+        *,
+        artifact_id: str,
+        expected_version: int,
+        expected_checksum: str,
+        idempotency_key: str,
+        artifact_export_dir: Path,
+    ) -> dict[str, Any]:
+        target_filename = _artifact_export_filename({"id": artifact_id})
+        payload = {
+            "artifact_id": artifact_id,
+            "expected_version": expected_version,
+            "expected_checksum": expected_checksum,
+            "content_ref": f"exports/{target_filename}",
+        }
+        clean_idempotency_key = _required_idempotency_key(idempotency_key)
+        replay = self.store.get_artifact_export_replay(
+            artifact_id=artifact_id,
+            idempotency_key=clean_idempotency_key,
+            request_hash=request_hash(payload),
+        )
+        if replay is not None:
+            return replay
+        artifact = self.get_artifact(artifact_id)
+        preview = self.preview_artifact_export(artifact_id)
+        if int(expected_version) != preview["version"]:
+            raise ApplicationValidationError("artifact version changed")
+        if str(expected_checksum) != preview["checksum"]:
+            raise ApplicationValidationError("artifact checksum changed")
+        export_dir = Path(artifact_export_dir).resolve()
+        target = export_dir / str(preview["target_filename"])
+        if target.parent != export_dir or target.exists():
+            raise ApplicationValidationError("artifact export target is unavailable")
+        export_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            with target.open("x", encoding="utf-8", newline="\n") as handle:
+                handle.write(str(artifact["content"]))
+            return self.store.mark_artifact_exported(
+                artifact_id=artifact_id,
+                expected_version=expected_version,
+                expected_checksum=expected_checksum,
+                content_ref=payload["content_ref"],
+                idempotency_key=clean_idempotency_key,
+                request_hash=request_hash(payload),
+            )
+        except Exception:
+            if target.exists():
+                target.unlink()
+            raise
+
     def validate_workflow_graph(self, graph: Mapping[str, Any]) -> dict[str, Any]:
         nodes = tuple(
             WorkflowNode(
@@ -693,6 +757,10 @@ def request_hash(payload: Mapping[str, Any]) -> str:
         default=str,
     )
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _artifact_export_filename(artifact: Mapping[str, Any]) -> str:
+    return f"artifact-{str(artifact['id'])}.txt"
 
 
 def _required_idempotency_key(value: str) -> str:
