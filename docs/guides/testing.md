@@ -17,6 +17,8 @@ npm run frontend-v3:typecheck
 npm run frontend-v3:test
 npm run frontend-v3:build
 npm run frontend-v3:e2e
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml
 git diff --check
 ```
 
@@ -37,6 +39,7 @@ React v3 E2E 由 `frontend-v3/scripts/run-e2e.mjs` 默认启动 4174 前端和�
 | v3 API | `/api/v3` 的真实 OpenAPI、envelope、request ID、幂等冲突、项目/任务/按任务查询运行、controls/retry、审批/产物读取，以及工作流版本化 CRUD/发布/绑定/归档边界 |
 | v3 执行 | 固定四步 `project.inspect.v1`、租约/心跳/恢复、步骤尝试、SSE 续传、绝对路径/正文不泄漏、产物与 Agent 消息持久化 |
 | React v3 | TS6 typecheck、OpenAPI 重复生成、API/SSE reducer、四个一级页面、320px–桌面响应式与真实 v3 E2E；缺失能力无演示回退 |
+| Tauri 安全运行时 | OS 随机令牌长度/字符集、loopback 动态端口、main-only bootstrap、sidecar 环境注入、异常退出清理与空 capability；正式切换后补真实 WebView/API/SSE/退出门禁 |
 | 逐点学习 | 七态会话、当前步骤公开范围、三次 attempt、幂等/CAS、reveal 证据资格、stale 只读、覆盖投影和确认计划任务单调联动 |
 | SQL 练习 | fixture hash、只读临时库、结果与必要语义评分、多语句/写操作/Schema/危险函数阻断、时间/VM/行列/字节上限、正式数据库哨兵不变 |
 | 前端 API | `fetch` 与 `EventSource` 都断言绝对 API URL |

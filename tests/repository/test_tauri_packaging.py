@@ -11,6 +11,7 @@ def _json(relative: str) -> dict:
 
 def test_tauri_packages_frontend_dist_and_api_only_sidecar():
     config = _json("src-tauri/tauri.conf.json")
+    capability = _json("src-tauri/capabilities/default.json")
 
     assert config["build"]["frontendDist"] == "../frontend/dist"
     assert config["bundle"]["externalBin"] == ["binaries/knowledge-island-backend"]
@@ -18,6 +19,29 @@ def test_tauri_packages_frontend_dist_and_api_only_sidecar():
     assert "http://127.0.0.1:8765" in config["app"]["security"]["csp"]
     assert "connect-src" in config["app"]["security"]["csp"]
     assert "*" not in config["app"]["security"]["csp"]
+    assert capability["windows"] == ["main"]
+    assert capability["permissions"] == []
+
+
+def test_secure_sidecar_runtime_is_opt_in_and_keeps_bootstrap_in_rust_state():
+    source = (ROOT / "src-tauri/src/main.rs").read_text(encoding="utf-8")
+
+    for marker in (
+        'std::env::var("KI_TAURI_SECURE_RUNTIME")',
+        'TcpListener::bind((Ipv4Addr::LOCALHOST, 0))',
+        "getrandom::fill(&mut bytes)",
+        '.env("KI_DESKTOP_MODE", "1")',
+        '.env("KI_API_HOST", "127.0.0.1")',
+        '.env("KI_API_PORT", port.to_string())',
+        '.env("KI_DESKTOP_STARTUP_TOKEN", token)',
+        "Mutex<Option<BackendBootstrap>>",
+        'window.label() != "main"',
+    ):
+        assert marker in source
+
+    assert "shell:allow-execute" not in json.dumps(
+        _json("src-tauri/capabilities/default.json")
+    )
 
 
 def test_tauri_workspace_owns_cli_and_sidecar_build_commands():

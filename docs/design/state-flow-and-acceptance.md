@@ -157,13 +157,17 @@ preview -> draft
 
 ```text
 Tauri setup
-  -> spawn knowledge-island-backend
-  -> 保存 child handle，转发 stdout/stderr
+  -> 默认路径：固定 8765，显式关闭 desktop mode
+  -> opt-in 安全路径：选择 loopback 临时端口 + 生成 32 字节随机令牌
+  -> 通过子进程环境 spawn knowledge-island-backend
+  -> 保存 child handle 与内存 bootstrap，转发 stdout/stderr
+  -> 仅 main WebView 可读取 bootstrap
+  -> sidecar 异常退出：清空 child 与 bootstrap
   -> 主窗口关闭：隐藏到托盘，sidecar 继续运行
-  -> 托盘退出：kill child -> app exit
+  -> 托盘退出：kill child + 清空 bootstrap -> app exit
 ```
 
-当前实现没有在显示 WebView 前轮询 `/api/health`、没有端口占用恢复、也不会在 sidecar 异常退出后自动重启。打包成功或 sidecar 成功 spawn 不能替代安装后 API 主流程验证。
+当前实现没有在显示 WebView 前轮询 `/api/health`、没有端口占用恢复、也不会在 sidecar 异常退出后自动重启。安全路径默认关闭，正式 Vue/CSP 仍使用固定 8765；打包成功或 sidecar 成功 spawn 不能替代安装后 API 主流程验证。
 
 ## 10. 最低验收矩阵
 
