@@ -77,6 +77,19 @@ class V3Database:
         self._initialized = False
         return {"closed": True}
 
+    def checkpoint(self) -> dict[str, int]:
+        with self.engine.connect() as connection:
+            busy, log_frames, checkpointed_frames = connection.exec_driver_sql(
+                "PRAGMA wal_checkpoint(TRUNCATE)"
+            ).one()
+        if int(busy) != 0:
+            raise StoreNotInitializedError("v3 database WAL checkpoint is busy")
+        return {
+            "busy": int(busy),
+            "log_frames": int(log_frames),
+            "checkpointed_frames": int(checkpointed_frames),
+        }
+
     def info(self) -> dict[str, Any]:
         engine = self.engine
         with engine.connect() as connection:

@@ -11,7 +11,7 @@ import uuid
 from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 MINIMUM_SAFETY_BYTES = 64 * 1024 * 1024
@@ -28,6 +28,14 @@ class BackupError(RuntimeError):
 
 
 class BackupValidationError(BackupError):
+    pass
+
+
+class RestoreError(RuntimeError):
+    pass
+
+
+class RestoreRollbackError(RestoreError):
     pass
 
 
@@ -313,6 +321,111 @@ def validate_v3_backup(
     return manifest
 
 
+def restore_v3_backup(
+    source_db_path: str | Path,
+    backup_dir: str | Path,
+    *,
+    expected_backup_sha256: str,
+    expected_revision: str,
+    activate: Callable[[], dict[str, Any]],
+) -> dict[str, Any]:
+    """Replace a closed v3 database and roll back if activation fails."""
+
+    source = _resolved(source_db_path)
+    raw_source = Path(str(source_db_path).strip()).expanduser()
+    if raw_source.is_symlink() or not source.is_file():
+        raise RestoreError("current v3 database must be a regular non-symlink file")
+    if not _is_hex_digest(expected_backup_sha256):
+        raise RestoreError("expected backup database hash is invalid")
+
+    manifest = validate_v3_backup(
+        backup_dir,
+        expected_generation="v3",
+        expected_revision=expected_revision,
+    )
+    if manifest["database_sha256"] != expected_backup_sha256:
+        raise RestoreError("selected backup hash does not match confirmation")
+    _database_identity(source, verify_integrity=True)
+
+    operation_id = uuid.uuid4().hex
+    stage = source.parent / f".{source.name}.restore-stage-{operation_id}"
+    rollback = source.parent / f".{source.name}.restore-rollback-{operation_id}"
+    backup_database = Path(backup_dir).expanduser().resolve() / "app.db"
+    moved_sidecars: list[tuple[Path, Path]] = []
+    activated = False
+    try:
+        shutil.copyfile(backup_database, stage)
+        if _sha256_file(stage) != expected_backup_sha256:
+            raise RestoreError("staged backup hash does not match confirmation")
+        staged_identity = _database_identity(stage, verify_integrity=True)
+        if staged_identity["schema_revision"] != expected_revision:
+            raise RestoreError("staged backup revision does not match application head")
+
+        os.replace(source, rollback)
+        for suffix in ("-wal", "-shm"):
+            sidecar = Path(f"{source}{suffix}")
+            if sidecar.exists():
+                rollback_sidecar = Path(f"{rollback}{suffix}")
+                os.replace(sidecar, rollback_sidecar)
+                moved_sidecars.append((rollback_sidecar, sidecar))
+        os.replace(stage, source)
+        try:
+            database_info = activate()
+            activated = True
+        except BaseException as activation_error:
+            failed = source.parent / f".{source.name}.restore-failed-{operation_id}"
+            if source.exists():
+                os.replace(source, failed)
+            os.replace(rollback, source)
+            for rollback_sidecar, original_sidecar in moved_sidecars:
+                if rollback_sidecar.exists():
+                    os.replace(rollback_sidecar, original_sidecar)
+            try:
+                activate()
+            except BaseException as rollback_error:
+                raise RestoreRollbackError(
+                    "restored database failed and original database could not be reactivated"
+                ) from rollback_error
+            finally:
+                if failed.exists():
+                    failed.unlink()
+            raise RestoreError(
+                "restored database failed activation; original database was restored"
+            ) from activation_error
+
+        if rollback.exists():
+            rollback.unlink()
+        for rollback_sidecar, _original_sidecar in moved_sidecars:
+            if rollback_sidecar.exists():
+                rollback_sidecar.unlink()
+        return {
+            "backup": _backup_summary(manifest),
+            "database_info": database_info,
+            "restored": True,
+        }
+    except RestoreError:
+        if stage.exists():
+            stage.unlink()
+        raise
+    except (OSError, sqlite3.DatabaseError) as exc:
+        if stage.exists():
+            stage.unlink()
+        if rollback.exists() and not activated:
+            if source.exists():
+                source.unlink()
+            os.replace(rollback, source)
+            for rollback_sidecar, original_sidecar in moved_sidecars:
+                if rollback_sidecar.exists():
+                    os.replace(rollback_sidecar, original_sidecar)
+            try:
+                activate()
+            except BaseException as rollback_error:
+                raise RestoreRollbackError(
+                    "restore operation failed and original database could not be reactivated"
+                ) from rollback_error
+        raise RestoreError("v3 restore filesystem or SQLite operation failed") from exc
+
+
 def _database_identity(db_path: Path, *, verify_integrity: bool) -> dict[str, str]:
     try:
         suffix = "?mode=ro&immutable=1" if verify_integrity else "?mode=ro"
@@ -453,7 +566,10 @@ __all__ = [
     "BackupValidationError",
     "MINIMUM_SAFETY_BYTES",
     "StoragePreflightError",
+    "RestoreError",
+    "RestoreRollbackError",
     "create_v3_backup",
     "preflight_storage_target",
+    "restore_v3_backup",
     "validate_v3_backup",
 ]

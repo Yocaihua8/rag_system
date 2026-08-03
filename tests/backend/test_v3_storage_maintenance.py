@@ -271,3 +271,85 @@ def test_backup_rejects_unmanaged_backup_directory(tmp_path: Path):
         store.close()
 
     assert not (tmp_path / "other-backups").exists()
+
+
+def test_restore_replaces_closed_database_and_reinitializes_store(tmp_path: Path):
+    data_root = tmp_path / "v3"
+    data_root.mkdir()
+    store = _initialized_store(data_root)
+    backup = maintenance.create_v3_backup(
+        store.db_path,
+        current_data_root=data_root,
+        backups_dir=data_root / "backups",
+        idempotency_key="restore-source",
+    )["backup"]
+    store.create_project(
+        name="Created after backup",
+        root_path=data_root / "after-backup-project",
+        idempotency_key="project-after-backup",
+        request_hash="project-after-backup-hash",
+    )
+    store.checkpoint()
+    store.close()
+
+    result = maintenance.restore_v3_backup(
+        store.db_path,
+        data_root / "backups" / backup["backup_id"],
+        expected_backup_sha256=backup["database_sha256"],
+        expected_revision="0001_v3_initial",
+        activate=store.initialize,
+    )
+    try:
+        projects = store.list_projects()
+    finally:
+        store.close()
+
+    assert result["restored"] is True
+    assert result["database_info"]["data_generation"] == "v3"
+    assert [project["name"] for project in projects] == ["Backup project"]
+    assert not list(data_root.glob(".app.db.restore-*"))
+
+
+def test_restore_activation_failure_rolls_back_original_database(tmp_path: Path):
+    data_root = tmp_path / "v3"
+    data_root.mkdir()
+    store = _initialized_store(data_root)
+    backup = maintenance.create_v3_backup(
+        store.db_path,
+        current_data_root=data_root,
+        backups_dir=data_root / "backups",
+        idempotency_key="rollback-source",
+    )["backup"]
+    store.create_project(
+        name="Must survive rollback",
+        root_path=data_root / "rollback-project",
+        idempotency_key="rollback-project",
+        request_hash="rollback-project-hash",
+    )
+    store.checkpoint()
+    store.close()
+    activation_count = 0
+
+    def fail_once_then_initialize():
+        nonlocal activation_count
+        activation_count += 1
+        if activation_count == 1:
+            raise RuntimeError("simulated activation failure")
+        return store.initialize()
+
+    with pytest.raises(maintenance.RestoreError, match="original database was restored"):
+        maintenance.restore_v3_backup(
+            store.db_path,
+            data_root / "backups" / backup["backup_id"],
+            expected_backup_sha256=backup["database_sha256"],
+            expected_revision="0001_v3_initial",
+            activate=fail_once_then_initialize,
+        )
+    try:
+        project_names = [project["name"] for project in store.list_projects()]
+    finally:
+        store.close()
+
+    assert activation_count == 2
+    assert set(project_names) == {"Backup project", "Must survive rollback"}
+    assert not list(data_root.glob(".app.db.restore-*"))

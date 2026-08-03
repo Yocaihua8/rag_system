@@ -81,12 +81,13 @@
 - 2026-08-03：Tauri 新增默认关闭的安全 sidecar 路径，使用 OS 随机源、loopback 临时端口、子进程环境和 main-only managed-state bootstrap；sidecar 退出会清空内存状态，默认 capability 继续为空。Rust 3 项和仓库契约 7 项通过。
 - 2026-08-03：新增只读 `POST /api/v3/system/storage/preflight`，拒绝与 v2/v3 重叠、非空/符号链接目标、不可读源、不可写父目录和空间不足；不创建目标。同步 OpenAPI 生成类型，阶段门禁 35 项通过；本机缺少 Windows 创建目录符号链接权限，1 项动态 symlink 用例跳过。
 - 2026-08-03：新增幂等 `POST /api/v3/system/backups`，用 SQLite backup API 生成自包含数据库，验证 integrity、代际、revision、数据库/manifest hash 后原子发布；默认保留 7 份且只清理完整可验证的受管备份。阶段门禁 42 项通过，1 项沿用 Windows symlink 权限跳过。
+- 2026-08-03：建立受控停机恢复核心：WAL checkpoint/关闭后，按备份 hash/revision 复验并使用同目录 staging 替换；激活失败自动放回原 DB/WAL/SHM 并重新初始化。恢复核心门禁 35 项通过，1 项沿用 Windows symlink 权限跳过；HTTP 排他、executor 协调与持久幂等尚未完成，因此任务不勾选。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 10:41:53 +08:00
+- **最后更新**：2026-08-03 10:50:27 +08:00
 - **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`86db67b` — 增加 v3 存储迁移预检
-- **代码状态**：`refactor/agent-v3`；v3 在线备份、OpenAPI 类型与测试待提交
-- **下一步**：实现离线或受控停机恢复、失败回滚与代际/revision 复验
+- **最新 commit**：`cc5a437` — 增加 v3 在线一致性备份
+- **代码状态**：`refactor/agent-v3`；恢复存储事务与测试待提交，HTTP 协调尚未实现
+- **下一步**：实现恢复请求排他门禁、executor 停启、持久幂等回放与 System 恢复 API
 - **续任务须知**：不得把令牌放入 CLI 参数、日志、SQLite 或前端持久存储；不得在本计划提前切换 Vue/Tauri/正式入口

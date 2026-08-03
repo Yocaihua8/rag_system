@@ -86,6 +86,9 @@ class AgentStore:
     def close(self) -> dict[str, bool]:
         return self._database.close()
 
+    def checkpoint(self) -> dict[str, int]:
+        return self._database.checkpoint()
+
     def create_project(
         self,
         *,

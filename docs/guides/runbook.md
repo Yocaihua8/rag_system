@@ -127,6 +127,8 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8765/api/v3/system/backups 
 
 成功响应只证明受管备份已通过 SQLite integrity、代际、revision、大小和 hash 校验；不证明恢复可用。备份位于 `runtime/v3/backups/backup-*/`，每份包含 `app.db`、`manifest.json`、`manifest.sha256`。不得手工修改 manifest/hash 或把目录改名后继续使用；损坏/未知目录不会被自动保留策略删除。`runtime/v3/vectors/`、`artifacts/` 和 `logs/` 当前没有必须随 SQLite 恢复的业务事实，但未来这些目录开始承载正式数据时需提升备份格式版本。
 
+存储层已有离线替换与失败回滚测试，但当前没有可调用的 v3 恢复 HTTP/CLI。不要直接复制受管备份覆盖活动 `app.db`，也不要调用内部 Python 函数绕过 executor、请求排他和幂等门禁；正式恢复入口完成前，只把备份作为经过校验的恢复来源保留。
+
 ## 7. 临时文件清理
 
 ```bash
