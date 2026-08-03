@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/storage/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Storage Preflight */
+        post: operations["storage_preflight_system_storage_preflight_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tasks": {
         parameters: {
             query?: never;
@@ -1121,6 +1138,44 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** StoragePreflightCheck */
+        StoragePreflightCheck: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "outside_current_v3" | "outside_legacy_v2" | "target_is_directory" | "target_is_not_symlink" | "target_is_empty" | "parent_is_writable" | "source_is_readable" | "sufficient_free_space";
+            /** Message */
+            message: string;
+            /** Passed */
+            passed: boolean;
+        };
+        /** StoragePreflightData */
+        StoragePreflightData: {
+            /** Available Bytes */
+            available_bytes: number;
+            /** Checks */
+            checks: components["schemas"]["StoragePreflightCheck"][];
+            /** Existing Parent */
+            existing_parent: string;
+            /** Ready */
+            ready: boolean;
+            /** Required Bytes */
+            required_bytes: number;
+            /** Source Bytes */
+            source_bytes: number;
+            /** Target Empty */
+            target_empty: boolean;
+            /** Target Exists */
+            target_exists: boolean;
+            /** Target Path */
+            target_path: string;
+        };
+        /** StoragePreflightRequest */
+        StoragePreflightRequest: {
+            /** Target Path */
+            target_path: string;
+        };
         /** SuccessEnvelope[ApprovalData] */
         SuccessEnvelope_ApprovalData_: {
             data: components["schemas"]["ApprovalData"];
@@ -1184,6 +1239,11 @@ export interface components {
         /** SuccessEnvelope[RunStepsData] */
         SuccessEnvelope_RunStepsData_: {
             data: components["schemas"]["RunStepsData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[StoragePreflightData] */
+        SuccessEnvelope_StoragePreflightData_: {
+            data: components["schemas"]["StoragePreflightData"];
             meta: components["schemas"]["ResponseMeta"];
         };
         /** SuccessEnvelope[TaskData] */
@@ -2382,6 +2442,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_RunStepsData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    storage_preflight_system_storage_preflight_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoragePreflightRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_StoragePreflightData_"];
                 };
             };
             /** @description Resource not found */

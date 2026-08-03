@@ -669,11 +669,12 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 
 ### 2.2 当前路径
 
-当前 v3 sub-app 有 **27 个业务路径、32 个操作**：
+当前 v3 sub-app 有 **28 个业务路径、33 个操作**：
 
 | 方法 | 路径 | 当前用途 | 写入/控制要求 |
 |------|------|----------|---------------|
 | GET | `/api/v3/health` | 返回 `data_generation=v3`、Alembic revision 和 executor 状态 | 始终放行；不执行项目检查 |
+| POST | `/api/v3/system/storage/preflight` | 只读检查 v3 数据迁移目标的路径隔离、空目录、父目录可写性、源可读性和可用空间 | 不创建目标、不试写；检查不通过仍返回 200 且 `ready=false`，非法路径返回 422 |
 | POST / GET | `/api/v3/projects` | 创建已有本地目录对应的项目；列出项目 | POST 需要 `Idempotency-Key`；根目录必须存在且为目录 |
 | POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
@@ -703,6 +704,8 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | GET | `/api/v3/workflow-bindings` | 按项目、工作流或 enabled 筛选绑定 | 只读 |
 
 `/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
+
+存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
 
 ### 2.3 任务首消息与运行输入快照
 

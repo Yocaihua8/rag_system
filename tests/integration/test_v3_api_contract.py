@@ -134,6 +134,75 @@ def test_success_envelope_and_request_id_are_consistent():
     assert generated.json()["data"]["items"][0]["id"] == "project-1"
 
 
+def test_storage_preflight_is_read_only_and_reports_stable_checks(tmp_path: Path):
+    current = tmp_path / "runtime" / "v3"
+    legacy = tmp_path / "runtime" / "v2"
+    target = tmp_path / "migrated" / "v3"
+    current.mkdir(parents=True)
+    legacy.mkdir(parents=True)
+    (current / "app.db").write_bytes(b"agent-data")
+    app = create_v3_app(
+        store=FakeStore(),
+        current_data_root=current,
+        legacy_data_root=legacy,
+    )
+    client = TestClient(app)
+
+    response = client.post(
+        "/system/storage/preflight",
+        headers={"X-Request-ID": "storage-preflight"},
+        json={"target_path": str(target)},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"] == "storage-preflight"
+    body = response.json()
+    assert body["meta"] == {"request_id": "storage-preflight"}
+    assert body["data"]["ready"] is True
+    assert body["data"]["target_path"] == str(target.resolve())
+    assert {check["code"] for check in body["data"]["checks"]} == {
+        "outside_current_v3",
+        "outside_legacy_v2",
+        "target_is_directory",
+        "target_is_not_symlink",
+        "target_is_empty",
+        "parent_is_writable",
+        "source_is_readable",
+        "sufficient_free_space",
+    }
+    assert not target.exists()
+
+
+def test_storage_preflight_rejects_blank_path_with_error_envelope():
+    client, _ = _client()
+
+    response = client.post(
+        "/system/storage/preflight",
+        headers={"X-Request-ID": "blank-storage-path"},
+        json={"target_path": "   "},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["request_id"] == "blank-storage-path"
+    assert response.json()["error"]["code"] == "validation_error"
+
+    invalid_response = client.post(
+        "/system/storage/preflight",
+        headers={"X-Request-ID": "invalid-storage-path"},
+        json={"target_path": "invalid\u0000path"},
+    )
+
+    assert invalid_response.status_code == 422
+    assert invalid_response.json() == {
+        "error": {
+            "code": "storage_preflight_invalid_path",
+            "message": "storage path cannot be resolved",
+            "details": {},
+        },
+        "request_id": "invalid-storage-path",
+    }
+
+
 def test_missing_idempotency_key_uses_error_envelope(tmp_path: Path):
     client, _ = _client()
     project_root = tmp_path / "project"
@@ -304,6 +373,7 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
 
     assert set(schema["paths"]) == {
         "/health",
+        "/system/storage/preflight",
         "/projects",
         "/tasks",
         "/tasks/{task_id}",
@@ -335,6 +405,11 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "application/json"
     ]["schema"] == {
         "$ref": "#/components/schemas/SuccessEnvelope_HealthData_"
+    }
+    assert schema["paths"]["/system/storage/preflight"]["post"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_StoragePreflightData_"
     }
     assert schema["paths"]["/tasks"]["post"]["responses"]["201"]["content"][
         "application/json"

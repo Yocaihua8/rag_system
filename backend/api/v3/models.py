@@ -136,6 +136,37 @@ class HealthData(StrictModel):
     executor_running: bool
 
 
+class StoragePreflightRequest(StrictModel):
+    target_path: str = Field(min_length=1, max_length=2_048)
+
+
+class StoragePreflightCheck(StrictModel):
+    code: Literal[
+        "outside_current_v3",
+        "outside_legacy_v2",
+        "target_is_directory",
+        "target_is_not_symlink",
+        "target_is_empty",
+        "parent_is_writable",
+        "source_is_readable",
+        "sufficient_free_space",
+    ]
+    passed: bool
+    message: str
+
+
+class StoragePreflightData(StrictModel):
+    ready: bool
+    target_path: str
+    existing_parent: str
+    target_exists: bool
+    target_empty: bool
+    source_bytes: int = Field(ge=0)
+    required_bytes: int = Field(ge=0)
+    available_bytes: int = Field(ge=0)
+    checks: list[StoragePreflightCheck]
+
+
 class ProjectResource(StrictModel):
     id: str
     name: str

@@ -1691,6 +1691,116 @@
         "title": "StepResource",
         "type": "object"
       },
+      "StoragePreflightCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "outside_current_v3",
+              "outside_legacy_v2",
+              "target_is_directory",
+              "target_is_not_symlink",
+              "target_is_empty",
+              "parent_is_writable",
+              "source_is_readable",
+              "sufficient_free_space"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "passed",
+          "message"
+        ],
+        "title": "StoragePreflightCheck",
+        "type": "object"
+      },
+      "StoragePreflightData": {
+        "additionalProperties": false,
+        "properties": {
+          "available_bytes": {
+            "minimum": 0.0,
+            "title": "Available Bytes",
+            "type": "integer"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/StoragePreflightCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "existing_parent": {
+            "title": "Existing Parent",
+            "type": "string"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "required_bytes": {
+            "minimum": 0.0,
+            "title": "Required Bytes",
+            "type": "integer"
+          },
+          "source_bytes": {
+            "minimum": 0.0,
+            "title": "Source Bytes",
+            "type": "integer"
+          },
+          "target_empty": {
+            "title": "Target Empty",
+            "type": "boolean"
+          },
+          "target_exists": {
+            "title": "Target Exists",
+            "type": "boolean"
+          },
+          "target_path": {
+            "title": "Target Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ready",
+          "target_path",
+          "existing_parent",
+          "target_exists",
+          "target_empty",
+          "source_bytes",
+          "required_bytes",
+          "available_bytes",
+          "checks"
+        ],
+        "title": "StoragePreflightData",
+        "type": "object"
+      },
+      "StoragePreflightRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "target_path": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Target Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_path"
+        ],
+        "title": "StoragePreflightRequest",
+        "type": "object"
+      },
       "SuccessEnvelope_ApprovalData_": {
         "properties": {
           "data": {
@@ -1897,6 +2007,22 @@
           "meta"
         ],
         "title": "SuccessEnvelope[RunStepsData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_StoragePreflightData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StoragePreflightData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[StoragePreflightData]",
         "type": "object"
       },
       "SuccessEnvelope_TaskData_": {
@@ -4145,6 +4271,64 @@
           }
         },
         "summary": "List Run Steps"
+      }
+    },
+    "/system/storage/preflight": {
+      "post": {
+        "operationId": "storage_preflight_system_storage_preflight_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoragePreflightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_StoragePreflightData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Storage Preflight"
       }
     },
     "/tasks": {

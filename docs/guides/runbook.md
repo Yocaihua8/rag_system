@@ -79,6 +79,15 @@ v3 alpha 另做以下最小检查：
 
 executor 使用数据库租约和心跳。进程异常退出后，下次启动会检查过期运行：可安全重放的读/分析步骤可以恢复，结果不明确的写步骤不得自动重放。当前真实 `project.inspect.v1` 只有只读/分析步骤；审批写回、外部发布和文件导出尚未形成可执行工作流。
 
+迁移 v3 数据根前，可先调用只读预检：
+
+```powershell
+$body = @{ target_path = 'D:\KnowledgeIsland\v3' } | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8765/api/v3/system/storage/preflight -ContentType 'application/json' -Body $body
+```
+
+只有 `data.ready=true` 才表示当次路径、空目录、源可读性和空间检查通过。预检不会创建目录、复制数据库或锁定目标；真正迁移前必须再次检查。不得选择当前 v3、活动 v2 或其父子目录，也不得把预检通过解释为备份/恢复已可用。启用 Web 或 desktop 认证时仍需按对应边界携带凭证。
+
 若 v3 启动失败：
 
 1. 停止反复启动，记录脱敏错误、数据库准确路径和 commit；

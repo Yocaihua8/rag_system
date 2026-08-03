@@ -196,4 +196,6 @@ alpha.2 的任务首消息、运行输入快照和 Agent 分段回答不新增�
 | 日志目录 | `runtime/v3/logs/` | 预留；当前没有独立 v3 日志轮转器 |
 | 备份目录 | `runtime/v3/backups/` | 预留；现有 `ops/scripts/backup_db.sh` 仍只验证 v2 |
 
-现阶段没有 v2 → v3 数据迁移器，也没有经过恢复测试的 v3 自动备份脚本。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把 v2 脚本成功结果当作 v3 备份证据。
+`POST /api/v3/system/storage/preflight` 已提供只读迁移目标检查：目标与当前 v3/活动 v2 根不得重叠，已有目标必须为空且不是符号链接，并检查最近存在父目录、当前源目录可读性和可用空间。空间按源文件总量两倍加 64 MiB 估算；扫描不跟随符号链接，遇到不可读项时 fail closed。预检不创建目标、不是锁，也不能替代真正迁移前的二次校验。
+
+现阶段没有 v2 → v3 数据迁移器，也没有经过恢复测试的 v3 自动备份脚本。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把预检通过或 v2 脚本成功结果当作 v3 迁移/备份证据。

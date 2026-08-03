@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-02
+> Last Updated：2026-08-03
 > Scope：对调用方有迁移影响的 HTTP API 变化与新增版本边界
 > Related：`api-spec.md`、`agent-runtime-and-tool-contract.md`、`../adr/ADR-015-v3-data-api-storage.md`、`../adr/ADR-016-agent-message-stream.md`、`../../CHANGELOG.md`
 
@@ -23,6 +23,8 @@ v3 调用方必须显式适配以下不同契约：
 | 当前前端 | Vue 已接线 | React 在独立 `frontend-v3/` 接入；正式入口仍未切换 |
 
 当前 v3 OpenAPI 提供项目、任务、消息、运行、控制、SSE、审批、产物、工作流 validate，以及 Definition/不可变 Version/项目 Binding 的创建、读取、发布、绑定和归档。发布要求 expected checksum 与 Definition version，归档保留历史 Version。自定义发布工作流仍不能创建 Run；运行创建只接受固定 `project.inspect.v1`，不能把管理 API 写成任意 DAG 已可执行。
+
+当前 alpha.2 另新增 `POST /api/v3/system/storage/preflight`。这是加法只读端点，不改变已有请求；生成客户端会增加 `StoragePreflightRequest/Data/Check` 类型。检查失败以 `200 + ready=false` 返回各项结果，只有空白或不可解析路径使用 `422 validation_error / storage_preflight_invalid_path`。该端点不创建目录、不复制数据，也不表示存储迁移或恢复已经实现。
 
 ## 2. alpha.1 → alpha.2 变化
 

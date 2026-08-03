@@ -11,6 +11,7 @@ from backend.storage.v3.errors import (
     V3StoreError,
 )
 from backend.storage.v3.schema import RUN_STATUSES, STEP_STATUSES, TASK_STATUSES
+from backend.storage.v3.maintenance import StoragePreflightError, preflight_storage_target
 from backend.storage.v3.store import AgentStore
 
 
@@ -22,9 +23,11 @@ __all__ = [
     "STEP_STATUSES",
     "StateConflictError",
     "StoreNotInitializedError",
+    "StoragePreflightError",
     "TASK_STATUSES",
     "V3DataGenerationMismatchError",
     "V3Database",
     "V3SchemaVersionError",
     "V3StoreError",
+    "preflight_storage_target",
 ]

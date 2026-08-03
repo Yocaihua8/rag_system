@@ -85,6 +85,8 @@ def create_app(
         v3_sub_app = create_v3_app(
             store=agent_store,
             executor=agent_executor,
+            current_data_root=runtime_settings.data_root,
+            legacy_data_root=knowledge_store.db_path.parent,
         )
 
     @asynccontextmanager

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
 
@@ -31,6 +32,8 @@ from backend.api.v3.models import (
     RunMutationData,
     RunStepsData,
     SuccessEnvelope,
+    StoragePreflightData,
+    StoragePreflightRequest,
     TaskCreateRequest,
     TaskData,
     TaskListData,
@@ -63,6 +66,7 @@ from backend.storage.v3.errors import (
     RecordNotFoundError,
     StateConflictError,
 )
+from backend.storage.v3.maintenance import StoragePreflightError, preflight_storage_target
 
 
 IdempotencyHeader = Annotated[str, Header(alias="Idempotency-Key")]
@@ -74,6 +78,8 @@ def create_v3_app(
     application: AgentApplication | None = None,
     executor: Any | None = None,
     database_info: dict[str, Any] | None = None,
+    current_data_root: Path | None = None,
+    legacy_data_root: Path | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="Knowledge Island Agent API",
@@ -91,6 +97,15 @@ def create_v3_app(
     app.state.application = application or AgentApplication(store)
     app.state.executor = executor
     app.state.database_info = dict(database_info or {})
+    fallback_db_path = Path(
+        getattr(store, "db_path", Path.cwd() / "runtime" / "v3" / "app.db")
+    )
+    app.state.current_data_root = Path(
+        current_data_root or fallback_db_path.parent
+    ).resolve()
+    app.state.legacy_data_root = Path(
+        legacy_data_root or app.state.current_data_root.parent / "v2"
+    ).resolve()
 
     @app.middleware("http")
     async def attach_request_id(request: Request, call_next):
@@ -179,6 +194,26 @@ def create_v3_app(
                 ),
             },
         )
+
+    @app.post(
+        "/system/storage/preflight",
+        response_model=SuccessEnvelope[StoragePreflightData],
+    )
+    def storage_preflight(request: Request, body: StoragePreflightRequest):
+        try:
+            result = preflight_storage_target(
+                body.target_path,
+                current_data_root=request.app.state.current_data_root,
+                legacy_data_root=request.app.state.legacy_data_root,
+            )
+        except StoragePreflightError as exc:
+            return failure(
+                request,
+                status_code=422,
+                code="storage_preflight_invalid_path",
+                message=str(exc),
+            )
+        return success(request, result)
 
     @app.post(
         "/projects",
