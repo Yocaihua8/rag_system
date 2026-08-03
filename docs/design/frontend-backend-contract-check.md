@@ -222,6 +222,7 @@
 |-------------|---------|----------|
 | 服务状态 | `GET /api/v3/health` | 同时显示连接与 executor 事实；失败不伪装在线 |
 | 项目选择 / 创建 | `GET/POST /api/v3/projects` | 只接受后端实际存在的目录；浏览器阶段明确要求完整路径 |
+| 项目资料扫描 / 浏览 | `POST /projects/{id}/sources/scan`、`GET /projects/{id}/sources`、`GET /projects/{id}/documents` | 只显示后端返回的 Sources 与相对文档元数据；扫描写请求使用稳定 `Idempotency-Key`，不回退到 v2 导入或演示资料 |
 | 任务列表 / 首次发送 | `GET/POST /api/v3/tasks` | 创建响应直接使用 `initial_message`，不重复追加首消息 |
 | 继续任务 | `POST /api/v3/tasks/{id}/messages` | 成功消息 ID 作为新 Run 的不可变输入引用 |
 | 刷新恢复 | `GET /api/v3/tasks/{id}/runs?limit=20&offset=0` | 按服务端倒序结果取最近 Run，并保留历史运行标识；不把浏览器存储当作运行事实源 |
@@ -229,7 +230,7 @@
 | 分段回答 | `GET /runs/{id}/events`、`GET /tasks/{id}/messages` | Run 内按 sequence 去重；最多五次有界重连并从最后序号续传；完整消息负责刷新历史 |
 | 详细过程 | steps、approvals、artifacts | 产物按 Task 查询并标注所属 Run；只展示真实返回，当前固定工作流不会伪造审批 |
 | 工作流 | definitions / versions | 定义、详情与版本步骤只读接线；绑定、编辑、校验和执行 UI 在稳定 API 可用前保持禁用 |
-| 设置、资料、洞察、导出 | N/A | 只保留本机外观偏好或明确不可用说明，不调用 v2 填空 |
+| 设置、洞察、导出 | N/A | 只保留本机外观偏好或明确不可用说明，不调用 v2 填空 |
 
 TanStack Query 持有服务端项目、任务、运行、步骤、审批、产物和工作流；Zustand 只保存界面主题、抽屉、最后项目选择和按任务隔离的未发送草稿。离线恢复后不会自动提交写请求。
 

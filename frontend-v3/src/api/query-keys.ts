@@ -2,6 +2,10 @@ export const v3QueryKeys = {
   all: ['v3'] as const,
   health: () => [...v3QueryKeys.all, 'health'] as const,
   projects: () => [...v3QueryKeys.all, 'projects'] as const,
+  projectSources: (projectId: string) =>
+    [...v3QueryKeys.all, 'project', projectId, 'sources'] as const,
+  projectDocuments: (projectId: string) =>
+    [...v3QueryKeys.all, 'project', projectId, 'documents'] as const,
   tasks: (filters: Record<string, unknown> = {}) =>
     [...v3QueryKeys.all, 'tasks', filters] as const,
   task: (taskId: string) => [...v3QueryKeys.all, 'task', taskId] as const,

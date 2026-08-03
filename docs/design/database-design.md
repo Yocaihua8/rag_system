@@ -154,7 +154,7 @@ v3 metadata 当前定义 **19 张业务表 + 2 张运行治理表，共 21 张�
 
 | 分组 | 表 | 职责 |
 |------|----|------|
-| 项目、来源与模型（8） | `projects`、`sources`、`documents`、`document_chunks`、`chunk_vectors`、`model_profiles`、`settings`、`integrations` | v3 项目上下文、内容、向量、模型引用和连接配置；当前 alpha API 只使用 `projects` |
+| 项目、来源与模型（8） | `projects`、`sources`、`documents`、`document_chunks`、`chunk_vectors`、`model_profiles`、`settings`、`integrations` | v3 项目上下文、内容、向量、模型引用和连接配置；alpha 已使用 `projects`、`sources` 和 `documents` 支持受控项目根扫描，其余仍未开放 |
 | 工作流（3） | `workflow_definitions`、`workflow_versions`、`workflow_bindings` | 工作流身份、不可变版本和项目绑定；HTTP 已开放创建/读取、草稿、发布、绑定和归档，发布工作流尚不能由通用 executor 执行 |
 | Agent 执行（8） | `agent_tasks`、`agent_task_messages`、`agent_runs`、`agent_steps`、`agent_step_attempts`、`agent_events`、`agent_approvals`、`agent_artifacts` | 任务对话、运行、步骤尝试、可重放事件、审批快照和产物 |
 | 运行治理（2） | `app_metadata`、`idempotency_records` | 数据代际/schema 标记和命令幂等回放 |
@@ -178,6 +178,10 @@ alpha.2 的任务首消息、运行输入快照和 Agent 分段回答不新增�
 | `agent_tasks` | 与首条用户消息在同一事务创建；表结构不变 |
 | `agent_task_messages` | 保存首条用户消息，以及 completed/interrupted 后的完整或明确标记的部分 Agent 消息；`metadata_json` 保存 format、chunk count、content hash 和 complete 标记 |
 | `agent_steps` | `trigger.manual.input_json` 只冻结 `input_message_id` 与内容 SHA-256；完整正文保留在不可变 `agent_task_messages`，不向 Step、Run 或 SSE 复制 |
+
+### 7.4 Sources 复用现有 Schema
+
+Sources 第一段不新增 Alembic revision。每个项目使用一个 `sources(source_type=project_root, locator=.)` 行作为扫描身份；`documents` 以项目内相对路径唯一，保存受控 UTF-8 副本、校验摘要、MIME、大小和版本。扫描在单一 Store 事务内同步 Source、Documents 和 idempotency 记录；消失文件的 Document 删除会沿用现有外键级联清理 chunks/vectors。HTTP 资源不公开 `locator`、`config_json`、`source_path` 或 `content`。
 | `agent_events` | 通过既有 `event_type/payload_json` 保存 `assistant.message.*`、补充 Step 事件与 `approval.expired`；继续使用 `(run_id, sequence)` 唯一约束 |
 | `idempotency_records` | 复用既有 scope/key/request hash，保证任务首消息、分块追加和终结消息不会重复写入 |
 

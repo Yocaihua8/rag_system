@@ -32,6 +32,7 @@ v3 目标规格在实现前标记为 `Proposed`，不得与当前可达能力混
 | 能力 | 规格 | 当前状态 |
 |------|------|----------|
 | Agent 任务、持久运行、审批与产物 | [`agent-tasks-and-runs.md`](agent-tasks-and-runs.md) | Proposed；后端实施中逐项校准 |
+| 项目资料（Sources） | [`project-sources.md`](project-sources.md) | 项目根扫描已接入平行 React；外部资料、预览与洞察仍未实现 |
 
 状态用语：
 

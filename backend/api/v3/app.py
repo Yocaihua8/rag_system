@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, Header, Query, Request
@@ -23,11 +23,14 @@ from backend.api.v3.models import (
     ArtifactData,
     ArtifactListData,
     BackupMutationData,
+    DocumentListData,
     ErrorEnvelope,
     HealthData,
     ProjectCreateRequest,
     ProjectListData,
     ProjectMutationData,
+    SourceListData,
+    SourceScanData,
     RestoreMutationData,
     RestoreRequest,
     RunCreateRequest,
@@ -66,6 +69,7 @@ from backend.api.v3.sse import stream_run_events
 from backend.application.agent_service import (
     AgentApplication,
     ApplicationValidationError,
+    ProjectRootUnavailableError,
     request_hash,
 )
 from backend.storage.v3.errors import (
@@ -268,6 +272,18 @@ def create_v3_app(
             request,
             status_code=409,
             code="state_conflict",
+            message=str(exc),
+        )
+
+    @app.exception_handler(ProjectRootUnavailableError)
+    async def project_root_unavailable(
+        request: Request,
+        exc: ProjectRootUnavailableError,
+    ):
+        return failure(
+            request,
+            status_code=409,
+            code="project_root_unavailable",
             message=str(exc),
         )
 
@@ -558,6 +574,60 @@ def create_v3_app(
     @app.get("/projects", response_model=SuccessEnvelope[ProjectListData])
     def list_projects(request: Request):
         return success(request, {"items": _application(request).list_projects()})
+
+    @app.post(
+        "/projects/{project_id}/sources/scan",
+        response_model=SuccessEnvelope[SourceScanData],
+        status_code=201,
+    )
+    def scan_project_sources(
+        request: Request,
+        project_id: str,
+        idempotency_key: IdempotencyHeader,
+    ):
+        result = _application(request).scan_project_sources(
+            project_id=project_id,
+            idempotency_key=idempotency_key,
+        )
+        return success(request, result, status_code=201)
+
+    @app.get(
+        "/projects/{project_id}/sources",
+        response_model=SuccessEnvelope[SourceListData],
+    )
+    def list_project_sources(
+        request: Request,
+        project_id: str,
+        status: Literal["active", "indexing", "ready", "failed", "archived"] | None = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ):
+        items = _application(request).list_sources(
+            project_id=project_id,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
+        return success(request, {"items": items})
+
+    @app.get(
+        "/projects/{project_id}/documents",
+        response_model=SuccessEnvelope[DocumentListData],
+    )
+    def list_project_documents(
+        request: Request,
+        project_id: str,
+        source_id: str | None = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ):
+        items = _application(request).list_documents(
+            project_id=project_id,
+            source_id=source_id,
+            limit=limit,
+            offset=offset,
+        )
+        return success(request, {"items": items})
 
     @app.post(
         "/tasks",

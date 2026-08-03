@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import and_, func, insert, or_, select, update
+from sqlalchemy import and_, delete, func, insert, or_, select, update
 from sqlalchemy.engine import Connection
 from sqlalchemy.exc import IntegrityError
 
@@ -38,6 +38,8 @@ from backend.storage.v3.schema import (
     agent_tasks,
     idempotency_records,
     projects,
+    documents,
+    sources,
     workflow_bindings,
     workflow_definitions,
     workflow_versions,
@@ -200,6 +202,197 @@ class AgentStore:
                 select(projects).where(projects.c.id == str(project_id))
             ).mappings().first()
             return _public_row(row) if row else None
+
+    def sync_project_root_source(
+        self,
+        *,
+        project_id: str,
+        documents_to_sync: Sequence[Mapping[str, Any]],
+        summary: Mapping[str, int],
+        idempotency_key: str,
+        request_hash: str,
+    ) -> dict[str, Any]:
+        """Persist one safe project-root source and its document snapshot."""
+
+        clean_project_id = _required(project_id, "project_id")
+        scope = f"source.scan:{clean_project_id}"
+        now = _utc_now()
+        with self._database.transaction() as connection:
+            replay = _idempotency_replay(
+                connection, scope, idempotency_key, request_hash
+            )
+            if replay is not None:
+                return replay
+            _require_row(connection, projects, clean_project_id, "project")
+            source_row = connection.execute(
+                select(sources).where(
+                    sources.c.project_id == clean_project_id,
+                    sources.c.source_type == "project_root",
+                    sources.c.locator == ".",
+                )
+            ).mappings().first()
+            if source_row is None:
+                source = {
+                    "id": _identifier(),
+                    "project_id": clean_project_id,
+                    "source_type": "project_root",
+                    "name": "项目根目录",
+                    "locator": ".",
+                    "status": "ready",
+                    "config_json": _dump_json({"scan_summary": dict(summary)}),
+                    "created_at": now,
+                    "updated_at": now,
+                }
+                connection.execute(insert(sources).values(**source))
+            else:
+                source = dict(source_row)
+                source["status"] = "ready"
+                source["config_json"] = _dump_json({"scan_summary": dict(summary)})
+                source["updated_at"] = now
+                connection.execute(
+                    update(sources)
+                    .where(sources.c.id == source["id"])
+                    .values(
+                        status=source["status"],
+                        config_json=source["config_json"],
+                        updated_at=source["updated_at"],
+                    )
+                )
+
+            existing_rows = connection.execute(
+                select(documents).where(documents.c.source_id == source["id"])
+            ).mappings()
+            existing = {str(row["relative_path"]): dict(row) for row in existing_rows}
+            current_paths: set[str] = set()
+            inserted = 0
+            updated = 0
+            for candidate in documents_to_sync:
+                relative_path = _required(candidate.get("relative_path"), "relative_path")
+                current_paths.add(relative_path)
+                content = str(candidate.get("content", ""))
+                checksum = _required(candidate.get("checksum"), "checksum")
+                values = {
+                    "project_id": clean_project_id,
+                    "source_id": source["id"],
+                    "relative_path": relative_path,
+                    "source_path": "",
+                    "content": content,
+                    "checksum": checksum,
+                    "mime_type": _required(candidate.get("mime_type"), "mime_type"),
+                    "size_bytes": int(candidate.get("size_bytes", 0)),
+                    "updated_at": now,
+                }
+                current = existing.get(relative_path)
+                if current is None:
+                    connection.execute(
+                        insert(documents).values(
+                            id=_identifier(),
+                            version=1,
+                            created_at=now,
+                            **values,
+                        )
+                    )
+                    inserted += 1
+                elif (
+                    str(current["checksum"]) != checksum
+                    or str(current["mime_type"]) != values["mime_type"]
+                    or int(current["size_bytes"]) != values["size_bytes"]
+                ):
+                    connection.execute(
+                        update(documents)
+                        .where(documents.c.id == current["id"])
+                        .values(
+                            **values,
+                            version=int(current["version"]) + 1,
+                        )
+                    )
+                    updated += 1
+
+            stale_paths = set(existing) - current_paths
+            if stale_paths:
+                connection.execute(
+                    delete(documents).where(
+                        documents.c.source_id == source["id"],
+                        documents.c.relative_path.in_(sorted(stale_paths)),
+                    )
+                )
+            document_count = int(
+                connection.execute(
+                    select(func.count())
+                    .select_from(documents)
+                    .where(documents.c.source_id == source["id"])
+                ).scalar_one()
+            )
+            public_source = _source_resource(source, document_count=document_count)
+            response = {
+                "source": public_source,
+                "summary": {
+                    **dict(summary),
+                    "inserted": inserted,
+                    "updated": updated,
+                    "deleted": len(stale_paths),
+                    "document_count": document_count,
+                },
+                "replayed": False,
+            }
+            _record_idempotency(
+                connection,
+                scope=scope,
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                response_kind="source",
+                response_id=str(source["id"]),
+                response=response,
+                now=now,
+            )
+            return response
+
+    def list_sources(
+        self,
+        *,
+        project_id: str,
+        status: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        statement = (
+            select(sources, func.count(documents.c.id).label("document_count"))
+            .outerjoin(documents, documents.c.source_id == sources.c.id)
+            .where(sources.c.project_id == _required(project_id, "project_id"))
+            .group_by(sources.c.id)
+            .order_by(sources.c.updated_at.desc(), sources.c.id)
+            .limit(limit)
+            .offset(offset)
+        )
+        if status:
+            statement = statement.where(sources.c.status == _enum(
+                status, "status", {"active", "indexing", "ready", "failed", "archived"}
+            ))
+        with self._database.read_connection() as connection:
+            return [
+                _source_resource(row, document_count=int(row["document_count"]))
+                for row in connection.execute(statement).mappings()
+            ]
+
+    def list_documents(
+        self,
+        *,
+        project_id: str,
+        source_id: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        statement = select(documents).where(
+            documents.c.project_id == _required(project_id, "project_id")
+        )
+        if source_id:
+            statement = statement.where(documents.c.source_id == str(source_id))
+        statement = statement.order_by(documents.c.relative_path, documents.c.id).limit(limit).offset(offset)
+        with self._database.read_connection() as connection:
+            return [
+                _document_resource(row)
+                for row in connection.execute(statement).mappings()
+            ]
 
     def create_workflow(
         self,
@@ -3207,6 +3400,32 @@ def _public_row(row: Mapping[str, Any] | None) -> dict[str, Any]:
         else:
             result[key] = value
     return result
+
+
+def _source_resource(row: Mapping[str, Any], *, document_count: int) -> dict[str, Any]:
+    return {
+        "id": str(row["id"]),
+        "project_id": str(row["project_id"]),
+        "source_type": str(row["source_type"]),
+        "name": str(row["name"]),
+        "status": str(row["status"]),
+        "document_count": int(document_count),
+        "indexed_at": str(row["updated_at"]),
+    }
+
+
+def _document_resource(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "id": str(row["id"]),
+        "project_id": str(row["project_id"]),
+        "source_id": str(row["source_id"]) if row["source_id"] else None,
+        "relative_path": str(row["relative_path"]),
+        "mime_type": str(row["mime_type"]),
+        "size_bytes": int(row["size_bytes"]),
+        "checksum": str(row["checksum"]),
+        "version": int(row["version"]),
+        "updated_at": str(row["updated_at"]),
+    }
 
 
 def _require_row(

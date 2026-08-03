@@ -664,12 +664,12 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 - 失败响应统一为 `{"error":{"code":"...","message":"...","details":{}},"request_id":"..."}`。
 - 调用方可以发送 `X-Request-ID`；未发送时服务端生成 UUID。输入最多保留 200 字符。
 - Web 认证开启时 `GET /api/v3/health` 始终放行，其他 `/api/v3/*` 继续使用主应用的 `X-API-Key` 或 Bearer JWT；desktop mode 下 health 也必须携带进程令牌。
-- 创建项目、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。OpenAPI 把该 Header 标记为 required；缺失时返回 `422 validation_error`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。手动重试 Run 时，原 Key 仍回放已经创建的 retry Run；同一失败源已经存在直接 retry Run 后，其他 Key 返回 `409 state_conflict`，不会再创建第二个直接后继。
+- 创建项目、项目资料扫描、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。OpenAPI 把该 Header 标记为 required；缺失时返回 `422 validation_error`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。手动重试 Run 时，原 Key 仍回放已经创建的 retry Run；同一失败源已经存在直接 retry Run 后，其他 Key 返回 `409 state_conflict`，不会再创建第二个直接后继。
 - 资源不存在返回 `404 not_found`；状态/CAS 冲突返回 `409 state_conflict`；Pydantic 请求错误返回 `422 validation_error`；应用层约束返回 `422 application_validation_error`。
 
 ### 2.2 当前路径
 
-当前 v3 sub-app 有 **30 个业务路径、35 个操作**：
+当前 v3 sub-app 有 **33 个业务路径、38 个操作**：
 
 | 方法 | 路径 | 当前用途 | 写入/控制要求 |
 |------|------|----------|---------------|
@@ -678,6 +678,9 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | POST | `/api/v3/system/backups` | 使用 SQLite 在线 backup 创建并验证受管 v3 备份 | 必须携带 `Idempotency-Key`；返回 201，同 Key 回放；只写 `<data-root>/backups/backup-*` |
 | POST | `/api/v3/system/backups/{backup_id}/restore` | 受控恢复已验证的受管 v3 备份 | 必须携带 `Idempotency-Key` 和确认用 `expected_database_sha256`；仅在没有其他 v3 请求时执行，返回 200 |
 | POST / GET | `/api/v3/projects` | 创建已有本地目录对应的项目；列出项目 | POST 需要 `Idempotency-Key`；根目录必须存在且为目录 |
+| POST | `/api/v3/projects/{project_id}/sources/scan` | 只读扫描已绑定根内的受支持文本文件，并同步 v3 Sources/Documents 快照 | 需要 `Idempotency-Key`，返回 201；不跟随符号链接、不修改源目录、不返回正文或绝对路径 |
+| GET | `/api/v3/projects/{project_id}/sources` | 列出已受管资料源 | 支持 `status`、`limit=1..500`、`offset>=0`；只返回来源元数据与文件数 |
+| GET | `/api/v3/projects/{project_id}/documents` | 列出已受管文档元数据 | 支持 `source_id`、`limit=1..500`、`offset>=0`；只返回相对路径、类型、大小、hash 和版本 |
 | POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
@@ -706,6 +709,8 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | GET | `/api/v3/workflow-bindings` | 按项目、工作流或 enabled 筛选绑定 | 只读 |
 
 `/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
+
+Sources 首段只有 `project_root` 一种资料源。扫描从已登记的项目根重新解析并逐项检查，跳过忽略目录、符号链接、不支持文件、超过单文件 1 MiB 或总计 10 MiB 的文件；最多访问 5,000 个目录项。成功文件以相对路径、UTF-8 正文、副本 hash、MIME、大小和版本写入独立 v3 `documents`，重复扫描更新变化文件并删除已消失文件。响应中的 `SourceResource` 不含 locator/config，`DocumentResource` 不含正文、源绝对路径或内部错误。根不可用返回 `409 project_root_unavailable`；任一单文件不可读仅增加扫描摘要的 `read_failures`，不阻断其他文件。
 
 存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
 

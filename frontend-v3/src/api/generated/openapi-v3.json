@@ -909,6 +909,87 @@
         "title": "BackupResource",
         "type": "object"
       },
+      "DocumentListData": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentResource"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DocumentListData",
+        "type": "object"
+      },
+      "DocumentResource": {
+        "additionalProperties": false,
+        "properties": {
+          "checksum": {
+            "maxLength": 128,
+            "minLength": 64,
+            "title": "Checksum",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "relative_path": {
+            "title": "Relative Path",
+            "type": "string"
+          },
+          "size_bytes": {
+            "minimum": 0.0,
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "relative_path",
+          "mime_type",
+          "size_bytes",
+          "checksum",
+          "version",
+          "updated_at"
+        ],
+        "title": "DocumentResource",
+        "type": "object"
+      },
       "ErrorBody": {
         "additionalProperties": false,
         "properties": {
@@ -1663,6 +1744,180 @@
         "title": "RunStepsData",
         "type": "object"
       },
+      "SourceListData": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceResource"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SourceListData",
+        "type": "object"
+      },
+      "SourceResource": {
+        "additionalProperties": false,
+        "properties": {
+          "document_count": {
+            "minimum": 0.0,
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "indexed_at": {
+            "title": "Indexed At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "project_id": {
+            "title": "Project Id",
+            "type": "string"
+          },
+          "source_type": {
+            "const": "project_root",
+            "title": "Source Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "indexing",
+              "ready",
+              "failed",
+              "archived"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "source_type",
+          "name",
+          "status",
+          "document_count",
+          "indexed_at"
+        ],
+        "title": "SourceResource",
+        "type": "object"
+      },
+      "SourceScanData": {
+        "additionalProperties": false,
+        "properties": {
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourceResource"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SourceScanSummary"
+          }
+        },
+        "required": [
+          "source",
+          "summary",
+          "replayed"
+        ],
+        "title": "SourceScanData",
+        "type": "object"
+      },
+      "SourceScanSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted": {
+            "minimum": 0.0,
+            "title": "Deleted",
+            "type": "integer"
+          },
+          "document_count": {
+            "minimum": 0.0,
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "inserted": {
+            "minimum": 0.0,
+            "title": "Inserted",
+            "type": "integer"
+          },
+          "read_failures": {
+            "minimum": 0.0,
+            "title": "Read Failures",
+            "type": "integer"
+          },
+          "skipped_symlinks": {
+            "minimum": 0.0,
+            "title": "Skipped Symlinks",
+            "type": "integer"
+          },
+          "skipped_too_large": {
+            "minimum": 0.0,
+            "title": "Skipped Too Large",
+            "type": "integer"
+          },
+          "skipped_unsupported": {
+            "minimum": 0.0,
+            "title": "Skipped Unsupported",
+            "type": "integer"
+          },
+          "supported_files": {
+            "minimum": 0.0,
+            "title": "Supported Files",
+            "type": "integer"
+          },
+          "total_bytes": {
+            "minimum": 0.0,
+            "title": "Total Bytes",
+            "type": "integer"
+          },
+          "truncated": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Truncated",
+            "type": "integer"
+          },
+          "updated": {
+            "minimum": 0.0,
+            "title": "Updated",
+            "type": "integer"
+          },
+          "visited_entries": {
+            "minimum": 0.0,
+            "title": "Visited Entries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "visited_entries",
+          "supported_files",
+          "skipped_unsupported",
+          "skipped_symlinks",
+          "skipped_too_large",
+          "read_failures",
+          "total_bytes",
+          "truncated",
+          "inserted",
+          "updated",
+          "deleted",
+          "document_count"
+        ],
+        "title": "SourceScanSummary",
+        "type": "object"
+      },
       "StepLifecycleEvent": {
         "additionalProperties": false,
         "properties": {
@@ -2056,6 +2311,22 @@
         "title": "SuccessEnvelope[BackupMutationData]",
         "type": "object"
       },
+      "SuccessEnvelope_DocumentListData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DocumentListData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[DocumentListData]",
+        "type": "object"
+      },
       "SuccessEnvelope_HealthData_": {
         "properties": {
           "data": {
@@ -2198,6 +2469,38 @@
           "meta"
         ],
         "title": "SuccessEnvelope[RunStepsData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_SourceListData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SourceListData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[SourceListData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_SourceScanData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SourceScanData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[SourceScanData]",
         "type": "object"
       },
       "SuccessEnvelope_StoragePreflightData_": {
@@ -3959,6 +4262,277 @@
           }
         },
         "summary": "Create Project"
+      }
+    },
+    "/projects/{project_id}/documents": {
+      "get": {
+        "operationId": "list_project_documents_projects__project_id__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_DocumentListData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "List Project Documents"
+      }
+    },
+    "/projects/{project_id}/sources": {
+      "get": {
+        "operationId": "list_project_sources_projects__project_id__sources_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active",
+                    "indexing",
+                    "ready",
+                    "failed",
+                    "archived"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_SourceListData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "List Project Sources"
+      }
+    },
+    "/projects/{project_id}/sources/scan": {
+      "post": {
+        "operationId": "scan_project_sources_projects__project_id__sources_scan_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_SourceScanData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Scan Project Sources"
       }
     },
     "/runs/{run_id}": {

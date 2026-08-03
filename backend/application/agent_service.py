@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+import mimetypes
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 from backend.domain.agent_runtime import DepthProfile, get_depth_limits
+from backend.domain.import_rules import (
+    IGNORED_DIR_NAMES,
+    MAX_TEXT_FILE_BYTES,
+    is_supported_text_path,
+)
 from backend.domain.workflow_registry import (
     WorkflowDefinition,
     WorkflowEdge,
@@ -64,10 +70,16 @@ PROJECT_INSPECT_WORKFLOW_CHECKSUM = hashlib.sha256(
         separators=(",", ":"),
     ).encode("utf-8")
 ).hexdigest()
+MAX_SOURCE_SCAN_ENTRIES = 5_000
+MAX_SOURCE_SCAN_TOTAL_BYTES = 10_000_000
 
 
 class ApplicationValidationError(ValueError):
     """A command is structurally valid HTTP but invalid for the application."""
+
+
+class ProjectRootUnavailableError(RuntimeError):
+    """The persisted project root cannot safely be scanned right now."""
 
 
 class AgentApplication:
@@ -97,6 +109,72 @@ class AgentApplication:
 
     def list_projects(self) -> list[dict[str, Any]]:
         return self.store.list_projects()
+
+    def scan_project_sources(
+        self,
+        *,
+        project_id: str,
+        idempotency_key: str,
+    ) -> dict[str, Any]:
+        project = self.store.get_project(project_id)
+        if project is None:
+            raise RecordNotFoundError("project not found")
+        root = Path(str(project["root_path"])).expanduser().resolve()
+        if not root.exists() or not root.is_dir():
+            raise ProjectRootUnavailableError("project root is unavailable")
+        documents, summary = _scan_project_root(root)
+        payload = {"project_id": str(project_id), "scan_version": 1}
+        return self.store.sync_project_root_source(
+            project_id=project_id,
+            documents_to_sync=documents,
+            summary=summary,
+            idempotency_key=_required_idempotency_key(idempotency_key),
+            request_hash=request_hash(payload),
+        )
+
+    def list_sources(
+        self,
+        *,
+        project_id: str,
+        status: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[dict[str, Any]]:
+        if self.store.get_project(project_id) is None:
+            raise RecordNotFoundError("project not found")
+        return self.store.list_sources(
+            project_id=project_id,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
+
+    def list_documents(
+        self,
+        *,
+        project_id: str,
+        source_id: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[dict[str, Any]]:
+        if self.store.get_project(project_id) is None:
+            raise RecordNotFoundError("project not found")
+        if source_id and not any(
+            source["id"] == source_id
+            for source in self.store.list_sources(
+                project_id=project_id,
+                status=None,
+                limit=1_000,
+                offset=0,
+            )
+        ):
+            raise RecordNotFoundError("source not found")
+        return self.store.list_documents(
+            project_id=project_id,
+            source_id=source_id,
+            limit=limit,
+            offset=offset,
+        )
 
     def create_task(
         self,
@@ -560,6 +638,74 @@ def _required_idempotency_key(value: str) -> str:
     return normalized
 
 
+def _scan_project_root(root: Path) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Read bounded text snapshots from a registered root without symlink traversal."""
+
+    documents: list[dict[str, Any]] = []
+    summary = {
+        "visited_entries": 0,
+        "supported_files": 0,
+        "skipped_unsupported": 0,
+        "skipped_symlinks": 0,
+        "skipped_too_large": 0,
+        "read_failures": 0,
+        "total_bytes": 0,
+        "truncated": 0,
+    }
+    pending = [root]
+    while pending:
+        directory = pending.pop()
+        try:
+            children = sorted(directory.iterdir(), key=lambda item: item.name.lower())
+        except OSError as exc:
+            raise ProjectRootUnavailableError("project root cannot be read") from exc
+        for child in children:
+            summary["visited_entries"] += 1
+            if summary["visited_entries"] > MAX_SOURCE_SCAN_ENTRIES:
+                summary["truncated"] = 1
+                pending.clear()
+                break
+            if child.is_symlink():
+                summary["skipped_symlinks"] += 1
+                continue
+            if child.is_dir():
+                if child.name.lower() not in IGNORED_DIR_NAMES:
+                    pending.append(child)
+                continue
+            if not child.is_file() or not is_supported_text_path(child):
+                summary["skipped_unsupported"] += 1
+                continue
+            summary["supported_files"] += 1
+            try:
+                size_bytes = child.stat().st_size
+            except OSError:
+                summary["read_failures"] += 1
+                continue
+            if size_bytes > MAX_TEXT_FILE_BYTES or (
+                summary["total_bytes"] + size_bytes > MAX_SOURCE_SCAN_TOTAL_BYTES
+            ):
+                summary["skipped_too_large"] += 1
+                continue
+            try:
+                raw = child.read_bytes()
+                content = raw.decode("utf-8")
+            except (OSError, UnicodeDecodeError):
+                summary["read_failures"] += 1
+                continue
+            relative_path = child.relative_to(root).as_posix()
+            documents.append(
+                {
+                    "relative_path": relative_path,
+                    "content": content,
+                    "checksum": hashlib.sha256(raw).hexdigest(),
+                    "mime_type": mimetypes.guess_type(child.name)[0] or "text/plain",
+                    "size_bytes": len(raw),
+                }
+            )
+            summary["total_bytes"] += len(raw)
+    return documents, summary
+
+
 __all__ = [
     "AgentApplication",
     "ApplicationValidationError",
@@ -567,5 +713,6 @@ __all__ = [
     "PROJECT_INSPECT_WORKFLOW_CHECKSUM",
     "PROJECT_INSPECT_WORKFLOW_KEY",
     "PROJECT_INSPECT_WORKFLOW_VERSION",
+    "ProjectRootUnavailableError",
     "request_hash",
 ]

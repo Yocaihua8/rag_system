@@ -57,6 +57,7 @@ function validateOpenApiSchema(filename) {
   }
   const idempotentWrites = [
     ['/projects', 'post'],
+    ['/projects/{project_id}/sources/scan', 'post'],
     ['/tasks', 'post'],
     ['/tasks/{task_id}/messages', 'post'],
     ['/tasks/{task_id}/runs', 'post'],

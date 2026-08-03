@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, v3Api, v3QueryKeys } from '../../api'
@@ -13,6 +13,17 @@ export function ProjectRoute() {
   const queryClient = useQueryClient()
   const projects = useProjects()
   const intentKeys = useIntentKeys()
+  const activeProjectId = projects.selectedProject?.id
+  const sources = useQuery({
+    queryKey: v3QueryKeys.projectSources(activeProjectId ?? ''),
+    queryFn: () => v3Api.listProjectSources(activeProjectId!),
+    enabled: Boolean(activeProjectId),
+  })
+  const documents = useQuery({
+    queryKey: v3QueryKeys.projectDocuments(activeProjectId ?? ''),
+    queryFn: () => v3Api.listProjectDocuments(activeProjectId!),
+    enabled: Boolean(activeProjectId),
+  })
 
   useEffect(() => {
     if (projectId && projects.data?.items.some((project) => project.id === projectId)) {
@@ -37,6 +48,24 @@ export function ProjectRoute() {
     },
   })
 
+  const scanSources = useMutation({
+    mutationFn: async (id: string) => {
+      const fingerprint = await digestIntentFingerprint([id, 'project-root-source-scan-v1'])
+      const result = await v3Api.scanProjectSources(
+        id,
+        { idempotencyKey: intentKeys.get('project-source-scan', fingerprint) },
+      )
+      intentKeys.release('project-source-scan', fingerprint)
+      return result
+    },
+    onSuccess: async (_result, id) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: v3QueryKeys.projectSources(id) }),
+        queryClient.invalidateQueries({ queryKey: v3QueryKeys.projectDocuments(id) }),
+      ])
+    },
+  })
+
   return (
     <ProjectPage
       project={projects.selectedProject ? {
@@ -52,6 +81,22 @@ export function ProjectRoute() {
       loading={projects.isLoading}
       error={errorMessage(projects.error ?? createProject.error)}
       creating={createProject.isPending}
+      sources={(sources.data?.items ?? []).map((source) => ({
+        id: source.id,
+        name: source.name,
+        sourceType: source.source_type,
+        status: source.status,
+        documentCount: source.document_count,
+      }))}
+      documents={(documents.data?.items ?? []).map((document) => ({
+        id: document.id,
+        relativePath: document.relative_path,
+        mimeType: document.mime_type,
+        sizeBytes: document.size_bytes,
+      }))}
+      sourcesLoading={sources.isLoading || documents.isLoading}
+      scanningSources={scanSources.isPending}
+      sourcesError={errorMessage(sources.error ?? documents.error ?? scanSources.error)}
       onSelectProject={(id) => {
         projects.selectProject(id)
         navigate(`/projects/${id}/overview`)
@@ -59,6 +104,7 @@ export function ProjectRoute() {
       onCreateProject={(name, rootPath) =>
         createProject.mutateAsync({ name, rootPath }).then(() => undefined)
       }
+      onScanSources={() => activeProjectId ? scanSources.mutateAsync(activeProjectId).then(() => undefined) : Promise.resolve()}
     />
   )
 }

@@ -8,17 +8,38 @@ export interface ProjectSummary {
   rootLabel: string
 }
 
+export interface ProjectSourceSummary {
+  id: string
+  name: string
+  sourceType: string
+  status: string
+  documentCount: number
+}
+
+export interface ProjectDocumentSummary {
+  id: string
+  relativePath: string
+  mimeType: string
+  sizeBytes: number
+}
+
 interface ProjectPageProps {
   project?: ProjectSummary
   projects?: ProjectSummary[]
   loading?: boolean
   error?: string
   creating?: boolean
+  sources?: ProjectSourceSummary[]
+  documents?: ProjectDocumentSummary[]
+  sourcesLoading?: boolean
+  scanningSources?: boolean
+  sourcesError?: string
   onCreateProject?: (name: string, rootPath: string) => void | Promise<void>
   onSelectProject?: (projectId: string) => void
+  onScanSources?: () => void | Promise<void>
 }
 
-export function ProjectPage({ project, projects = [], loading = false, error, creating = false, onCreateProject, onSelectProject }: ProjectPageProps) {
+export function ProjectPage({ project, projects = [], loading = false, error, creating = false, sources = [], documents = [], sourcesLoading = false, scanningSources = false, sourcesError, onCreateProject, onSelectProject, onScanSources }: ProjectPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
   const [rootPath, setRootPath] = useState('')
@@ -58,7 +79,7 @@ export function ProjectPage({ project, projects = [], loading = false, error, cr
         <div className="content-grid">
           {projects.length > 1 ? <section className="content-section"><h2>选择项目</h2><label className="field-label" htmlFor="project-select">当前项目</label><select id="project-select" className="field-control" value={project.id} onChange={(event) => onSelectProject?.(event.target.value)}>{projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></section> : null}
           <section className="content-section"><h2>项目概况</h2><dl className="summary-list"><div><dt>名称</dt><dd>{project.name}</dd></div><div><dt>位置</dt><dd>{project.rootLabel}</dd></div></dl></section>
-          <section className="content-section"><h2>参考资料</h2><p>资料接口尚未接入当前前端阶段，因此不会显示占位资料。</p><button className="button button--secondary" type="button" disabled>导入资料（尚未开放）</button></section>
+          <section className="content-section"><h2>参考资料</h2>{sourcesLoading ? <p role="status">正在读取资料…</p> : null}{sourcesError ? <p role="alert">{sourcesError}</p> : null}{!sourcesLoading && !sources.length ? <p>尚未扫描此项目。扫描只读取已绑定目录中的受支持文本文件，不会修改项目文件。</p> : null}{sources.map((source) => <div className="summary-list" key={source.id}><div><dt>{source.name}</dt><dd>{source.documentCount} 个文件 · {source.status}</dd></div></div>)}{documents.length ? <ul className="plain-list" aria-label="已索引资料">{documents.map((document) => <li key={document.id}><code>{document.relativePath}</code><span>{document.mimeType} · {document.sizeBytes} 字节</span></li>)}</ul> : null}<button className="button button--secondary" type="button" disabled={!onScanSources || scanningSources} onClick={() => void onScanSources?.()}>{scanningSources ? '正在扫描…' : sources.length ? '重新扫描资料' : '扫描项目资料'}</button></section>
           <section className="content-section"><h2>项目洞察</h2><p>Overview、Knowledge、Assessments 和 Learning Plan 将在真实接口接入后开放。</p></section>
         </div>
       ) : null}

@@ -63,6 +63,43 @@ export function createV3ApiClient(options: V3ApiClientOptions) {
         }),
       ),
 
+    scanProjectSources: (projectId: string, request: WriteRequestOptions) =>
+      unwrap<Schemas['SourceScanData']>(
+        client.POST('/projects/{project_id}/sources/scan', {
+          params: {
+            path: { project_id: projectId },
+            header: writeHeaderParams(request.idempotencyKey),
+          },
+          signal: request.signal,
+        }),
+      ),
+    listProjectSources: (
+      projectId: string,
+      query: {
+        status?: 'active' | 'indexing' | 'ready' | 'failed' | 'archived'
+        limit?: number
+        offset?: number
+      } = {},
+      request: RequestOptions = {},
+    ) =>
+      unwrap<Schemas['SourceListData']>(
+        client.GET('/projects/{project_id}/sources', {
+          params: { path: { project_id: projectId }, query },
+          signal: request.signal,
+        }),
+      ),
+    listProjectDocuments: (
+      projectId: string,
+      query: { source_id?: string; limit?: number; offset?: number } = {},
+      request: RequestOptions = {},
+    ) =>
+      unwrap<Schemas['DocumentListData']>(
+        client.GET('/projects/{project_id}/documents', {
+          params: { path: { project_id: projectId }, query },
+          signal: request.signal,
+        }),
+      ),
+
     listTasks: (
       query: {
         project_id?: string

@@ -613,6 +613,9 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "/system/backups/{backup_id}/restore",
         "/system/storage/preflight",
         "/projects",
+        "/projects/{project_id}/sources/scan",
+        "/projects/{project_id}/sources",
+        "/projects/{project_id}/documents",
         "/tasks",
         "/tasks/{task_id}",
         "/tasks/{task_id}/messages",
@@ -685,6 +688,12 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
     assert success_schema["properties"]["meta"] == {
         "$ref": "#/components/schemas/ResponseMeta"
     }
+    assert "locator" not in schema["components"]["schemas"]["SourceResource"][
+        "properties"
+    ]
+    assert "content" not in schema["components"]["schemas"]["DocumentResource"][
+        "properties"
+    ]
 
 
 def test_openapi_documents_runtime_error_envelope_for_422_404_and_409():

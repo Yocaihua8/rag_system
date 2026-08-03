@@ -141,6 +141,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/projects/{project_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Project Documents */
+        get: operations["list_project_documents_projects__project_id__documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Project Sources */
+        get: operations["list_project_sources_projects__project_id__sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/projects/{project_id}/sources/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Scan Project Sources */
+        post: operations["scan_project_sources_projects__project_id__sources_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs/{run_id}": {
         parameters: {
             query?: never;
@@ -871,6 +922,32 @@ export interface components {
             /** Schema Revision */
             schema_revision: string;
         };
+        /** DocumentListData */
+        DocumentListData: {
+            /** Items */
+            items: components["schemas"]["DocumentResource"][];
+        };
+        /** DocumentResource */
+        DocumentResource: {
+            /** Checksum */
+            checksum: string;
+            /** Id */
+            id: string;
+            /** Mime Type */
+            mime_type: string;
+            /** Project Id */
+            project_id: string;
+            /** Relative Path */
+            relative_path: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Source Id */
+            source_id?: string | null;
+            /** Updated At */
+            updated_at: string;
+            /** Version */
+            version: number;
+        };
         /** ErrorBody */
         ErrorBody: {
             /** Code */
@@ -1155,6 +1232,68 @@ export interface components {
             /** Items */
             items: components["schemas"]["StepResource"][];
         };
+        /** SourceListData */
+        SourceListData: {
+            /** Items */
+            items: components["schemas"]["SourceResource"][];
+        };
+        /** SourceResource */
+        SourceResource: {
+            /** Document Count */
+            document_count: number;
+            /** Id */
+            id: string;
+            /** Indexed At */
+            indexed_at: string;
+            /** Name */
+            name: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Source Type
+             * @constant
+             */
+            source_type: "project_root";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "indexing" | "ready" | "failed" | "archived";
+        };
+        /** SourceScanData */
+        SourceScanData: {
+            /** Replayed */
+            replayed: boolean;
+            source: components["schemas"]["SourceResource"];
+            summary: components["schemas"]["SourceScanSummary"];
+        };
+        /** SourceScanSummary */
+        SourceScanSummary: {
+            /** Deleted */
+            deleted: number;
+            /** Document Count */
+            document_count: number;
+            /** Inserted */
+            inserted: number;
+            /** Read Failures */
+            read_failures: number;
+            /** Skipped Symlinks */
+            skipped_symlinks: number;
+            /** Skipped Too Large */
+            skipped_too_large: number;
+            /** Skipped Unsupported */
+            skipped_unsupported: number;
+            /** Supported Files */
+            supported_files: number;
+            /** Total Bytes */
+            total_bytes: number;
+            /** Truncated */
+            truncated: number;
+            /** Updated */
+            updated: number;
+            /** Visited Entries */
+            visited_entries: number;
+        };
         /** StepLifecycleEvent */
         StepLifecycleEvent: {
             /** Created At */
@@ -1300,6 +1439,11 @@ export interface components {
             data: components["schemas"]["BackupMutationData"];
             meta: components["schemas"]["ResponseMeta"];
         };
+        /** SuccessEnvelope[DocumentListData] */
+        SuccessEnvelope_DocumentListData_: {
+            data: components["schemas"]["DocumentListData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
         /** SuccessEnvelope[HealthData] */
         SuccessEnvelope_HealthData_: {
             data: components["schemas"]["HealthData"];
@@ -1343,6 +1487,16 @@ export interface components {
         /** SuccessEnvelope[RunStepsData] */
         SuccessEnvelope_RunStepsData_: {
             data: components["schemas"]["RunStepsData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[SourceListData] */
+        SuccessEnvelope_SourceListData_: {
+            data: components["schemas"]["SourceListData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[SourceScanData] */
+        SuccessEnvelope_SourceScanData_: {
+            data: components["schemas"]["SourceScanData"];
             meta: components["schemas"]["ResponseMeta"];
         };
         /** SuccessEnvelope[StoragePreflightData] */
@@ -2176,6 +2330,163 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_ProjectMutationData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_project_documents_projects__project_id__documents_get: {
+        parameters: {
+            query?: {
+                source_id?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_DocumentListData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    list_project_sources_projects__project_id__sources_get: {
+        parameters: {
+            query?: {
+                status?: ("active" | "indexing" | "ready" | "failed" | "archived") | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_SourceListData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    scan_project_sources_projects__project_id__sources_scan_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                project_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_SourceScanData_"];
                 };
             };
             /** @description Resource not found */

@@ -226,6 +226,57 @@ class ProjectListData(StrictModel):
     items: list[ProjectResource]
 
 
+class SourceResource(StrictModel):
+    id: str
+    project_id: str
+    source_type: Literal["project_root"]
+    name: str
+    status: Literal["active", "indexing", "ready", "failed", "archived"]
+    document_count: int = Field(ge=0)
+    indexed_at: str
+
+
+class SourceScanSummary(StrictModel):
+    visited_entries: int = Field(ge=0)
+    supported_files: int = Field(ge=0)
+    skipped_unsupported: int = Field(ge=0)
+    skipped_symlinks: int = Field(ge=0)
+    skipped_too_large: int = Field(ge=0)
+    read_failures: int = Field(ge=0)
+    total_bytes: int = Field(ge=0)
+    truncated: int = Field(ge=0, le=1)
+    inserted: int = Field(ge=0)
+    updated: int = Field(ge=0)
+    deleted: int = Field(ge=0)
+    document_count: int = Field(ge=0)
+
+
+class SourceScanData(StrictModel):
+    source: SourceResource
+    summary: SourceScanSummary
+    replayed: bool
+
+
+class SourceListData(StrictModel):
+    items: list[SourceResource]
+
+
+class DocumentResource(StrictModel):
+    id: str
+    project_id: str
+    source_id: str | None = None
+    relative_path: str
+    mime_type: str
+    size_bytes: int = Field(ge=0)
+    checksum: str = Field(min_length=64, max_length=128)
+    version: int = Field(ge=1)
+    updated_at: str
+
+
+class DocumentListData(StrictModel):
+    items: list[DocumentResource]
+
+
 class TaskResource(StrictModel):
     id: str
     project_id: str
