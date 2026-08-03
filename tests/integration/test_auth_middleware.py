@@ -2,6 +2,10 @@ from fastapi.testclient import TestClient
 
 from backend.api.auth import load_auth_settings, validate_jwt
 from backend.api.server import create_app
+from backend.config.desktop import DESKTOP_TOKEN_HEADER, DesktopRuntimeSettings
+
+
+DESKTOP_TOKEN = "ab" * 32
 
 
 def _auth_settings():
@@ -17,6 +21,19 @@ def _auth_settings():
 
 def _client(tmp_path, settings):
     return TestClient(create_app(db_path=tmp_path / "app.db", auth_settings=settings))
+
+
+def _desktop_client(tmp_path, settings=None):
+    return TestClient(
+        create_app(
+            db_path=tmp_path / "app.db",
+            auth_settings=settings or load_auth_settings({}),
+            desktop_settings=DesktopRuntimeSettings(
+                enabled=True,
+                startup_token=DESKTOP_TOKEN,
+            ),
+        )
+    )
 
 
 def test_auth_disabled_keeps_existing_api_access(tmp_path):
@@ -104,3 +121,58 @@ def test_auth_enabled_protects_fastapi_docs(tmp_path):
     assert authorized_docs_response.status_code == 200
     assert authorized_openapi_response.status_code == 200
     assert "/api/answer/compare" in authorized_openapi_response.json()["paths"]
+
+
+def test_desktop_mode_protects_health_api_and_docs_with_process_token(tmp_path):
+    client = _desktop_client(tmp_path)
+
+    for path in ("/api/health", "/api/projects", "/docs", "/openapi.json"):
+        missing_response = client.get(path)
+        invalid_response = client.get(
+            path,
+            headers={DESKTOP_TOKEN_HEADER: "cd" * 32},
+        )
+        accepted_response = client.get(
+            path,
+            headers={DESKTOP_TOKEN_HEADER: DESKTOP_TOKEN},
+        )
+
+        assert missing_response.status_code == 401
+        assert missing_response.json() == {"error": "authentication required"}
+        assert "www-authenticate" not in missing_response.headers
+        assert invalid_response.status_code == 401
+        assert invalid_response.json() == {"error": "invalid credentials"}
+        assert accepted_response.status_code == 200
+
+
+def test_desktop_mode_does_not_accept_web_api_key_or_issue_web_token(tmp_path):
+    client = _desktop_client(tmp_path, _auth_settings())
+
+    api_key_response = client.get(
+        "/api/projects",
+        headers={"X-API-Key": "secret-key"},
+    )
+    desktop_response = client.get(
+        "/api/projects",
+        headers={DESKTOP_TOKEN_HEADER: DESKTOP_TOKEN},
+    )
+    token_response = client.post(
+        "/api/auth/token",
+        headers={
+            DESKTOP_TOKEN_HEADER: DESKTOP_TOKEN,
+            "X-API-Key": "secret-key",
+        },
+    )
+
+    assert api_key_response.status_code == 401
+    assert desktop_response.status_code == 200
+    assert token_response.status_code == 404
+    assert token_response.json() == {"error": "not found"}
+
+
+def test_desktop_mode_keeps_obsidian_pairing_self_authenticated(tmp_path):
+    client = _desktop_client(tmp_path)
+
+    response = client.post("/api/obsidian/pairing/complete", json={})
+
+    assert response.status_code != 401

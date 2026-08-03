@@ -16,6 +16,7 @@
 |------|------|----------|
 | `X-API-Key` | `RAG_AUTH_API_KEY` | 进程环境配置；服务端不写 SQLite |
 | Bearer JWT | `POST /api/auth/token` | 用 `RAG_AUTH_JWT_SECRET` 签发；默认 3600 秒；无服务端撤销列表 |
+| `X-KI-Desktop-Token` | Tauri 启动 sidecar 时通过进程环境注入 | 仅当前父子进程生命周期；不写 CLI、日志、SQLite 或浏览器持久存储 |
 | Obsidian Bearer Token | 插件配对成功时一次返回 | 服务端只保存 hash；连接可撤销 |
 
 共享 Key/JWT 只增加单用户服务访问门槛，不提供成员身份、RBAC 或项目级授权。
@@ -39,6 +40,8 @@
 - 问答使用原生 `EventSource`，当前没有 query token、cookie 或自定义认证 Header 方案；
 - 因此 Vue 主路径只承诺默认关闭认证的本地模式。开启后端认证并不自动得到可用的浏览器登录、刷新或 SSE 认证链。
 
+`KI_DESKTOP_MODE=1` 是独立于 Web Key/JWT 的桌面认证边界：服务端必须精确绑定 `127.0.0.1` 和显式非零端口，所有 `/api/*`（包括 health）、`/docs`、`/redoc` 与 `/openapi.json` 都只接受匹配的 `X-KI-Desktop-Token`。Web API Key/JWT 不能替代该令牌，`/api/auth/token` 在桌面模式返回 404；上表中的 Obsidian 自认证路由继续由自身凭证校验。该模式当前默认关闭，正式桌面入口仍使用现有 Vue/Tauri 基线。
+
 ## 3. CORS
 
 默认精确 Origin allowlist 为：
@@ -54,7 +57,7 @@
 | 配置 | 当前值 |
 |------|--------|
 | Methods | `GET`、`POST`、`OPTIONS` |
-| Headers | `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-Request-ID` |
+| Headers | `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-KI-Desktop-Token`、`X-Request-ID` |
 | Cookie credentials | `false` |
 | 通配符 | 禁止 |
 

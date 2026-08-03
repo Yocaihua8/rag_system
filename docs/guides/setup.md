@@ -108,6 +108,9 @@ npm --workspace frontend-v3 run preview
 | `RAG_RUNTIME_DIR` | 默认仓库内 `runtime/v2/` |
 | `RAG_AUTH_ENABLED` | 默认关闭 |
 | `RAG_AUTH_API_KEY` / `RAG_AUTH_JWT_SECRET` | 启用认证时必填，不得提交 |
+| `KI_DESKTOP_MODE` | 默认关闭；仅供 Tauri sidecar 进程启用独立桌面认证边界 |
+| `KI_DESKTOP_STARTUP_TOKEN` | desktop mode 必填的 64 位小写十六进制进程令牌；不得手工持久化 |
+| `KI_API_HOST` / `KI_API_PORT` | Web 默认 `127.0.0.1:8765`；desktop mode 只接受精确环回地址和显式 1–65535 端口 |
 | `KI_CORS_ORIGINS` | 精确 Origin 列表；默认本机 Vue 5173/4173、React v3 5174/4174 和 Tauri Origin |
 | `RAG_LLM_PROVIDER` | 本地降级、OpenAI-compatible API 或 Ollama |
 | `RAG_EMBED_PROVIDER` | 默认本地 hashing；`api` 使用 OpenAI-compatible embeddings |
@@ -125,6 +128,8 @@ npm run desktop:build:windows
 ```
 
 Tauri 打包 `frontend/dist/` 并启动 `127.0.0.1:8765` sidecar。bundle 成功后仍需在安装应用中验证 sidecar、REST、SSE 和核心用户流程；macOS/Linux 必须在目标平台单独构建。
+
+后端已提供默认关闭的 desktop mode，但当前正式 Tauri 尚未接入动态端口和令牌，仍按上一段固定端口基线运行。不要在日常启动脚本中手工设置或保存 `KI_DESKTOP_STARTUP_TOKEN`；壳接线完成后由父进程临时生成并注入。
 
 ## 8. Obsidian 插件
 

@@ -13,6 +13,7 @@
 - CORS 使用精确 Origin，不接受 `*`，不启用 cookie credentials；CORS 不是身份认证。
 - 当前 Vue helper 和原生 EventSource 未接认证凭证，启用后端认证会使浏览器主流程不可用；修复接线前不要把它当作 Vue 登录方案。
 - `/api/health` 只证明进程活性，不证明 Provider、数据库恢复或完整业务就绪。
+- 默认关闭的 desktop mode 只允许精确 `127.0.0.1` 和壳分配的显式端口；包括 health 在内的 API 使用当前进程期 `X-KI-Desktop-Token`，不接受 Web Key/JWT 替代。
 
 ## 2. 凭证
 
@@ -22,6 +23,7 @@
 - `VITE_API_BASE_URL` 会进入公开前端构建，禁止包含凭证。
 - Obsidian 服务端只保存插件令牌哈希；插件为了离线恢复会在 Vault 的插件 `data.json` 中保存明文令牌，需依赖本机文件权限。
 - 日志、测试输出、Issue、PR 和截图不得暴露凭证或真实敏感项目内容。
+- 桌面启动令牌只能由父壳通过 sidecar 环境传入并保留在内存；禁止进入 CLI 参数、URL、日志、数据库、文件或浏览器存储。
 
 ## 3. 权限边界
 

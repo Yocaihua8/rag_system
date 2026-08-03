@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from backend.api.auth import load_auth_settings
 from backend.api.server import create_app
+from backend.config.desktop import DESKTOP_TOKEN_HEADER, DesktopRuntimeSettings
 from backend.config.web import DEFAULT_CORS_ORIGINS, cors_origins
 
 
@@ -70,6 +71,34 @@ def test_authenticated_api_preflight_is_answered_before_authentication(tmp_path)
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
+
+
+def test_desktop_process_token_header_is_allowed_before_desktop_authentication(
+    tmp_path,
+):
+    client = TestClient(
+        create_app(
+            db_path=tmp_path / "app.db",
+            desktop_settings=DesktopRuntimeSettings(
+                enabled=True,
+                startup_token="ab" * 32,
+            ),
+        )
+    )
+    response = client.options(
+        "/api/v3/health",
+        headers={
+            "Origin": "tauri://localhost",
+            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": DESKTOP_TOKEN_HEADER,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "tauri://localhost"
+    assert DESKTOP_TOKEN_HEADER.lower() in response.headers[
+        "access-control-allow-headers"
+    ].lower()
 
 
 def test_cors_configuration_rejects_wildcards():

@@ -8,13 +8,15 @@
 
 ## 1. 当前 HTTP API
 
-当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。本节描述继续服务现有 Vue 的 v2 契约；新增 v3 alpha sub-app 见 § 2，两者在迁移期并存。
+当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。Web 模式默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。本节描述继续服务现有 Vue 的 v2 契约；新增 v3 alpha sub-app 见 § 2，两者在迁移期并存。
 
 默认认证关闭；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token` 和使用独立插件令牌校验的 Obsidian 路由外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效应用凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。FastAPI 不托管静态资源，`GET /` 返回 404。
 
+默认关闭的 desktop mode 使用另一条认证边界：`KI_DESKTOP_MODE=1` 时必须同时提供 64 位小写十六进制 `KI_DESKTOP_STARTUP_TOKEN` 和显式 `KI_API_PORT`，监听地址只能是精确的 `127.0.0.1`。除 Obsidian 自认证路由外，所有 `/api/*`（包括 health）及 API 文档都必须携带 `X-KI-Desktop-Token`；Web Key/JWT 不可替代它，且 `/api/auth/token` 返回 404。令牌只供壳与 sidecar 当前进程使用，不是用户会话或长期凭证。
+
 当前 Vue `fetch` 不附加上述凭证，问答原生 `EventSource` 也没有自定义认证 Header；因此浏览器主路径只承诺默认关闭认证的本地模式。后端认证能力不能被解释为已完成的前端登录/SSE 凭证链。
 
-前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许现有 Vue 的本机 5173/4173、平行 React v3 的 5174/4174 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-Request-ID`。CORS 不改变任何下述方法、字段或响应契约。
+前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许现有 Vue 的本机 5173/4173、平行 React v3 的 5174/4174 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-KI-Desktop-Token`、`X-Request-ID`。CORS 不改变任何下述方法、字段或响应契约。
 
 `/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载；新增、删除或修改 API 时，需要同时更新 operation 列表、路由/dispatch 测试和本文档端点速览。
 
@@ -661,7 +663,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 - 成功响应统一为 `{"data": {...}, "meta": {"request_id": "..."}}`；响应头同时返回 `X-Request-ID`。
 - 失败响应统一为 `{"error":{"code":"...","message":"...","details":{}},"request_id":"..."}`。
 - 调用方可以发送 `X-Request-ID`；未发送时服务端生成 UUID。输入最多保留 200 字符。
-- 除 `GET /api/v3/health` 始终放行外，认证开启时其他 `/api/v3/*` 继续使用主应用的 `X-API-Key` 或 Bearer JWT。
+- Web 认证开启时 `GET /api/v3/health` 始终放行，其他 `/api/v3/*` 继续使用主应用的 `X-API-Key` 或 Bearer JWT；desktop mode 下 health 也必须携带进程令牌。
 - 创建项目、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。OpenAPI 把该 Header 标记为 required；缺失时返回 `422 validation_error`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。手动重试 Run 时，原 Key 仍回放已经创建的 retry Run；同一失败源已经存在直接 retry Run 后，其他 Key 返回 `409 state_conflict`，不会再创建第二个直接后继。
 - 资源不存在返回 `404 not_found`；状态/CAS 冲突返回 `409 state_conflict`；Pydantic 请求错误返回 `422 validation_error`；应用层约束返回 `422 application_validation_error`。
 

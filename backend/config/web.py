@@ -29,6 +29,7 @@ CORS_ALLOWED_HEADERS = (
     "Idempotency-Key",
     "Last-Event-ID",
     "X-API-Key",
+    "X-KI-Desktop-Token",
     "X-Request-ID",
 )
 
