@@ -19,6 +19,7 @@ from backend.api.v3.models import (
     ApprovalResolveRequest,
     ArtifactData,
     ArtifactListData,
+    BackupMutationData,
     ErrorEnvelope,
     HealthData,
     ProjectCreateRequest,
@@ -66,7 +67,13 @@ from backend.storage.v3.errors import (
     RecordNotFoundError,
     StateConflictError,
 )
-from backend.storage.v3.maintenance import StoragePreflightError, preflight_storage_target
+from backend.storage.v3.maintenance import (
+    BackupError,
+    BackupValidationError,
+    StoragePreflightError,
+    create_v3_backup,
+    preflight_storage_target,
+)
 
 
 IdempotencyHeader = Annotated[str, Header(alias="Idempotency-Key")]
@@ -80,6 +87,8 @@ def create_v3_app(
     database_info: dict[str, Any] | None = None,
     current_data_root: Path | None = None,
     legacy_data_root: Path | None = None,
+    backups_dir: Path | None = None,
+    backup_retention: int = 7,
 ) -> FastAPI:
     app = FastAPI(
         title="Knowledge Island Agent API",
@@ -106,6 +115,10 @@ def create_v3_app(
     app.state.legacy_data_root = Path(
         legacy_data_root or app.state.current_data_root.parent / "v2"
     ).resolve()
+    app.state.backups_dir = Path(
+        backups_dir or app.state.current_data_root / "backups"
+    ).resolve()
+    app.state.backup_retention = int(backup_retention)
 
     @app.middleware("http")
     async def attach_request_id(request: Request, call_next):
@@ -214,6 +227,39 @@ def create_v3_app(
                 message=str(exc),
             )
         return success(request, result)
+
+    @app.post(
+        "/system/backups",
+        response_model=SuccessEnvelope[BackupMutationData],
+        status_code=201,
+    )
+    def create_backup(
+        request: Request,
+        idempotency_key: IdempotencyHeader,
+    ):
+        try:
+            result = create_v3_backup(
+                request.app.state.store.db_path,
+                current_data_root=request.app.state.current_data_root,
+                backups_dir=request.app.state.backups_dir,
+                idempotency_key=idempotency_key,
+                retention=request.app.state.backup_retention,
+            )
+        except BackupValidationError as exc:
+            return failure(
+                request,
+                status_code=409,
+                code="backup_validation_failed",
+                message=str(exc),
+            )
+        except BackupError as exc:
+            return failure(
+                request,
+                status_code=422,
+                code="backup_failed",
+                message=str(exc),
+            )
+        return success(request, result, status_code=201)
 
     @app.post(
         "/projects",

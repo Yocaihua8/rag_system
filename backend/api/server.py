@@ -87,6 +87,8 @@ def create_app(
             executor=agent_executor,
             current_data_root=runtime_settings.data_root,
             legacy_data_root=knowledge_store.db_path.parent,
+            backups_dir=runtime_settings.backups_dir,
+            backup_retention=runtime_settings.backup_retention,
         )
 
     @asynccontextmanager

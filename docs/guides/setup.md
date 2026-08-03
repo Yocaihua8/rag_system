@@ -112,6 +112,7 @@ npm --workspace frontend-v3 run preview
 | `KI_DESKTOP_STARTUP_TOKEN` | desktop mode 必填的 64 位小写十六进制进程令牌；不得手工持久化 |
 | `KI_API_HOST` / `KI_API_PORT` | Web 默认 `127.0.0.1:8765`；desktop mode 只接受精确环回地址和显式 1–65535 端口 |
 | `KI_CORS_ORIGINS` | 精确 Origin 列表；默认本机 Vue 5173/4173、React v3 5174/4174 和 Tauri Origin |
+| `KI_V3_BACKUP_RETENTION` | v3 受管在线备份保留数，默认 7，允许 1–100 |
 | `RAG_LLM_PROVIDER` | 本地降级、OpenAI-compatible API 或 Ollama |
 | `RAG_EMBED_PROVIDER` | 默认本地 hashing；`api` 使用 OpenAI-compatible embeddings |
 | `RAG_VECTOR_STORE_PROVIDER` | 默认 SQLite；`qdrant` 启用 local mode |

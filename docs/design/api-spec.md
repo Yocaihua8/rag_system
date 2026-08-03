@@ -669,12 +669,13 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 
 ### 2.2 当前路径
 
-当前 v3 sub-app 有 **28 个业务路径、33 个操作**：
+当前 v3 sub-app 有 **29 个业务路径、34 个操作**：
 
 | 方法 | 路径 | 当前用途 | 写入/控制要求 |
 |------|------|----------|---------------|
 | GET | `/api/v3/health` | 返回 `data_generation=v3`、Alembic revision 和 executor 状态 | 始终放行；不执行项目检查 |
 | POST | `/api/v3/system/storage/preflight` | 只读检查 v3 数据迁移目标的路径隔离、空目录、父目录可写性、源可读性和可用空间 | 不创建目标、不试写；检查不通过仍返回 200 且 `ready=false`，非法路径返回 422 |
+| POST | `/api/v3/system/backups` | 使用 SQLite 在线 backup 创建并验证受管 v3 备份 | 必须携带 `Idempotency-Key`；返回 201，同 Key 回放；只写 `<data-root>/backups/backup-*` |
 | POST / GET | `/api/v3/projects` | 创建已有本地目录对应的项目；列出项目 | POST 需要 `Idempotency-Key`；根目录必须存在且为目录 |
 | POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
@@ -706,6 +707,8 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 `/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
 
 存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
+
+在线备份端点不接收目标路径，固定写入当前 `KI_DATA_ROOT/backups/`。服务端用 SQLite backup API 从活动 WAL 数据库生成一致快照，将目标 journal mode 收敛为 `DELETE`，再验证 `PRAGMA integrity_check`、`data_generation=v3`、Alembic revision、数据库 SHA-256、manifest SHA-256 与大小，全部通过后才把 staging 目录原子重命名为 `backup-<Idempotency-Key SHA-256 前 32 位>`。manifest 只保存 Key 的完整 SHA-256，不保存原 Key 或源绝对路径。同 Key 返回原备份并设置 `replayed=true`。保留数量由 `KI_V3_BACKUP_RETENTION` 控制（默认 7，范围 1–100）；只删除能够完整验证且符合受管命名的最旧备份，未知、损坏或符号链接目录保留待人工处理。
 
 ### 2.3 任务首消息与运行输入快照
 

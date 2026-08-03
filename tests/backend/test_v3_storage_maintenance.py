@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
+import sqlite3
 
 import pytest
 
 import backend.storage.v3.maintenance as maintenance
+from backend.storage.v3.store import AgentStore
 
 
 def _check(result: dict, code: str) -> bool:
@@ -134,3 +136,138 @@ def test_preflight_rejects_insufficient_space_without_writing(
     assert result["available_bytes"] == 0
     assert _check(result, "sufficient_free_space") is False
     assert not target.exists()
+
+
+def _initialized_store(data_root: Path) -> AgentStore:
+    store = AgentStore(data_root / "app.db")
+    store.initialize()
+    store.create_project(
+        name="Backup project",
+        root_path=data_root,
+        idempotency_key="project",
+        request_hash="project-hash",
+    )
+    return store
+
+
+def test_online_backup_is_consistent_validated_and_idempotent(tmp_path: Path):
+    data_root = tmp_path / "v3"
+    data_root.mkdir()
+    store = _initialized_store(data_root)
+    try:
+        first = maintenance.create_v3_backup(
+            store.db_path,
+            current_data_root=data_root,
+            backups_dir=data_root / "backups",
+            idempotency_key="backup-request-1",
+            retention=7,
+        )
+        replay = maintenance.create_v3_backup(
+            store.db_path,
+            current_data_root=data_root,
+            backups_dir=data_root / "backups",
+            idempotency_key="backup-request-1",
+            retention=7,
+        )
+    finally:
+        store.close()
+
+    backup = first["backup"]
+    backup_dir = data_root / "backups" / backup["backup_id"]
+    manifest = maintenance.validate_v3_backup(backup_dir)
+    with sqlite3.connect(backup_dir / "app.db") as connection:
+        project_count = connection.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
+
+    assert first["replayed"] is False
+    assert replay["replayed"] is True
+    assert replay["backup"] == backup
+    assert manifest["data_generation"] == "v3"
+    assert manifest["schema_revision"] == "0001_v3_initial"
+    assert project_count == 1
+    assert {path.name for path in backup_dir.iterdir()} == {
+        "app.db",
+        "manifest.json",
+        "manifest.sha256",
+    }
+    assert len(list((data_root / "backups").glob("backup-*"))) == 1
+
+
+def test_backup_validation_rejects_database_tampering(tmp_path: Path):
+    data_root = tmp_path / "v3"
+    data_root.mkdir()
+    store = _initialized_store(data_root)
+    try:
+        result = maintenance.create_v3_backup(
+            store.db_path,
+            current_data_root=data_root,
+            backups_dir=data_root / "backups",
+            idempotency_key="tamper-test",
+        )
+    finally:
+        store.close()
+    backup_dir = data_root / "backups" / result["backup"]["backup_id"]
+    with (backup_dir / "app.db").open("ab") as output:
+        output.write(b"tampered")
+
+    with pytest.raises(maintenance.BackupValidationError, match="size does not match"):
+        maintenance.validate_v3_backup(backup_dir)
+
+    manifest_path = backup_dir / "manifest.json"
+    manifest_path.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(maintenance.BackupValidationError, match="manifest hash"):
+        maintenance.validate_v3_backup(backup_dir)
+
+
+def test_backup_retention_only_prunes_valid_managed_backups(tmp_path: Path):
+    data_root = tmp_path / "v3"
+    data_root.mkdir()
+    store = _initialized_store(data_root)
+    unknown = data_root / "backups" / "user-notes"
+    unknown.mkdir(parents=True)
+    (unknown / "keep.txt").write_text("keep", encoding="utf-8")
+    corrupt = data_root / "backups" / "backup-corrupt"
+    corrupt.mkdir()
+    (corrupt / "keep.txt").write_text("keep", encoding="utf-8")
+    try:
+        results = [
+            maintenance.create_v3_backup(
+                store.db_path,
+                current_data_root=data_root,
+                backups_dir=data_root / "backups",
+                idempotency_key=f"retention-{index}",
+                retention=2,
+            )
+            for index in range(3)
+        ]
+    finally:
+        store.close()
+
+    managed = [
+        path
+        for path in (data_root / "backups").glob("backup-*")
+        if len(path.name) == 39
+    ]
+    assert len(managed) == 2
+    assert results[-1]["pruned_backup_ids"] == [results[0]["backup"]["backup_id"]]
+    assert (unknown / "keep.txt").read_text(encoding="utf-8") == "keep"
+    assert (corrupt / "keep.txt").read_text(encoding="utf-8") == "keep"
+    for directory in managed:
+        maintenance.validate_v3_backup(directory)
+
+
+def test_backup_rejects_unmanaged_backup_directory(tmp_path: Path):
+    data_root = tmp_path / "v3"
+    data_root.mkdir()
+    store = _initialized_store(data_root)
+    try:
+        with pytest.raises(maintenance.BackupError, match="managed v3 backups"):
+            maintenance.create_v3_backup(
+                store.db_path,
+                current_data_root=data_root,
+                backups_dir=tmp_path / "other-backups",
+                idempotency_key="wrong-root",
+            )
+    finally:
+        store.close()
+
+    assert not (tmp_path / "other-backups").exists()

@@ -11,12 +11,21 @@ from backend.storage.v3.errors import (
     V3StoreError,
 )
 from backend.storage.v3.schema import RUN_STATUSES, STEP_STATUSES, TASK_STATUSES
-from backend.storage.v3.maintenance import StoragePreflightError, preflight_storage_target
+from backend.storage.v3.maintenance import (
+    BackupError,
+    BackupValidationError,
+    StoragePreflightError,
+    create_v3_backup,
+    preflight_storage_target,
+    validate_v3_backup,
+)
 from backend.storage.v3.store import AgentStore
 
 
 __all__ = [
     "AgentStore",
+    "BackupError",
+    "BackupValidationError",
     "IdempotencyConflictError",
     "RUN_STATUSES",
     "RecordNotFoundError",
@@ -29,5 +38,7 @@ __all__ = [
     "V3Database",
     "V3SchemaVersionError",
     "V3StoreError",
+    "create_v3_backup",
     "preflight_storage_target",
+    "validate_v3_backup",
 ]

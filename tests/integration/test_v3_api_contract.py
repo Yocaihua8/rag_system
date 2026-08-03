@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.api.v3.app import create_v3_app
 from backend.storage.v3.errors import IdempotencyConflictError, StateConflictError
+from backend.storage.v3.store import AgentStore
 
 
 NOW = "2026-08-02T10:00:00.000Z"
@@ -203,6 +204,44 @@ def test_storage_preflight_rejects_blank_path_with_error_envelope():
     }
 
 
+def test_system_backup_api_requires_idempotency_and_replays(tmp_path: Path):
+    data_root = tmp_path / "runtime" / "v3"
+    data_root.mkdir(parents=True)
+    store = AgentStore(data_root / "app.db")
+    store.initialize()
+    app = create_v3_app(
+        store=store,
+        current_data_root=data_root,
+        legacy_data_root=tmp_path / "runtime" / "v2",
+        backups_dir=data_root / "backups",
+        backup_retention=2,
+    )
+    client = TestClient(app)
+    try:
+        missing = client.post("/system/backups")
+        created = client.post(
+            "/system/backups",
+            headers={
+                "Idempotency-Key": "api-backup-1",
+                "X-Request-ID": "create-backup",
+            },
+        )
+        replayed = client.post(
+            "/system/backups",
+            headers={"Idempotency-Key": "api-backup-1"},
+        )
+    finally:
+        store.close()
+
+    assert missing.status_code == 422
+    assert created.status_code == 201
+    assert created.headers["X-Request-ID"] == "create-backup"
+    assert created.json()["data"]["replayed"] is False
+    assert replayed.status_code == 201
+    assert replayed.json()["data"]["replayed"] is True
+    assert replayed.json()["data"]["backup"] == created.json()["data"]["backup"]
+
+
 def test_missing_idempotency_key_uses_error_envelope(tmp_path: Path):
     client, _ = _client()
     project_root = tmp_path / "project"
@@ -373,6 +412,7 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
 
     assert set(schema["paths"]) == {
         "/health",
+        "/system/backups",
         "/system/storage/preflight",
         "/projects",
         "/tasks",
@@ -410,6 +450,11 @@ def test_openapi_lists_real_paths_and_success_envelope_schemas():
         "200"
     ]["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/SuccessEnvelope_StoragePreflightData_"
+    }
+    assert schema["paths"]["/system/backups"]["post"]["responses"]["201"][
+        "content"
+    ]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/SuccessEnvelope_BackupMutationData_"
     }
     assert schema["paths"]["/tasks"]["post"]["responses"]["201"]["content"][
         "application/json"

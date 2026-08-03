@@ -194,8 +194,10 @@ alpha.2 的任务首消息、运行输入快照和 Agent 分段回答不新增�
 | 向量目录 | `runtime/v3/vectors/` | 已创建目录，当前项目检查闭环未写向量 |
 | 外部产物目录 | `runtime/v3/artifacts/` | 已创建目录，当前产物正文保存在 SQLite |
 | 日志目录 | `runtime/v3/logs/` | 预留；当前没有独立 v3 日志轮转器 |
-| 备份目录 | `runtime/v3/backups/` | 预留；现有 `ops/scripts/backup_db.sh` 仍只验证 v2 |
+| 备份目录 | `runtime/v3/backups/` | v3 在线备份受管目录；v2 `ops/scripts/backup_db.sh` 不适用于此目录 |
 
 `POST /api/v3/system/storage/preflight` 已提供只读迁移目标检查：目标与当前 v3/活动 v2 根不得重叠，已有目标必须为空且不是符号链接，并检查最近存在父目录、当前源目录可读性和可用空间。空间按源文件总量两倍加 64 MiB 估算；扫描不跟随符号链接，遇到不可读项时 fail closed。预检不创建目标、不是锁，也不能替代真正迁移前的二次校验。
 
-现阶段没有 v2 → v3 数据迁移器，也没有经过恢复测试的 v3 自动备份脚本。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把预检通过或 v2 脚本成功结果当作 v3 迁移/备份证据。
+v3 在线备份使用 SQLite backup API，不复制活动 WAL 文件。每份受管备份包含自包含 `app.db`、`manifest.json` 与 `manifest.sha256`；发布前验证 integrity、代际、Alembic revision、文件大小和两级 SHA-256。保留策略只删除能够完整复验的受管旧目录，未知或损坏目录 fail closed 保留。幂等 Key 只以 SHA-256 写入 manifest，不保存明文或源绝对路径。
+
+现阶段没有 v2 → v3 数据迁移器，也尚未实现 v3 恢复切换。备份和恢复操作边界见 [`../guides/runbook.md`](../guides/runbook.md)；不能把预检通过、备份创建成功或 v2 脚本结果当作 v3 恢复证据。

@@ -25,7 +25,7 @@
 - [x] 实现后端桌面模式配置、精确环回绑定、会话令牌校验和兼容认证测试。
 - [x] 实现 Tauri sidecar 随机端口/令牌生成、内存 bootstrap 与精确 capability；不切换正式前端。
 - [x] 实现 v3 存储目标预检、路径隔离和可用空间检查。
-- [ ] 实现 v3 在线一致性备份、manifest/hash 校验和保留策略。
+- [x] 实现 v3 在线一致性备份、manifest/hash 校验和保留策略。
 - [ ] 实现离线或受控停机恢复、失败回滚与代际/revision 复验。
 - [ ] 完成 Python、Rust、仓库、真实 sidecar 和文档全量门禁并关闭 B-174。
 
@@ -80,12 +80,13 @@
 - 2026-08-03：更新服务入口仓库契约后，全量 Python 后端、集成和仓库测试 688 项通过；三项文档门禁通过。
 - 2026-08-03：Tauri 新增默认关闭的安全 sidecar 路径，使用 OS 随机源、loopback 临时端口、子进程环境和 main-only managed-state bootstrap；sidecar 退出会清空内存状态，默认 capability 继续为空。Rust 3 项和仓库契约 7 项通过。
 - 2026-08-03：新增只读 `POST /api/v3/system/storage/preflight`，拒绝与 v2/v3 重叠、非空/符号链接目标、不可读源、不可写父目录和空间不足；不创建目标。同步 OpenAPI 生成类型，阶段门禁 35 项通过；本机缺少 Windows 创建目录符号链接权限，1 项动态 symlink 用例跳过。
+- 2026-08-03：新增幂等 `POST /api/v3/system/backups`，用 SQLite backup API 生成自包含数据库，验证 integrity、代际、revision、数据库/manifest hash 后原子发布；默认保留 7 份且只清理完整可验证的受管备份。阶段门禁 42 项通过，1 项沿用 Windows symlink 权限跳过。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 10:28:39 +08:00
-- **进度**：已完成 4 / 7 项（见 § 3 勾选状态）
-- **最新 commit**：`3ca47c2` — 建立 Tauri 安全 sidecar 启动路径
-- **代码状态**：`refactor/agent-v3`；v3 存储预检、OpenAPI 类型与测试待提交
-- **下一步**：实现 v3 在线一致性备份、manifest/hash 校验和保留策略
+- **最后更新**：2026-08-03 10:41:53 +08:00
+- **进度**：已完成 5 / 7 项（见 § 3 勾选状态）
+- **最新 commit**：`86db67b` — 增加 v3 存储迁移预检
+- **代码状态**：`refactor/agent-v3`；v3 在线备份、OpenAPI 类型与测试待提交
+- **下一步**：实现离线或受控停机恢复、失败回滚与代际/revision 复验
 - **续任务须知**：不得把令牌放入 CLI 参数、日志、SQLite 或前端持久存储；不得在本计划提前切换 Vue/Tauri/正式入口

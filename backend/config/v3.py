@@ -13,6 +13,7 @@ V3_DATA_GENERATION = "v3"
 DEFAULT_MAX_CONCURRENCY = 2
 DEFAULT_LEASE_SECONDS = 30
 DEFAULT_POLL_INTERVAL_MS = 100
+DEFAULT_BACKUP_RETENTION = 7
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,7 @@ class V3RuntimeSettings:
     max_concurrency: int
     lease_seconds: int
     poll_interval_ms: int
+    backup_retention: int = DEFAULT_BACKUP_RETENTION
 
 
 def _project_root() -> Path:
@@ -75,6 +77,13 @@ def load_v3_settings(
         maximum=60_000,
         name="KI_AGENT_POLL_INTERVAL_MS",
     )
+    backup_retention = _bounded_int(
+        values.get("KI_V3_BACKUP_RETENTION"),
+        default=DEFAULT_BACKUP_RETENTION,
+        minimum=1,
+        maximum=100,
+        name="KI_V3_BACKUP_RETENTION",
+    )
 
     return V3RuntimeSettings(
         data_root=data_root,
@@ -86,6 +95,7 @@ def load_v3_settings(
         max_concurrency=max_concurrency,
         lease_seconds=lease_seconds,
         poll_interval_ms=poll_interval_ms,
+        backup_retention=backup_retention,
     )
 
 
@@ -127,6 +137,7 @@ def _bounded_int(
 
 __all__ = [
     "DEFAULT_LEASE_SECONDS",
+    "DEFAULT_BACKUP_RETENTION",
     "DEFAULT_MAX_CONCURRENCY",
     "DEFAULT_POLL_INTERVAL_MS",
     "V3_DATA_GENERATION",

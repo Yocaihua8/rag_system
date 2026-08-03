@@ -18,6 +18,7 @@ def _isolate(monkeypatch, tmp_path: Path) -> Path:
         "KI_AGENT_MAX_CONCURRENCY",
         "KI_AGENT_LEASE_SECONDS",
         "KI_AGENT_POLL_INTERVAL_MS",
+        "KI_V3_BACKUP_RETENTION",
         "RAG_RUNTIME_DIR",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -39,6 +40,7 @@ def test_v3_settings_use_isolated_default_generation_root(monkeypatch, tmp_path)
     assert settings.max_concurrency == 2
     assert settings.lease_seconds == 30
     assert settings.poll_interval_ms == 100
+    assert settings.backup_retention == 7
 
 
 def test_v3_settings_apply_explicit_paths_and_bounded_executor_values(
@@ -55,6 +57,7 @@ def test_v3_settings_apply_explicit_paths_and_bounded_executor_values(
             "KI_AGENT_MAX_CONCURRENCY": "1",
             "KI_AGENT_LEASE_SECONDS": "90",
             "KI_AGENT_POLL_INTERVAL_MS": "250",
+            "KI_V3_BACKUP_RETENTION": "5",
         }
     )
 
@@ -63,6 +66,7 @@ def test_v3_settings_apply_explicit_paths_and_bounded_executor_values(
     assert settings.max_concurrency == 1
     assert settings.lease_seconds == 90
     assert settings.poll_interval_ms == 250
+    assert settings.backup_retention == 5
 
 
 @pytest.mark.parametrize(
@@ -72,6 +76,8 @@ def test_v3_settings_apply_explicit_paths_and_bounded_executor_values(
         ("KI_AGENT_LEASE_SECONDS", "4"),
         ("KI_AGENT_POLL_INTERVAL_MS", "0"),
         ("KI_AGENT_POLL_INTERVAL_MS", "not-an-int"),
+        ("KI_V3_BACKUP_RETENTION", "0"),
+        ("KI_V3_BACKUP_RETENTION", "101"),
     ],
 )
 def test_v3_settings_reject_invalid_executor_limits(monkeypatch, tmp_path, key, value):

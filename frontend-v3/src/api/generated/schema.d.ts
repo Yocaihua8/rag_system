@@ -260,6 +260,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Backup */
+        post: operations["create_backup_system_backups_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/storage/preflight": {
         parameters: {
             query?: never;
@@ -811,6 +828,32 @@ export interface components {
             /** Message Type */
             message_type: string;
         };
+        /** BackupMutationData */
+        BackupMutationData: {
+            backup: components["schemas"]["BackupResource"];
+            /** Pruned Backup Ids */
+            pruned_backup_ids: string[];
+            /** Replayed */
+            replayed: boolean;
+        };
+        /** BackupResource */
+        BackupResource: {
+            /** Backup Id */
+            backup_id: string;
+            /** Created At */
+            created_at: string;
+            /**
+             * Data Generation
+             * @constant
+             */
+            data_generation: "v3";
+            /** Database Bytes */
+            database_bytes: number;
+            /** Database Sha256 */
+            database_sha256: string;
+            /** Schema Revision */
+            schema_revision: string;
+        };
         /** ErrorBody */
         ErrorBody: {
             /** Code */
@@ -1199,6 +1242,11 @@ export interface components {
         /** SuccessEnvelope[ArtifactListData] */
         SuccessEnvelope_ArtifactListData_: {
             data: components["schemas"]["ArtifactListData"];
+            meta: components["schemas"]["ResponseMeta"];
+        };
+        /** SuccessEnvelope[BackupMutationData] */
+        SuccessEnvelope_BackupMutationData_: {
+            data: components["schemas"]["BackupMutationData"];
             meta: components["schemas"]["ResponseMeta"];
         };
         /** SuccessEnvelope[HealthData] */
@@ -2442,6 +2490,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuccessEnvelope_RunStepsData_"];
+                };
+            };
+            /** @description Resource not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description State conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    create_backup_system_backups_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuccessEnvelope_BackupMutationData_"];
                 };
             };
             /** @description Resource not found */

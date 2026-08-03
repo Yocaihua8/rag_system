@@ -76,6 +76,7 @@ v3 alpha 另做以下最小检查：
 | `KI_AGENT_MAX_CONCURRENCY` | `2` | 允许 1-2 |
 | `KI_AGENT_LEASE_SECONDS` | `30` | 允许 5-3600 秒 |
 | `KI_AGENT_POLL_INTERVAL_MS` | `100` | 允许 10-60000ms |
+| `KI_V3_BACKUP_RETENTION` | `7` | 允许 1-100；只清理完整验证的受管 v3 备份 |
 
 executor 使用数据库租约和心跳。进程异常退出后，下次启动会检查过期运行：可安全重放的读/分析步骤可以恢复，结果不明确的写步骤不得自动重放。当前真实 `project.inspect.v1` 只有只读/分析步骤；审批写回、外部发布和文件导出尚未形成可执行工作流。
 
@@ -118,7 +119,13 @@ bash ops/scripts/backup_db.sh
 
 实际恢复前必须停止写入、保留现有数据副本，并先在隔离目录重复上述完整性、代际和样例数据验证；不得直接覆盖活动 `runtime/v2/app.db`。使用 Qdrant local mode 时还要恢复同一时间点的向量目录。仓库没有“一键恢复即保证兼容”的脚本。
 
-现有 `backup_db.sh`、恢复测试和 7 份保留策略只覆盖 v2，不是 v3 备份证据。v3 当前没有经过仓库恢复测试的自动备份脚本；需要保留 alpha 数据时，应先停止应用并对 `runtime/v3/app.db` 做 SQLite 一致性备份，同时记录 Alembic revision。`runtime/v3/vectors/`、`artifacts/`、`logs/` 和 `backups/` 当前为独立目录，其中内部项目检查产物正文仍保存在 SQLite；不要假定复制预留目录即可恢复运行。
+v2 的 `backup_db.sh` 和恢复测试不适用于 v3。v3 应通过已认证的 `POST /api/v3/system/backups` 创建在线一致性备份，并提供唯一 `Idempotency-Key`：
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8765/api/v3/system/backups -Headers @{ 'Idempotency-Key' = [guid]::NewGuid().ToString() }
+```
+
+成功响应只证明受管备份已通过 SQLite integrity、代际、revision、大小和 hash 校验；不证明恢复可用。备份位于 `runtime/v3/backups/backup-*/`，每份包含 `app.db`、`manifest.json`、`manifest.sha256`。不得手工修改 manifest/hash 或把目录改名后继续使用；损坏/未知目录不会被自动保留策略删除。`runtime/v3/vectors/`、`artifacts/` 和 `logs/` 当前没有必须随 SQLite 恢复的业务事实，但未来这些目录开始承载正式数据时需提升备份格式版本。
 
 ## 7. 临时文件清理
 

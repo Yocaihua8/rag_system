@@ -840,6 +840,75 @@
         "title": "AssistantMessageStartedPayload",
         "type": "object"
       },
+      "BackupMutationData": {
+        "additionalProperties": false,
+        "properties": {
+          "backup": {
+            "$ref": "#/components/schemas/BackupResource"
+          },
+          "pruned_backup_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pruned Backup Ids",
+            "type": "array"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "backup",
+          "replayed",
+          "pruned_backup_ids"
+        ],
+        "title": "BackupMutationData",
+        "type": "object"
+      },
+      "BackupResource": {
+        "additionalProperties": false,
+        "properties": {
+          "backup_id": {
+            "title": "Backup Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "data_generation": {
+            "const": "v3",
+            "title": "Data Generation",
+            "type": "string"
+          },
+          "database_bytes": {
+            "minimum": 0.0,
+            "title": "Database Bytes",
+            "type": "integer"
+          },
+          "database_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "title": "Database Sha256",
+            "type": "string"
+          },
+          "schema_revision": {
+            "title": "Schema Revision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "backup_id",
+          "created_at",
+          "data_generation",
+          "schema_revision",
+          "database_bytes",
+          "database_sha256"
+        ],
+        "title": "BackupResource",
+        "type": "object"
+      },
       "ErrorBody": {
         "additionalProperties": false,
         "properties": {
@@ -1879,6 +1948,22 @@
           "meta"
         ],
         "title": "SuccessEnvelope[ArtifactListData]",
+        "type": "object"
+      },
+      "SuccessEnvelope_BackupMutationData_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BackupMutationData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SuccessEnvelope[BackupMutationData]",
         "type": "object"
       },
       "SuccessEnvelope_HealthData_": {
@@ -4271,6 +4356,65 @@
           }
         },
         "summary": "List Run Steps"
+      }
+    },
+    "/system/backups": {
+      "post": {
+        "operationId": "create_backup_system_backups_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessEnvelope_BackupMutationData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Resource not found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "State conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "description": "Validation error"
+          }
+        },
+        "summary": "Create Backup"
       }
     },
     "/system/storage/preflight": {

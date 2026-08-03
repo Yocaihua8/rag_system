@@ -167,6 +167,21 @@ class StoragePreflightData(StrictModel):
     checks: list[StoragePreflightCheck]
 
 
+class BackupResource(StrictModel):
+    backup_id: str
+    created_at: str
+    data_generation: Literal["v3"]
+    schema_revision: str
+    database_bytes: int = Field(ge=0)
+    database_sha256: str = Field(min_length=64, max_length=64)
+
+
+class BackupMutationData(StrictModel):
+    backup: BackupResource
+    replayed: bool
+    pruned_backup_ids: list[str]
+
+
 class ProjectResource(StrictModel):
     id: str
     name: str
