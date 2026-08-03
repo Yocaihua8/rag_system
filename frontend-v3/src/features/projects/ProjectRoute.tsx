@@ -7,6 +7,9 @@ import { ProjectPage } from '../../pages/ProjectPage'
 import { digestIntentFingerprint, useIntentKeys } from '../shared/useIntentKeys'
 import { useProjects } from './queries'
 
+const sourceFactsWorkflowKey = 'project.source-facts.v1'
+const sourceFactsPrompt = '请基于已扫描并持久化的项目资料生成可追溯的事实报告。'
+
 export function ProjectRoute() {
   const { projectId } = useParams()
   const navigate = useNavigate()
@@ -71,6 +74,31 @@ export function ProjectRoute() {
       ])
     },
   })
+  const createSourceFactReport = useMutation({
+    mutationFn: async (id: string) => {
+      const fingerprint = await digestIntentFingerprint([id, sourceFactsWorkflowKey])
+      const task = await v3Api.createTask(
+        { project_id: id, title: '资料事实报告', message: sourceFactsPrompt },
+        { idempotencyKey: intentKeys.get('source-facts-task', fingerprint) },
+      )
+      const run = await v3Api.createRun(
+        task.task.id,
+        {
+          workflow_key: sourceFactsWorkflowKey,
+          depth: 'standard',
+          input_message_id: task.initial_message.id,
+        },
+        { idempotencyKey: intentKeys.get('source-facts-run', fingerprint) },
+      )
+      intentKeys.release('source-facts-task', fingerprint)
+      intentKeys.release('source-facts-run', fingerprint)
+      return { taskId: task.task.id, runId: run.run.id }
+    },
+    onSuccess: ({ taskId }) => {
+      void queryClient.invalidateQueries({ queryKey: v3QueryKeys.tasks({ project_id: activeProjectId ?? '' }) })
+      navigate(`/tasks/${taskId}`)
+    },
+  })
 
   return (
     <ProjectPage
@@ -112,6 +140,7 @@ export function ProjectRoute() {
       } : undefined}
       insightLoading={insight.isLoading}
       insightError={errorMessage(insight.error)}
+      creatingSourceFactReport={createSourceFactReport.isPending}
       onSelectProject={(id) => {
         projects.selectProject(id)
         navigate(`/projects/${id}/overview`)
@@ -120,6 +149,7 @@ export function ProjectRoute() {
         createProject.mutateAsync({ name, rootPath }).then(() => undefined)
       }
       onScanSources={() => activeProjectId ? scanSources.mutateAsync(activeProjectId).then(() => undefined) : Promise.resolve()}
+      onCreateSourceFactReport={activeProjectId && insight.data?.overview.status === 'ready' ? () => createSourceFactReport.mutateAsync(activeProjectId).then(() => undefined) : undefined}
     />
   )
 }

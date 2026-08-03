@@ -19,12 +19,56 @@ test('creates a real project and restores a completed Agent task after refresh',
   }
   await expect(page.getByRole('heading', { name: 'E2E 本地项目' })).toBeVisible()
 
-  await page.getByRole('link', { name: '任务' }).click()
-  await page.getByRole('button', { name: /找出问题/ }).click()
-  const composer = page.getByLabel('告诉 Agent 你想完成什么')
-  await expect(composer).toHaveValue('请检查项目，找出最需要先处理的问题。')
-  await expect(page.getByRole('button', { name: '开始处理' })).toBeEnabled()
-  await composer.press('Enter')
+  await page.getByRole('button', { name: '扫描项目资料' }).click()
+  await expect(page.getByLabel('已索引资料')).toContainText('README.md')
+  await expect(page.getByLabel('已索引资料')).toContainText('src/main.py')
+  await expect(page.getByRole('heading', { name: '项目洞察' }).locator('..')).toContainText('已索引文件')
+  await page.getByRole('button', { name: '生成资料事实报告' }).click()
+  await expect(page.getByRole('heading', { name: '处理完成' })).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('button', { name: '查看结果' }).click()
+  await expect(page.locator('aside[aria-label="详细过程"]')).toContainText('项目资料事实报告')
+  await page.goto('/#/projects')
+  await expect(page.getByRole('heading', { name: 'E2E 本地项目' })).toBeVisible()
+  const selectedProjectResponse = await page.request.get(`${apiBaseUrl}/projects`)
+  const selectedProject = ((await selectedProjectResponse.json()).data.items as Array<{ id: string }>)[0]
+  if (!selectedProject) throw new Error('E2E project was not created')
+
+  const graph = {
+    nodes: [
+      { id: 'trigger', type: 'trigger.manual', config: {} },
+      { id: 'analyze', type: 'project.analyze', config: { analysis_kind: 'sources' } },
+      { id: 'artifact', type: 'artifact.create', config: { format: 'json' } },
+      { id: 'respond', type: 'agent.respond', config: {} },
+    ],
+    edges: [
+      { id: 'trigger-analyze', source: 'trigger', source_port: 'out', target: 'analyze', target_port: 'in' },
+      { id: 'analyze-artifact', source: 'analyze', source_port: 'out', target: 'artifact', target_port: 'in' },
+      { id: 'artifact-respond', source: 'artifact', source_port: 'out', target: 'respond', target_port: 'in' },
+    ],
+  }
+  const workflowResponse = await page.request.post(`${apiBaseUrl}/workflows`, {
+    headers: { 'Idempotency-Key': 'e2e-workflow-create' },
+    data: { workflow_key: 'project.safe.e2e.v1', name: 'E2E 受限检查', description: '', scope_type: 'global', graph },
+  })
+  expect(workflowResponse.ok()).toBeTruthy()
+  const workflowData = (await workflowResponse.json()).data
+  const publishResponse = await page.request.post(`${apiBaseUrl}/workflows/${workflowData.workflow.id}/publish`, {
+    headers: { 'Idempotency-Key': 'e2e-workflow-publish' },
+    data: { version_id: workflowData.version.id, expected_checksum: workflowData.version.checksum, expected_version: workflowData.workflow.version },
+  })
+  expect(publishResponse.ok()).toBeTruthy()
+  const published = (await publishResponse.json()).data
+  const bindResponse = await page.request.post(`${apiBaseUrl}/workflows/${workflowData.workflow.id}/bindings`, {
+    headers: { 'Idempotency-Key': 'e2e-workflow-bind' },
+    data: { project_id: selectedProject.id, workflow_version_id: workflowData.version.id, expected_workflow_version: published.workflow.version, expected_binding_version: 0 },
+  })
+  expect(bindResponse.ok()).toBeTruthy()
+
+  await page.getByRole('link', { name: '工作流' }).click()
+  await page.getByRole('button', { name: '查看工作流' }).click()
+  const composer = page.getByLabel('本次任务')
+  await composer.fill('检查 E2E 项目的当前资料')
+  await page.getByRole('button', { name: '启动此工作流' }).click()
 
   await expect(page.getByRole('heading', { name: '处理完成' })).toBeVisible({
     timeout: 30_000,

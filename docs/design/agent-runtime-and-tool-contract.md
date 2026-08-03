@@ -25,7 +25,7 @@ HTTP 创建运行时只提交持久状态；执行器由应用 lifespan 启动�
 ### Task 与 Run
 
 - Task 固定绑定 `project_id`，保存任务标题、消息和最近运行。
-- Run 固定绑定 Task、工作流 key/version/checksum 快照和深度档位；固定 `project.inspect.v1` 的 `workflow_version_id` 可以为空，自定义发布工作流当前不能创建 Run。
+- Run 固定绑定 Task、工作流 key/version/checksum 快照和深度档位；固定 `project.inspect.v1`、固定 `project.source-facts.v1` 的 `workflow_version_id` 可以为空，或使用满足受限执行合同的已发布/已绑定工作流。
 - Task/Run：`queued / running / waiting_approval / paused / completed / failed / cancelled`。
 - Run 在应用重启恢复期间可以为 `recovering`。
 
@@ -44,7 +44,7 @@ HTTP 创建运行时只提交持久状态；执行器由应用 lifespan 启动�
 - lifespan executor 默认启动两个 worker；`KI_AGENT_MAX_CONCURRENCY` 允许 1-2，不能扩大到无界并发。
 - worker 通过数据库领取持久 Run/Step，默认租约 30 秒并按租约三分之一周期心跳；轮询默认 100ms。参数分别由 `KI_AGENT_LEASE_SECONDS` 和 `KI_AGENT_POLL_INTERVAL_MS` 在受限范围内覆盖。
 - 运行暂停后不再领取新步骤；pause/resume/cancel 使用资源 `expected_version` 与幂等键，运行状态变化与事件在同一事务内保存。
-- `project.inspect.v1` 的分析步骤最多三次 attempt，即首次失败后最多自动重试两次；每次尝试独立保存。触发和产物步骤不自动重试。
+- `project.inspect.v1` 与 `project.source-facts.v1` 的分析步骤最多三次 attempt，即首次失败后最多自动重试两次；每次尝试独立保存。触发和产物步骤不自动重试。
 - 启动时会处理过期租约；读/分析步骤可重新排队，结果不明确的写步骤按 `recovery_required` 边界处理。
 - 当前 executor 没有可执行的项目写或外部写节点，因此“同项目写串行、等待审批释放容量和写后恢复”仍是目标安全合同，不是本 alpha 已验收的写执行能力。
 
@@ -81,7 +81,7 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 - v3 Schema、Store 和 HTTP 已实现 Workflow Definition、不可变 Workflow Version 与项目 Binding；Version 保存 DAG、版本号和内容 checksum。
 - HTTP 开放 validate、创建/列表/详情、新 draft、publish、bind、archive 和 binding 列表。新 draft 与 archive 使用 Definition `expected_version`，publish 同时校验 Version checksum，bind 只接受已发布 Version 并校验 workflow/binding version。
 - 发布不原地改写 DAG；归档只改变 Definition 状态并保留历史 Version，归档后拒绝新草稿。
-- 当前 `project.inspect.v1` 由应用层以固定 workflow version 2、固定 checksum 和固定四步快照创建新 Run，不依赖调用方提交任意工作流；version 1 历史运行继续按其持久版本读取和恢复。
+- 当前 `project.inspect.v1`（version 2）和 `project.source-facts.v1`（version 1）由应用层以固定 checksum 和固定四步快照创建新 Run；前者读取绑定项目根的结构元数据，后者只读取已持久 v3 Documents。两者都不依赖调用方提交任意 DAG；`project.inspect.v1` version 1 历史运行继续按其持久版本读取和恢复。
 - v3 首版只允许一个 `trigger.manual`，且必须存在至少一个可达终点。
 - 校验必须拒绝循环、孤立节点、无效边、端口类型不匹配、必填参数缺失、无效资源引用和未受审批保护的写节点。
 
@@ -105,19 +105,20 @@ id, run_id, step_id?, sequence, event_type, payload, created_at
 注册表表示可校验的安全类型，不等于当前可执行能力。alpha executor 只实现：
 
 - `trigger.manual`：读取持久 Task prompt；
-- `project.analyze`：运行受限项目结构检查；
-- `artifact.create`：保存内部 `project_inspection` JSON 产物。
+- `project.analyze`：运行受限项目结构检查，或按 `persisted_source_facts` 读取 v3 Documents；
+- `artifact.create`：保存内部 `project_inspection` 或 `project_source_facts` JSON 产物。
 
-当前 `agent.respond` 分析节点只读取固定项目检查的结构化结果，生成普通中文摘要并发出 Agent 消息事件；不调用 shell、网络、任意路径或未批准工具。`project.inspect.v1` version 2 依次包含 `trigger.manual`、`project.analyze`、`artifact.create` 和 `agent.respond`，Quick 仍不超过四步。
+当前 `agent.respond` 分析节点只读取固定项目检查或资料事实报告的结构化结果，生成普通中文摘要并发出 Agent 消息事件；不调用 shell、网络、任意路径或未批准工具。两个固定工作流均依次包含 `trigger.manual`、`project.analyze`、`artifact.create` 和 `agent.respond`，Quick 仍不超过四步。
 
 P1 中“找出问题 / 整理资料 / 做一份计划”的通用澄清路径仍是演示合同，不表示 alpha executor 已具备通用自然语言规划器。
 
-其他注册节点即使通过 validate、保存并发布，也不能通过当前运行创建 API 执行；`RunCreateRequest.workflow_key` 只接受 `project.inspect.v1`。
+其他注册节点即使通过 validate、保存并发布，也不能通过当前运行创建 API 执行；`RunCreateRequest.workflow_key` 只接受两个固定工作流或满足受限执行合同的已发布绑定图。
 
 ## 7. 权限与路径
 
 - 当前检查只接受创建 Project 时登记且当时仍存在的目录；保存规范化绝对根用于后续校验，但检查输出、事件和产物只返回相对结构元数据。
 - `project.inspect` 不读取文件正文，不进入 `.git/node_modules/build/dist/.venv` 等忽略目录，不跟随目录符号链接，并受最大遍历条目数与取消检查限制。
+- `project.source-facts` 不读取项目根：只从 v3 Store 取回已持久 Documents 内容，固定资料 hash、逐文档行数和有限 Markdown 标题证据。后续扫描变更只标记旧报告 metadata 为过期。
 - 项目文件、外部系统、导出和发布写节点在注册表中必须受 `approval.request` 支配；当前 executor 不执行这些写节点。
 - Approval Schema 和 resolve API 冻结目标、payload、资源版本、request hash 与 CAS version；当前固定项目检查不会创建审批。
 - Desktop 随机端口和启动令牌仍是目标合同，当前 Tauri/Vue 兼容运行时尚未切换到 v3；Web 继续使用主 FastAPI 的可选 API Key/JWT 边界。

@@ -317,6 +317,20 @@ class AgentStore:
                         documents.c.relative_path.in_(sorted(stale_paths)),
                     )
                 )
+            current_documents = [
+                dict(row)
+                for row in connection.execute(
+                    select(documents)
+                    .where(documents.c.project_id == clean_project_id)
+                    .order_by(documents.c.relative_path, documents.c.id)
+                ).mappings()
+            ]
+            _mark_stale_source_fact_reports(
+                connection,
+                project_id=clean_project_id,
+                current_fingerprint=_source_snapshot_fingerprint(current_documents),
+                now=now,
+            )
             document_count = int(
                 connection.execute(
                     select(func.count())
@@ -413,6 +427,28 @@ class AgentStore:
             return {
                 "source_count": source_count,
                 "documents": [_document_resource(row) for row in rows],
+            }
+
+    def get_project_document_content_snapshot(self, project_id: str) -> dict[str, Any]:
+        """Return persisted v3 content only for bounded internal analysis."""
+
+        clean_project_id = _required(project_id, "project_id")
+        with self._database.read_connection() as connection:
+            source_count = int(
+                connection.execute(
+                    select(func.count())
+                    .select_from(sources)
+                    .where(sources.c.project_id == clean_project_id)
+                ).scalar_one()
+            )
+            rows = connection.execute(
+                select(documents)
+                .where(documents.c.project_id == clean_project_id)
+                .order_by(documents.c.relative_path, documents.c.id)
+            ).mappings()
+            return {
+                "source_count": source_count,
+                "documents": [dict(row) for row in rows],
             }
 
     def list_model_profiles(self) -> list[dict[str, Any]]:
@@ -3684,6 +3720,52 @@ def _public_row(row: Mapping[str, Any] | None) -> dict[str, Any]:
         else:
             result[key] = value
     return result
+
+
+def _source_snapshot_fingerprint(documents_to_fingerprint: Sequence[Mapping[str, Any]]) -> str:
+    ordered = sorted(
+        documents_to_fingerprint,
+        key=lambda item: (str(item["relative_path"]), str(item["id"])),
+    )
+    value = "\n".join(
+        f"{item['relative_path']}:{item['checksum']}" for item in ordered
+    )
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _mark_stale_source_fact_reports(
+    connection: Connection,
+    *,
+    project_id: str,
+    current_fingerprint: str,
+    now: str,
+) -> None:
+    reports = connection.execute(
+        select(agent_artifacts).where(
+            agent_artifacts.c.project_id == project_id,
+            agent_artifacts.c.artifact_type == "project_source_facts",
+        )
+    ).mappings()
+    for report in reports:
+        metadata = _load_json(report["metadata_json"])
+        if not isinstance(metadata, dict):
+            continue
+        report_fingerprint = str(metadata.get("source_snapshot_fingerprint") or "")
+        if not report_fingerprint or report_fingerprint == current_fingerprint:
+            continue
+        if metadata.get("stale") is True:
+            continue
+        metadata["stale"] = True
+        metadata["stale_against_fingerprint"] = current_fingerprint
+        connection.execute(
+            update(agent_artifacts)
+            .where(agent_artifacts.c.id == report["id"])
+            .values(
+                metadata_json=_dump_json(metadata),
+                updated_at=now,
+                version=agent_artifacts.c.version + 1,
+            )
+        )
 
 
 def _source_resource(row: Mapping[str, Any], *, document_count: int) -> dict[str, Any]:

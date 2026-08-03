@@ -26,9 +26,6 @@ def build_project_insight_overview(
     """Build an overview from public document metadata only, never content."""
 
     ordered = sorted(documents, key=lambda item: (str(item["relative_path"]), str(item["id"])))
-    fingerprint_input = "\n".join(
-        f"{item['relative_path']}:{item['checksum']}" for item in ordered
-    )
     suffixes = Counter(_extension(str(item["relative_path"])) for item in ordered)
     manifests = [
         str(item["relative_path"])
@@ -42,7 +39,7 @@ def build_project_insight_overview(
             "source_count": int(source_count),
             "document_count": len(ordered),
             "total_bytes": sum(int(item["size_bytes"]) for item in ordered),
-            "fingerprint": hashlib.sha256(fingerprint_input.encode("utf-8")).hexdigest(),
+            "fingerprint": source_snapshot_fingerprint(ordered),
         },
         "file_types": [
             {"extension": extension, "count": count}
@@ -64,3 +61,13 @@ def build_project_insight_overview(
 def _extension(relative_path: str) -> str:
     suffix = PurePosixPath(relative_path).suffix.lower()
     return suffix or "[no_extension]"
+
+
+def source_snapshot_fingerprint(documents: Sequence[Mapping[str, Any]]) -> str:
+    """Return the stable identity for one persisted v3 document snapshot."""
+
+    ordered = sorted(documents, key=lambda item: (str(item["relative_path"]), str(item["id"])))
+    fingerprint_input = "\n".join(
+        f"{item['relative_path']}:{item['checksum']}" for item in ordered
+    )
+    return hashlib.sha256(fingerprint_input.encode("utf-8")).hexdigest()

@@ -27,6 +27,7 @@
 | [`v3-document-migration.md`](v3-document-migration.md) | 旧文档事实吸收、归并和安全删除矩阵 |
 | [`v3-sources-contract.md`](v3-sources-contract.md) | v3 Sources 的路径、响应脱敏和持久化合同 |
 | [`v3-project-insights-contract.md`](v3-project-insights-contract.md) | v3 文档快照的只读项目概览合同 |
+| [`v3-source-fact-report-contract.md`](v3-source-fact-report-contract.md) | v3 已持久 Documents 的可追溯资料事实报告与陈旧规则 |
 | [`v3-model-profiles-contract.md`](v3-model-profiles-contract.md) | v3 模型 Profile 元数据、幂等与密钥引用合同 |
 | [`v3-artifact-export-contract.md`](v3-artifact-export-contract.md) | v3 Artifact 两阶段确认与受管导出目录合同 |
 | [`v3-workflow-execution-contract.md`](v3-workflow-execution-contract.md) | v3 已发布工作流首段执行的准入、快照和节点白名单合同 |

@@ -52,4 +52,27 @@ describe('ProjectPage Sources', () => {
     expect(screen.getByText('文件类型：.py × 1')).toBeInTheDocument()
     expect(screen.getByText('识别到清单：package.json')).toBeInTheDocument()
   })
+
+  it('only enables a persisted source fact report after real sources are ready', () => {
+    const onCreateSourceFactReport = vi.fn()
+    const { container, rerender } = render(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        insight={{ status: 'source_required', documentCount: 0, totalBytes: 0, fileTypes: [], manifestPaths: [] }}
+      />,
+    )
+
+    const reportButton = () => Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '生成资料事实报告')
+    expect(reportButton()).toBeDisabled()
+    rerender(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        insight={{ status: 'ready', documentCount: 1, totalBytes: 10, fileTypes: [], manifestPaths: [] }}
+        onCreateSourceFactReport={onCreateSourceFactReport}
+      />,
+    )
+
+    fireEvent.click(reportButton()!)
+    expect(onCreateSourceFactReport).toHaveBeenCalledOnce()
+  })
 })

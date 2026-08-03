@@ -71,6 +71,38 @@ PROJECT_INSPECT_WORKFLOW_CHECKSUM = hashlib.sha256(
         separators=(",", ":"),
     ).encode("utf-8")
 ).hexdigest()
+PROJECT_SOURCE_FACTS_WORKFLOW_KEY = "project.source-facts.v1"
+PROJECT_SOURCE_FACTS_WORKFLOW_VERSION = 1
+PROJECT_SOURCE_FACTS_STEPS: tuple[dict[str, Any], ...] = (
+    PROJECT_INSPECT_STEPS[0],
+    {
+        "step_key": "analyze_sources",
+        "node_type": "project.analyze",
+        "effect_kind": "analysis",
+        "ordinal": 1,
+        "status": "pending",
+        "input": {"analysis_kind": "persisted_source_facts"},
+        "max_attempts": 3,
+    },
+    {
+        "step_key": "artifact",
+        "node_type": "artifact.create",
+        "effect_kind": "analysis",
+        "ordinal": 2,
+        "status": "pending",
+        "input": {"artifact_type": "project_source_facts", "format": "json"},
+        "max_attempts": 1,
+    },
+    PROJECT_INSPECT_STEPS[3],
+)
+PROJECT_SOURCE_FACTS_WORKFLOW_CHECKSUM = hashlib.sha256(
+    json.dumps(
+        PROJECT_SOURCE_FACTS_STEPS,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+).hexdigest()
 MAX_SOURCE_SCAN_ENTRIES = 5_000
 MAX_SOURCE_SCAN_TOTAL_BYTES = 10_000_000
 
@@ -322,19 +354,20 @@ class AgentApplication:
                 depth=depth,
                 idempotency_key=idempotency_key,
             )
-        if workflow_key != PROJECT_INSPECT_WORKFLOW_KEY:
+        builtin_workflow = _builtin_workflow(workflow_key)
+        if builtin_workflow is None:
             raise ApplicationValidationError("workflow is not executable in this slice")
         limits = get_depth_limits(depth)
-        if len(PROJECT_INSPECT_STEPS) > limits.max_steps:
+        if len(builtin_workflow["steps"]) > limits.max_steps:
             raise ApplicationValidationError("workflow exceeds the selected depth limit")
         payload = {
             "task_id": task_id,
             "input_message_id": input_message_id,
             "workflow_key": workflow_key,
-            "workflow_version": PROJECT_INSPECT_WORKFLOW_VERSION,
-            "workflow_checksum": PROJECT_INSPECT_WORKFLOW_CHECKSUM,
+            "workflow_version": builtin_workflow["version"],
+            "workflow_checksum": builtin_workflow["checksum"],
             "depth": depth,
-            "steps": list(PROJECT_INSPECT_STEPS),
+            "steps": list(builtin_workflow["steps"]),
         }
         return self.store.create_run_with_steps(
             **payload,
@@ -847,6 +880,22 @@ def _artifact_export_filename(artifact: Mapping[str, Any]) -> str:
     return f"artifact-{str(artifact['id'])}.txt"
 
 
+def _builtin_workflow(workflow_key: str) -> Mapping[str, Any] | None:
+    if workflow_key == PROJECT_INSPECT_WORKFLOW_KEY:
+        return {
+            "version": PROJECT_INSPECT_WORKFLOW_VERSION,
+            "checksum": PROJECT_INSPECT_WORKFLOW_CHECKSUM,
+            "steps": PROJECT_INSPECT_STEPS,
+        }
+    if workflow_key == PROJECT_SOURCE_FACTS_WORKFLOW_KEY:
+        return {
+            "version": PROJECT_SOURCE_FACTS_WORKFLOW_VERSION,
+            "checksum": PROJECT_SOURCE_FACTS_WORKFLOW_CHECKSUM,
+            "steps": PROJECT_SOURCE_FACTS_STEPS,
+        }
+    return None
+
+
 def _executable_workflow_steps(graph: Mapping[str, Any]) -> list[dict[str, Any]]:
     nodes = list(graph.get("nodes") or [])
     expected_types = ("trigger.manual", "project.analyze", "artifact.create", "agent.respond")
@@ -967,6 +1016,10 @@ __all__ = [
     "PROJECT_INSPECT_WORKFLOW_CHECKSUM",
     "PROJECT_INSPECT_WORKFLOW_KEY",
     "PROJECT_INSPECT_WORKFLOW_VERSION",
+    "PROJECT_SOURCE_FACTS_STEPS",
+    "PROJECT_SOURCE_FACTS_WORKFLOW_CHECKSUM",
+    "PROJECT_SOURCE_FACTS_WORKFLOW_KEY",
+    "PROJECT_SOURCE_FACTS_WORKFLOW_VERSION",
     "ProjectRootUnavailableError",
     "request_hash",
 ]

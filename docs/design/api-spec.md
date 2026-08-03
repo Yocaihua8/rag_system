@@ -690,7 +690,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
 | POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
 | GET | `/api/v3/tasks/{task_id}/runs` | 按 `created_at DESC, id DESC` 读取该任务的运行历史 | 支持 `limit=1..500`、`offset>=0`；未知任务返回 404 |
-| POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；固定 `project.inspect.v1` 或显式 `workflow_version_id` 的已发布/已绑定受限工作流；需要 `Idempotency-Key`；返回 202 |
+| POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；固定 `project.inspect.v1`、固定 `project.source-facts.v1` 或显式 `workflow_version_id` 的已发布/已绑定受限工作流；需要 `Idempotency-Key`；返回 202 |
 | GET | `/api/v3/runs/{run_id}` | 读取运行、版本、租约、错误和结果状态 | 只读 |
 | POST | `/api/v3/runs/{run_id}/pause` | 暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
 | POST | `/api/v3/runs/{run_id}/resume` | 恢复已暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
@@ -715,7 +715,7 @@ alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门�
 | POST | `/api/v3/workflows/{workflow_id}/bindings` | 把已发布 Version 绑定到项目 | 校验项目/作用域/发布状态与 workflow/binding version；需要 `Idempotency-Key` |
 | GET | `/api/v3/workflow-bindings` | 按项目、工作流或 enabled 筛选绑定 | 只读 |
 
-`/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 目前只接受固定 `project.inspect.v1`。
+`/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 只接受固定 `project.inspect.v1`、固定 `project.source-facts.v1`，或满足受限执行合同的已发布绑定图。
 
 Sources 首段只有 `project_root` 一种资料源。扫描从已登记的项目根重新解析并逐项检查，跳过忽略目录、符号链接、不支持文件、超过单文件 1 MiB 或总计 10 MiB 的文件；最多访问 5,000 个目录项。成功文件以相对路径、UTF-8 正文、副本 hash、MIME、大小和版本写入独立 v3 `documents`，重复扫描更新变化文件并删除已消失文件。响应中的 `SourceResource` 不含 locator/config，`DocumentResource` 不含正文、源绝对路径或内部错误。根不可用返回 `409 project_root_unavailable`；任一单文件不可读仅增加扫描摘要的 `read_failures`，不阻断其他文件。
 

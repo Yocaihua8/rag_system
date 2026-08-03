@@ -4,8 +4,8 @@
 > 创建时间：2026-08-03
 > 创建方：Codex
 > 关联 BACKLOG：B-176
-> 关联功能文档：`../features/agent-tasks-and-runs.md`
-> 关联设计文档：`../design/api-spec.md`、`../design/database-design.md`、`../design/agent-runtime-and-tool-contract.md`
+> 关联功能文档：`../features/agent-tasks-and-runs.md`、`../features/project-insights.md`
+> 关联设计文档：`../design/api-spec.md`、`../design/database-design.md`、`../design/agent-runtime-and-tool-contract.md`、`../design/v3-source-fact-report-contract.md`
 
 ## 1. 目标
 
@@ -27,7 +27,8 @@
 - [x] 在 Sources 闭环通过后，按同一边界实现 Project Insights 的资料快照概览：只基于 v3 Documents 元数据动态计算，不读正文、不写入结论，补真实后端合同、生成类型、前端状态和测试。
 - [x] 实现 v3 模型 Profile 元数据设置：使用独立表、受控 Key 引用和幂等写请求完成列表、新增、编辑、默认选择和确认删除；不接入模型调用或 Key 录入。
 - [x] 实现 Artifact 受控导出：预览不写入，明确确认时固定版本/hash 并只写入受管 v3 目录；不复用已完成 Run 的审批。
-- [ ] 独立评估并分段实现持久分析、其余设置和工作流执行；每一段先补真实后端合同再开放 UI。
+- [ ] 独立评估并分段实现持久分析和其余设置；工作流首段已完成，每一段先补真实后端合同再开放 UI。
+- [x] 实现首个持久资料事实报告：只读取已持久 v3 Documents，固定资料快照/证据到 Artifact，并在下一次资料扫描改变快照时将旧报告标记为过期；不读项目根、不调用 LLM。
 - [ ] 在所有 B-176 分段完成后，执行完整 Web/desktop 联调矩阵；同步功能、设计、CHANGELOG、DevLog，移除 BACKLOG 条目并删除本 plan。
 
 ## 4. 影响范围
@@ -71,7 +72,8 @@
 | Project Insights 资料快照概览合同和前端状态 | `docs/design/v3-project-insights-contract.md`、`docs/features/project-insights.md` | [x] |
 | v3 模型 Profile 设置合同和前端状态 | `docs/design/v3-model-profiles-contract.md`、`docs/features/model-profile-settings-v3.md` | [x] |
 | Artifact 受控导出合同和前端状态 | `docs/design/v3-artifact-export-contract.md`、`docs/features/artifact-export-v3.md` | [x] |
-| 受限工作流执行准入、快照与节点白名单 | `docs/design/v3-workflow-execution-contract.md` | [x]（合同已冻结，待实现） |
+| 受限工作流执行准入、快照与节点白名单 | `docs/design/v3-workflow-execution-contract.md` | [x] |
+| 持久资料事实报告的正文读取、快照、证据与陈旧规则 | `docs/design/v3-source-fact-report-contract.md`、`docs/features/project-insights.md` | [x] |
 | 开发过程、验证和下一步 | `docs/devlog/2026/08/2026-08-03.md` | [ ] |
 | 用户可见完成事实 | `CHANGELOG.md` | [ ] |
 
@@ -88,12 +90,14 @@
 - 2026-08-03：补齐导出确认中断恢复。若文件写入后数据库状态提交前进程中断，后续确认仅在既有受管文件与当前 ready 快照完全一致时继续提交；不同内容或不可读目标仍拒绝。定向导出/API 契约 14 项与三项文档门禁通过。
 - 2026-08-03：冻结受限工作流执行合同。当前 Definition/Version/Binding 管理 API 与执行器支持范围并不等价；首段只允许已发布、已绑定项目的既有四类只读/分析节点，任何 LLM、资料正文、审批写入、导出、外部发布或控制流节点都必须在创建 Run 前拒绝。
 - 2026-08-03：实现受限工作流执行。`POST /tasks/{id}/runs` 接受显式已发布/已绑定的 `workflow_version_id`，冻结版本/checksum 并仅将既有四节点映射为持久 Steps；端口注册表已对齐执行器真实数据流。定向应用、工作流 API 与 OpenAPI 契约 21 项通过。
+- 2026-08-03：React 工作流详情已接入受限启动入口；只有当前项目有启用且版本匹配的 Binding 时才可提交。待补真实浏览器用例，将 Sources 扫描、资料概览和工作流启动串为一条 v3 闭环。
+- 2026-08-03：完成 v3 浏览器闭环和持久资料事实报告。Playwright 真实服务覆盖项目创建、Sources 扫描、资料概览、报告、发布/绑定工作流启动及刷新恢复；`project.source-facts.v1` 仅从已持久 v3 Documents 构建报告 Artifact，并由扫描 hash 变化标记旧报告过期，不新增表或读取项目根。
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 14:12 CST
-- **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`f9ff591` — fix: 恢复中断的 v3 导出确认
-- **代码状态**：`refactor/agent-v3`；Sources、资料快照概览、模型 Profile 设置和受控导出的后端、React、测试和文档已提交；正式入口未切换。
-- **下一步**：按已冻结合同实现已发布、已绑定项目的受限工作流创建 Run；不把 LLM、正文检索、审批写入或控制流节点混入首段。
-- **续任务须知**：v3 `sources/documents/document_chunks` 已在 `0001_v3_initial` 中建表，但当前 alpha HTTP 仅使用 `projects`；不得用 v2 导入接口或数据根填充 React v3 页面。
+- **最后更新**：2026-08-03 15:25 CST
+- **进度**：已完成 7 / 9 项（见 § 3 勾选状态）；v3 浏览器 Sources/洞察/报告/工作流闭环已完成。
+- **最新 commit**：`d3143dd` — fix: 保持工作流节点端口兼容
+- **代码状态**：`refactor/agent-v3`；Sources、资料快照概览、模型 Profile 设置、受控导出、受限工作流和资料事实报告的后端、React、测试与文档已完成本地验证；正式入口未切换。
+- **下一步**：继续评估其他持久分析或设置分段，并在 B-176 全部范围完成后执行完整 Web/desktop 联调矩阵；不把 LLM、v2 数据或项目根读取混入资料事实报告。
+- **续任务须知**：v3 `sources/documents/document_chunks` 已在 `0001_v3_initial` 中建表；资料事实报告只能经内部 Store 读取已持久 Documents，任何新分析不得用 v2 导入接口或数据根填充 React v3 页面。

@@ -11,6 +11,7 @@ import anyio
 
 from backend.application.agent_service import request_hash
 from backend.config.v3 import V3RuntimeSettings
+from backend.domain.source_fact_reports import build_source_fact_report
 from backend.runtime.project_inspector import ProjectInspectionError, inspect_project
 from backend.storage.v3.errors import StateConflictError
 
@@ -245,6 +246,21 @@ class AgentExecutor:
             }
 
         if node_type == "project.analyze":
+            analysis_kind = str(dict(step.get("input") or {}).get("analysis_kind") or "")
+            if analysis_kind == "persisted_source_facts":
+                snapshot = await anyio.to_thread.run_sync(
+                    lambda: self.store.get_project_document_content_snapshot(
+                        str(claim["project_id"])
+                    )
+                )
+                report = build_source_fact_report(
+                    project_id=str(claim["project_id"]),
+                    source_count=int(snapshot["source_count"]),
+                    documents=snapshot["documents"],
+                )
+                if report["status"] != "ready":
+                    raise ProjectInspectionError("persisted source documents are required")
+                return {"source_fact_report": report}
             project = await anyio.to_thread.run_sync(
                 lambda: self.store.get_project(str(claim["project_id"]))
             )
@@ -268,7 +284,7 @@ class AgentExecutor:
             steps = await anyio.to_thread.run_sync(
                 lambda: self.store.list_run_steps(str(claim["run_id"]))
             )
-            inspection_step = next(
+            analysis_step = next(
                 (
                     item
                     for item in steps
@@ -277,31 +293,53 @@ class AgentExecutor:
                 ),
                 None,
             )
-            if inspection_step is None:
+            if analysis_step is None:
                 raise ProjectInspectionError("project inspection output is unavailable")
-            inspection = dict(inspection_step.get("output") or {}).get(
-                "inspection", {}
-            )
-            content = json.dumps(
-                inspection,
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-            )
-            artifact_payload = {
-                "task_id": str(claim["task_id"]),
-                "run_id": str(claim["run_id"]),
-                "step_id": str(step["id"]),
-                "kind": "project_inspection",
-                "title": "Project structure inspection",
-                "content": content,
-                "metadata": {
+            output = dict(analysis_step.get("output") or {})
+            report = output.get("source_fact_report")
+            inspection = output.get("inspection", {})
+            if report is not None:
+                content = json.dumps(
+                    report,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                kind = "project_source_facts"
+                title = "项目资料事实报告"
+                metadata = {
+                    "source": "project.source-facts.v1",
+                    "workflow_version": int(
+                        dict(claim.get("run") or {}).get("workflow_version", 1)
+                    ),
+                    "source_snapshot_fingerprint": report["source_snapshot"]["fingerprint"],
+                    "stale": False,
+                    "content_type": "json",
+                }
+            else:
+                content = json.dumps(
+                    inspection,
+                    ensure_ascii=False,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                kind = "project_inspection"
+                title = "Project structure inspection"
+                metadata = {
                     "source": "project.inspect.v1",
                     "workflow_version": int(
                         dict(claim.get("run") or {}).get("workflow_version", 1)
                     ),
                     "content_type": "json",
-                },
+                }
+            artifact_payload = {
+                "task_id": str(claim["task_id"]),
+                "run_id": str(claim["run_id"]),
+                "step_id": str(step["id"]),
+                "kind": kind,
+                "title": title,
+                "content": content,
+                "metadata": metadata,
                 "status": "ready",
             }
             artifact_result = await anyio.to_thread.run_sync(
@@ -327,7 +365,7 @@ class AgentExecutor:
                 (
                     item
                     for item in artifacts
-                    if item["artifact_type"] == "project_inspection"
+                    if item["artifact_type"] in {"project_inspection", "project_source_facts"}
                     and item["status"] == "ready"
                 ),
                 None,
@@ -335,12 +373,16 @@ class AgentExecutor:
             if artifact is None:
                 raise ProjectInspectionError("project inspection artifact is unavailable")
             try:
-                inspection = json.loads(str(artifact["content"]))
+                analysis = json.loads(str(artifact["content"]))
             except json.JSONDecodeError as exc:
                 raise ProjectInspectionError(
                     "project inspection artifact is invalid"
                 ) from exc
-            chunks = _build_agent_response_chunks(inspection)
+            chunks = (
+                _build_source_fact_response_chunks(analysis)
+                if artifact["artifact_type"] == "project_source_facts"
+                else _build_agent_response_chunks(analysis)
+            )
             content = "\n\n".join(chunks)
             message_id = str(
                 uuid5(
@@ -438,4 +480,21 @@ def _build_agent_response_chunks(inspection: dict[str, Any]) -> list[str]:
     if bool(inspection.get("truncated")):
         chunks.append("项目内容较多，本次结果已按安全上限截取。")
     chunks.append("完整结构已保存到“项目结构检查”结果中。")
+    return chunks
+
+
+def _build_source_fact_response_chunks(report: dict[str, Any]) -> list[str]:
+    snapshot = dict(report.get("source_snapshot") or {})
+    chunks = [
+        "资料事实报告已经生成。",
+        f"本次只读取已持久化的 {int(snapshot.get('document_count', 0))} 个 v3 文档，不会重新访问项目目录。",
+    ]
+    headings = list(report.get("markdown_headings") or [])[:5]
+    if headings:
+        chunks.append(
+            "资料中可追溯的 Markdown 标题包括："
+            + "、".join(str(item.get("title") or "") for item in headings if item.get("title"))
+            + "。"
+        )
+    chunks.append("完整证据、快照 hash 和逐文档统计已保存到“项目资料事实报告”结果中；资料再次扫描后旧报告会标记为已过期。")
     return chunks

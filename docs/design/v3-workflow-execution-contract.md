@@ -13,7 +13,7 @@
 ## 2. 准入规则
 
 - 仅执行 `trigger.manual`、`project.analyze`、`artifact.create` 与 `agent.respond` 四类已有执行器节点，且图必须通过既有 DAG 校验并只有一个手动触发器和一个终端。
-- `project.analyze` 仅允许现有 `sources` 分析，不读取未绑定路径、正文或 v2 数据；`artifact.create` 仅生成受控 SQLite Artifact；`agent.respond` 只基于该 Artifact 生成持久消息。
+- 当前 `project.analyze` 映射为既有、受项目绑定根约束的只读项目结构检查；它不读取 v2 数据、不跟随符号链接，也不执行项目代码。它不是 Sources 正文检索或持久洞察分析；`artifact.create` 仅生成受控 SQLite Artifact；`agent.respond` 只基于该 Artifact 生成持久消息。
 - `llm.*`、`source.*`、`insight.assess`、`learning.plan`、`approval.request`、`artifact.export`、`obsidian.publish`、分支和 join 节点均不在首段可执行白名单。命中时必须在创建 Run 前拒绝，而不是排队后失败或静默跳过。
 - 每次创建仍要求 `Idempotency-Key` 与 `input_message_id`；写节点不因本切片开放。现有 Artifact 导出继续使用独立预览/确认合同，不成为工作流节点。
 
@@ -21,7 +21,7 @@
 
 调用方必须显式提交已发布 `workflow_version_id`，服务端验证它属于已绑定项目、Definition active、Binding enabled 且版本为 published。绑定不存在、已禁用、版本不匹配或图不在白名单时返回明确冲突/校验错误。
 
-首段不做自动选择默认工作流、不复用旧 Run、不从浏览器状态推断发布版本。当前 API 已实现受限 Run 创建和执行；React 工作流启动入口仍待独立接线。
+首段不做自动选择默认工作流、不复用旧 Run、不从浏览器状态推断发布版本。当前 API 已实现受限 Run 创建和执行；React 工作流详情仅在当前项目存在启用且版本匹配的 Binding 时显示任务输入与启动入口，并按顺序创建 Task、Run 后跳转至任务页。
 
 ## 4. 不在范围
 
