@@ -76,9 +76,9 @@
 
 ## 9. 状态快照
 
-- **最后更新**：2026-08-03 23:59 CST
+- **最后更新**：2026-08-03 13:20 CST
 - **进度**：已完成 3 / 5 项（见 § 3 勾选状态）
-- **最新 commit**：`cc070b9` — docs: 取消 Sites 交付并关闭 B-178
-- **代码状态**：`refactor/agent-v3`；Sources 后端、React、测试和文档未提交；正式入口未切换。
+- **最新 commit**：`cdfdedf` — feat: 增加 v3 项目资料扫描闭环
+- **代码状态**：`refactor/agent-v3`；Sources 后端、React、测试和文档已提交；正式入口未切换。
 - **下一步**：在 Sources 闭环通过后，冻结并实现下一段 Project Insights API；不扩大到设置、导出或工作流执行。
 - **续任务须知**：v3 `sources/documents/document_chunks` 已在 `0001_v3_initial` 中建表，但当前 alpha HTTP 仅使用 `projects`；不得用 v2 导入接口或数据根填充 React v3 页面。
