@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { GitBranch, Plus } from 'lucide-react'
 import { workflowStepLabel } from '../components/workflowLabels'
 
@@ -14,9 +15,12 @@ interface WorkflowsPageProps {
   loading?: boolean
   error?: string
   onSelect?: (workflowId: string) => void
+  onStart?: (message: string) => Promise<void>
+  startPending?: boolean
 }
 
-export function WorkflowsPage({ workflows = [], selectedWorkflow, loading = false, error, onSelect }: WorkflowsPageProps) {
+export function WorkflowsPage({ workflows = [], selectedWorkflow, loading = false, error, onSelect, onStart, startPending = false }: WorkflowsPageProps) {
+  const [message, setMessage] = useState('')
   return (
     <div className="standard-page">
       <header className="standard-page__header">
@@ -34,7 +38,7 @@ export function WorkflowsPage({ workflows = [], selectedWorkflow, loading = fals
         </section>
       ) : null}
       <div className="capability-notice capability-notice--warning" role="status"><strong>目前可以查看步骤</strong><p>编辑功能尚未开放，现有工作流不会被修改。</p></div>
-      {selectedWorkflow ? <section className="content-section"><h2>{selectedWorkflow.name}</h2><span className="status-badge">{selectedWorkflow.statusLabel}</span>{selectedWorkflow.steps.length ? <ol>{selectedWorkflow.steps.map((step, index) => <li key={`${index}-${step}`}>{workflowStepLabel(step)}</li>)}</ol> : <p>这个版本暂时没有可显示的步骤。</p>}<button className="button button--secondary" type="button" disabled>编辑流程图（尚未开放）</button></section> : null}
+      {selectedWorkflow ? <section className="content-section"><h2>{selectedWorkflow.name}</h2><span className="status-badge">{selectedWorkflow.statusLabel}</span>{selectedWorkflow.steps.length ? <ol>{selectedWorkflow.steps.map((step, index) => <li key={`${index}-${step}`}>{workflowStepLabel(step)}</li>)}</ol> : <p>这个版本暂时没有可显示的步骤。</p>}{onStart ? <form onSubmit={(event) => { event.preventDefault(); if (message.trim()) void onStart(message.trim()).then(() => setMessage('')) }}><label className="field-label" htmlFor="workflow-message">本次任务</label><textarea className="field-control" id="workflow-message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="说明这次要检查什么" /><button className="button button--primary" type="submit" disabled={startPending || !message.trim()}>{startPending ? '正在启动…' : '启动此工作流'}</button></form> : <p className="inline-notice">当前项目没有可执行的已绑定版本。</p>}<button className="button button--secondary" type="button" disabled>编辑流程图（尚未开放）</button></section> : null}
       <div className="workflow-list">
         {workflows.map((workflow) => (
           <article className="workflow-row" key={workflow.id}>
