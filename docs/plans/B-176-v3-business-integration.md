@@ -84,12 +84,13 @@
 - 2026-08-03：完成 v3 模型 Profile 元数据设置：Profile 只保存固定白名单 Key 引用，React 可对真实 v3 Profile 新增、编辑、设默认和确认删除；不接入 Key 录入、模型调用或 v2 数据。定向 Python 43 项、React typecheck、46 项单测、OpenAPI 生成和 production build 通过。
 - 2026-08-03：冻结 Artifact 受控导出合同。现有 Approval 资源绑定运行中 Step，不能复用已完成 Artifact 伪造审批；导出改用独立的预览/确认两阶段，确认请求固定 Artifact hash/version 并只写入受管 v3 目录，后续实现前不得开放任意目标路径。
 - 2026-08-03：完成 Artifact 受控导出。后端提供 ready Artifact 的只读预览和带 `Idempotency-Key` 的确认接口，文件名由服务端固定并只写入 `<KI_DATA_ROOT>/artifacts/exports/`；React 详细过程先显示快照与不可自动撤销提示，再发送确认。定向 Python 44 项、React typecheck、47 项单测、OpenAPI 生成、production build 与三项文档门禁通过。真实浏览器 E2E 仍留在最终联调矩阵。
+- 2026-08-03：补齐导出确认中断恢复。若文件写入后数据库状态提交前进程中断，后续确认仅在既有受管文件与当前 ready 快照完全一致时继续提交；不同内容或不可读目标仍拒绝。定向导出/API 契约 14 项与三项文档门禁通过。
 
 ## 9. 状态快照
 
 - **最后更新**：2026-08-03 14:12 CST
 - **进度**：已完成 6 / 8 项（见 § 3 勾选状态）
-- **最新 commit**：`119fe79` — feat: 增加 v3 受控结果导出
+- **最新 commit**：`f9ff591` — fix: 恢复中断的 v3 导出确认
 - **代码状态**：`refactor/agent-v3`；Sources、资料快照概览、模型 Profile 设置和受控导出的后端、React、测试和文档已提交；正式入口未切换。
 - **下一步**：独立冻结并实现持久洞察分析、其余设置或工作流执行中的一个最小真实切片；不把它们混入当前导出切片。
 - **续任务须知**：v3 `sources/documents/document_chunks` 已在 `0001_v3_initial` 中建表，但当前 alpha HTTP 仅使用 `projects`；不得用 v2 导入接口或数据根填充 React v3 页面。
