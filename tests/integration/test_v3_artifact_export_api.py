@@ -50,14 +50,17 @@ def test_v3_artifact_export_requires_confirmed_snapshot_and_uses_managed_path(tm
 
         stale = client.post(f"/api/v3/artifacts/{artifact['id']}/export-confirm", headers=_headers("stale"), json={"expected_version": data["version"], "expected_checksum": "0" * 64})
         assert stale.status_code == 422, stale.text
-        assert not (_v3_data_root(client) / "artifacts" / "exports" / data["target_filename"]).exists()
+        exported = _v3_data_root(client) / "artifacts" / "exports" / data["target_filename"]
+        assert not exported.exists()
+
+        exported.parent.mkdir(parents=True, exist_ok=True)
+        exported.write_text("exported content", encoding="utf-8")
 
         confirmed = client.post(f"/api/v3/artifacts/{artifact['id']}/export-confirm", headers=_headers("export"), json={"expected_version": data["version"], "expected_checksum": data["checksum"]})
         assert confirmed.status_code == 200, confirmed.text
         result = confirmed.json()["data"]
         assert result["artifact"]["status"] == "exported"
         assert result["content_ref"] == f"exports/{data['target_filename']}"
-        exported = _v3_data_root(client) / "artifacts" / "exports" / data["target_filename"]
         assert exported.read_text(encoding="utf-8") == "exported content"
 
         replay = client.post(f"/api/v3/artifacts/{artifact['id']}/export-confirm", headers=_headers("export"), json={"expected_version": data["version"], "expected_checksum": data["checksum"]})

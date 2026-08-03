@@ -19,7 +19,7 @@
 
 - 仅 `status=ready` 的 Artifact 可预览或确认导出；已导出、failed、draft 或版本/hash 变化时 fail closed。
 - 预览不能构成授权。确认由 React 明确展示目标、不会修改的范围和不可自动撤销边界后发起；取消不写入任何状态或文件。
-- 确认时把 Artifact 状态转为 `exported`、写入 `content_ref` 与 `exported_at`；已处理失败会清理本次创建的导出文件并保持原 Artifact 可读状态。
+- 确认时把 Artifact 状态转为 `exported`、写入 `content_ref` 与 `exported_at`；已处理失败会清理本次创建的导出文件并保持原 Artifact 可读状态。进程在文件写入与数据库提交之间中断后，只允许同一 ready 快照的受管文件被后续确认恢复使用；任意不同内容、目录或不可读目标继续 fail closed。
 - 导出不读取项目根、Sources/Documents 正文、v2 数据根或环境凭据；只序列化 Artifact 已保存内容。
 
 ## 3. 不在范围

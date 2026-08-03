@@ -525,12 +525,31 @@ class AgentApplication:
             raise ApplicationValidationError("artifact checksum changed")
         export_dir = Path(artifact_export_dir).resolve()
         target = export_dir / str(preview["target_filename"])
-        if target.parent != export_dir or target.exists():
+        if target.parent != export_dir:
             raise ApplicationValidationError("artifact export target is unavailable")
         export_dir.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            try:
+                matching_snapshot = target.is_file() and target.read_text(encoding="utf-8") == str(
+                    artifact["content"]
+                )
+            except OSError:
+                matching_snapshot = False
+            if not matching_snapshot:
+                raise ApplicationValidationError("artifact export target is unavailable")
+            return self.store.mark_artifact_exported(
+                artifact_id=artifact_id,
+                expected_version=expected_version,
+                expected_checksum=expected_checksum,
+                content_ref=payload["content_ref"],
+                idempotency_key=clean_idempotency_key,
+                request_hash=request_hash(payload),
+            )
+        created_target = False
         try:
             with target.open("x", encoding="utf-8", newline="\n") as handle:
                 handle.write(str(artifact["content"]))
+            created_target = True
             return self.store.mark_artifact_exported(
                 artifact_id=artifact_id,
                 expected_version=expected_version,
@@ -540,7 +559,7 @@ class AgentApplication:
                 request_hash=request_hash(payload),
             )
         except Exception:
-            if target.exists():
+            if created_target and target.exists():
                 target.unlink()
             raise
 
