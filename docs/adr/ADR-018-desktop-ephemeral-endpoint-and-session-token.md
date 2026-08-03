@@ -4,7 +4,7 @@
 > Date：2026-08-03
 > Owner：RAG 团队
 > Scope：Tauri sidecar 端口、桌面 API 认证、令牌传递与 Web 部署分界
-> Related：`ADR-005-remote-auth.md`、`ADR-010-runtime-separation.md`、`ADR-015-v3-data-api-storage.md`、`../design/permission-matrix.md`、`../plans/B-174-desktop-runtime-foundation.md`
+> Related：`ADR-005-remote-auth.md`、`ADR-010-runtime-separation.md`、`ADR-015-v3-data-api-storage.md`、`../design/permission-matrix.md`、`../guides/runbook.md`
 
 ## 1. 背景
 

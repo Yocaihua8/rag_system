@@ -22,7 +22,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
-| B-174 | infra | Tauri sidecar、安全令牌与本地数据运维基础 | doing | P1 | L | Codex | `guides/v3-upgrade.md`、`adr/ADR-010-runtime-separation.md` | `plans/B-174-desktop-runtime-foundation.md`；按用户“继续完成后端”启动，先实现默认关闭的桌面会话认证与随机端口后端契约，再推进存储预检、备份和恢复 |
 | B-175 | refactor | React 生产前端基础与 P1 Revision 3 实施 | blocked | P0 | XL | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-175-react-frontend-foundation.md`；工程和门禁已完成，等待用户高保真验收；为保持单一 doing，计划暂时中断且不删除 |
 | B-178 | refactor | 新手引导式首页与可重放 Agent 消息流 | blocked | P0 | L | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-178-guided-agent-conversation.md`；后端与 P1 本地验收已完成，Sites `list_sites` 传输错误阻塞生产发布和关闭 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。

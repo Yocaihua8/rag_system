@@ -13,6 +13,7 @@
 - **React v3 平行 Agent 工作台**：新增独立 `frontend-v3/` React 19/TypeScript 6/Vite 8 应用，提供任务、项目、工作流和设置四个一级入口；通过生成的 v3 OpenAPI 类型接入真实项目、任务消息、运行、SSE、控制、审批、历史产物与工作流只读信息，并在缺少资料、洞察、导出、工作流编辑和桌面运维 API 时保持明确不可用状态。正式入口仍为现有 Vue。
 - **v3 通用项目 Agent 工程基线**：冻结产品范围、任务/运行/审批目标合同、P1/P2 前端原型门禁，以及持久 DAG、React/TypeScript、独立 v3 数据/API 的架构决策；目标文档不冒充当前 v2 已实现能力。
 - **v3 Agent 后端 alpha 垂直切片**：在保留 v2 API、SQLite 与 Vue 的同时，新增独立 `runtime/v3` SQLAlchemy/Alembic 数据代际和 `/api/v3` sub-app；项目、任务与固定四步 `project.inspect.v1` version 2 运行由 lifespan executor 持久执行，支持可续传 Agent 回答、运行控制/重试、审批与产物读取基础，并生成不含文件正文和绝对根路径的项目结构检查产物。
+- **v3 本地数据运维基础**：新增只读存储目标预检、SQLite 在线一致性备份和受控恢复；备份验证 integrity、代际、Alembic revision 与两级 SHA-256，恢复使用确认 hash、完整请求排他、executor/Store 停启、同目录失败回滚和持久幂等回放，不读写 v2 数据根。
 - **每日 DevLog**：重新启用 `docs/devlog/YYYY/MM/YYYY-MM-DD.md` 过程记录，提供日报与问题复盘模板，并保持 BACKLOG、ADR、CHANGELOG 和 Git 的职责分离。
 - **逐知识点交互学习**：可从教练、学习地图或已确认学习计划任务启动和恢复学习会话，一次展示一个知识点与一道练习；每次作答独立保存，支持有限重试、具体反馈、答案揭示和当前来源版本下的掌握证据更新。
 - **只读 SQL 项目练习**：仅在当前项目存在可解析 SQLite Schema 证据时生成结构化合成 fixture；学习者查询在独立临时 SQLite 数据库中按只读、安全和资源限制确定性评分，不连接正式应用数据库。
@@ -33,10 +34,12 @@
 
 ### Fixed
 
+- **桌面 sidecar v3 初始化资源**：Windows/Unix PyInstaller 构建显式收集 `backend/alembic.ini` 与 v3 migration 目录，修复 sidecar 可打包但无法初始化 `runtime/v3/app.db` 的启动失败；真实 Windows sidecar 已通过随机端口、进程令牌、health 与恢复 OpenAPI 动态验证。
 - **v2 SQLite 在线备份**：保留 `runtime/v2/app.db`、`runtime/v2/backups/` 与 `knowledge-island-v2-*` 主线约定，并修复 Git Bash 调用 Windows `sqlite3.exe` 时 `.backup` 目标路径不可用的问题；真实隔离恢复测试验证 SQLite 完整性、v2 标记和样例数据。
 
 ### Security
 
+- **桌面进程期认证边界**：新增默认关闭的精确 loopback 临时端口与 32 字节随机启动令牌；令牌只通过父子进程环境和 Tauri 内存状态传递，不进入 CLI、日志、SQLite 或浏览器持久存储，默认 capability 继续不开放通用 shell/environment。
 - **v3 数据与检查隔离**：v3 初始化在迁移前只读拒绝未标记、v2 或未知代际数据库；项目检查只遍历授权根的相对结构元数据，不读取文件正文、不进入生成/依赖目录、不跟随目录符号链接，且当前 executor 不开放 shell、任意脚本、网络或文件写节点。
 - **SQL 练习隔离**：来源 DDL 只解析为受支持的结构化 fixture，不直接执行；评分数据库以只读模式重开，并通过 authorizer、语句与函数限制、超时、VM 指令、结果行列和字节上限阻断写操作、Schema 访问及资源滥用。
 
