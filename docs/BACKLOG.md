@@ -22,7 +22,6 @@
 
 | ID | 类型 | 标题 | 状态 | 优先级 | 规模 | 负责人 | 关联文档 | 说明 |
 |----|------|------|------|--------|------|--------|----------|------|
-| B-178 | refactor | 新手引导式首页与可重放 Agent 消息流 | blocked | P0 | L | Codex | `features/agent-tasks-and-runs.md`、`design/ui-prototype-brief-v3.md` | `plans/B-178-guided-agent-conversation.md`；后端与 P1 本地验收已完成，Sites `list_sites` 传输错误阻塞生产发布和关闭 |
 新增代码任务时，先分配下一个 `B-xxx`，状态设为 `doing`，并按 [`plans/README.md`](plans/README.md) 创建执行 plan。
 
 ## 3. 已知问题

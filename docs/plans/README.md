@@ -10,7 +10,7 @@ Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入
 
 ## 当前活动计划
 
-- [`B-178-guided-agent-conversation.md`](B-178-guided-agent-conversation.md)：新手引导式首页与可重放 Agent 消息流；Sites 生产发布外部阻塞（Interrupted）。
+N/A：当前没有 Active 或 Interrupted plan。
 
 ## 创建
 
