@@ -44,6 +44,7 @@
 
 ### Security
 
+- **前端测试依赖漏洞修复**：将 `jsdom` 的间接依赖 `undici` 从 `7.28.0` 更新到 `7.29.0`，消除 npm audit 新披露的响应不同步、缓存解析、CRLF 与 Cookie 属性注入风险；既有 React Router RSC 公告仍仅按 client-only HashRouter SPA 条件例外处理。
 - **桌面进程期认证边界**：新增默认关闭的精确 loopback 临时端口与 32 字节随机启动令牌；令牌只通过父子进程环境和 Tauri 内存状态传递，不进入 CLI、日志、SQLite 或浏览器持久存储，默认 capability 继续不开放通用 shell/environment。
 - **v3 数据与检查隔离**：v3 初始化在迁移前只读拒绝未标记、v2 或未知代际数据库；项目检查只遍历授权根的相对结构元数据，不读取文件正文、不进入生成/依赖目录、不跟随目录符号链接，且当前 executor 不开放 shell、任意脚本、网络或文件写节点。
 - **SQL 练习隔离**：来源 DDL 只解析为受支持的结构化 fixture，不直接执行；评分数据库以只读模式重开，并通过 authorizer、语句与函数限制、超时、VM 指令、结果行列和字节上限阻断写操作、Schema 访问及资源滥用。
