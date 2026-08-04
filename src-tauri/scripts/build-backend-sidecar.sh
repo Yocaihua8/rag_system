@@ -42,6 +42,8 @@ echo "Building API-only FastAPI sidecar with PyInstaller for $TARGET_TRIPLE..."
   --onefile \
   --name "$BACKEND_NAME" \
   --paths "$PROJECT_ROOT" \
+  --add-data "$PROJECT_ROOT/backend/alembic.ini:backend" \
+  --add-data "$PROJECT_ROOT/backend/storage/v3/migrations:backend/storage/v3/migrations" \
   --distpath "$BUILD_ROOT/dist" \
   --workpath "$BUILD_ROOT/work" \
   --specpath "$BUILD_ROOT/spec" \

@@ -1,0 +1,78 @@
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+
+import { ProjectPage } from './ProjectPage'
+
+
+describe('ProjectPage Sources', () => {
+  it('keeps an empty project honest and starts a real source scan on demand', () => {
+    const onScanSources = vi.fn()
+    render(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        onScanSources={onScanSources}
+      />,
+    )
+
+    expect(screen.getByText('尚未扫描此项目。扫描只读取已绑定目录中的受支持文本文件，不会修改项目文件。')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '扫描项目资料' }))
+    expect(onScanSources).toHaveBeenCalledOnce()
+  })
+
+  it('renders only source metadata and relative document paths', () => {
+    render(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        sources={[{ id: 'source-1', name: '项目根目录', sourceType: 'project_root', status: 'ready', documentCount: 1 }]}
+        documents={[{ id: 'doc-1', relativePath: 'src/main.py', mimeType: 'text/x-python', sizeBytes: 19 }]}
+        onScanSources={() => undefined}
+      />,
+    )
+
+    expect(screen.getByText('项目根目录')).toBeInTheDocument()
+    expect(screen.getByText('src/main.py')).toBeInTheDocument()
+    expect(screen.queryByText('资料接口尚未接入当前前端阶段，因此不会显示占位资料。')).not.toBeInTheDocument()
+  })
+
+  it('renders a source-backed insight instead of a synthetic score', () => {
+    render(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        insight={{
+          status: 'ready',
+          documentCount: 2,
+          totalBytes: 42,
+          fileTypes: [{ extension: '.py', count: 1 }],
+          manifestPaths: ['package.json'],
+        }}
+      />,
+    )
+
+    expect(screen.getByText('已索引文件')).toBeInTheDocument()
+    expect(screen.getByText('文件类型：.py × 1')).toBeInTheDocument()
+    expect(screen.getByText('识别到清单：package.json')).toBeInTheDocument()
+  })
+
+  it('only enables a persisted source fact report after real sources are ready', () => {
+    const onCreateSourceFactReport = vi.fn()
+    const { container, rerender } = render(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        insight={{ status: 'source_required', documentCount: 0, totalBytes: 0, fileTypes: [], manifestPaths: [] }}
+      />,
+    )
+
+    const reportButton = () => Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '生成资料事实报告')
+    expect(reportButton()).toBeDisabled()
+    rerender(
+      <ProjectPage
+        project={{ id: 'project-1', name: '资料项目', rootLabel: 'E:/project' }}
+        insight={{ status: 'ready', documentCount: 1, totalBytes: 10, fileTypes: [], manifestPaths: [] }}
+        onCreateSourceFactReport={onCreateSourceFactReport}
+      />,
+    )
+
+    fireEvent.click(reportButton()!)
+    expect(onCreateSourceFactReport).toHaveBeenCalledOnce()
+  })
+})

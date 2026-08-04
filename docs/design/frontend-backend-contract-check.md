@@ -2,11 +2,11 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
-> Scope：Knowledge Island v2.0.0 Vue 主路径、逐点学习覆盖层与本地 FastAPI HTTP/SSE 契约
+> Last Updated：2026-08-02
+> Scope：Knowledge Island v2.0.0 Vue 主路径、React v3 平行入口与本地 FastAPI HTTP/SSE 契约
 > Related：`api-spec.md`、`page-module-contract.md`、`component-api-contract.md`
 
-本文档对照当前 Vue 主路径和现有后端接口。它不定义新接口；方法、路径、字段、响应和错误仍以 `api-spec.md` 为权威源。
+本文档对照当前 Vue 主路径、独立 `frontend-v3/` 第一阶段和现有后端接口。它不定义新接口；方法、路径、字段、响应和错误仍以 `api-spec.md` 为权威源。Vue 仍是正式入口，两个前端的状态和 API 代际不能混用。
 
 ## 1. 对照目标
 
@@ -213,3 +213,28 @@
 - 当前 Vue 主路径已接入教练、学习地图、学习计划、资料和设置所需的 HTTP/SSE API，并通过四个 Coach 学习会话操作接入逐点学习覆盖层；URL 摘录、可选认证等已列缺口不在该闭环范围内。
 - 新页面动作仍必须先在 `api-spec.md` 找到契约；逐点学习组件不得绕过 `frontend/src/api/coach.js` 或复制服务端状态机。
 - 可选认证、资料备份/恢复和外观主题是明确边界，不能在未实现完整链路前写成“可用”。
+
+## 9. React v3 平行接线
+
+`frontend-v3/src/api/` 只从 `/api/v3/openapi.json` 生成类型，`VITE_API_BASE_URL` 必须直接包含 `/api/v3`。`openapi-fetch` 处理 JSON envelope；运行事件由独立 fetch-stream parser 处理，不能回退到 v2 `EventSource` 合同。
+
+| 页面 / 行为 | v3 接口 | 当前处理 |
+|-------------|---------|----------|
+| 服务状态 | `GET /api/v3/health` | 同时显示连接与 executor 事实；失败不伪装在线 |
+| 项目选择 / 创建 | `GET/POST /api/v3/projects` | 只接受后端实际存在的目录；浏览器阶段明确要求完整路径 |
+| 项目资料扫描 / 浏览 | `POST /projects/{id}/sources/scan`、`GET /projects/{id}/sources`、`GET /projects/{id}/documents` | 只显示后端返回的 Sources 与相对文档元数据；扫描写请求使用稳定 `Idempotency-Key`，不回退到 v2 导入或演示资料 |
+| 项目资料概览 | `GET /projects/{id}/insights/overview` | 只展示受控 v3 Documents 元数据汇总；资料为空时明确提示扫描，不合成评分或技术栈结论 |
+| 任务列表 / 首次发送 | `GET/POST /api/v3/tasks` | 创建响应直接使用 `initial_message`，不重复追加首消息 |
+| 继续任务 | `POST /api/v3/tasks/{id}/messages` | 成功消息 ID 作为新 Run 的不可变输入引用 |
+| 刷新恢复 | `GET /api/v3/tasks/{id}/runs?limit=20&offset=0` | 按服务端倒序结果取最近 Run，并保留历史运行标识；不把浏览器存储当作运行事实源 |
+| 运行 / 控制 | `POST /tasks/{id}/runs`、`GET/POST /runs/*` | 全部写请求强制稳定 `Idempotency-Key`；版本化控制和审批另外发送服务端 `expected_version` / request hash |
+| 分段回答 | `GET /runs/{id}/events`、`GET /tasks/{id}/messages` | Run 内按 sequence 去重；最多五次有界重连并从最后序号续传；完整消息负责刷新历史 |
+| 详细过程 | steps、approvals、artifacts | 产物按 Task 查询并标注所属 Run；只展示真实返回，当前固定工作流不会伪造审批 |
+| 工作流 | definitions / versions | 定义、详情与版本步骤只读接线；绑定、编辑、校验和执行 UI 在稳定 API 可用前保持禁用 |
+| 模型 Profile 设置 | `GET/POST /model-profiles`、`POST /model-profiles/{id}/update|default|delete` | 使用独立 v3 数据和幂等写请求；只提交 Key 引用，不提供 Key 录入或连接测试 |
+| Artifact 受控导出 | `GET /artifacts/{id}/export-preview`、`POST /artifacts/{id}/export-confirm` | 详细过程先读取版本/hash/受管文件名，再由用户确认；确认请求使用稳定 `Idempotency-Key`，不接受或展示绝对路径 |
+| 洞察与其余设置 | N/A | 资料快照概览已在项目页接入；其余能力只保留明确不可用说明，不调用 v2 填空 |
+
+TanStack Query 持有服务端项目、任务、运行、步骤、审批、产物和工作流；Zustand 只保存界面主题、抽屉、最后项目选择和按任务隔离的未发送草稿。离线恢复后不会自动提交写请求。
+
+任务创建、追加消息与启动 Run 使用 `sessionStorage` intent ledger 处理“消息已保存但 Run 响应丢失”的部分成功场景。ledger 只保存 SHA-256 摘要、幂等键、阶段和消息 ID，24 小时过期且最多 64 条，不保存原始 prompt 或项目路径，也不是运行事实源。Run 明确成功后立即释放对应 intent；用户再次提交相同正文会生成新的操作键。项目创建、运行控制和审批决议同样先对输入做 SHA-256 摘要，再持久化未决幂等键。

@@ -46,6 +46,7 @@ def test_runtime_source_and_docs_are_classified_by_responsibility():
         "docs/adr",
         "docs/guides",
         "docs/plans",
+        "docs/devlog",
     ):
         assert (ROOT / relative).is_dir(), f"missing classified directory: {relative}"
 
@@ -65,9 +66,7 @@ def test_legacy_archive_history_and_mixed_script_roots_are_removed():
     for relative in (
         "archive",
         "legacy",
-        "tools",
         ".docs-template",
-        "docs/devlog",
         "docs/release",
         "docs/previews",
         "docs/superpowers",
@@ -78,3 +77,9 @@ def test_legacy_archive_history_and_mixed_script_roots_are_removed():
         "docs/governance",
     ):
         assert not (ROOT / relative).exists(), f"obsolete path remains: {relative}"
+
+    tools_entries = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "tools").iterdir()
+    }
+    assert tools_entries == {"tools/openapi-codegen"}

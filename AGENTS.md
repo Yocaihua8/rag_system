@@ -4,7 +4,7 @@
 
 ## 1. 项目概述
 
-Knowledge Island 是面向个人开发学习的本地项目知识教练。当前正式版本为 `v2.0.0`，进入维护与增量迭代。
+Knowledge Island 当前正式版本为 `v2.0.0` 本地项目知识教练，并已进入 v3 通用项目 Agent 的分阶段重构。目标规格不等于当前可达实现；阶段事实以源码、测试、CHANGELOG 和当日 DevLog 为准。
 
 | 项 | 当前值 |
 |----|--------|
@@ -42,6 +42,7 @@ Knowledge Island 是面向个人开发学习的本地项目知识教练。当前
 | `docs/adr/` | Accepted 架构决策与模板 |
 | `docs/guides/` | 搭建、测试、运行、发布、安全和协作操作 |
 | `docs/plans/` | Active/Interrupted plan 与模板；活动 plan 完成即删除 |
+| `docs/devlog/` | 按开发日记录过程事实；使用 `YYYY/MM/YYYY-MM-DD.md` |
 
 ## 4. 架构不变量
 
@@ -101,7 +102,7 @@ npm run frontend:dev
 | 未完成事项 | `docs/BACKLOG.md` |
 | 已完成变更 | `CHANGELOG.md` 与 Git 历史 |
 
-不再创建 DevLog、readiness 快照或已验收 preview。没有依据的事实写 `TBD`、`N/A` 或“待确认”。
+每个实际开发日更新 `docs/devlog/YYYY/MM/YYYY-MM-DD.md`；DevLog 只记录过程、问题、临时决定和下一步，重大决定提升为 ADR，未完成事项进入 BACKLOG，用户可见完成事实进入 CHANGELOG。继续禁止 readiness 快照、已验收 preview 和完成 plan 归档。没有依据的事实写 `TBD`、`N/A` 或“待确认”。
 
 ## 8. Plan 与 BACKLOG
 
@@ -112,7 +113,7 @@ npm run frontend:dev
 3. 以 `docs/plans/plan-template.md` 创建 `docs/plans/{B-ID}-{slug}.md`，填写关联文档、影响范围、冲突结论和回流清单。
 4. 把 plan 路径写回 BACKLOG。
 
-每完成 plan 中一项：勾选任务、提交该阶段、更新状态快照。中断时保留 plan 并记录下一步。完成时确认文档回流、记录 CHANGELOG、移除完成的 BACKLOG 行并删除 plan。
+每完成 plan 中一项：勾选任务、提交该阶段、更新状态快照和当日 DevLog。中断时保留 plan 并记录下一步。完成时确认文档回流、记录 CHANGELOG、移除完成的 BACKLOG 行并删除 plan。
 
 `docs/BACKLOG.md` 只保存未完成事项；完成历史只查 CHANGELOG 和 Git。
 

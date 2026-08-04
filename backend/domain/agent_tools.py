@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 from backend.domain.search import search_documents
-from backend.storage import KnowledgeStore
+from backend.storage import DEFAULT_RETRIEVAL_SETTINGS, KnowledgeStore
 
 
 READ_ONLY_TOOLS = [
@@ -103,7 +103,25 @@ def run_agent_tool(
                 error="query is required",
             )
             raise AgentToolError("query is required", run)
-        hits = [hit.to_dict() for hit in search_documents(store, project.id, query) if hit.score > 0][:5]
+        settings = store.get_project_retrieval_settings(project.id)
+        if settings is None:
+            defaults = getattr(store, "default_retrieval_settings", None)
+            settings = defaults(project.id) if callable(defaults) else {
+                "project_id": project.id,
+                **DEFAULT_RETRIEVAL_SETTINGS,
+            }
+        hits = [
+            hit.to_dict()
+            for hit in search_documents(
+                store,
+                project.id,
+                query,
+                limit=int(settings["top_k"]),
+                use_keyword=bool(settings["use_keyword"]),
+                use_vector=bool(settings["use_vector"]),
+            )
+            if hit.score >= float(settings["min_score"]) and hit.score > 0
+        ]
         result = {
             "project_id": project.id,
             "query": query,

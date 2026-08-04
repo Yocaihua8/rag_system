@@ -2,11 +2,15 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-03
 > Scope：`docs/plans/` 中 Active/Interrupted plan 的生命周期
 > Related：`../BACKLOG.md`、`plan-template.md`、`../../AGENTS.md`
 
 Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入 `CHANGELOG.md` 与 Git；任务完成后删除 plan。
+
+## 当前活动计划
+
+当前没有 Active 或 Interrupted plan。新开发任务须先创建对应 B-ID 和执行计划。
 
 ## 创建
 
@@ -24,6 +28,7 @@ Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入
 1. 勾选任务；
 2. 创建聚焦该阶段的 Git commit；
 3. 在状态快照记录 commit、工作区、进度和下一步。
+4. 把当日实际进展、问题和下一步追加到 `../devlog/YYYY/MM/YYYY-MM-DD.md`。
 
 出现偏差或关键决策写入执行记录；重大、长期且跨模块的决策另建 ADR。
 
@@ -41,4 +46,4 @@ Plan 是执行期间的临时恢复点，不是完成历史。完成事实进入
 4. 从 BACKLOG 移除完成条目；
 5. 删除 plan。
 
-不把完成 plan 迁入其他历史目录，不建立 DevLog 或 readiness 快照。
+不把完成 plan 迁入其他历史目录；过程进入每日 DevLog。继续禁止 readiness 快照和已验收 preview 归档。

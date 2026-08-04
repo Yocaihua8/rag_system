@@ -47,7 +47,7 @@ docker compose --project-directory ops/docker -f ops/docker/compose.yaml logs --
 
 - PDF 无正文：检查是否安装 `pymupdf`；它不在 requirements 中。
 - 中文关键词效果没有变化：`jieba` 虽已安装，但当前源码未调用，不能靠重装启用。
-- 分块环境变量没有效果：当前实际分块仍固定为 700/80，配置尚未接线。
+- 分块环境变量调整后资料没有变化：它们只在服务重启后的新导入、资料更新或缺失 chunk 回填时生效；已有 chunk 不会自动重建。
 - URL 摘录卡片失败：当前资料弹窗只提交 URL，而 helper 还要求标题和正文；改用已接通导入入口并记录该部分接线问题。
 
 ## 6. 模型、向量与 reranker

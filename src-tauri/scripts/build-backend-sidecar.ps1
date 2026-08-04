@@ -27,6 +27,8 @@ Write-Host "Building API-only FastAPI sidecar with PyInstaller..."
     --onefile `
     --name $BackendName `
     --paths $ProjectRoot `
+    --add-data "$ProjectRoot\backend\alembic.ini;backend" `
+    --add-data "$ProjectRoot\backend\storage\v3\migrations;backend/storage/v3/migrations" `
     --distpath (Join-Path $BuildRoot "dist") `
     --workpath (Join-Path $BuildRoot "work") `
     --specpath (Join-Path $BuildRoot "spec") `

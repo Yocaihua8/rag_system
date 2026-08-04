@@ -25,8 +25,10 @@ def test_backend_module_is_the_only_python_service_entrypoint():
 
     assert not (PROJECT_ROOT / "app.py").exists()
     assert "from backend.api.server import run_server" in source
-    assert "KI_API_HOST" in source
-    assert "KI_API_PORT" in source
+    assert "load_desktop_settings" in source
+    assert "load_server_binding" in source
+    assert "host=binding.host" in source
+    assert "port=binding.port" in source
 
 
 def test_vite_outputs_to_frontend_dist_without_touching_backend_source():

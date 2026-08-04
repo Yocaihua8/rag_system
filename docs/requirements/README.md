@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-02
 > Scope：产品背景、功能边界、用户用例与当前维护版本范围
 > Related：`../README.md`、`../features/README.md`、`../BACKLOG.md`
 
@@ -14,5 +14,6 @@
 | [`functional-modules.md`](functional-modules.md) | 用户能力与模块边界 |
 | [`use-cases.md`](use-cases.md) | 角色、触发条件和主要用例 |
 | [`version-scope.md`](version-scope.md) | 当前维护版本、兼容基线和范围冻结 |
+| [`agent-product-v3.md`](agent-product-v3.md) | 已批准的 v3 通用项目 Agent 目标范围与非目标；不代表当前 v2 已实现 |
 
 具体可达行为见 [`../features/README.md`](../features/README.md)，未完成事项见 [`../BACKLOG.md`](../BACKLOG.md)。

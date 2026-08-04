@@ -13,13 +13,25 @@ DEFAULT_PORT = 8765
 DEFAULT_CORS_ORIGINS = (
     "http://127.0.0.1:5173",
     "http://localhost:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost:5174",
     "http://127.0.0.1:4173",
     "http://localhost:4173",
+    "http://127.0.0.1:4174",
+    "http://localhost:4174",
     "tauri://localhost",
     "http://tauri.localhost",
 )
 CORS_ALLOWED_METHODS = ("GET", "POST", "OPTIONS")
-CORS_ALLOWED_HEADERS = ("Authorization", "Content-Type", "X-API-Key")
+CORS_ALLOWED_HEADERS = (
+    "Authorization",
+    "Content-Type",
+    "Idempotency-Key",
+    "Last-Event-ID",
+    "X-API-Key",
+    "X-KI-Desktop-Token",
+    "X-Request-ID",
+)
 
 
 def cors_origins(environ: Mapping[str, str] | None = None) -> tuple[str, ...]:

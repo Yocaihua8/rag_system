@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-02
 > Scope：搭建、测试、运行、发布、安全、支持、排障与开源协作
 > Related：`../README.md`、`../../README.md`、`../BACKLOG.md`
 
@@ -20,6 +20,7 @@
 | [`branch-conventions.md`](branch-conventions.md) | 分支、提交与合并规则 |
 | [`license-selection.md`](license-selection.md) | 许可证选择检查；当前不代表已选择许可证 |
 | [`open-source-governance.md`](open-source-governance.md) | 开源维护与决策边界 |
+| [`v3-upgrade.md`](v3-upgrade.md) | v2 到 v3 Agent 的实施顺序、数据/前端门禁和回滚 |
 | [`contributor-guide-template.md`](contributor-guide-template.md) | 贡献指南模板 |
 | [`integration-guide-template.md`](integration-guide-template.md) | 新增外部集成的接入模板 |
 

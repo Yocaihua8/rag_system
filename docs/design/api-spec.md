@@ -2,19 +2,21 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
-> Scope：当前 HTTP/SSE API、认证、字段与兼容边界
-> Related：`architecture-overview.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-011-interactive-learning-sql-sandbox.md`
+> Last Updated：2026-08-02
+> Scope：当前 v2 HTTP/SSE API、v3 alpha API、认证、字段与兼容边界
+> Related：`architecture-overview.md`、`agent-runtime-and-tool-contract.md`、`database-design.md`、`permission-matrix.md`、`../adr/ADR-010-runtime-separation.md`、`../adr/ADR-015-v3-data-api-storage.md`、`../adr/ADR-016-agent-message-stream.md`
 
 ## 1. 当前 HTTP API
 
-当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。HTTP 服务默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。
+当前入口为 `backend/__main__.py` -> `backend.api.server.run_server()` -> Uvicorn/FastAPI。Web 模式默认监听 `http://127.0.0.1:8765`，面向本机单用户运行，不作为远程多用户 API 承诺。FastAPI 自动文档可在 `/docs` 查看，OpenAPI 3.0 schema 可在 `/openapi.json` 查看，但字段级正式契约仍以本文档和接口测试为准。本节描述继续服务现有 Vue 的 v2 契约；新增 v3 alpha sub-app 见 § 2，两者在迁移期并存。
 
 默认认证关闭；设置 `RAG_AUTH_ENABLED=1` 后，除 `/api/health`、`/api/auth/token` 和使用独立插件令牌校验的 Obsidian 路由外，所有 `/api/*`、`/docs`、`/redoc`、`/openapi.json` 都需要携带有效应用凭证。凭证支持 `X-API-Key: <key>` 或 `Authorization: Bearer <jwt>`。缺少凭证返回 `401 {"error":"authentication required"}`，凭证错误或过期返回 `401 {"error":"invalid credentials"}`。FastAPI 不托管静态资源，`GET /` 返回 404。
 
+默认关闭的 desktop mode 使用另一条认证边界：`KI_DESKTOP_MODE=1` 时必须同时提供 64 位小写十六进制 `KI_DESKTOP_STARTUP_TOKEN` 和显式 `KI_API_PORT`，监听地址只能是精确的 `127.0.0.1`。除 Obsidian 自认证路由外，所有 `/api/*`（包括 health）及 API 文档都必须携带 `X-KI-Desktop-Token`；Web Key/JWT 不可替代它，且 `/api/auth/token` 返回 404。令牌只供壳与 sidecar 当前进程使用，不是用户会话或长期凭证。
+
 当前 Vue `fetch` 不附加上述凭证，问答原生 `EventSource` 也没有自定义认证 Header；因此浏览器主路径只承诺默认关闭认证的本地模式。后端认证能力不能被解释为已完成的前端登录/SSE 凭证链。
 
-前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许本机 5173/4173 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`X-API-Key`。CORS 不改变任何下述方法、字段或响应契约。
+前端使用 `VITE_API_BASE_URL` 构造绝对 API URL。后端通过 `KI_CORS_ORIGINS` 精确允许现有 Vue 的本机 5173/4173、平行 React v3 的 5174/4174 与 Tauri Origin；不启用通配符或 cookie credentials，只允许 GET/POST/OPTIONS 和 `Authorization`、`Content-Type`、`Idempotency-Key`、`Last-Event-ID`、`X-API-Key`、`X-KI-Desktop-Token`、`X-Request-ID`。CORS 不改变任何下述方法、字段或响应契约。
 
 `/openapi.json` 使用 `backend/api/openapi_schema.py` 中维护的显式 operation 列表生成，避免 Swagger UI 只显示 `/api/{path}` 兼容分发路由。`/docs` 和 `/redoc` 读取同一个运行时 schema。当前 OpenAPI request/response schema 以通用 JSON object 表达复杂负载；新增、删除或修改 API 时，需要同时更新 operation 列表、路由/dispatch 测试和本文档端点速览。
 
@@ -212,7 +214,7 @@ data: {"status":"done","model":"qwen2.5:3b"}
 | `assessment_result_count` | 当前项目已保存评估结果数 |
 | `last_activity_at` | 当前项目最近活动时间，取项目创建、文档更新、向量更新、聊天、工具运行、检索复盘、评估题目和评估结果中的最新时间 |
 
-`GET/POST /api/projects/retrieval-settings` 用于读取和保存项目级检索默认值。字段包括 `top_k`、`min_score`、`use_keyword`、`use_vector`，保存到当前项目记录中。`top_k` 会限制在 1-20，`min_score` 最小为 0；布尔字段按 `true/false` 保存。问答和检索诊断共用这组默认值：`/api/answer` 会直接使用当前项目默认值，`/api/search/debug` 在请求未显式传入参数时使用当前项目默认值；如果诊断请求显式传入参数，则以本次请求参数为准。该接口不创建检索复盘、不执行检索、不调用模型。
+`GET/POST /api/projects/retrieval-settings` 用于读取和保存项目级检索默认值。字段包括 `top_k`、`min_score`、`use_keyword`、`use_vector`，保存到当前项目记录中。新项目在创建时以启动配置的 `RAG_TOP_K` 和 `RAG_RETRIEVER_KIND` 初始化：`keyword` 为仅关键词、`vector` 为仅向量、`hybrid` 为两者同时开启；已有项目的保存值不会被环境变量覆盖。`top_k` 会限制在 1-20，`min_score` 最小为 0；布尔字段按 `true/false` 保存。问答、默认 `/api/search`、检索复盘、检索诊断与 `search_sources` 工具共用这组有效设置；`/api/search/debug` 和检索复盘请求显式传入参数时以本次请求参数为准。该接口不创建检索复盘、不执行检索、不调用模型。
 
 `/api/prompt-presets` 用于管理当前项目空间的 Prompt 预设。预设字段包括 `id/project_id/name/description/system_prompt/answer_format/created_at/updated_at`；默认预设 ID 保存到当前项目的 `default_prompt_preset_id`。第一片内置 `项目问答`、`代码解释`、`学习复盘` 三个本地模板，模板只用于前端复制，不会自动写入数据库。Prompt 预设只影响真实 LLM 的回答风格和结构，不改变检索参数、不自动运行工具、不保存 API Key 或模型凭证。设置默认预设时会校验预设必须属于当前项目，跨项目 preset 返回 `404 prompt preset not found`。`system_prompt` 和 `answer_format` 会被放在固定来源约束之后；固定约束仍要求只基于来源片段回答、资料不足时说明缺口，用户 Prompt 不能覆盖该边界。
 
@@ -378,7 +380,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 
 `parent_message_id` 用于历史消息编辑重发。客户端传入该字段时，服务端会校验父消息必须属于同一 `project_id` 和同一 `session_id`；不存在、跨项目或跨会话时返回 `404 parent chat message not found`，且不写入新消息。校验通过后，新消息的 `parent_message_id` 指向被编辑消息，`branch_index` 为同一父消息下的递增序号；未传 `parent_message_id` 的普通问答保持 `parent_message_id=""`、`branch_index=0`。`message.to_dict()` 响应会返回 `parent_message_id` 和 `branch_index`。
 
-`observability` 用于展示本轮问答的可观察性元数据，不持久化为新的数据库表。当前 `/api/answer` 使用项目级检索默认值，未保存时默认为 `top_k=5`、`min_score=0.0`、`use_keyword=true`、`use_vector=true`。响应结构包含 `retrieval.top_k`、`retrieval.min_score`、`retrieval.use_keyword`、`retrieval.use_vector`、`retrieval.hit_count`、`model.mode`、`model.provider` 和 `elapsed_ms`。`retrieval.hit_count` 统计本轮回答最终可用来源数量，包含显式 `tool_run_id` 带入且通过校验的来源片段；前端 `sources` 仍只展示前 5 条。`model.mode` 与顶层 `mode` 一致，`model.provider` 与顶层 `provider` 一致。`elapsed_ms` 覆盖本轮问答处理耗时，用于本地调试，不是性能 SLA。
+`observability` 用于展示本轮问答的可观察性元数据，不持久化为新的数据库表。当前 `/api/answer` 使用项目级检索默认值；新项目的初始值来自启动时 `RAG_TOP_K/RAG_RETRIEVER_KIND`，已有项目使用保存值。响应结构包含 `retrieval.top_k`、`retrieval.min_score`、`retrieval.use_keyword`、`retrieval.use_vector`、`retrieval.hit_count`、`model.mode`、`model.provider` 和 `elapsed_ms`。`retrieval.hit_count` 统计本轮回答最终可用来源数量，包含显式 `tool_run_id` 带入且通过校验的来源片段；前端 `sources` 仍只展示前 5 条。`model.mode` 与顶层 `mode` 一致，`model.provider` 与顶层 `provider` 一致。`elapsed_ms` 覆盖本轮问答处理耗时，用于本地调试，不是性能 SLA。
 
 `pipeline_trace` 用于暴露本轮检索管线的轻量状态，不持久化为新的数据库表。当前字段为 `reranker_used`，当最终可用来源中至少一条包含 `rerank_score` 时为 `true`，否则为 `false`。
 
@@ -459,7 +461,7 @@ Web MVP 当前支持文本类文件和 DOCX 正文抽取。安装可选 `pymupdf
 | 工具 | 类型 | 说明 |
 |------|------|------|
 | `project_overview` | 只读 | 返回当前项目名称、根目录、文档数、分块数、向量数和聊天记录数 |
-| `search_sources` | 只读 | 使用现有 RAG 检索返回当前项目来源片段，参数为 `{"query":"..."}`，最多返回 5 条命中 |
+| `search_sources` | 只读 | 使用当前项目有效检索设置返回来源片段，参数为 `{"query":"..."}`，数量受项目 `top_k` 限制 |
 
 `GET /api/agent/tools` 返回只读工具白名单元数据。为兼容既有前端，工具对象继续保留 `name`、`description`、`title`、`read_only` 和旧版 `arguments` 字段，并提供以下结构化字段；这不会新增数据库表：
 
@@ -650,10 +652,183 @@ attempt 先登记 `grading`、分配 `attempt_no` 并通过 `session.version` CA
 
 默认当前发布包含项目理解、知识覆盖、已确认学习计划和已有评估记录；调用方可用 `artifact_types` 缩小范围。设置 `source_publication_id` 时，以历史发布正文创建新的 `draft` 修订并返回 `source_mode=rollback`，不修改历史发布或修订。发布 revision 和 artifact 内容不可变；插件成功回传的 `actual_hash` 成为同一稳定 artifact 下一次预览的覆盖基线。插件离线时发布保持 `queued`，生成文件被用户删除后不会自动重建。
 
-## 2. 兼容与变更规则
+## 2. v3 Agent API（alpha）
+
+主应用把独立 FastAPI sub-app 挂载到 `/api/v3`，当前工作区声明的 OpenAPI 应用版本为 `3.0.0-alpha.2`。v3 使用独立 Store、SQLite 数据代际和 lifespan executor；不会把请求交给 v2 catch-all dispatcher。正常应用启动时同时保留全部 v2 路由和现有 Vue；平行的 `frontend-v3/` 已调用本命名空间，但 Vue 仍是 Tauri、Docker 与正式脚本入口。
+
+alpha.2 已通过 v3 定向、真实 lifespan 集成及后端/集成/仓库门禁。当前可达性仍受本节 § 2.6 限制：已完成固定项目检查、回答流与独立 React 调用闭环，不等于自定义发布 DAG、通用自然语言规划器或正式前端切换已经完成。
+
+### 2.1 通用响应、认证与幂等
+
+- 成功响应统一为 `{"data": {...}, "meta": {"request_id": "..."}}`；响应头同时返回 `X-Request-ID`。
+- 失败响应统一为 `{"error":{"code":"...","message":"...","details":{}},"request_id":"..."}`。
+- 调用方可以发送 `X-Request-ID`；未发送时服务端生成 UUID。输入最多保留 200 字符。
+- Web 认证开启时 `GET /api/v3/health` 始终放行，其他 `/api/v3/*` 继续使用主应用的 `X-API-Key` 或 Bearer JWT；desktop mode 下 health 也必须携带进程令牌。
+- 创建项目、项目资料扫描、任务、任务消息、运行、工作流草稿/发布/绑定/归档，以及 pause/resume/cancel/retry 和审批决议，都必须发送非空 `Idempotency-Key`。OpenAPI 把该 Header 标记为 required；缺失时返回 `422 validation_error`。同一作用域和 Key 携带相同请求会回放原响应；请求 hash 不同返回 `409 idempotency_conflict`。手动重试 Run 时，原 Key 仍回放已经创建的 retry Run；同一失败源已经存在直接 retry Run 后，其他 Key 返回 `409 state_conflict`，不会再创建第二个直接后继。
+- 资源不存在返回 `404 not_found`；状态/CAS 冲突返回 `409 state_conflict`；Pydantic 请求错误返回 `422 validation_error`；应用层约束返回 `422 application_validation_error`。
+
+### 2.2 当前路径
+
+当前 v3 sub-app 有 **38 个业务路径、43 个操作**：
+
+| 方法 | 路径 | 当前用途 | 写入/控制要求 |
+|------|------|----------|---------------|
+| GET | `/api/v3/health` | 返回 `data_generation=v3`、Alembic revision 和 executor 状态 | 始终放行；不执行项目检查 |
+| POST | `/api/v3/system/storage/preflight` | 只读检查 v3 数据迁移目标的路径隔离、空目录、父目录可写性、源可读性和可用空间 | 不创建目标、不试写；检查不通过仍返回 200 且 `ready=false`，非法路径返回 422 |
+| POST | `/api/v3/system/backups` | 使用 SQLite 在线 backup 创建并验证受管 v3 备份 | 必须携带 `Idempotency-Key`；返回 201，同 Key 回放；只写 `<data-root>/backups/backup-*` |
+| POST | `/api/v3/system/backups/{backup_id}/restore` | 受控恢复已验证的受管 v3 备份 | 必须携带 `Idempotency-Key` 和确认用 `expected_database_sha256`；仅在没有其他 v3 请求时执行，返回 200 |
+| POST / GET | `/api/v3/projects` | 创建已有本地目录对应的项目；列出项目 | POST 需要 `Idempotency-Key`；根目录必须存在且为目录 |
+| POST | `/api/v3/projects/{project_id}/sources/scan` | 只读扫描已绑定根内的受支持文本文件，并同步 v3 Sources/Documents 快照 | 需要 `Idempotency-Key`，返回 201；不跟随符号链接、不修改源目录、不返回正文或绝对路径 |
+| GET | `/api/v3/projects/{project_id}/sources` | 列出已受管资料源 | 支持 `status`、`limit=1..500`、`offset>=0`；只返回来源元数据与文件数 |
+| GET | `/api/v3/projects/{project_id}/documents` | 列出已受管文档元数据 | 支持 `source_id`、`limit=1..500`、`offset>=0`；只返回相对路径、类型、大小、hash 和版本 |
+| GET | `/api/v3/projects/{project_id}/insights/overview` | 汇总当前受管文档快照的来源数、文件数、大小、类型、常见清单和证据 | 只读；无文档返回 `source_required`，不读取正文、项目根或 v2 数据 |
+| POST / GET | `/api/v3/model-profiles` | 创建；列出独立 v3 模型 Profile 元数据 | POST 需要 `Idempotency-Key`；只接受受控 Key 引用，不接收明文 Key |
+| POST | `/api/v3/model-profiles/{profile_id}/update` | 全量更新 Profile | 需要 `Idempotency-Key`；disabled Profile 不能保持默认 |
+| POST | `/api/v3/model-profiles/{profile_id}/default` | 设为唯一默认 Profile | 需要 `Idempotency-Key`；disabled Profile 返回 `409` |
+| POST | `/api/v3/model-profiles/{profile_id}/delete` | 删除 Profile 元数据 | 需要 `Idempotency-Key`；不操作环境变量或 provider |
+| POST / GET | `/api/v3/tasks` | 原子创建任务与首条用户消息；按 `project_id/status/limit/offset` 列出任务 | POST 请求仍为 `project_id/title/message`，需要 `Idempotency-Key` |
+| GET | `/api/v3/tasks/{task_id}` | 读取单个任务 | 只读 |
+| POST / GET | `/api/v3/tasks/{task_id}/messages` | 追加用户消息；读取任务消息 | POST 需要 `Idempotency-Key` |
+| GET | `/api/v3/tasks/{task_id}/runs` | 按 `created_at DESC, id DESC` 读取该任务的运行历史 | 支持 `limit=1..500`、`offset>=0`；未知任务返回 404 |
+| POST | `/api/v3/tasks/{task_id}/runs` | 以指定用户消息快照创建持久运行 | 必填 `input_message_id`；固定 `project.inspect.v1`、固定 `project.source-facts.v1` 或显式 `workflow_version_id` 的已发布/已绑定受限工作流；需要 `Idempotency-Key`；返回 202 |
+| GET | `/api/v3/runs/{run_id}` | 读取运行、版本、租约、错误和结果状态 | 只读 |
+| POST | `/api/v3/runs/{run_id}/pause` | 暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
+| POST | `/api/v3/runs/{run_id}/resume` | 恢复已暂停运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
+| POST | `/api/v3/runs/{run_id}/cancel` | 请求取消运行 | 请求 `expected_version`；需要 `Idempotency-Key` |
+| POST | `/api/v3/runs/{run_id}/retry` | 从允许重试的失败运行创建新运行 | 请求 `expected_version`；需要 `Idempotency-Key`；返回 202；同一失败源已有直接 retry Run 时，原 Key 回放，其他 Key 返回 409 |
+| GET | `/api/v3/runs/{run_id}/steps` | 按顺序读取持久步骤及尝试摘要 | 只读 |
+| GET | `/api/v3/runs/{run_id}/events` | 读取持久 SSE 事件 | 支持 `after_sequence` 与 `Last-Event-ID` |
+| GET | `/api/v3/approvals` | 按项目、任务、运行、状态筛选审批 | 当前 alpha 没有可执行写工作流自动产生审批 |
+| GET | `/api/v3/approvals/{approval_id}` | 读取审批快照 | 只读 |
+| POST | `/api/v3/approvals/{approval_id}/resolve` | 批准或拒绝审批 | `decision/expected_version/expected_request_hash/note`；需要 `Idempotency-Key` |
+| GET | `/api/v3/artifacts` | 按项目、任务或运行列出产物 | 只读 |
+| GET | `/api/v3/artifacts/{artifact_id}` | 读取产物内容与校验信息 | 只读 |
+| GET | `/api/v3/artifacts/{artifact_id}/preview` | 返回当前产物预览结构 | 当前与详情读取同源，不执行导出 |
+| GET | `/api/v3/artifacts/{artifact_id}/export-preview` | 返回 ready 产物的版本、hash、字节数与受管目标文件名 | 只读；不创建目录或文件 |
+| POST | `/api/v3/artifacts/{artifact_id}/export-confirm` | 以预览中的版本与 hash 确认导出到受管 v3 目录 | 需要 `Idempotency-Key`；不接收调用方路径；返回相对 `content_ref` |
+| POST | `/api/v3/workflows/validate` | 校验类型化 DAG、端口、循环、可达性和审批支配关系 | 只校验，不保存；不需要 `Idempotency-Key` |
+| POST / GET | `/api/v3/workflows` | 创建带首个不可变 draft 的工作流；按项目、scope、status 列出 | POST 需要 `Idempotency-Key`；创建时先校验 graph |
+| GET | `/api/v3/workflows/{workflow_id}` | 读取 Definition 及全部 Version | 只读 |
+| POST | `/api/v3/workflows/{workflow_id}/drafts` | 从新 graph 创建下一个不可变 draft Version | `expected_version` + `Idempotency-Key`；归档工作流拒绝新草稿 |
+| POST | `/api/v3/workflows/{workflow_id}/publish` | 发布指定 draft 并更新当前发布版本引用 | `version_id/expected_checksum/expected_version` + `Idempotency-Key` |
+| POST | `/api/v3/workflows/{workflow_id}/archive` | 归档 Definition | `expected_version` + `Idempotency-Key`；不删除历史 Version |
+| POST | `/api/v3/workflows/{workflow_id}/bindings` | 把已发布 Version 绑定到项目 | 校验项目/作用域/发布状态与 workflow/binding version；需要 `Idempotency-Key` |
+| GET | `/api/v3/workflow-bindings` | 按项目、工作流或 enabled 筛选绑定 | 只读 |
+
+`/api/v3/docs`、`/api/v3/redoc` 和 `/api/v3/openapi.json` 由 sub-app 生成。工作流 Definition/Version/Binding 已开放上述版本化管理 API；Version 发布后保持不可变，发布同时校验调用方提交的 checksum 和 Definition version，归档只改变 Definition 状态且保留历史。`POST /api/v3/workflows/validate` 或成功发布仍不代表该 DAG 可以由本 alpha executor 执行：运行创建 API 只接受固定 `project.inspect.v1`、固定 `project.source-facts.v1`，或满足受限执行合同的已发布绑定图。
+
+Sources 首段只有 `project_root` 一种资料源。扫描从已登记的项目根重新解析并逐项检查，跳过忽略目录、符号链接、不支持文件、超过单文件 1 MiB 或总计 10 MiB 的文件；最多访问 5,000 个目录项。成功文件以相对路径、UTF-8 正文、副本 hash、MIME、大小和版本写入独立 v3 `documents`，重复扫描更新变化文件并删除已消失文件。响应中的 `SourceResource` 不含 locator/config，`DocumentResource` 不含正文、源绝对路径或内部错误。根不可用返回 `409 project_root_unavailable`；任一单文件不可读仅增加扫描摘要的 `read_failures`，不阻断其他文件。
+
+Project Insights 的首段 `overview` 只汇总当前 v3 Documents 元数据。`fingerprint` 是按相对路径稳定排序的 `relative_path:checksum` SHA-256 聚合；文件类型和清单识别均可由 `evidence` 中的文档 ID、来源 ID、相对路径和 hash 回溯。它不读取正文、项目根、v2 数据或调用模型；没有已索引文档时以 `source_required` 明确资料缺口，不伪造评分、技术栈或质量结论。
+
+v3 Model Profiles 复用既有 `model_profiles` 表保存非敏感元数据。写入只允许空或固定白名单的 `api_key_ref`，不接受 `api_key`、不解析环境/兼容 `.env`、不返回 Key 明文、掩码或可用性探测。Profile 管理尚未接入 Agent Run 或任何模型调用；因此设置默认值不会改变现有 v2 问答或正式入口的配置。
+
+v3 Artifact 导出使用独立的两阶段合同：`export-preview` 只返回当前 ready 产物的 `version/checksum/content_bytes/target_filename`，不创建路径；`export-confirm` 必须回传同一版本与 hash 并携带 `Idempotency-Key`，仅写入 `<KI_DATA_ROOT>/artifacts/exports/artifact-<id>.txt`。请求不接受目标路径，响应仅返回相对 `content_ref`。确认成功后 Artifact 转为 `exported` 并保存 `exported_at`；同 Key、同请求 hash 回放原响应。该动作不复用已完成 Run 的 Approval，也不会发出尚未定义的 `artifact.exported` SSE 事件；React 在确认成功后重新读取 Artifact 状态。
+
+存储预检请求只包含 `target_path`。目标解析后不得与当前 v3 或活动 v2 数据根互为父子目录；已有目标必须是非符号链接空目录。服务端只读取目录元数据与磁盘空间，不创建目录或探测文件。`required_bytes` 按当前 v3 可读文件总量的两倍加 64 MiB 安全余量估算；`checks` 返回稳定 code、布尔结果和说明。该结果是迁移前快照而非授权凭证，真正复制/切换时必须重新检查，当前端点本身不迁移数据。
+
+在线备份端点不接收目标路径，固定写入当前 `KI_DATA_ROOT/backups/`。服务端用 SQLite backup API 从活动 WAL 数据库生成一致快照，将目标 journal mode 收敛为 `DELETE`，再验证 `PRAGMA integrity_check`、`data_generation=v3`、Alembic revision、数据库 SHA-256、manifest SHA-256 与大小，全部通过后才把 staging 目录原子重命名为 `backup-<Idempotency-Key SHA-256 前 32 位>`。manifest 只保存 Key 的完整 SHA-256，不保存原 Key 或源绝对路径。同 Key 返回原备份并设置 `replayed=true`。保留数量由 `KI_V3_BACKUP_RETENTION` 控制（默认 7，范围 1–100）；只删除能够完整验证且符合受管命名的最旧备份，未知、损坏或符号链接目录保留待人工处理。
+
+恢复端点只接受 `backup-[0-9a-f]{32}` 受管标识，并在停止 executor 和关闭 Store 前再次校验目录、manifest、数据库 integrity、v3 代际、应用 Alembic head 与调用方提交的 SHA-256。维护门禁不会等待长连接：存在任意其他 v3 请求时返回 `409 restore_busy`；恢复期间的新请求返回 `503 maintenance_in_progress`。通过校验后服务端停止 executor、执行 WAL `TRUNCATE` checkpoint、关闭连接，再调用同目录 staging/rollback 事务；成功后重新初始化数据库、保存幂等结果并按原状态重启 executor。响应中的 `database_info` 不包含 `db_path`。激活失败且原库已放回时返回 `409 restore_failed`；原库无法重新激活时返回 `500 restore_rollback_failed` 并保持 executor 停止。若数据已恢复但幂等记录或 executor 重启失败，返回 `503 restore_finalization_failed` 且 `details.restored=true`，调用方不得盲目重试，应先检查 health 和数据状态。
+
+### 2.3 任务首消息与运行输入快照
+
+`POST /api/v3/tasks` 的请求字段保持不变：
+
+```json
+{
+  "project_id": "project-uuid",
+  "title": "检查项目结构",
+  "message": "请找出项目结构中最需要先处理的问题"
+}
+```
+
+alpha.2 成功响应的 `data` 为：
+
+```json
+{
+  "task": {"id": "task-uuid"},
+  "initial_message": {
+    "id": "message-uuid",
+    "task_id": "task-uuid",
+    "run_id": null,
+    "role": "user",
+    "message_type": "message",
+    "content": "请找出项目结构中最需要先处理的问题",
+    "metadata": {},
+    "created_at": "2026-08-02T08:00:00+00:00"
+  },
+  "replayed": false
+}
+```
+
+Task、首条用户消息和幂等响应在同一 SQLite 事务写入；同一作用域、同一 `Idempotency-Key` 和相同 request hash 回放原 Task/Message，并把 `replayed` 置为 `true`。任一写入失败都不得留下没有首消息的 Task。
+
+刷新任务页时，调用方通过 `GET /api/v3/tasks/{task_id}/runs?limit=1&offset=0` 取得服务端权威的最近运行，再按 Run ID 恢复详情与 SSE。浏览器本地选择可以作为导航缓存，但不能代替该查询或虚构运行状态。
+
+创建 Run 的请求增加必填 `input_message_id`：
+
+```json
+{
+  "workflow_key": "project.inspect.v1",
+  "depth": "quick",
+  "input_message_id": "message-uuid"
+}
+```
+
+该消息必须存在、属于 URL 中的 Task 且 `role=user`；否则返回 `404 not_found` 或 `409 state_conflict`。服务端只把 `input_message_id` 与消息内容 SHA-256 冻结到 `trigger.manual` 的持久 Step input；完整正文继续由不可变的任务消息保存。执行器按 ID 回读消息并校验 hash，后续新增消息不会改变该 Run。trigger Step 输出与 `run.queued` 事件也只发送消息 ID/hash，不复制完整输入正文。
+
+### 2.4 `project.inspect.v1` workflow version 2
+
+API 的 `workflow_key` 仍为 `project.inspect.v1`，没有新增 `project.inspect.v2` 路径或 key；alpha.2 创建的新 Run 使用 `workflow_version=2` 与新的 checksum。版本 2 快照为四个步骤：
+
+| 顺序 | step_key | node_type | effect | 当前行为 |
+|------|----------|-----------|--------|----------|
+| 0 | `trigger` | `trigger.manual` | `none` | 读取并使用创建 Run 时冻结的用户消息快照 |
+| 1 | `inspect` | `project.analyze` | `analysis` | 遍历授权项目根，输出相对目录/清单/后缀统计；不读取文件正文，不跟随目录符号链接 |
+| 2 | `artifact` | `artifact.create` | `analysis` | 把检查 JSON 持久化为 `project_inspection`、`ready` 产物 |
+| 3 | `respond` | `agent.respond` | `analysis` | 目标为读取固定检查结果、生成普通中文摘要并发出 Agent 消息事件 |
+
+HTTP 只创建持久 Run 和 Steps；executor 在主应用 lifespan 内通过数据库租约领取并执行。浏览器请求或 SSE 断开不会取消 Run。项目检查结果、产物和事件不包含项目绝对根路径；当前检查也不会执行 shell、任意脚本、网络访问或文件写入。
+
+已有 workflow version 1 Run、Steps、消息和事件不被改写，仍可通过既有读取接口查看；恢复或重试历史 Run 时保留原 workflow version 事实，不能静默修改旧快照。version 2 的四步执行、Agent 消息持久化和真实 SSE 回放已由 executor 定向测试与 lifespan 集成测试覆盖。
+
+### 2.5 SSE 事件合同
+
+SSE 使用数据库中每个 Run 单调递增的 `sequence` 作为 `id`，事件名使用持久 `event_type`。`Last-Event-ID` 与 `after_sequence` 取较大值；终态事件发完后连接结束，非终态无事件时每 15 秒发送 keep-alive 注释。所有 data 至少包含 `sequence/event_type/run_id/step_id/event_schema_version/payload/created_at`。
+
+alpha.2 的事件 union 包含：
+
+| 分类 | `event_type` | payload 要点 |
+|------|--------------|--------------|
+| Run | `run.queued / started / resumed / completed / failed / recovery_required / requeued / paused / cancelled` | 状态、动作或恢复原因；`run.queued` 包含输入消息 ID/hash |
+| Step | `step.queued / started / succeeded / retry_scheduled / waiting_approval / failed / cancelled / recovery_required` | step key、错误、重试、审批或恢复原因 |
+| Approval | `approval.requested / approved / rejected / expired` | approval ID、决议或过期原因 |
+| Artifact | `artifact.created` | 当前内部产物及 `status=ready`；受控导出后仍不新增虚构的 `artifact.exported` 事件 |
+| Tool | `tool.output` | 白名单工具输出摘要 |
+| Agent 消息 | `assistant.message.started` | `message_id/message_type/format` |
+| Agent 消息 | `assistant.message.delta` | `message_id/chunk_index/text`；chunk index 从 0 递增 |
+| Agent 消息 | `assistant.message.completed` | `message_id/chunk_count/char_count/content_hash` |
+| Agent 消息 | `assistant.message.interrupted` | `message_id/reason/recoverable` |
+
+`started/delta` 使用稳定 message ID 和命令幂等作用域追加；完整或中断内容保存为 `agent_task_messages` 后，再在同一事务追加 `completed/interrupted`。客户端按 sequence 去重，不能把 delta 单独当作长期任务消息。
+
+`backend/api/v3/models.py` 以 `event_type` 为 discriminator 声明 `AgentEvent`；SSE 输出通过该 union 校验，`/api/v3/openapi.json` 已显式暴露对应 components，并由 OpenAPI 契约测试校验。`scripts/export_v3_openapi.py` 确定性导出 schema，锁定的 `tools/openapi-codegen` workspace 使用 TypeScript 5 运行 `openapi-typescript`，生成物再由 TypeScript 6 React 应用消费；生成客户端仍必须把 base URL 固定在 `/api/v3`，不得从根 v2 OpenAPI 生成。
+
+### 2.6 当前 alpha 边界
+
+- v3 项目、任务和运行资源不会同步到 v2 的 43 张表；现有 Vue、Coach、问答、导入和 Obsidian 主流程仍走 v2。
+- 审批、产物读取和运行控制 API 已暴露；ready Artifact 可经独立的预览/确认流程导出到受管 v3 目录，但固定 Run 不执行 `artifact.export`、`obsidian.publish` 或其他写节点。
+- 安全节点注册表、DAG 校验和版本化工作流管理已经存在；固定 `agent.respond` 四步执行闭环已通过门禁，自定义发布工作流仍不能创建 Run。
+- `quick/standard/deep` 当前分别限制最多 4/8/16 步；固定版本 2 使用四步，档位不会自动增加额外检查能力。
+- v3 API 仍是 alpha 契约；独立 React 应用已经接入当前真实切片，但尚未替换 Vue/Tauri/Docker 正式入口，也没有 v2 数据迁移承诺。
+
+## 3. 兼容与变更规则
 
 - `/api/assessment/*` 是当前仍存在的兼容 HTTP 契约；Coach 主闭环使用 `/api/coach/*`，两套状态和表不能混用。
 - `/api/import/obsidian-vault` 是一次性只读导入；插件配对、事件和发布使用 `/api/obsidian/*` 的独立流程。
+- `/api/v3/*` 是新增 alpha 命名空间，不替换或重定向任何 v2 路径；v2 调用方当前不需要迁移。
+- v3 与 v2 使用不同响应 envelope、数据根和资源 ID，调用方不得跨代际混用 ID 或数据库文件。
 - 内部 Python 类、函数和存储方法不是对外 HTTP API，不在本文冻结其调用签名。
 - HTTP 方法、路径、请求字段、响应字段或错误语义发生破坏性变化时，同步更新 [`api-changes.md`](api-changes.md)、OpenAPI operation 列表、契约测试和调用方。
 - 仅增加文档说明不代表运行时兼容性变化；当前端点统计必须由源码和测试重新派生，不能手工沿用旧快照。

@@ -9,6 +9,7 @@ import sqlite3
 import sys
 import tempfile
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Iterable
 
@@ -27,6 +28,7 @@ CANONICAL_DIRECTORIES = (
     "features",
     "adr",
     "guides",
+    "devlog",
     "plans",
 )
 OBSOLETE_PATHS = (
@@ -37,11 +39,27 @@ OBSOLETE_PATHS = (
     "docs/governance",
     "tools/docs",
 )
-ACTIVE_DOCUMENT_DIRECTORIES = tuple(DOCS_ROOT / name for name in CANONICAL_DIRECTORIES[:-1])
+FLAT_DOCUMENT_DIRECTORIES = (
+    "requirements",
+    "design",
+    "features",
+    "adr",
+    "guides",
+    "plans",
+)
+ACTIVE_DOCUMENT_DIRECTORIES = tuple(
+    DOCS_ROOT / name for name in ("requirements", "design", "features", "adr", "guides")
+)
+DEVLOG_ROOT = DOCS_ROOT / "devlog"
 STANDARD_METADATA = ("状态", "Owner", "Last Updated", "Scope", "Related")
 ADR_METADATA = ("状态", "Date", "Owner", "Related")
+DEVLOG_DAILY_METADATA = ("Author", "Iteration", "Related")
+DEVLOG_POSTMORTEM_METADATA = ("状态", "Author", "Date", "Related")
 MARKDOWN_LINK = re.compile(r"\[[^\]]+\]\((?P<target>[^)]+)\)")
 SOURCE_DOC_REFERENCE = re.compile(r"(?<![A-Za-z0-9_.-])(docs/[A-Za-z0-9_./-]+\.md)")
+DEVLOG_ENTRY_NAME = re.compile(
+    r"^(?P<date>\d{4}-\d{2}-\d{2})(?P<postmortem>-[a-z0-9][a-z0-9-]*-postmortem)?\.md$"
+)
 HTTP_METHODS = {"get", "post"}
 EXPECTED_API_PATHS = 90
 EXPECTED_API_OPERATIONS = 98
@@ -71,7 +89,6 @@ DISALLOWED_ACTIVE_REFERENCES = (
     "docs/integrations/",
     "docs/operations/",
     "docs/governance/",
-    "docs/devlog/",
     "docs/release/",
     "docs/previews/",
     "docs/superpowers/",
@@ -136,14 +153,68 @@ def _check_structure() -> list[Issue]:
             continue
         if f"{relative}/" not in readme_text:
             issues.append(Issue(_display(DOCS_README), f"总索引未包含目录：{relative}/"))
-        nested = [path for path in target.iterdir() if path.is_dir()]
-        for path in nested:
-            issues.append(Issue(_display(path), "标准文档目录必须保持扁平。"))
+        if relative in FLAT_DOCUMENT_DIRECTORIES:
+            nested = [path for path in target.iterdir() if path.is_dir()]
+            for path in nested:
+                issues.append(Issue(_display(path), "标准文档目录必须保持扁平。"))
 
     for relative in OBSOLETE_PATHS:
         target = PROJECT_ROOT / relative
         if target.exists():
             issues.append(Issue(_display(target), "旧文档或工具路径仍然存在。"))
+    return issues
+
+
+def _check_devlog_structure() -> list[Issue]:
+    issues: list[Issue] = []
+    if not DEVLOG_ROOT.is_dir():
+        return [Issue(_display(DEVLOG_ROOT), "缺少 DevLog 目录。")]
+
+    allowed_root_files = {"README.md", "devlog-template.md", "postmortem-template.md"}
+    for child in sorted(DEVLOG_ROOT.iterdir()):
+        if child.is_file():
+            if child.name not in allowed_root_files:
+                issues.append(Issue(_display(child), "DevLog 根目录只能保存 README 和模板。"))
+            continue
+        if not child.is_dir() or not re.fullmatch(r"\d{4}", child.name):
+            issues.append(Issue(_display(child), "DevLog 一级目录必须是四位年份。"))
+            continue
+
+        year = child.name
+        for month_dir in sorted(child.iterdir()):
+            if not month_dir.is_dir() or not re.fullmatch(r"(?:0[1-9]|1[0-2])", month_dir.name):
+                issues.append(Issue(_display(month_dir), "DevLog 二级目录必须是 01-12 月份。"))
+                continue
+
+            month = month_dir.name
+            for entry in sorted(month_dir.iterdir()):
+                if not entry.is_file():
+                    issues.append(Issue(_display(entry), "DevLog 月份目录不能继续嵌套。"))
+                    continue
+                match = DEVLOG_ENTRY_NAME.fullmatch(entry.name)
+                if match is None:
+                    issues.append(Issue(_display(entry), "DevLog 文件名必须是日报或 postmortem 约定格式。"))
+                    continue
+                try:
+                    entry_date = date.fromisoformat(match.group("date"))
+                except ValueError:
+                    issues.append(Issue(_display(entry), "DevLog 文件名包含无效日期。"))
+                    continue
+                if str(entry_date.year) != year or f"{entry_date.month:02d}" != month:
+                    issues.append(Issue(_display(entry), "DevLog 文件日期与 YYYY/MM 目录不一致。"))
+
+                text = _read(entry)
+                head = "\n".join(text.splitlines()[:16])
+                required = (
+                    DEVLOG_POSTMORTEM_METADATA
+                    if match.group("postmortem")
+                    else DEVLOG_DAILY_METADATA
+                )
+                for field in required:
+                    if not re.search(rf"^>\s*{re.escape(field)}[：:]", head, flags=re.MULTILINE):
+                        issues.append(Issue(_display(entry), f"缺少 DevLog 元数据字段：{field}"))
+                if len(text.splitlines()) > 150:
+                    issues.append(Issue(_display(entry), "单份 DevLog 不应超过 150 行。"))
     return issues
 
 
@@ -412,6 +483,7 @@ def _check_source_doc_references() -> list[Issue]:
 def run_checks() -> tuple[int, list[Issue]]:
     checks = (
         _check_structure,
+        _check_devlog_structure,
         _check_nearest_indexes,
         _check_metadata,
         _check_active_references,

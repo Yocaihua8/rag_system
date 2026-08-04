@@ -6,6 +6,8 @@
 > Scope：LLM Profile 的保存、默认选择、连接测试与凭证引用
 > Related：`multi-model-comparison.md`、`prompt-preset-settings.md`、`../design/api-spec.md`、`../guides/security.md`
 
+本规格描述当前 Vue/v2 入口的 Profile 行为。平行 React/v3 的独立 Profile 元数据管理见 `model-profile-settings-v3.md`；两者不共享 SQLite、默认值或密钥解析链。
+
 ## 1. 用户目标
 
 用户在设置页保存多个 LLM Profile，选择默认配置并测试连接，用于普通问答和多模型对比。

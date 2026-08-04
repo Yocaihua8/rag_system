@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from backend.api.dispatch import dispatch
 from backend.domain.chunking import split_into_chunks
 from backend.domain.import_rules import MAX_TEXT_FILE_BYTES
 from backend.domain.ingestion import import_directory
@@ -189,6 +190,77 @@ def test_upsert_document_builds_retrievable_chunks(tmp_path: Path):
     assert [chunk.chunk_index for chunk in chunks] == list(range(len(chunks)))
     assert all(chunk.document.relative_path == "guide.md" for chunk in chunks)
     assert "DeepSeek API Key" in " ".join(chunk.content for chunk in chunks)
+
+
+def test_store_configuration_controls_new_project_chunks_and_retrieval_defaults(tmp_path: Path):
+    store = KnowledgeStore(
+        tmp_path / "app.db",
+        vector_store=None,
+        chunk_size=48,
+        chunk_overlap=12,
+        retrieval_top_k=1,
+        retriever_kind="keyword",
+    )
+    project = store.create_project("Configured", tmp_path)
+    content = " ".join(["configured retrieval chunk"] * 20)
+
+    store.upsert_document(project.id, tmp_path / "configured.md", "configured.md", content)
+
+    chunks = store.list_chunks(project.id)
+    settings = store.get_project_retrieval_settings(project.id)
+    assert len(chunks) > 1
+    assert max(len(chunk.content) for chunk in chunks) <= 48
+    assert settings == {
+        "project_id": project.id,
+        "top_k": 1,
+        "min_score": 0.0,
+        "use_keyword": True,
+        "use_vector": False,
+    }
+
+    search_response = dispatch(
+        store,
+        "POST",
+        "/api/search",
+        {"project_id": project.id, "query": "configured retrieval"},
+    )
+    review_response = dispatch(
+        store,
+        "POST",
+        "/api/retrieval/reviews",
+        {"project_id": project.id, "query": "configured retrieval", "note": "defaults"},
+    )
+    assert search_response.status == 200
+    assert len(search_response.body["hits"]) == 1
+    assert review_response.status == 200
+    assert review_response.body["review"]["parameters"] == {
+        "top_k": 1,
+        "min_score": 0.0,
+        "use_keyword": True,
+        "use_vector": False,
+    }
+
+
+def test_store_configuration_never_overwrites_existing_project_retrieval_settings(tmp_path: Path):
+    database_path = tmp_path / "app.db"
+    first_store = KnowledgeStore(
+        database_path,
+        vector_store=None,
+        retrieval_top_k=3,
+        retriever_kind="keyword",
+    )
+    project = first_store.create_project("Existing", tmp_path)
+    first_settings = first_store.get_project_retrieval_settings(project.id)
+
+    reopened_store = KnowledgeStore(
+        database_path,
+        vector_store=None,
+        retrieval_top_k=8,
+        retriever_kind="hybrid",
+    )
+
+    assert first_settings is not None
+    assert reopened_store.get_project_retrieval_settings(project.id) == first_settings
 
 
 def test_markdown_chunking_keeps_fenced_code_block_together():

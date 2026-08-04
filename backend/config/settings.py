@@ -16,6 +16,7 @@ API_KEY_ENV_NAMES = (
     "DEEPSEEK_APIKEY",
     "DeepSeekApiKey",
 )
+RETRIEVER_KINDS = {"keyword", "vector", "hybrid"}
 
 
 @dataclass(frozen=True)
@@ -199,6 +200,20 @@ def load_settings(override_env: dict[str, str] | None = None) -> AppSettings:
     runtime_dir = Path(
         _resolve(env, "RAG_RUNTIME_DIR", str(project_root / "runtime" / "v2"))
     ).expanduser().resolve()
+    chunk_size = _bounded_int(
+        _resolve(env, "RAG_CHUNK_SIZE", defaults.CHUNK_SIZE),
+        name="RAG_CHUNK_SIZE",
+        minimum=1,
+        maximum=1_000_000,
+    )
+    chunk_overlap = _bounded_int(
+        _resolve(env, "RAG_CHUNK_OVERLAP", defaults.CHUNK_OVERLAP),
+        name="RAG_CHUNK_OVERLAP",
+        minimum=0,
+        maximum=999_999,
+    )
+    if chunk_overlap >= chunk_size:
+        raise ValueError("RAG_CHUNK_OVERLAP must be smaller than RAG_CHUNK_SIZE")
 
     return AppSettings(
         kb_root=kb_root,
@@ -212,10 +227,17 @@ def load_settings(override_env: dict[str, str] | None = None) -> AppSettings:
         ollama_model=_resolve(env, "RAG_OLLAMA_MODEL", defaults.OLLAMA_MODEL),
         embedding_model=_resolve(env, "RAG_EMBEDDING_MODEL", defaults.EMBEDDING_MODEL),
         embedding_dim=int(_resolve(env, "RAG_EMBEDDING_DIM", defaults.EMBEDDING_DIM)),
-        retriever_kind=_resolve(env, "RAG_RETRIEVER_KIND", defaults.RETRIEVER_KIND),
-        chunk_size=int(_resolve(env, "RAG_CHUNK_SIZE", defaults.CHUNK_SIZE)),
-        chunk_overlap=int(_resolve(env, "RAG_CHUNK_OVERLAP", defaults.CHUNK_OVERLAP)),
-        retrieval_top_k=int(_resolve(env, "RAG_TOP_K", defaults.RETRIEVAL_TOP_K)),
+        retriever_kind=_retriever_kind(
+            _resolve(env, "RAG_RETRIEVER_KIND", defaults.RETRIEVER_KIND)
+        ),
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        retrieval_top_k=_bounded_int(
+            _resolve(env, "RAG_TOP_K", defaults.RETRIEVAL_TOP_K),
+            name="RAG_TOP_K",
+            minimum=1,
+            maximum=20,
+        ),
         llm_temperature=float(_resolve(env, "RAG_LLM_TEMPERATURE", defaults.LLM_TEMPERATURE)),
         llm_max_tokens=int(_resolve(env, "RAG_LLM_MAX_TOKENS", defaults.LLM_MAX_TOKENS)),
         llm_provider=_resolve(env, "RAG_LLM_PROVIDER", defaults.LLM_PROVIDER),
@@ -227,6 +249,35 @@ def load_settings(override_env: dict[str, str] | None = None) -> AppSettings:
         embedding_api_key=_resolve(env, "RAG_EMBED_API_KEY", defaults.EMBED_API_KEY),
         embedding_api_model=_resolve(env, "RAG_EMBED_API_MODEL", defaults.EMBED_API_MODEL),
     )
+
+
+def retrieval_default_flags(retriever_kind: str) -> tuple[bool, bool]:
+    """Map one configured retriever mode to project-level retrieval switches."""
+
+    kind = _retriever_kind(retriever_kind)
+    return {
+        "keyword": (True, False),
+        "vector": (False, True),
+        "hybrid": (True, True),
+    }[kind]
+
+
+def _retriever_kind(value: str) -> str:
+    kind = str(value).strip().lower()
+    if kind not in RETRIEVER_KINDS:
+        allowed = ", ".join(sorted(RETRIEVER_KINDS))
+        raise ValueError(f"RAG_RETRIEVER_KIND must be one of: {allowed}")
+    return kind
+
+
+def _bounded_int(value: str, *, name: str, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be an integer") from exc
+    if not minimum <= parsed <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return parsed
 
 
 def save_setting(key: str, value: str, settings: AppSettings) -> None:
@@ -265,5 +316,6 @@ __all__ = [
     "get_api_key_env_name",
     "load_backend_env",
     "load_settings",
+    "retrieval_default_flags",
     "save_setting",
 ]

@@ -1,10 +1,11 @@
 # ADR-008 项目知识教练与 v2 数据代际
 
-> 状态：Accepted
+> 状态：Superseded
 > Date：2026-07-23
 > Owner：RAG 团队
 > Scope：项目知识教练产品主线、Coach 领域模型与 v2 数据代际
-> Related：[项目知识教练](../features/project-knowledge-coach.md)、[系统设计总览](../design/system-design-overview.md)、[数据库设计](../design/database-design.md)、[状态流与验收](../design/state-flow-and-acceptance.md)、[BACKLOG](../BACKLOG.md)
+> Related：[项目知识教练](../features/project-knowledge-coach.md)、[系统设计总览](../design/system-design-overview.md)、[数据库设计](../design/database-design.md)、[状态流与验收](../design/state-flow-and-acceptance.md)、[BACKLOG](../BACKLOG.md)、[ADR-012](ADR-012-agent-product-and-permissions.md)、[ADR-015](ADR-015-v3-data-api-storage.md)
+> Superseded by：ADR-012、ADR-015（v3 目标；v2 教练和数据代际仍是当前运行事实）
 
 ## 1. 背景
 

@@ -23,6 +23,7 @@ node_modules/
 frontend/dist/
 frontend/build/
 frontend/playwright-report/
+*.tsbuildinfo
 
 # Runtime outputs
 runtime/**

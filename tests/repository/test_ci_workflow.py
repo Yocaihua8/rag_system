@@ -31,12 +31,16 @@ def test_ci_workflow_runs_backend_docs_build_and_e2e_commands():
         ".venv/bin/python -m pytest tests/backend tests/integration tests/repository -q",
         ".venv/bin/python scripts/check_docs_consistency.py",
         ".venv/bin/pip-audit -r backend/requirements/base.txt",
-        "npm audit --audit-level=high",
+        "python scripts/check_npm_audit.py",
         "npm ci",
         "npm run frontend:test",
         "npm run frontend:build",
-        "npm exec --workspace frontend -- playwright install chromium --with-deps",
+        "npm exec --workspace frontend-v3 -- playwright install chromium --with-deps",
         "npm run frontend:e2e",
+        "npm run frontend-v3:typecheck",
+        "npm run frontend-v3:test",
+        "npm run frontend-v3:build",
+        "npm run frontend-v3:e2e",
     ]:
         assert marker in workflow
 
@@ -79,7 +83,7 @@ def test_ci_workflow_installs_security_audit_tooling_before_python_audit():
     assert python_job.index(".venv/bin/pip install -r backend/requirements/dev.txt") < python_job.index(
         ".venv/bin/pip-audit -r backend/requirements/base.txt"
     )
-    assert python_job.index("npm ci") < python_job.index("npm audit --audit-level=high")
+    assert python_job.index("npm ci") < python_job.index("python scripts/check_npm_audit.py")
 
 
 def test_docs_workflow_runs_flat_path_and_source_derived_checks():

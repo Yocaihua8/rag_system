@@ -2,11 +2,11 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-02
 > Scope：当前需求、设计、功能、决策、操作指南和临时执行计划
 > Related：`../README.md`、`BACKLOG.md`、`../CHANGELOG.md`
 
-本文档树只保存当前有效的产品和工程事实。已完成变更进入 `CHANGELOG.md` 与 Git 历史；未完成事项进入 `BACKLOG.md`。仓库不再维护 DevLog、readiness 快照、已验收 preview 或工具生成的历史 plan。
+本文档树保存当前规格、已批准目标和可执行指南。开发过程进入每日 DevLog，完成变更进入 `CHANGELOG.md` 与 Git 历史，未完成事项进入 `BACKLOG.md`。仓库不维护 readiness 快照、已验收 preview 或工具生成的历史 plan。
 
 ## 1. 阅读顺序
 
@@ -18,6 +18,7 @@
 6. [`guides/setup.md`](guides/setup.md) 与 [`guides/testing.md`](guides/testing.md)：搭建和验证
 7. [`guides/runbook.md`](guides/runbook.md)：启停、健康检查、备份与恢复
 8. [`BACKLOG.md`](BACKLOG.md)：未完成事项和已知问题
+9. [`devlog/`](devlog/)：按开发日记录的过程、问题、决定和下一步
 
 ## 2. 目录
 
@@ -29,6 +30,7 @@
 | [`adr/`](adr/) | Accepted ADR 与模板 | 重要技术决策和取舍 |
 | [`guides/`](guides/) | 搭建、测试、运行、发布、安全和协作 | 可执行操作 |
 | [`plans/`](plans/) | 当前 Active/Interrupted AI plan 与模板 | 完成后删除活动 plan |
+| [`devlog/`](devlog/) | 每日开发记录、模板与问题复盘 | 过程事实；不代替正式规格和发布历史 |
 | [`style-guide.md`](style-guide.md) | 写作、元数据和链接规范 | 文档维护规则 |
 | [`glossary.md`](glossary.md) | 项目术语 | 统一含义和缩写 |
 | [`BACKLOG.md`](BACKLOG.md) | `todo/doing/blocked/wontfix` 事项与开放问题 | 不保存已完成历史 |
@@ -60,6 +62,7 @@
 | Desktop、Obsidian、GitHub | 对应功能规格以及 `guides/` 中按操作目的归类的文档 |
 | 命令、依赖、Docker、发布或安全 | `guides/` |
 | 未完成事项 | `BACKLOG.md` |
+| 每日过程、问题和临时决定 | `devlog/YYYY/MM/YYYY-MM-DD.md`；重大决定提升为 ADR |
 | 已完成且对使用者/维护者有意义 | `CHANGELOG.md` |
 
 新 ADR 使用 [`adr/ADR-000-template.md`](adr/ADR-000-template.md)，并追加到 [`adr/README.md`](adr/README.md)。新功能、RFC 和 plan 分别使用 [`features/feature-template.md`](features/feature-template.md)、[`design/rfc-template.md`](design/rfc-template.md) 和 [`plans/plan-template.md`](plans/plan-template.md)。
@@ -68,7 +71,7 @@
 
 - 涉及代码或跨文件行为变更时，先在 `BACKLOG.md` 建立 `B-xxx`，状态设为 `doing`。
 - 冲突扫描后，在 `plans/{B-ID}-{slug}.md` 创建执行 plan，并把路径回写 BACKLOG。
-- 执行中按任务勾选、提交和更新状态快照；中断时保留 plan。
+- 执行中按任务勾选、提交、更新状态快照并追加当日 DevLog；中断时保留 plan。
 - 完成后回流对应文档和 `CHANGELOG.md`，从 BACKLOG 移除完成条目并删除 plan。
 
 完整规则见 [`plans/README.md`](plans/README.md) 和根 [`AGENTS.md`](../AGENTS.md)。

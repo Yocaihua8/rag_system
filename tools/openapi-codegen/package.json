@@ -1,0 +1,13 @@
+{
+  "name": "@knowledge-island/openapi-codegen",
+  "version": "3.0.0-alpha.2",
+  "private": true,
+  "description": "Isolated OpenAPI type generator for the TypeScript 6 frontend",
+  "scripts": {
+    "generate": "openapi-typescript ../../frontend-v3/src/api/generated/openapi-v3.json --output ../../frontend-v3/src/api/generated/schema.d.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

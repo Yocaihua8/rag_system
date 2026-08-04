@@ -65,3 +65,63 @@ def test_structure_check_rejects_nested_canonical_topic_directory(tmp_path, monk
     issues = check_docs_consistency._check_structure()
 
     assert any("必须保持扁平" in issue.message for issue in issues)
+
+
+def test_structure_check_allows_devlog_year_month_directories(tmp_path, monkeypatch):
+    docs_root = tmp_path / "docs"
+    for name in check_docs_consistency.CANONICAL_DIRECTORIES:
+        directory = docs_root / name
+        directory.mkdir(parents=True)
+        (directory / "README.md").write_text(f"[{name}]({name}/)\n", encoding="utf-8")
+    (docs_root / "devlog" / "2026" / "08").mkdir(parents=True)
+    docs_readme = docs_root / "README.md"
+    docs_readme.write_text(
+        "\n".join(f"{name}/" for name in check_docs_consistency.CANONICAL_DIRECTORIES),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(check_docs_consistency, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(check_docs_consistency, "DOCS_ROOT", docs_root)
+    monkeypatch.setattr(check_docs_consistency, "DOCS_README", docs_readme)
+
+    issues = check_docs_consistency._check_structure()
+
+    assert not any("docs/devlog" in issue.location and "必须保持扁平" in issue.message for issue in issues)
+
+
+def test_devlog_check_accepts_daily_entry_in_matching_year_month(tmp_path, monkeypatch):
+    devlog_root = tmp_path / "docs" / "devlog"
+    month = devlog_root / "2026" / "08"
+    month.mkdir(parents=True)
+    for name in ("README.md", "devlog-template.md", "postmortem-template.md"):
+        (devlog_root / name).write_text("template\n", encoding="utf-8")
+    (month / "2026-08-02.md").write_text(
+        "# DevLog 2026-08-02\n\n"
+        "> Author：Codex\n"
+        "> Iteration：B-172\n"
+        "> Related：B-172\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(check_docs_consistency, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(check_docs_consistency, "DEVLOG_ROOT", devlog_root)
+
+    issues = check_docs_consistency._check_devlog_structure()
+
+    assert issues == []
+
+
+def test_devlog_check_rejects_root_daily_and_mismatched_date(tmp_path, monkeypatch):
+    devlog_root = tmp_path / "docs" / "devlog"
+    month = devlog_root / "2026" / "08"
+    month.mkdir(parents=True)
+    (devlog_root / "2026-08-02.md").write_text("root daily\n", encoding="utf-8")
+    (month / "2026-07-31.md").write_text(
+        "# DevLog\n\n> Author：Codex\n> Iteration：B-172\n> Related：B-172\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(check_docs_consistency, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(check_docs_consistency, "DEVLOG_ROOT", devlog_root)
+
+    issues = check_docs_consistency._check_devlog_structure()
+
+    assert any("根目录只能保存" in issue.message for issue in issues)
+    assert any("日期与 YYYY/MM 目录不一致" in issue.message for issue in issues)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from backend.config.settings import API_KEY_ENV_NAMES, AppSettings
 
 
@@ -98,6 +100,32 @@ def test_load_settings_applies_file_env_os_env_and_override_precedence(monkeypat
     assert settings.llm_provider == "api"
     assert settings.llm_api_model == "override-model"
     assert settings.embedding_dim == 384
+
+
+def test_load_settings_validates_active_retrieval_configuration(monkeypatch, tmp_path):
+    settings_module, _, _ = _isolate_settings(monkeypatch, tmp_path)
+
+    settings = settings_module.load_settings(
+        {
+            "RAG_RETRIEVER_KIND": "HYBRID",
+            "RAG_CHUNK_SIZE": "96",
+            "RAG_CHUNK_OVERLAP": "24",
+            "RAG_TOP_K": "7",
+        }
+    )
+
+    assert settings.retriever_kind == "hybrid"
+    assert settings.chunk_size == 96
+    assert settings.chunk_overlap == 24
+    assert settings.retrieval_top_k == 7
+    assert settings_module.retrieval_default_flags("keyword") == (True, False)
+    assert settings_module.retrieval_default_flags("vector") == (False, True)
+    assert settings_module.retrieval_default_flags("hybrid") == (True, True)
+
+    with pytest.raises(ValueError, match="RAG_RETRIEVER_KIND"):
+        settings_module.load_settings({"RAG_RETRIEVER_KIND": "graph"})
+    with pytest.raises(ValueError, match="RAG_CHUNK_OVERLAP"):
+        settings_module.load_settings({"RAG_CHUNK_SIZE": "32", "RAG_CHUNK_OVERLAP": "32"})
 
 
 def test_deepseek_alias_sets_api_provider_when_no_primary_key(monkeypatch, tmp_path):

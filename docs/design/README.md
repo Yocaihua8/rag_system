@@ -2,7 +2,7 @@
 
 > 状态：Active
 > Owner：RAG 团队
-> Last Updated：2026-08-01
+> Last Updated：2026-08-03
 > Scope：Knowledge Island 完整系统的架构、契约、数据、状态、安全和界面设计
 > Related：`../README.md`、`../requirements/README.md`、`../features/README.md`、`../adr/README.md`
 
@@ -22,6 +22,15 @@
 | [`page-module-contract.md`](page-module-contract.md) | 页面模块顺序和集成边界 |
 | [`component-api-contract.md`](component-api-contract.md) | 活动组件 props、emits 与调用约束 |
 | [`risk-register.md`](risk-register.md) | 当前架构和交付风险 |
+| [`agent-runtime-and-tool-contract.md`](agent-runtime-and-tool-contract.md) | v3 持久运行、工作流节点、审批和工具安全合同 |
+| [`ui-prototype-brief-v3.md`](ui-prototype-brief-v3.md) | P1/P2 原型覆盖、布局、状态与前端实施门禁 |
+| [`v3-document-migration.md`](v3-document-migration.md) | 旧文档事实吸收、归并和安全删除矩阵 |
+| [`v3-sources-contract.md`](v3-sources-contract.md) | v3 Sources 的路径、响应脱敏和持久化合同 |
+| [`v3-project-insights-contract.md`](v3-project-insights-contract.md) | v3 文档快照的只读项目概览合同 |
+| [`v3-source-fact-report-contract.md`](v3-source-fact-report-contract.md) | v3 已持久 Documents 的可追溯资料事实报告与陈旧规则 |
+| [`v3-model-profiles-contract.md`](v3-model-profiles-contract.md) | v3 模型 Profile 元数据、幂等与密钥引用合同 |
+| [`v3-artifact-export-contract.md`](v3-artifact-export-contract.md) | v3 Artifact 两阶段确认与受管导出目录合同 |
+| [`v3-workflow-execution-contract.md`](v3-workflow-execution-contract.md) | v3 已发布工作流首段执行的准入、快照和节点白名单合同 |
 | [`rfc-template.md`](rfc-template.md) | 设计提案模板，不代表已批准方案 |
 
 重要决策见 [`../adr/README.md`](../adr/README.md)，未完成设计只进入 [`../BACKLOG.md`](../BACKLOG.md)。

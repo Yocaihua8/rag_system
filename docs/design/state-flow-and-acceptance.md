@@ -26,7 +26,7 @@
 - `failed`：批次无法形成可用结果；部分在项目或有效负载尚未建立前失败的请求不会创建批次。
 - 批次摘要字段为 `imported/created/updated/unchanged/deleted/skipped/errors`；预览接口不创建批次。
 
-当前文档表只保存原始统一正文 `content`，不生成 `normalized_markdown/plain_text/rendered_html` 三份字段。分块实现当前固定 700/80；可选 Qdrant 写入失败只产生警告，不回滚 SQLite 已完成入库。
+当前文档表只保存原始统一正文 `content`，不生成 `normalized_markdown/plain_text/rendered_html` 三份字段。分块参数来自启动时的 `RAG_CHUNK_SIZE/RAG_CHUNK_OVERLAP`，仅作用于后续写入或缺失 chunk 回填；可选 Qdrant 写入失败只产生警告，不回滚 SQLite 已完成入库。
 
 ### 1.2 受控网页抓取
 
@@ -157,13 +157,17 @@ preview -> draft
 
 ```text
 Tauri setup
-  -> spawn knowledge-island-backend
-  -> 保存 child handle，转发 stdout/stderr
+  -> 默认路径：固定 8765，显式关闭 desktop mode
+  -> opt-in 安全路径：选择 loopback 临时端口 + 生成 32 字节随机令牌
+  -> 通过子进程环境 spawn knowledge-island-backend
+  -> 保存 child handle 与内存 bootstrap，转发 stdout/stderr
+  -> 仅 main WebView 可读取 bootstrap
+  -> sidecar 异常退出：清空 child 与 bootstrap
   -> 主窗口关闭：隐藏到托盘，sidecar 继续运行
-  -> 托盘退出：kill child -> app exit
+  -> 托盘退出：kill child + 清空 bootstrap -> app exit
 ```
 
-当前实现没有在显示 WebView 前轮询 `/api/health`、没有端口占用恢复、也不会在 sidecar 异常退出后自动重启。打包成功或 sidecar 成功 spawn 不能替代安装后 API 主流程验证。
+当前实现没有在显示 WebView 前轮询 `/api/health`、没有端口占用恢复、也不会在 sidecar 异常退出后自动重启。安全路径默认关闭，正式 Vue/CSP 仍使用固定 8765；打包成功或 sidecar 成功 spawn 不能替代安装后 API 主流程验证。
 
 ## 10. 最低验收矩阵
 
