@@ -65,6 +65,7 @@ JSON_FIELDS = {
 }
 BOOLEAN_FIELDS = {"enabled", "is_default"}
 TERMINAL_RUN_STATUSES = {"completed", "failed", "cancelled"}
+ACTIVE_RUN_STATUSES = frozenset(set(RUN_STATUSES) - TERMINAL_RUN_STATUSES)
 TERMINAL_STEP_STATUSES = {"succeeded", "failed", "skipped", "cancelled"}
 
 
@@ -309,7 +310,10 @@ class AgentStore:
                     )
                     updated += 1
 
-            stale_paths = set(existing) - current_paths
+            scan_complete = not bool(summary.get("truncated", 0)) and not bool(
+                summary.get("read_failures", 0)
+            )
+            stale_paths = set(existing) - current_paths if scan_complete else set()
             if stale_paths:
                 connection.execute(
                     delete(documents).where(
@@ -1358,6 +1362,16 @@ class AgentStore:
             if replay is not None:
                 return replay
             task = _require_row(connection, agent_tasks, clean_task_id, "task")
+            active_run = connection.execute(
+                select(agent_runs.c.id)
+                .where(
+                    agent_runs.c.task_id == clean_task_id,
+                    agent_runs.c.status.in_(sorted(ACTIVE_RUN_STATUSES)),
+                )
+                .limit(1)
+            ).scalar_one_or_none()
+            if active_run is not None:
+                raise StateConflictError("task already has an active run")
             input_message = _require_row(
                 connection, agent_task_messages, clean_message_id, "task message"
             )

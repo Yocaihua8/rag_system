@@ -39,7 +39,11 @@ def _executable_graph() -> dict:
         "nodes": [
             {"id": "trigger", "type": "trigger.manual", "config": {}},
             {"id": "analyze", "type": "project.analyze", "config": {"analysis_kind": "sources"}},
-            {"id": "artifact", "type": "artifact.create", "config": {"format": "json"}},
+            {
+                "id": "artifact",
+                "type": "artifact.create",
+                "config": {"format": "json", "title": "Configured inspection"},
+            },
             {"id": "respond", "type": "agent.respond", "config": {}},
         ],
         "edges": [
@@ -154,6 +158,12 @@ def test_published_bound_safe_workflow_can_create_a_versioned_run(tmp_path: Path
         run = response.json()["data"]["run"]
         assert run["workflow_version_id"] == version["id"]
         assert run["workflow_checksum"] == version["checksum"]
+        steps = {item["node_type"]: item for item in response.json()["data"]["steps"]}
+        assert steps["project.analyze"]["input"]["analysis_kind"] == "sources"
+        assert steps["artifact.create"]["input"] == {
+            "format": "json",
+            "title": "Configured inspection",
+        }
         for _ in range(40):
             current = client.get(f"/api/v3/runs/{run['id']}").json()["data"]["run"]
             if current["status"] == "completed":

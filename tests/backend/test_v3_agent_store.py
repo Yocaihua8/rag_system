@@ -176,13 +176,26 @@ def test_list_task_runs_orders_newest_first_with_stable_pagination(
             "2026-08-02T10:00:00.001Z",
             "2026-08-02T10:00:00.002Z",
             "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
+            "2026-08-02T10:00:00.002Z",
         ]
     )
     monkeypatch.setattr(store_module, "_utc_now", lambda: next(timestamps))
-    created = [
-        _create_run(store, task_id, f"run-list-{index}")["run"]
-        for index in range(3)
-    ]
+    created = []
+    for index in range(3):
+        run = _create_run(store, task_id, f"run-list-{index}")["run"]
+        claim = store.claim_next_run(worker_id="run-list-worker", lease_seconds=30)
+        store.complete_step(
+            run_id=run["id"],
+            step_id=claim["step"]["id"],
+            worker_id="run-list-worker",
+            output={"index": index},
+        )
+        created.append(run)
     expected = sorted(
         created,
         key=lambda run: (run["created_at"], run["id"]),
@@ -324,6 +337,53 @@ def test_run_rejects_input_message_from_another_task(store):
             idempotency_key="message-owner-run",
             request_hash="message-owner-run-hash",
         )
+
+
+@pytest.mark.parametrize(
+    "summary",
+    [
+        {"truncated": 1, "read_failures": 0},
+        {"truncated": 0, "read_failures": 1},
+    ],
+)
+def test_incomplete_source_scan_preserves_existing_documents(store, summary: dict[str, int]):
+    project_id, _ = _create_project_task(store, f"partial-source-{summary['truncated']}")
+    document = {
+        "relative_path": "README.md",
+        "content": "kept",
+        "checksum": "checksum-kept",
+        "mime_type": "text/markdown",
+        "size_bytes": 4,
+    }
+    initial = store.sync_project_root_source(
+        project_id=project_id,
+        documents_to_sync=[document],
+        summary={"truncated": 0, "read_failures": 0},
+        idempotency_key=f"source-initial-{summary['truncated']}",
+        request_hash=f"source-initial-{summary['truncated']}",
+    )
+
+    partial = store.sync_project_root_source(
+        project_id=project_id,
+        documents_to_sync=[],
+        summary=summary,
+        idempotency_key=f"source-partial-{summary['truncated']}",
+        request_hash=f"source-partial-{summary['truncated']}",
+    )
+
+    assert initial["summary"]["document_count"] == 1
+    assert partial["summary"]["deleted"] == 0
+    assert [item["relative_path"] for item in store.list_documents(project_id=project_id)] == [
+        "README.md"
+    ]
+
+
+def test_task_rejects_second_active_run_with_a_different_idempotency_key(store):
+    _, task_id = _create_project_task(store, "one-active-run")
+    _create_run(store, task_id, "one-active-run-first")
+
+    with pytest.raises(StateConflictError, match="active run"):
+        _create_run(store, task_id, "one-active-run-second")
 
 
 def test_run_rejects_non_user_input_message_from_same_task(store):

@@ -37,6 +37,7 @@
 
 ### Fixed
 
+- **v3 执行与扫描状态一致性**：执行器运行期间持续恢复过期 lease；不完整 Sources 扫描保留既有 Documents；已发布工作流节点配置冻结到 Run Step；同一 Task 不再接受并发未终态 Run，避免共享任务状态相互覆盖。
 - **v2 活动检索与分块配置**：`RAG_CHUNK_SIZE`、`RAG_CHUNK_OVERLAP`、`RAG_RETRIEVER_KIND` 与 `RAG_TOP_K` 现接入 v2 Web 导入、缺失分块回填、默认搜索、检索复盘和只读来源检索。新项目按启动配置初始化检索设置，已有项目保存值与已有 chunk 保持不变。
 - **桌面 sidecar v3 初始化资源**：Windows/Unix PyInstaller 构建显式收集 `backend/alembic.ini` 与 v3 migration 目录，修复 sidecar 可打包但无法初始化 `runtime/v3/app.db` 的启动失败；真实 Windows sidecar 已通过随机端口、进程令牌、health 与恢复 OpenAPI 动态验证。
 - **v2 SQLite 在线备份**：保留 `runtime/v2/app.db`、`runtime/v2/backups/` 与 `knowledge-island-v2-*` 主线约定，并修复 Git Bash 调用 Windows `sqlite3.exe` 时 `.backup` 目标路径不可用的问题；真实隔离恢复测试验证 SQLite 完整性、v2 标记和样例数据。

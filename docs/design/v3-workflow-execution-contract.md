@@ -8,7 +8,7 @@
 
 ## 1. 首段目标
 
-首段只允许用户以新建 Task 的不可变用户消息为输入，启动已绑定到该项目的已发布工作流版本。Run 必须保存 `workflow_version_id`、版本号和 checksum 快照；后续绑定、草稿或发布变化不得改写已创建 Run。
+首段只允许用户以新建 Task 的不可变用户消息为输入，启动已绑定到该项目的已发布工作流版本。Run 必须保存 `workflow_version_id`、版本号和 checksum 快照，并将每个已验证节点的配置冻结到对应 Step 输入；后续绑定、草稿或发布变化不得改写已创建 Run。
 
 ## 2. 准入规则
 
@@ -21,7 +21,7 @@
 
 调用方必须显式提交已发布 `workflow_version_id`，服务端验证它属于已绑定项目、Definition active、Binding enabled 且版本为 published。绑定不存在、已禁用、版本不匹配或图不在白名单时返回明确冲突/校验错误。
 
-首段不做自动选择默认工作流、不复用旧 Run、不从浏览器状态推断发布版本。当前 API 已实现受限 Run 创建和执行；React 工作流详情仅在当前项目存在启用且版本匹配的 Binding 时显示任务输入与启动入口，并按顺序创建 Task、Run 后跳转至任务页。
+首段不做自动选择默认工作流、不复用旧 Run、不从浏览器状态推断发布版本。同一 Task 存在 queued、running、waiting_approval、paused 或 recovering Run 时拒绝新的 Run；只有前一 Run 终态后才能创建下一次。当前 API 已实现受限 Run 创建和执行；React 工作流详情仅在当前项目存在启用且版本匹配的 Binding 时显示任务输入与启动入口，并按顺序创建 Task、Run 后跳转至任务页。
 
 ## 4. 不在范围
 

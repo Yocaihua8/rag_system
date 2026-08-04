@@ -129,10 +129,14 @@ async def test_start_recovers_before_workers_and_never_processes_more_than_two(
     with anyio.fail_after(2):
         while store.events.count("expire-approvals") < 2:
             await anyio.sleep(0.01)
+    with anyio.fail_after(2):
+        while store.events.count("recover") < 2:
+            await anyio.sleep(0.01)
     assert executor.running is True
     assert len(processed) == 2
     assert max_active == 2
     assert store.events.count("expire-approvals") >= 2
+    assert store.events.count("recover") >= 2
 
     release.set()
     with anyio.fail_after(2):

@@ -94,11 +94,12 @@ class AgentExecutor:
             if not self._running:
                 return
             try:
+                await anyio.to_thread.run_sync(self.store.recover_expired_runs)
                 await anyio.to_thread.run_sync(self.store.expire_pending_approvals)
             except anyio.get_cancelled_exc_class():
                 raise
             except Exception:
-                logger.exception("v3 approval expiry sweep failed")
+                logger.exception("v3 executor maintenance sweep failed")
 
     async def _process_claim(
         self,

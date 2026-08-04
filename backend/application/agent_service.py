@@ -904,7 +904,10 @@ def _executable_workflow_steps(graph: Mapping[str, Any]) -> list[dict[str, Any]]
     types = [str(item.get("type") or "") for item in nodes if isinstance(item, Mapping)]
     if len(types) != len(expected_types) or set(types) != set(expected_types):
         raise ApplicationValidationError("workflow graph contains unsupported executable nodes")
-    ids_by_type = {str(item["type"]): str(item["id"]) for item in nodes if isinstance(item, Mapping)}
+    nodes_by_type = {
+        str(item["type"]): item for item in nodes if isinstance(item, Mapping)
+    }
+    ids_by_type = {node_type: str(item["id"]) for node_type, item in nodes_by_type.items()}
     required_edges = {
         (ids_by_type[expected_types[index]], ids_by_type[expected_types[index + 1]])
         for index in range(len(expected_types) - 1)
@@ -923,7 +926,7 @@ def _executable_workflow_steps(graph: Mapping[str, Any]) -> list[dict[str, Any]]
             "effect_kind": "none" if node_type == "trigger.manual" else "analysis",
             "ordinal": index,
             "status": "queued" if index == 0 else "pending",
-            "input": {},
+            "input": dict(nodes_by_type[node_type].get("config") or {}),
             "max_attempts": 1,
         }
         for index, node_type in enumerate(expected_types)
